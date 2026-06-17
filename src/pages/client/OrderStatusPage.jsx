@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom'
 import { useOrderPolling } from '../../hooks/useOrderPolling'
 import { formatPrice, STATUS_LABELS, STATUS_FLOW } from '../../lib/utils'
+import OrderFeedback from '../../components/OrderFeedback'
 
 export default function OrderStatusPage() {
   const { orderId } = useParams()
@@ -116,6 +117,8 @@ export default function OrderStatusPage() {
         <span className="font-medium">Total</span>
         <span className="font-mono text-ember-400">{formatPrice(order.total)}</span>
       </div>
+
+      {order.status === 'entregado' && <OrderFeedback orderId={order.id} />}
     </div>
   )
 }
