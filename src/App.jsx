@@ -6,6 +6,7 @@ import { RequireCustomer, RequireStaff } from './components/ProtectedRoute'
 
 import IdentifyPage from './pages/client/IdentifyPage'
 import MenuPage from './pages/client/MenuPage'
+import OrdersPage from './pages/client/OrdersPage'
 import LocationPage from './pages/client/LocationPage'
 import PaymentPage from './pages/client/PaymentPage'
 import OrderStatusPage from './pages/client/OrderStatusPage'
@@ -30,6 +31,14 @@ export default function App() {
                 element={
                   <RequireCustomer>
                     <MenuPage />
+                  </RequireCustomer>
+                }
+              />
+              <Route
+                path="/pedidos"
+                element={
+                  <RequireCustomer>
+                    <OrdersPage />
                   </RequireCustomer>
                 }
               />
