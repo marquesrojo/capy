@@ -62,5 +62,5 @@ export function useOrderPolling(orderId) {
     }
   }, [orderId])
 
-  return { order, items, loading }
+  return { order, items, loading, setOrder }
 }
