@@ -6,15 +6,28 @@ import { formatPrice, STATUS_LABELS, STATUS_COLORS } from '../../lib/utils'
 
 const BOARD_COLUMNS = ['recibido', 'en_preparacion', 'listo', 'entregado']
 const PROOF_BUCKET = 'payment-proofs'
-const ORDER_SELECT = '*, order_items(*), customers(full_name, whatsapp)'
+const ORDER_SELECT = '*, order_items(*), customers(full_name, whatsapp), assigned_staff:profiles!orders_assigned_staff_id_fkey(id, full_name)'
 
 export default function AdminDashboard() {
   const [orders, setOrders] = useState([])
   const [pendingProofOrders, setPendingProofOrders] = useState([])
   const [pendingInPersonOrders, setPendingInPersonOrders] = useState([])
   const [proofUrls, setProofUrls] = useState({}) // orderId -> signed url
+  const [waiters, setWaiters] = useState([])
   const [loading, setLoading] = useState(true)
   const { signOut, profile } = useAuth()
+
+  useEffect(() => {
+    async function loadWaiters() {
+      const { data } = await supabaseStaff
+        .from('profiles')
+        .select('id, full_name')
+        .eq('role', 'camarero')
+        .order('full_name')
+      setWaiters(data || [])
+    }
+    loadWaiters()
+  }, [])
 
   async function load() {
     const [boardRes, proofRes, inPersonRes] = await Promise.all([
@@ -88,6 +101,17 @@ export default function AdminDashboard() {
     await supabaseStaff.from('orders').update({ status: newStatus }).eq('id', orderId)
   }
 
+  async function assignWaiter(orderId, staffId) {
+    const waiter = waiters.find(w => w.id === staffId) || null
+    setOrders(prev =>
+      prev.map(o => (o.id === orderId ? { ...o, assigned_staff_id: staffId, assigned_staff: waiter } : o))
+    )
+    setPendingInPersonOrders(prev =>
+      prev.map(o => (o.id === orderId ? { ...o, assigned_staff_id: staffId, assigned_staff: waiter } : o))
+    )
+    await supabaseStaff.from('orders').update({ assigned_staff_id: staffId || null }).eq('id', orderId)
+  }
+
   // Confirma cualquier pago pendiente (transferencia revisada, o cobro en
   // persona en efectivo/tarjeta) y libera el pedido al camarero.
   async function confirmPayment(order) {
@@ -136,6 +160,9 @@ export default function AdminDashboard() {
           <Link to="/admin/historial" className="text-smoke-400 text-xs underline">
             Historial
           </Link>
+          <Link to="/admin/encuestas" className="text-smoke-400 text-xs underline">
+            Encuestas
+          </Link>
           <Link to="/admin/carta" className="text-smoke-400 text-xs underline">
             Editar carta
           </Link>
@@ -171,7 +198,13 @@ export default function AdminDashboard() {
           </p>
           <div className="flex gap-3 overflow-x-auto pb-2">
             {pendingInPersonOrders.map(order => (
-              <InPersonCard key={order.id} order={order} onConfirm={() => confirmPayment(order)} />
+              <InPersonCard
+                key={order.id}
+                order={order}
+                waiters={waiters}
+                onConfirm={() => confirmPayment(order)}
+                onAssignWaiter={assignWaiter}
+              />
             ))}
           </div>
         </div>
@@ -184,10 +217,30 @@ export default function AdminDashboard() {
             status={status}
             orders={orders.filter(o => o.status === status)}
             onUpdateStatus={updateStatus}
+            waiters={waiters}
+            onAssignWaiter={assignWaiter}
           />
         ))}
       </div>
     </div>
+  )
+}
+
+function WaiterSelect({ order, waiters, onAssign }) {
+  return (
+    <select
+      value={order.assigned_staff_id || ''}
+      onChange={e => onAssign(order.id, e.target.value || null)}
+      onClick={e => e.stopPropagation()}
+      className="text-xs bg-carbon-800 border border-carbon-700 rounded-full px-2.5 py-1 text-smoke-300"
+    >
+      <option value="">Sin camarero</option>
+      {waiters.map(w => (
+        <option key={w.id} value={w.id}>
+          {w.full_name}
+        </option>
+      ))}
+    </select>
   )
 }
 
@@ -262,7 +315,7 @@ function ProofCard({ order, proofUrl, onConfirm, onReject }) {
   )
 }
 
-function InPersonCard({ order, onConfirm }) {
+function InPersonCard({ order, waiters, onConfirm, onAssignWaiter }) {
   const methodLabel = order.payment_method === 'efectivo' ? 'Efectivo' : 'Tarjeta'
   const elapsedMin = Math.round((Date.now() - new Date(order.created_at).getTime()) / 60000)
 
@@ -275,6 +328,10 @@ function InPersonCard({ order, onConfirm }) {
       <CustomerContact customer={order.customers} />
       <p className="text-smoke-300 text-sm font-medium mb-1">📍 {order.location_label}</p>
       <p className="text-blue-700 text-xs mb-2">💳 Paga con {methodLabel}</p>
+
+      <div className="mb-2">
+        <WaiterSelect order={order} waiters={waiters} onAssign={onAssignWaiter} />
+      </div>
 
       <ul className="space-y-1 mb-3">
         {order.order_items.map(item => (
@@ -297,7 +354,7 @@ function InPersonCard({ order, onConfirm }) {
   )
 }
 
-function Column({ status, orders, onUpdateStatus }) {
+function Column({ status, orders, onUpdateStatus, waiters, onAssignWaiter }) {
   const nextStatus = {
     recibido: 'en_preparacion',
     en_preparacion: 'listo',
@@ -311,14 +368,21 @@ function Column({ status, orders, onUpdateStatus }) {
       </div>
       <div className="space-y-3">
         {orders.map(order => (
-          <OrderCard key={order.id} order={order} nextStatus={nextStatus} onUpdateStatus={onUpdateStatus} />
+          <OrderCard
+            key={order.id}
+            order={order}
+            nextStatus={nextStatus}
+            onUpdateStatus={onUpdateStatus}
+            waiters={waiters}
+            onAssignWaiter={onAssignWaiter}
+          />
         ))}
       </div>
     </div>
   )
 }
 
-function OrderCard({ order, nextStatus, onUpdateStatus }) {
+function OrderCard({ order, nextStatus, onUpdateStatus, waiters, onAssignWaiter }) {
   const elapsedMin = Math.round((Date.now() - new Date(order.created_at).getTime()) / 60000)
   const isUrgent = elapsedMin > 15 && order.status !== 'entregado'
 
@@ -337,6 +401,10 @@ function OrderCard({ order, nextStatus, onUpdateStatus }) {
 
       <CustomerContact customer={order.customers} />
       <p className="text-smoke-300 text-sm font-medium mb-2">📍 {order.location_label}</p>
+
+      <div className="mb-2">
+        <WaiterSelect order={order} waiters={waiters} onAssign={onAssignWaiter} />
+      </div>
 
       <ul className="space-y-1 mb-3">
         {order.order_items.map(item => (
