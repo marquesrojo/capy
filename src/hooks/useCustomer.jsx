@@ -1,13 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabaseCustomer } from '../lib/supabase'
 
-// Identidad del CLIENTE final, sin login visible. Por debajo usa una
-// sesion anonima de Supabase Auth (signInAnonymously) para tener un
-// auth.uid() real con el que las politicas de RLS pueden trabajar sin
-// depender de headers custom. La primera vez que alguien pide algo, se
-// le pregunta nombre + whatsapp y se guarda un registro en "customers"
-// vinculado a ese auth.uid(). En visitas siguientes desde el mismo
-// dispositivo, la sesion ya esta guardada y no se le vuelve a preguntar.
 const CustomerContext = createContext(null)
 
 export function CustomerProvider({ children }) {
@@ -16,7 +9,6 @@ export function CustomerProvider({ children }) {
 
   useEffect(() => {
     async function init() {
-      // 1. Asegurar que haya una sesion (anonima o ya existente)
       let { data: sessionData } = await supabaseCustomer.auth.getSession()
 
       if (!sessionData.session) {
@@ -36,7 +28,6 @@ export function CustomerProvider({ children }) {
         return
       }
 
-      // 2. Ver si ya completo nombre+whatsapp antes (registro en customers)
       const { data: existing } = await supabaseCustomer
         .from('customers')
         .select('*')
@@ -50,4 +41,40 @@ export function CustomerProvider({ children }) {
   }, [])
 
   async function registerCustomer(fullName, whatsapp) {
-    const { data: sessionData } = await supabaseCustomer.aut
+    const { data: sessionData } = await supabaseCustomer.auth.getSession()
+    const userId = sessionData.session?.user?.id
+    if (!userId) return { error: new Error('Sin sesion activa') }
+
+    const { data, error } = await supabaseCustomer
+      .from('customers')
+      .insert({ id: userId, full_name: fullName, whatsapp })
+      .select()
+      .single()
+
+    if (error) return { error }
+
+    setCustomer(data)
+    return { data }
+  }
+
+  async function forgetCustomer() {
+    await supabaseCustomer.auth.signOut()
+    setCustomer(null)
+  }
+
+  const value = {
+    customer,
+    loading,
+    isIdentified: !!customer,
+    registerCustomer,
+    forgetCustomer
+  }
+
+  return <CustomerContext.Provider value={value}>{children}</CustomerContext.Provider>
+}
+
+export function useCustomer() {
+  const ctx = useContext(CustomerContext)
+  if (!ctx) throw new Error('useCustomer debe usarse dentro de CustomerProvider')
+  return ctx
+}
