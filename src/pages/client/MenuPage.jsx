@@ -4,6 +4,7 @@ import { supabaseCustomer, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useCart } from '../../hooks/useCart'
 import { useCustomer } from '../../hooks/useCustomer'
 import { formatPrice } from '../../lib/utils'
+import BottomNav from '../../components/BottomNav'
 
 export default function MenuPage() {
   const [categories, setCategories] = useState([])
@@ -44,7 +45,7 @@ export default function MenuPage() {
   }
 
   return (
-    <div className="min-h-screen bg-carbon-950 pb-28">
+    <div className="min-h-screen bg-carbon-950 pb-32">
       <header className="sticky top-0 z-10 bg-carbon-950/95 backdrop-blur border-b border-carbon-700 px-5 pt-5 pb-3">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -84,12 +85,14 @@ export default function MenuPage() {
       {itemCount > 0 && (
         <button
           onClick={() => navigate('/ubicacion')}
-          className="fixed bottom-5 left-5 right-5 bg-ember-500 hover:bg-ember-600 text-white rounded-2xl py-4 px-5 flex items-center justify-between shadow-ember font-semibold"
+          className="fixed bottom-20 left-5 right-5 bg-ember-500 hover:bg-ember-600 text-white rounded-2xl py-4 px-5 flex items-center justify-between shadow-ember font-semibold z-20"
         >
           <span>{itemCount} {itemCount === 1 ? 'item' : 'items'}</span>
           <span>{formatPrice(subtotal)} · Continuar →</span>
         </button>
       )}
+
+      <BottomNav />
     </div>
   )
 }
