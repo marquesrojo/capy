@@ -51,7 +51,7 @@ export default function MenuPage() {
             <h1 className="font-display text-3xl text-ember-500 tracking-wide">CARTA</h1>
             <p className="text-smoke-500 text-xs mt-0.5">Hola, {customer?.full_name}</p>
           </div>
-          <button onClick={() => { forgetCustomer(); navigate('/identificacion') }} className="text-smoke-500 text-xs underline">
+          <button onClick={async () => { await forgetCustomer(); navigate('/identificacion') }} className="text-smoke-500 text-xs underline">
             No soy yo
           </button>
         </div>
