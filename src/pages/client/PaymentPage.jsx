@@ -5,31 +5,16 @@ import { useCart } from '../../hooks/useCart'
 import { useCustomer } from '../../hooks/useCustomer'
 import { formatPrice } from '../../lib/utils'
 
-// Formas de pago del MVP. El cliente elige una al confirmar su pedido.
-//  - 'transferencia' -> transfiere por alias y sube foto del comprobante;
-//                        el cajero la revisa y confirma a mano
-//  - 'efectivo'      -> paga en persona; el mozo se acerca a cobrar y
-//                        marca el pedido como pagado desde el panel admin
-//  - 'tarjeta'       -> igual que efectivo, pero con posnet en mano del mozo
+// Forma de pago elegida aca = solo una PREFERENCIA declarada por el
+// cliente. No dispara ninguna accion de cobro todavia. El pedido entra
+// directo a 'recibido' y sigue su flujo normal de cocina. El cobro real
+// se gestiona despues, cuando el cliente toca "La cuenta por favor"
+// desde el detalle de su pedido (ver OrderStatusPage / BillRequest).
 const PAYMENT_OPTIONS = [
-  {
-    id: 'transferencia',
-    label: 'Transferencia',
-    description: 'Transferís por alias y subís el comprobante'
-  },
-  {
-    id: 'efectivo',
-    label: 'Efectivo',
-    description: 'El mozo se acerca a cobrar a tu ubicación'
-  },
-  {
-    id: 'tarjeta',
-    label: 'Tarjeta',
-    description: 'El mozo se acerca con el posnet'
-  }
+  { id: 'transferencia', label: 'Transferencia', description: 'Vas a transferir por alias' },
+  { id: 'efectivo', label: 'Efectivo', description: 'Vas a pagar en efectivo' },
+  { id: 'tarjeta', label: 'Tarjeta', description: 'Vas a pagar con tarjeta/posnet' }
 ]
-
-const MAX_PROOF_SIZE_MB = 8
 
 export default function PaymentPage() {
   const { items, subtotal, location, updateQuantity, clearCart, itemCount } = useCart()
@@ -38,15 +23,7 @@ export default function PaymentPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [notes, setNotes] = useState('')
-  const [proofFile, setProofFile] = useState(null)
-  const [proofPreview, setProofPreview] = useState(null)
-
-  const transferAlias = import.meta.env.VITE_TRANSFER_ALIAS || ''
-  const availableOptions = transferAlias
-    ? PAYMENT_OPTIONS
-    : PAYMENT_OPTIONS.filter(o => o.id !== 'transferencia')
-
-  const [paymentMethod, setPaymentMethod] = useState(availableOptions[0]?.id || 'efectivo')
+  const [paymentMethod, setPaymentMethod] = useState('efectivo')
 
   useEffect(() => {
     if (itemCount === 0) navigate('/carta')
@@ -55,41 +32,17 @@ export default function PaymentPage() {
 
   if (!location || itemCount === 0) return null
 
-  function handleProofChange(e) {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    if (!file.type.startsWith('image/')) {
-      setError('El comprobante debe ser una imagen (foto o captura de pantalla).')
-      return
-    }
-    if (file.size > MAX_PROOF_SIZE_MB * 1024 * 1024) {
-      setError(`La imagen no puede pesar más de ${MAX_PROOF_SIZE_MB}MB.`)
-      return
-    }
-
-    setError('')
-    setProofFile(file)
-    setProofPreview(URL.createObjectURL(file))
-  }
-
   async function handleConfirm() {
-    if (paymentMethod === 'transferencia' && !proofFile) {
-      setError('Adjuntá la foto del comprobante de transferencia para continuar.')
-      return
-    }
-
     setSubmitting(true)
     setError('')
 
     try {
-      // 1. Crear el pedido en estado pendiente_pago
       const { data: order, error: orderError } = await supabaseCustomer
         .from('orders')
         .insert({
           venue_id: ACTIVE_VENUE_ID,
           customer_id: customer.id,
-          status: 'pendiente_pago',
+          status: 'recibido',
           location_type: location.type,
           zone_id: location.zoneId,
           map_x: location.mapX,
@@ -105,7 +58,6 @@ export default function PaymentPage() {
 
       if (orderError) throw orderError
 
-      // 2. Insertar los items del pedido
       const orderItems = items.map(i => ({
         order_id: order.id,
         product_id: i.product.id,
@@ -119,34 +71,6 @@ export default function PaymentPage() {
       const { error: itemsError } = await supabaseCustomer.from('order_items').insert(orderItems)
       if (itemsError) throw itemsError
 
-      // 3a. Transferencia: subir comprobante, queda en revisión para el cajero
-      if (paymentMethod === 'transferencia') {
-        const ext = proofFile.name.split('.').pop()
-        const path = `${customer.id}/${order.id}.${ext}`
-
-        const { error: uploadError } = await supabaseCustomer.storage
-          .from('payment-proofs')
-          .upload(path, proofFile, { upsert: true })
-
-        if (uploadError) throw uploadError
-
-        const { error: updateError } = await supabaseCustomer
-          .from('orders')
-          .update({
-            payment_status: 'en_revision',
-            payment_proof_url: path
-          })
-          .eq('id', order.id)
-
-        if (updateError) throw updateError
-
-        clearCart()
-        navigate(`/pedido-enviado/${order.id}`)
-        return
-      }
-
-      // 3b. Efectivo o tarjeta: el pedido queda esperando que el mozo/cajero
-      // cobre en persona y lo marque como pagado desde el panel admin.
       clearCart()
       navigate(`/pedido-enviado/${order.id}`)
     } catch (err) {
@@ -205,9 +129,11 @@ export default function PaymentPage() {
         </label>
 
         <div className="pt-4">
-          <span className="text-smoke-400 text-xs mb-2 block">Forma de pago</span>
+          <span className="text-smoke-400 text-xs mb-2 block">
+            ¿Cómo pensás pagar? (podés confirmarlo después al pedir la cuenta)
+          </span>
           <div className="space-y-2">
-            {availableOptions.map(option => (
+            {PAYMENT_OPTIONS.map(option => (
               <button
                 key={option.id}
                 type="button"
@@ -230,56 +156,6 @@ export default function PaymentPage() {
             ))}
           </div>
         </div>
-
-        {paymentMethod === 'transferencia' && (
-          <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4 mt-2">
-            <p className="text-smoke-400 text-xs mb-3">
-              Transferí el total a este alias y subí la foto del comprobante. El cajero lo va a revisar
-              antes de confirmar tu pedido.
-            </p>
-            <div className="bg-carbon-800 border border-carbon-700 rounded-xl px-3 py-2.5 flex items-center justify-between mb-4">
-              <span className="font-mono text-ember-400 text-sm">{transferAlias}</span>
-              <button
-                type="button"
-                onClick={() => navigator.clipboard?.writeText(transferAlias)}
-                className="text-smoke-400 text-xs underline"
-              >
-                Copiar
-              </button>
-            </div>
-
-            {!proofPreview ? (
-              <label className="flex items-center justify-center gap-2 border border-dashed border-carbon-600 rounded-xl py-6 text-smoke-400 text-sm cursor-pointer">
-                <span>📎 Adjuntar foto del comprobante</span>
-                <input type="file" accept="image/*" capture="environment" onChange={handleProofChange} className="hidden" />
-              </label>
-            ) : (
-              <div className="relative">
-                <img src={proofPreview} alt="Comprobante" className="w-full rounded-xl max-h-64 object-contain bg-carbon-950" />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setProofFile(null)
-                    setProofPreview(null)
-                  }}
-                  className="absolute top-2 right-2 bg-carbon-950/90 text-smoke-300 text-xs px-2.5 py-1 rounded-full border border-carbon-700"
-                >
-                  Cambiar
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {(paymentMethod === 'efectivo' || paymentMethod === 'tarjeta') && (
-          <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4 mt-2">
-            <p className="text-smoke-400 text-xs">
-              {paymentMethod === 'efectivo'
-                ? 'Un mozo se va a acercar a tu ubicación a cobrar en efectivo.'
-                : 'Un mozo se va a acercar a tu ubicación con el posnet.'}
-            </p>
-          </div>
-        )}
       </main>
 
       <div className="fixed bottom-0 left-0 right-0 bg-carbon-950 border-t border-carbon-700 px-5 py-4 space-y-3">
@@ -293,11 +169,7 @@ export default function PaymentPage() {
           disabled={submitting}
           className="w-full bg-ember-500 hover:bg-ember-600 disabled:opacity-50 text-white font-semibold py-4 rounded-xl"
         >
-          {submitting
-            ? 'Procesando...'
-            : paymentMethod === 'transferencia'
-            ? 'Enviar pedido y comprobante →'
-            : 'Confirmar pedido →'}
+          {submitting ? 'Procesando...' : 'Confirmar pedido →'}
         </button>
       </div>
     </div>
