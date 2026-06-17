@@ -141,14 +141,14 @@ export default function PaymentPage() {
         if (updateError) throw updateError
 
         clearCart()
-        navigate(`/pedido/${order.id}`)
+        navigate(`/pedido-enviado/${order.id}`)
         return
       }
 
       // 3b. Efectivo o tarjeta: el pedido queda esperando que el mozo/cajero
       // cobre en persona y lo marque como pagado desde el panel admin.
       clearCart()
-      navigate(`/pedido/${order.id}`)
+      navigate(`/pedido-enviado/${order.id}`)
     } catch (err) {
       console.error(err)
       setError('Hubo un problema al procesar tu pedido. Intentá de nuevo.')
