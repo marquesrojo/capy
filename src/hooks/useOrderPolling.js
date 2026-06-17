@@ -1,51 +1,43 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabaseCustomer } from '../lib/supabase'
 
-const POLL_INTERVAL_MS = 6000
-
-// Sigue el estado de un pedido reconsultando cada pocos segundos.
-// No usamos Supabase Realtime aca porque las conexiones WebSocket no
-// propagan el header 'x-device-token' (bug conocido de Supabase), y las
-// policies de RLS del cliente dependen de ese header.
+// Sigue el estado de un pedido en tiempo real via Supabase Realtime.
+// Esto funciona porque el cliente ahora usa una sesion real de Supabase
+// Auth (anonima), con Authorization Bearer normal - ya no depende de
+// headers custom, que es lo que rompia Realtime en el diseño anterior.
 export function useOrderPolling(orderId) {
   const [order, setOrder] = useState(null)
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
-  const intervalRef = useRef(null)
 
   useEffect(() => {
     let cancelled = false
 
-    async function fetchOrder() {
-      const { data: orderData } = await supabaseCustomer
-        .from('orders')
-        .select('*')
-        .eq('id', orderId)
-        .single()
+    async function fetchOnce() {
+      const [{ data: orderData }, { data: itemsData }] = await Promise.all([
+        supabaseCustomer.from('orders').select('*').eq('id', orderId).single(),
+        supabaseCustomer.from('order_items').select('*').eq('order_id', orderId)
+      ])
       if (cancelled) return
       setOrder(orderData)
-    }
-
-    async function fetchItemsOnce() {
-      const { data: itemsData } = await supabaseCustomer
-        .from('order_items')
-        .select('*')
-        .eq('order_id', orderId)
-      if (cancelled) return
       setItems(itemsData || [])
-    }
-
-    async function init() {
-      await Promise.all([fetchOrder(), fetchItemsOnce()])
       setLoading(false)
     }
 
-    init()
-    intervalRef.current = setInterval(fetchOrder, POLL_INTERVAL_MS)
+    fetchOnce()
+
+    const channel = supabaseCustomer
+      .channel(`order-${orderId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
+        payload => setOrder(payload.new)
+      )
+      .subscribe()
 
     return () => {
       cancelled = true
-      clearInterval(intervalRef.current)
+      supabaseCustomer.removeChannel(channel)
     }
   }, [orderId])
 
