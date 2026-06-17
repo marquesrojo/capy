@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
-import { formatPrice, STATUS_LABELS, STATUS_COLORS } from '../../lib/utils'
+import { formatPrice, STATUS_LABELS, STATUS_COLORS, PAYMENT_STATUS_LABELS } from '../../lib/utils'
 
 export default function HistoryPage() {
   const [orders, setOrders] = useState([])
@@ -9,6 +9,7 @@ export default function HistoryPage() {
   const [expandedId, setExpandedId] = useState(null)
   const [history, setHistory] = useState({})
   const [filterStatus, setFilterStatus] = useState('todos')
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     async function load() {
@@ -40,7 +41,24 @@ export default function HistoryPage() {
     }
   }
 
-  const filtered = filterStatus === 'todos' ? orders : orders.filter(o => o.status === filterStatus)
+  const normalizedSearch = search.trim().toLowerCase()
+  const normalizedSearchDigits = normalizedSearch.replace(/\D/g, '')
+
+  const filtered = orders.filter(order => {
+    const matchesStatus = filterStatus === 'todos' || order.status === filterStatus
+
+    if (!normalizedSearch) return matchesStatus
+
+    const name = (order.customers?.full_name || '').toLowerCase()
+    const whatsapp = order.customers?.whatsapp || ''
+    const whatsappDigits = whatsapp.replace(/\D/g, '')
+
+    const matchesName = name.includes(normalizedSearch)
+    const matchesWhatsapp =
+      normalizedSearchDigits.length > 0 && whatsappDigits.includes(normalizedSearchDigits)
+
+    return matchesStatus && (matchesName || matchesWhatsapp)
+  })
 
   if (loading) {
     return (
@@ -59,18 +77,27 @@ export default function HistoryPage() {
             ← Volver
           </Link>
         </div>
-        <select
-          value={filterStatus}
-          onChange={e => setFilterStatus(e.target.value)}
-          className="input mt-3 max-w-xs"
-        >
-          <option value="todos">Todos los estados</option>
-          {Object.entries(STATUS_LABELS).map(([key, label]) => (
-            <option key={key} value={key}>
-              {label}
-            </option>
-          ))}
-        </select>
+        <div className="flex gap-2 mt-3">
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Buscar por nombre o WhatsApp..."
+            className="input flex-1"
+          />
+          <select
+            value={filterStatus}
+            onChange={e => setFilterStatus(e.target.value)}
+            className="input max-w-[150px]"
+          >
+            <option value="todos">Todos</option>
+            {Object.entries(STATUS_LABELS).map(([key, label]) => (
+              <option key={key} value={key}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
       </header>
 
       <div className="px-5 mt-4 space-y-2">
@@ -88,6 +115,9 @@ export default function HistoryPage() {
                   </span>
                 </div>
                 <p className="text-smoke-400 text-xs mt-1">
+                  {order.customers?.full_name && (
+                    <span className="text-smoke-300">{order.customers.full_name} · </span>
+                  )}
                   📍 {order.location_label} · {new Date(order.created_at).toLocaleString('es-AR')}
                 </p>
               </div>
@@ -104,35 +134,4 @@ export default function HistoryPage() {
 
                 <p className="text-smoke-500 text-xs mb-1.5 font-medium">Items</p>
                 <ul className="space-y-1 mb-3">
-                  {order.order_items.map(item => (
-                    <li key={item.id} className="text-smoke-400 text-xs">
-                      {item.quantity}× {item.product_name} — {formatPrice(item.line_total)}
-                    </li>
-                  ))}
-                </ul>
-
-                <p className="text-smoke-500 text-xs mb-1.5 font-medium">Pago</p>
-                <p className="text-smoke-400 text-xs mb-3">
-                  Estado: {order.payment_status} {order.payment_method ? `· ${order.payment_method}` : ''}
-                </p>
-
-                <p className="text-smoke-500 text-xs mb-1.5 font-medium">Línea de tiempo</p>
-                <ul className="space-y-1">
-                  {(history[order.id] || []).map(h => (
-                    <li key={h.id} className="text-smoke-400 text-xs">
-                      {new Date(h.changed_at).toLocaleTimeString('es-AR')} — {STATUS_LABELS[h.status]}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        ))}
-
-        {filtered.length === 0 && (
-          <p className="text-smoke-500 text-sm text-center py-10">No hay pedidos con este filtro.</p>
-        )}
-      </div>
-    </div>
-  )
-}
+                  {order.orde
