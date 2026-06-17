@@ -1,11 +1,12 @@
 import { useParams, Link } from 'react-router-dom'
 import { useOrderPolling } from '../../hooks/useOrderPolling'
-import { formatPrice, STATUS_LABELS, STATUS_FLOW } from '../../lib/utils'
+import { formatPrice, STATUS_LABELS, STATUS_FLOW, PAYMENT_STATUS_LABELS, PAYMENT_STATUS_COLORS } from '../../lib/utils'
 import OrderFeedback from '../../components/OrderFeedback'
+import BillRequest from '../../components/BillRequest'
 
 export default function OrderStatusPage() {
   const { orderId } = useParams()
-  const { order, items, loading } = useOrderPolling(orderId)
+  const { order, items, loading, setOrder } = useOrderPolling(orderId)
 
   if (loading) {
     return (
@@ -27,7 +28,6 @@ export default function OrderStatusPage() {
   }
 
   const isCancelado = order.status === 'cancelado'
-  const isPendientePago = order.status === 'pendiente_pago'
   const currentStepIndex = STATUS_FLOW.indexOf(order.status)
 
   return (
@@ -41,28 +41,13 @@ export default function OrderStatusPage() {
         <p className="text-smoke-500 text-xs mt-1">🧑‍🍳 Te atiende {order.assigned_staff.full_name}</p>
       )}
 
-      {isPendientePago && (
-        <div className="mt-6 bg-carbon-900 border border-carbon-700 rounded-2xl p-5 text-center">
-          {order.payment_status === 'en_revision' ? (
-            <>
-              <p className="text-smoke-300">El cajero está revisando tu comprobante...</p>
-              <p className="text-smoke-500 text-xs mt-1">Tu pedido se confirma apenas lo validen.</p>
-            </>
-          ) : order.payment_method === 'efectivo' ? (
-            <>
-              <p className="text-smoke-300">Un mozo se está acercando a cobrar en efectivo</p>
-              <p className="text-smoke-500 text-xs mt-1">📍 {order.location_label}</p>
-            </>
-          ) : order.payment_method === 'tarjeta' ? (
-            <>
-              <p className="text-smoke-300">Un mozo se está acercando con el posnet</p>
-              <p className="text-smoke-500 text-xs mt-1">📍 {order.location_label}</p>
-            </>
-          ) : (
-            <p className="text-smoke-300">Esperando confirmación de pago...</p>
-          )}
-        </div>
-      )}
+      <div className="mt-3">
+        <span
+          className={`text-xs px-2.5 py-1 rounded-full border ${PAYMENT_STATUS_COLORS[order.payment_status]}`}
+        >
+          {PAYMENT_STATUS_LABELS[order.payment_status]}
+        </span>
+      </div>
 
       {isCancelado && (
         <div className="mt-6 bg-red-500/10 border border-red-500/40 rounded-2xl p-5 text-center">
@@ -70,7 +55,7 @@ export default function OrderStatusPage() {
         </div>
       )}
 
-      {!isPendientePago && !isCancelado && (
+      {!isCancelado && (
         <div className="mt-6 bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
           <div className="flex justify-between">
             {STATUS_FLOW.map((step, i) => (
@@ -120,6 +105,10 @@ export default function OrderStatusPage() {
         <span className="font-medium">Total</span>
         <span className="font-mono text-ember-400">{formatPrice(order.total)}</span>
       </div>
+
+      {!isCancelado && (
+        <BillRequest order={order} onUpdated={updated => setOrder(prev => ({ ...prev, ...updated }))} />
+      )}
 
       {order.status === 'entregado' && <OrderFeedback orderId={order.id} />}
     </div>
