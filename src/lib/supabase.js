@@ -11,8 +11,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 // Cliente de Supabase para el STAFF (camarero/admin). Usa Supabase Auth
-// normal (email + contraseña), por eso Realtime funciona sin problemas:
-// las policies de staff se basan en auth.uid(), no en headers custom.
+// normal (email + contraseña).
 export const supabaseStaff = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
@@ -21,38 +20,20 @@ export const supabaseStaff = createClient(supabaseUrl, supabaseAnonKey, {
   }
 })
 
-// Cliente de Supabase para clientes SIN LOGIN. Se identifican por un
-// device_token guardado en localStorage, mandado en cada request via
-// el header 'x-device-token'. Las policies de RLS de orders/customers
-// leen ese header con current_customer_id() (ver migracion 0004).
-//
-// IMPORTANTE: este cliente nunca debe usarse para Realtime/postgres_changes
-// - hay un bug conocido de Supabase donde los headers custom no se mandan
-// en la conexion WebSocket, asi que cualquier policy de RLS basada en
-// headers fallaria silenciosamente ahi. Para "tiempo real" del lado del
-// cliente se usa polling liviano (ver useOrderPolling).
-function createCustomerClient() {
-  const deviceToken = getOrCreateDeviceToken()
-  return createClient(supabaseUrl, supabaseAnonKey, {
-    auth: { persistSession: false },
-    global: {
-      headers: { 'x-device-token': deviceToken }
-    }
-  })
-}
-
-const DEVICE_TOKEN_KEY = 'device_token'
-
-export function getOrCreateDeviceToken() {
-  let token = localStorage.getItem(DEVICE_TOKEN_KEY)
-  if (!token) {
-    token = crypto.randomUUID()
-    localStorage.setItem(DEVICE_TOKEN_KEY, token)
+// Cliente de Supabase para clientes SIN LOGIN visible. Usa el sistema de
+// "anonymous sign-ins" de Supabase Auth (supabase.auth.signInAnonymously()):
+// crea una sesion real con su propio auth.uid(), sin pedir email ni
+// contraseña, y sin depender de headers custom (que el navegador bloquea
+// por una limitacion de CORS de PostgREST que no se puede configurar).
+// La sesion queda guardada en este dispositivo via localStorage, gestionada
+// automaticamente por el SDK de Supabase.
+export const supabaseCustomer = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    storageKey: 'sb-customer-auth' // separado del storage del staff
   }
-  return token
-}
-
-export const supabaseCustomer = createCustomerClient()
+})
 
 // ID del venue activo. En el MVP hay un solo local;
 // si en el futuro hay multi-local, esto se resuelve por subdominio o selector.
