@@ -134,4 +134,36 @@ export default function HistoryPage() {
 
                 <p className="text-smoke-500 text-xs mb-1.5 font-medium">Items</p>
                 <ul className="space-y-1 mb-3">
-                  {order.orde
+                  {order.order_items.map(item => (
+                    <li key={item.id} className="text-smoke-400 text-xs">
+                      {item.quantity}× {item.product_name} — {formatPrice(item.line_total)}
+                    </li>
+                  ))}
+                </ul>
+
+                <p className="text-smoke-500 text-xs mb-1.5 font-medium">Pago</p>
+                <p className="text-smoke-400 text-xs mb-3">
+                  Pago: {PAYMENT_STATUS_LABELS[order.payment_status] || order.payment_status}{' '}
+                  {order.payment_method ? `· ${order.payment_method}` : ''}
+                </p>
+
+                <p className="text-smoke-500 text-xs mb-1.5 font-medium">Línea de tiempo</p>
+                <ul className="space-y-1">
+                  {(history[order.id] || []).map(h => (
+                    <li key={h.id} className="text-smoke-400 text-xs">
+                      {new Date(h.changed_at).toLocaleTimeString('es-AR')} — {STATUS_LABELS[h.status]}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        ))}
+
+        {filtered.length === 0 && (
+          <p className="text-smoke-500 text-sm text-center py-10">No hay pedidos con este filtro.</p>
+        )}
+      </div>
+    </div>
+  )
+}
