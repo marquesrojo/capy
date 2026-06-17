@@ -80,9 +80,6 @@ export default function AdminDashboard() {
   useEffect(() => {
     load()
 
-    // Tiempo real: nuevos pedidos y cambios de estado aparecen sin recargar.
-    // Esto funciona bien para el staff porque su sesion usa Supabase Auth
-    // normal (no depende de headers custom como el cliente).
     const channel = supabaseStaff
       .channel('admin-orders')
       .on(
@@ -95,7 +92,6 @@ export default function AdminDashboard() {
     return () => supabaseStaff.removeChannel(channel)
   }, [])
 
-  // Generar URLs firmadas para mostrar los comprobantes (el bucket es privado)
   useEffect(() => {
     async function loadUrls() {
       const entries = await Promise.all(
@@ -131,9 +127,6 @@ export default function AdminDashboard() {
     await supabaseStaff.from('orders').update({ assigned_staff_id: staffId || null }).eq('id', orderId)
   }
 
-  // Confirma la cuenta solicitada (transferencia revisada, o cobro en
-  // persona en efectivo/tarjeta). Esto NO toca el status de cocina/entrega:
-  // son dos ejes independientes, el pedido puede llevar rato "entregado".
   async function confirmPayment(order) {
     await supabaseStaff
       .from('orders')
@@ -454,4 +447,70 @@ function Column({ status, orders, onUpdateStatus, waiters, onAssignWaiter }) {
       <div className={`px-3 py-2 rounded-lg border text-sm font-semibold mb-3 ${STATUS_COLORS[status]}`}>
         {STATUS_LABELS[status]} · {orders.length}
       </div>
-      <div className="space-y
+      <div className="space-y-3">
+        {orders.map(order => (
+          <OrderCard
+            key={order.id}
+            order={order}
+            nextStatus={nextStatus}
+            onUpdateStatus={onUpdateStatus}
+            waiters={waiters}
+            onAssignWaiter={onAssignWaiter}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function OrderCard({ order, nextStatus, onUpdateStatus, waiters, onAssignWaiter }) {
+  const elapsedMin = Math.round((Date.now() - new Date(order.created_at).getTime()) / 60000)
+  const isUrgent = elapsedMin > 15 && order.status !== 'entregado'
+
+  return (
+    <div
+      className={`bg-carbon-900 border rounded-2xl p-4 ${
+        isUrgent ? 'border-red-500/50' : 'border-carbon-700'
+      }`}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <span className="font-mono text-ember-400 text-xs">#{order.id.slice(0, 6)}</span>
+        <span className={`text-xs ${isUrgent ? 'text-red-700 font-semibold' : 'text-smoke-500'}`}>
+          {elapsedMin} min
+        </span>
+      </div>
+
+      <CustomerContact customer={order.customers} />
+      <p className="text-smoke-300 text-sm font-medium mb-2">📍 {order.location_label}</p>
+
+      <div className="mb-2">
+        <WaiterSelect order={order} waiters={waiters} onAssign={onAssignWaiter} />
+      </div>
+
+      <ul className="space-y-1 mb-3">
+        {order.order_items.map(item => (
+          <li key={item.id} className="text-smoke-400 text-xs">
+            {item.quantity}× {item.product_name}
+            {item.item_notes && <span className="text-smoke-500"> ({item.item_notes})</span>}
+          </li>
+        ))}
+      </ul>
+
+      {order.notes && (
+        <p className="text-ember-400/80 text-xs mb-3 italic">"{order.notes}"</p>
+      )}
+
+      <div className="flex items-center justify-between">
+        <span className="font-mono text-smoke-300 text-sm">{formatPrice(order.total)}</span>
+        {nextStatus && (
+          <button
+            onClick={() => onUpdateStatus(order.id, nextStatus)}
+            className="bg-ember-500 hover:bg-ember-600 text-white text-xs font-semibold px-3 py-1.5 rounded-full"
+          >
+            Marcar {STATUS_LABELS[nextStatus]} →
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
