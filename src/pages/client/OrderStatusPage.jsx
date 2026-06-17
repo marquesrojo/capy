@@ -37,6 +37,9 @@ export default function OrderStatusPage() {
       </Link>
       <h1 className="font-display text-3xl text-ember-500 tracking-wide mt-2">TU PEDIDO</h1>
       <p className="text-smoke-400 text-sm mt-1">📍 {order.location_label}</p>
+      {order.assigned_staff?.full_name && (
+        <p className="text-smoke-500 text-xs mt-1">🧑‍🍳 Te atiende {order.assigned_staff.full_name}</p>
+      )}
 
       {isPendientePago && (
         <div className="mt-6 bg-carbon-900 border border-carbon-700 rounded-2xl p-5 text-center">
