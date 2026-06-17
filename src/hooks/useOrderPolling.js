@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabaseCustomer } from '../lib/supabase'
 
-const ORDER_SELECT = '*, assigned_staff:profiles!orders_assigned_staff_id_fkey(id, full_name)'
+const ORDER_SELECT = '*, assigned_staff:staff_names!orders_assigned_staff_id_fkey(id, full_name)'
 
 // Sigue el estado de un pedido en tiempo real via Supabase Realtime.
 // Esto funciona porque el cliente ahora usa una sesion real de Supabase
@@ -35,7 +35,7 @@ export function useOrderPolling(orderId) {
         { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
         payload => {
           // Realtime solo manda columnas planas de "orders", no la relacion
-          // con "profiles". Si cambio quien esta asignado, recargamos ese
+          // con "staff_names". Si cambio quien esta asignado, recargamos ese
           // dato puntual; si no, conservamos el que ya teniamos.
           setOrder(prev => {
             const merged = { ...prev, ...payload.new }
