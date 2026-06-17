@@ -6,7 +6,7 @@ import { formatPrice, STATUS_LABELS, STATUS_COLORS } from '../../lib/utils'
 
 const BOARD_COLUMNS = ['recibido', 'en_preparacion', 'listo', 'entregado']
 const PROOF_BUCKET = 'payment-proofs'
-const ORDER_SELECT = '*, order_items(*), customers(full_name, whatsapp), assigned_staff:profiles!orders_assigned_staff_id_fkey(id, full_name)'
+const ORDER_SELECT = '*, order_items(*), customers(full_name, whatsapp), assigned_staff:staff_names!orders_assigned_staff_id_fkey(id, full_name)'
 
 export default function AdminDashboard() {
   const [orders, setOrders] = useState([])
@@ -18,16 +18,36 @@ export default function AdminDashboard() {
   const { signOut, profile } = useAuth()
 
   useEffect(() => {
-    async function loadWaiters() {
-      const { data } = await supabaseStaff
-        .from('profiles')
-        .select('id, full_name')
-        .eq('role', 'camarero')
-        .order('full_name')
-      setWaiters(data || [])
-    }
     loadWaiters()
   }, [])
+
+  async function loadWaiters() {
+    const { data } = await supabaseStaff
+      .from('staff_names')
+      .select('id, full_name')
+      .eq('venue_id', ACTIVE_VENUE_ID)
+      .eq('is_active', true)
+      .order('full_name')
+    setWaiters(data || [])
+  }
+
+  async function addWaiter(name) {
+    const trimmed = name.trim()
+    if (!trimmed) return
+    const { data, error } = await supabaseStaff
+      .from('staff_names')
+      .insert({ venue_id: ACTIVE_VENUE_ID, full_name: trimmed })
+      .select('id, full_name')
+      .single()
+    if (!error && data) {
+      setWaiters(prev => [...prev, data].sort((a, b) => a.full_name.localeCompare(b.full_name)))
+    }
+  }
+
+  async function removeWaiter(id) {
+    await supabaseStaff.from('staff_names').update({ is_active: false }).eq('id', id)
+    setWaiters(prev => prev.filter(w => w.id !== id))
+  }
 
   async function load() {
     const [boardRes, proofRes, inPersonRes] = await Promise.all([
@@ -172,6 +192,8 @@ export default function AdminDashboard() {
         </div>
       </header>
 
+      <WaiterManager waiters={waiters} onAdd={addWaiter} onRemove={removeWaiter} />
+
       {pendingProofOrders.length > 0 && (
         <div className="px-4 pt-4">
           <p className="text-ember-400 text-xs font-semibold uppercase tracking-wide mb-2">
@@ -222,6 +244,69 @@ export default function AdminDashboard() {
           />
         ))}
       </div>
+    </div>
+  )
+}
+
+function WaiterManager({ waiters, onAdd, onRemove }) {
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState('')
+
+  function handleAdd() {
+    onAdd(name)
+    setName('')
+  }
+
+  return (
+    <div className="px-4 pt-3">
+      <button
+        onClick={() => setOpen(prev => !prev)}
+        className="text-smoke-400 text-xs underline"
+      >
+        {open ? 'Ocultar' : 'Gestionar'} camareros ({waiters.length})
+      </button>
+
+      {open && (
+        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4 mt-2">
+          <div className="flex gap-2 mb-3">
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleAdd()}
+              placeholder="Nombre del camarero"
+              className="input flex-1"
+            />
+            <button
+              onClick={handleAdd}
+              className="bg-ember-500 hover:bg-ember-600 text-white text-sm font-semibold px-4 rounded-xl"
+            >
+              Agregar
+            </button>
+          </div>
+
+          {waiters.length === 0 ? (
+            <p className="text-smoke-500 text-xs">Todavía no agregaste ningún camarero.</p>
+          ) : (
+            <ul className="space-y-1.5">
+              {waiters.map(w => (
+                <li
+                  key={w.id}
+                  className="flex items-center justify-between bg-carbon-800 rounded-lg px-3 py-1.5"
+                >
+                  <span className="text-smoke-300 text-sm">{w.full_name}</span>
+                  <button
+                    onClick={() => onRemove(w.id)}
+                    className="text-red-700 text-xs underline"
+                  >
+                    Quitar
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   )
 }
