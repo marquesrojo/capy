@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { useOrderPolling } from '../../hooks/useOrderPolling'
 import { formatPrice, STATUS_LABELS, STATUS_FLOW } from '../../lib/utils'
 
@@ -31,7 +31,10 @@ export default function OrderStatusPage() {
 
   return (
     <div className="min-h-screen bg-carbon-950 px-5 pt-6 pb-10">
-      <h1 className="font-display text-3xl text-ember-500 tracking-wide">TU PEDIDO</h1>
+      <Link to="/pedidos" className="text-smoke-500 text-xs underline">
+        ← Volver a Pedidos
+      </Link>
+      <h1 className="font-display text-3xl text-ember-500 tracking-wide mt-2">TU PEDIDO</h1>
       <p className="text-smoke-400 text-sm mt-1">📍 {order.location_label}</p>
 
       {isPendientePago && (
