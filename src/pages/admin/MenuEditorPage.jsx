@@ -133,37 +133,124 @@ export default function MenuEditorPage() {
               {products
                 .filter(p => p.category_id === cat.id)
                 .map(product => (
-                  <div
+                  <ProductRow
                     key={product.id}
-                    className="bg-carbon-900 border border-carbon-700 rounded-xl p-3 flex items-center justify-between"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-smoke-300 text-sm font-medium">{product.name}</p>
-                      <p className="font-mono text-ember-400 text-xs">{formatPrice(product.price)}</p>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <button
-                        onClick={() => toggleAvailability(product)}
-                        className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border ${
-                          product.is_available
-                            ? 'border-emerald-500/40 text-emerald-700'
-                            : 'border-red-500/40 text-red-700'
-                        }`}
-                      >
-                        {product.is_available ? 'Disponible' : 'Agotado'}
-                      </button>
-                      <button
-                        onClick={() => deleteProduct(product.id)}
-                        className="text-smoke-500 text-xs underline"
-                      >
-                        Borrar
-                      </button>
-                    </div>
-                  </div>
+                    product={product}
+                    categories={categories}
+                    onToggle={() => toggleAvailability(product)}
+                    onDelete={() => deleteProduct(product.id)}
+                    onSave={updated => setProducts(prev => prev.map(p => p.id === updated.id ? updated : p))}
+                  />
                 ))}
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+function ProductRow({ product, categories, onToggle, onDelete, onSave }) {
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState(product.name)
+  const [price, setPrice] = useState(String(product.price))
+  const [description, setDescription] = useState(product.description || '')
+  const [categoryId, setCategoryId] = useState(product.category_id)
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave() {
+    setSaving(true)
+    const updates = {
+      name: name.trim(),
+      price: Number(price),
+      description: description.trim() || null,
+      category_id: categoryId
+    }
+    await supabaseStaff.from('products').update(updates).eq('id', product.id)
+    onSave({ ...product, ...updates })
+    setSaving(false)
+    setEditing(false)
+  }
+
+  if (editing) {
+    return (
+      <div className="bg-carbon-900 border border-ember-500/40 rounded-xl p-3 space-y-2">
+        <input
+          className="input"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          placeholder="Nombre"
+        />
+        <input
+          className="input"
+          value={description}
+          onChange={e => setDescription(e.target.value)}
+          placeholder="Descripción (opcional)"
+        />
+        <input
+          className="input"
+          type="number"
+          value={price}
+          onChange={e => setPrice(e.target.value)}
+          placeholder="Precio"
+        />
+        <select
+          className="input"
+          value={categoryId}
+          onChange={e => setCategoryId(e.target.value)}
+        >
+          {categories.map(c => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setEditing(false)}
+            className="flex-1 border border-carbon-700 text-smoke-400 py-2 rounded-xl text-xs"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex-1 bg-ember-500 text-white font-semibold py-2 rounded-xl text-xs"
+          >
+            {saving ? 'Guardando...' : 'Guardar'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-carbon-900 border border-carbon-700 rounded-xl p-3 flex items-center justify-between">
+      <div className="min-w-0">
+        <p className="text-smoke-300 text-sm font-medium">{product.name}</p>
+        <p className="font-mono text-ember-400 text-xs">{formatPrice(product.price)}</p>
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <button
+          onClick={onToggle}
+          className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border ${
+            product.is_available
+              ? 'border-emerald-500/40 text-emerald-700'
+              : 'border-red-500/40 text-red-700'
+          }`}
+        >
+          {product.is_available ? 'Disponible' : 'Agotado'}
+        </button>
+        <button
+          onClick={() => setEditing(true)}
+          className="text-smoke-400 text-xs underline"
+        >
+          Editar
+        </button>
+        <button
+          onClick={onDelete}
+          className="text-smoke-500 text-xs underline"
+        >
+          Borrar
+        </button>
       </div>
     </div>
   )
