@@ -6,7 +6,7 @@ import { formatPrice, STATUS_LABELS, STATUS_COLORS } from '../../lib/utils'
 
 const BOARD_COLUMNS = ['recibido', 'en_preparacion', 'listo', 'entregado']
 const PROOF_BUCKET = 'payment-proofs'
-const ORDER_SELECT = '*, order_items(*), customers(full_name, whatsapp), assigned_staff:staff_names!orders_assigned_staff_id_fkey(id, full_name)'
+const ORDER_SELECT = '*, order_items(*, products(category_id)), customers(full_name, whatsapp), assigned_staff:staff_names!orders_assigned_staff_id_fkey(id, full_name)'
 
 export default function AdminDashboard() {
   const [orders, setOrders] = useState([])
@@ -14,13 +14,23 @@ export default function AdminDashboard() {
   const [pendingInPersonOrders, setPendingInPersonOrders] = useState([])
   const [proofUrls, setProofUrls] = useState({}) // orderId -> signed url
   const [waiters, setWaiters] = useState([])
+  const [categories, setCategories] = useState([]) // para CocinaView
   const [loading, setLoading] = useState(true)
-  const [view, setView] = useState('pedidos') // 'pedidos' | 'salon'
+  const [view, setView] = useState('pedidos') // 'pedidos' | 'salon' | 'cocina'
   const { signOut, profile } = useAuth()
 
   useEffect(() => {
     loadWaiters()
+    loadCategories()
   }, [])
+
+  async function loadCategories() {
+    const { data } = await supabaseStaff
+      .from('categories')
+      .select('id, name, kind')
+      .eq('venue_id', ACTIVE_VENUE_ID)
+    setCategories(data || [])
+  }
 
   async function loadWaiters() {
     const { data } = await supabaseStaff
@@ -214,6 +224,14 @@ export default function AdminDashboard() {
         >
           Salón
         </button>
+        <button
+          onClick={() => setView('cocina')}
+          className={`px-3 py-1.5 rounded-full text-xs font-medium border ${
+            view === 'cocina' ? 'bg-ember-500 text-white border-ember-500' : 'border-carbon-700 text-smoke-400'
+          }`}
+        >
+          Cocina
+        </button>
       </div>
 
       <WaiterManager waiters={waiters} onAdd={addWaiter} onRemove={removeWaiter} />
@@ -258,6 +276,8 @@ export default function AdminDashboard() {
 
       {view === 'salon' ? (
         <SalonView orders={orders} />
+      ) : view === 'cocina' ? (
+        <CocinaView orders={orders} categories={categories} />
       ) : (
         <div className="flex gap-4 overflow-x-auto p-4">
           {BOARD_COLUMNS.map(status => (
@@ -272,6 +292,92 @@ export default function AdminDashboard() {
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+const KIND_LABELS_COCINA = { bebida: '🥤 Bebidas', comida: '🍽️ Comida', otro: '📦 Otros' }
+const KIND_ORDER = ['comida', 'bebida', 'otro']
+
+function CocinaView({ orders, categories }) {
+  const activeOrders = orders.filter(o =>
+    ['recibido', 'en_preparacion', 'listo', 'entregado'].includes(o.status)
+  )
+
+  // Mapa de category_id -> kind para lookup rápido
+  const kindByCategory = Object.fromEntries(
+    categories.map(c => [c.id, c.kind || 'otro'])
+  )
+
+  // Recolectar todos los items de todos los pedidos activos con su kind
+  const allItems = activeOrders.flatMap(order =>
+    (order.order_items || []).map(item => ({
+      ...item,
+      kind: kindByCategory[item.products?.category_id] || 'otro',
+      order
+    }))
+  )
+
+  // Agrupar por kind
+  const byKind = KIND_ORDER.reduce((acc, kind) => {
+    acc[kind] = allItems.filter(i => i.kind === kind)
+    return acc
+  }, {})
+
+  if (allItems.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-[60vh]">
+        <p className="text-smoke-500 text-sm">No hay pedidos activos en cocina.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex gap-4 overflow-x-auto p-4 items-start">
+      {KIND_ORDER.filter(kind => byKind[kind].length > 0).map(kind => (
+        <div key={kind} className="flex-shrink-0 w-72">
+          <div className="text-smoke-300 text-sm font-semibold mb-3 px-1">
+            {KIND_LABELS_COCINA[kind]} · {byKind[kind].length}
+          </div>
+          <div className="space-y-2">
+            {byKind[kind].map(item => {
+              const elapsedMin = Math.round(
+                (Date.now() - new Date(item.order.created_at).getTime()) / 60000
+              )
+              const isUrgent = elapsedMin > 15
+              return (
+                <div
+                  key={`${item.order.id}-${item.id}`}
+                  className={`bg-carbon-900 border rounded-xl p-3 ${
+                    isUrgent ? 'border-red-500/50' : 'border-carbon-700'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-mono text-ember-400 text-xs">
+                      #{item.order.id.slice(0, 6)}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-smoke-400 text-xs">📍 {item.order.location_label}</span>
+                      <span className={`text-xs ${isUrgent ? 'text-red-700 font-semibold' : 'text-smoke-500'}`}>
+                        {elapsedMin}m
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-mono text-ember-500 font-bold text-base">
+                      {item.quantity}×
+                    </span>
+                    <span className="text-smoke-200 text-sm">{item.product_name}</span>
+                  </div>
+                  {item.item_notes && (
+                    <p className="text-smoke-500 text-xs italic mt-0.5">({item.item_notes})</p>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
