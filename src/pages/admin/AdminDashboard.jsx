@@ -15,6 +15,7 @@ export default function AdminDashboard() {
   const [proofUrls, setProofUrls] = useState({}) // orderId -> signed url
   const [waiters, setWaiters] = useState([])
   const [loading, setLoading] = useState(true)
+  const [view, setView] = useState('pedidos') // 'pedidos' | 'salon'
   const { signOut, profile } = useAuth()
 
   useEffect(() => {
@@ -80,6 +81,9 @@ export default function AdminDashboard() {
   useEffect(() => {
     load()
 
+    // Tiempo real: nuevos pedidos y cambios de estado aparecen sin recargar.
+    // Esto funciona bien para el staff porque su sesion usa Supabase Auth
+    // normal (no depende de headers custom como el cliente).
     const channel = supabaseStaff
       .channel('admin-orders')
       .on(
@@ -92,6 +96,7 @@ export default function AdminDashboard() {
     return () => supabaseStaff.removeChannel(channel)
   }, [])
 
+  // Generar URLs firmadas para mostrar los comprobantes (el bucket es privado)
   useEffect(() => {
     async function loadUrls() {
       const entries = await Promise.all(
@@ -127,6 +132,9 @@ export default function AdminDashboard() {
     await supabaseStaff.from('orders').update({ assigned_staff_id: staffId || null }).eq('id', orderId)
   }
 
+  // Confirma la cuenta solicitada (transferencia revisada, o cobro en
+  // persona en efectivo/tarjeta). Esto NO toca el status de cocina/entrega:
+  // son dos ejes independientes, el pedido puede llevar rato "entregado".
   async function confirmPayment(order) {
     await supabaseStaff
       .from('orders')
@@ -177,11 +185,33 @@ export default function AdminDashboard() {
           <Link to="/admin/carta" className="text-smoke-400 text-xs underline">
             Editar carta
           </Link>
+          <Link to="/admin/ubicaciones" className="text-smoke-400 text-xs underline">
+            Ubicaciones
+          </Link>
           <button onClick={signOut} className="text-smoke-500 text-xs underline">
             Salir
           </button>
         </div>
       </header>
+
+      <div className="px-4 pt-3 flex gap-2">
+        <button
+          onClick={() => setView('pedidos')}
+          className={`px-3 py-1.5 rounded-full text-xs font-medium border ${
+            view === 'pedidos' ? 'bg-ember-500 text-white border-ember-500' : 'border-carbon-700 text-smoke-400'
+          }`}
+        >
+          Pedidos
+        </button>
+        <button
+          onClick={() => setView('salon')}
+          className={`px-3 py-1.5 rounded-full text-xs font-medium border ${
+            view === 'salon' ? 'bg-ember-500 text-white border-ember-500' : 'border-carbon-700 text-smoke-400'
+          }`}
+        >
+          Salón
+        </button>
+      </div>
 
       <WaiterManager waiters={waiters} onAdd={addWaiter} onRemove={removeWaiter} />
 
@@ -223,18 +253,114 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      <div className="flex gap-4 overflow-x-auto p-4">
-        {BOARD_COLUMNS.map(status => (
-          <Column
-            key={status}
-            status={status}
-            orders={orders.filter(o => o.status === status)}
-            onUpdateStatus={updateStatus}
-            waiters={waiters}
-            onAssignWaiter={assignWaiter}
-          />
-        ))}
+      {view === 'salon' ? (
+        <SalonView orders={orders} />
+      ) : (
+        <div className="flex gap-4 overflow-x-auto p-4">
+          {BOARD_COLUMNS.map(status => (
+            <Column
+              key={status}
+              status={status}
+              orders={orders.filter(o => o.status === status)}
+              onUpdateStatus={updateStatus}
+              waiters={waiters}
+              onAssignWaiter={assignWaiter}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SalonView({ orders }) {
+  const [typeFilter, setTypeFilter] = useState('todos')
+
+  const filtered = orders.filter(o => typeFilter === 'todos' || o.location_type === typeFilter)
+
+  const grouped = filtered.reduce((acc, order) => {
+    const key = order.location_label || 'Sin ubicación'
+    if (!acc[key]) acc[key] = []
+    acc[key].push(order)
+    return acc
+  }, {})
+
+  const typesPresent = [...new Set(orders.map(o => o.location_type))]
+
+  return (
+    <div className="px-4 pt-4">
+      {typesPresent.length > 1 && (
+        <div className="flex gap-2 mb-4 overflow-x-auto">
+          <button
+            onClick={() => setTypeFilter('todos')}
+            className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border ${
+              typeFilter === 'todos' ? 'bg-ember-500 text-white border-ember-500' : 'border-carbon-700 text-smoke-400'
+            }`}
+          >
+            Todos
+          </button>
+          {typesPresent.map(type => (
+            <button
+              key={type}
+              onClick={() => setTypeFilter(type)}
+              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border ${
+                typeFilter === type ? 'bg-ember-500 text-white border-ember-500' : 'border-carbon-700 text-smoke-400'
+              }`}
+            >
+              {TYPE_FILTER_LABELS[type] || type}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {Object.keys(grouped).length === 0 ? (
+        <p className="text-smoke-500 text-sm text-center py-10">No hay pedidos activos.</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {Object.entries(grouped).map(([location, locationOrders]) => (
+            <div key={location} className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4">
+              <p className="text-smoke-300 font-medium text-sm mb-3">📍 {location}</p>
+              <div className="space-y-2">
+                {locationOrders.map(order => (
+                  <SalonOrderRow key={order.id} order={order} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const TYPE_FILTER_LABELS = {
+  mesa: 'Mesas',
+  zona: 'Zonas',
+  retiro: 'Retiro',
+  punto_mapa: 'Mapa'
+}
+
+function SalonOrderRow({ order }) {
+  const isUrgent = order.payment_status === 'cuenta_solicitada'
+
+  return (
+    <div
+      className={`rounded-xl p-2.5 border ${
+        isUrgent ? 'border-red-500/60 bg-red-500/10' : 'border-carbon-700 bg-carbon-800'
+      }`}
+    >
+      <div className="flex items-center justify-between">
+        <span className="font-mono text-ember-400 text-xs">#{order.id.slice(0, 6)}</span>
+        <span className={`text-[10px] px-2 py-0.5 rounded-full border ${STATUS_COLORS[order.status]}`}>
+          {STATUS_LABELS[order.status]}
+        </span>
       </div>
+      {isUrgent && (
+        <p className="text-red-700 text-xs font-semibold mt-1">🧾 Pidió la cuenta — ir a cobrar</p>
+      )}
+      {order.assigned_staff?.full_name && (
+        <p className="text-smoke-500 text-xs mt-1">🧑‍🍳 {order.assigned_staff.full_name}</p>
+      )}
     </div>
   )
 }
@@ -392,7 +518,7 @@ function ProofCard({ order, proofUrl, onConfirm, onReject }) {
 }
 
 function InPersonCard({ order, waiters, onConfirm, onAssignWaiter }) {
-  const methodLabel = order.payment_method === 'efectivo' ? 'Efectivo' : 'Tarjeta'
+  const methodLabel = order.payment_method === 'efectivo' ? 'Efectivo' : 'Tarjeta / QR'
   const elapsedMin = Math.round((Date.now() - new Date(order.created_at).getTime()) / 60000)
 
   return (
