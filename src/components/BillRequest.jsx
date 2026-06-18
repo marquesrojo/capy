@@ -77,7 +77,7 @@ function RequestBillForm({ order, onUpdated }) {
       onUpdated(data)
     } catch (err) {
       console.error(err)
-      setError('No pudimos pedir la cuenta. Intentá de nuevo.')
+      setError(`No pudimos pedir la cuenta: ${err.message || JSON.stringify(err)}`)
       setSubmitting(false)
     }
   }
