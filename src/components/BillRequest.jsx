@@ -77,7 +77,7 @@ function RequestBillForm({ order, onUpdated }) {
       onUpdated(data)
     } catch (err) {
       console.error(err)
-      setError(`No pudimos pedir la cuenta: ${err.message || JSON.stringify(err)}`)
+      setError('No pudimos pedir la cuenta. Intentá de nuevo.')
       setSubmitting(false)
     }
   }
@@ -209,7 +209,7 @@ function UploadProof({ order, onUpdated }) {
       onUpdated(data)
     } catch (err) {
       console.error(err)
-      setError(`No pudimos subir el comprobante: ${err.message || JSON.stringify(err)}`)
+      setError('No pudimos subir el comprobante. Intentá de nuevo.')
     } finally {
       setSubmitting(false)
     }
