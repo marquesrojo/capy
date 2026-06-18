@@ -340,13 +340,37 @@ const TYPE_FILTER_LABELS = {
   punto_mapa: 'Mapa'
 }
 
+// Codigo de color por METODO de pago (no por status), para que se
+// distinga de lejos en una TV/tablet fija en el salon:
+//  - efectivo: verde, con el vuelto a llevar si el cliente lo indico
+//  - tarjeta/QR: azul, posnet
+//  - transferencia en revision: ambar, solo informativo para caja
+const METHOD_ALERT_STYLES = {
+  efectivo: 'border-emerald-500/60 bg-emerald-500/10',
+  tarjeta: 'border-blue-500/60 bg-blue-500/10',
+  transferencia: 'border-amber-500/60 bg-amber-500/10'
+}
+
+const METHOD_ALERT_TEXT = {
+  efectivo: 'text-emerald-700',
+  tarjeta: 'text-blue-700',
+  transferencia: 'text-amber-700'
+}
+
+const METHOD_ALERT_LABELS = {
+  efectivo: '💵 Pidió la cuenta — cobrar en efectivo',
+  tarjeta: '💳 Pidió la cuenta — cobrar con posnet/QR',
+  transferencia: '🧾 Comprobante por revisar'
+}
+
 function SalonOrderRow({ order }) {
-  const isUrgent = order.payment_status === 'cuenta_solicitada'
+  const isAlert = order.payment_status === 'cuenta_solicitada' || order.payment_status === 'en_revision'
+  const alertStyle = isAlert ? METHOD_ALERT_STYLES[order.payment_method] : null
 
   return (
     <div
       className={`rounded-xl p-2.5 border ${
-        isUrgent ? 'border-red-500/60 bg-red-500/10' : 'border-carbon-700 bg-carbon-800'
+        alertStyle || 'border-carbon-700 bg-carbon-800'
       }`}
     >
       <div className="flex items-center justify-between">
@@ -355,9 +379,18 @@ function SalonOrderRow({ order }) {
           {STATUS_LABELS[order.status]}
         </span>
       </div>
-      {isUrgent && (
-        <p className="text-red-700 text-xs font-semibold mt-1">🧾 Pidió la cuenta — ir a cobrar</p>
+      {isAlert && (
+        <p className={`text-xs font-semibold mt-1 ${METHOD_ALERT_TEXT[order.payment_method]}`}>
+          {METHOD_ALERT_LABELS[order.payment_method] || '🧾 Pidió la cuenta'}
+        </p>
       )}
+      {order.payment_status === 'cuenta_solicitada' &&
+        order.payment_method === 'efectivo' &&
+        order.cash_amount && (
+          <p className="text-emerald-700 text-xs mt-0.5">
+            vuelto {formatPrice(order.cash_amount - order.total)}
+          </p>
+        )}
       {order.assigned_staff?.full_name && (
         <p className="text-smoke-500 text-xs mt-1">🧑‍🍳 {order.assigned_staff.full_name}</p>
       )}
