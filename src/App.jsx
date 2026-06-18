@@ -9,12 +9,15 @@ import MenuPage from './pages/client/MenuPage'
 import OrdersPage from './pages/client/OrdersPage'
 import LocationPage from './pages/client/LocationPage'
 import PaymentPage from './pages/client/PaymentPage'
+import OrderConfirmedPage from './pages/client/OrderConfirmedPage'
 import OrderStatusPage from './pages/client/OrderStatusPage'
 
 import AdminLoginPage from './pages/admin/AdminLoginPage'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import HistoryPage from './pages/admin/HistoryPage'
 import MenuEditorPage from './pages/admin/MenuEditorPage'
+import FeedbackPage from './pages/admin/FeedbackPage'
+import LocationsPage from './pages/admin/LocationsPage'
 
 export default function App() {
   return (
@@ -60,6 +63,7 @@ export default function App() {
               />
               {/* El seguimiento del pedido no requiere identificacion previa
                   en este dispositivo (ej: si comparten el link), solo el id */}
+              <Route path="/pedido-enviado/:orderId" element={<OrderConfirmedPage />} />
               <Route path="/pedido/:orderId" element={<OrderStatusPage />} />
 
               {/* Staff: camarero y admin, con login real */}
@@ -85,6 +89,22 @@ export default function App() {
                 element={
                   <RequireStaff>
                     <MenuEditorPage />
+                  </RequireStaff>
+                }
+              />
+              <Route
+                path="/admin/encuestas"
+                element={
+                  <RequireStaff>
+                    <FeedbackPage />
+                  </RequireStaff>
+                }
+              />
+              <Route
+                path="/admin/ubicaciones"
+                element={
+                  <RequireStaff>
+                    <LocationsPage />
                   </RequireStaff>
                 }
               />
