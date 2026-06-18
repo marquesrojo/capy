@@ -13,6 +13,7 @@ export default function UsersPage() {
   const [email, setEmail] = useState('')
   const [fullName, setFullName] = useState('')
   const [role, setRole] = useState('admin')
+  const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
@@ -31,9 +32,13 @@ export default function UsersPage() {
     setLoading(false)
   }
 
-  async function handleInvite() {
-    if (!email.trim() || !fullName.trim()) {
-      setError('Completá el email y el nombre.')
+  async function handleCreate() {
+    if (!email.trim() || !fullName.trim() || !password.trim()) {
+      setError('Completá todos los campos.')
+      return
+    }
+    if (password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres.')
       return
     }
 
@@ -54,26 +59,27 @@ export default function UsersPage() {
           body: JSON.stringify({
             email: email.trim(),
             full_name: fullName.trim(),
-            role
+            role,
+            password: password.trim()
           })
         }
       )
 
       const result = await res.json()
-      console.log('Response status:', res.status, 'body:', JSON.stringify(result))
 
       if (!res.ok) {
-        setError(`HTTP ${res.status}: ${result.error || result.message || JSON.stringify(result)}`)
+        setError(result.error || 'Error al crear el usuario.')
       } else {
-        setSuccess(`Invitación enviada a ${email.trim()}. El usuario recibirá un email para elegir su contraseña.`)
+        setSuccess(`Usuario ${fullName.trim()} creado correctamente. Ya puede ingresar con ${email.trim()} y la contraseña que definiste.`)
         setEmail('')
         setFullName('')
+        setPassword('')
         setRole('admin')
         loadUsers()
       }
     } catch (err) {
       console.error('Error:', err)
-      setError('No pudimos enviar la invitación. Intentá de nuevo.')
+      setError('No pudimos crear el usuario. Intentá de nuevo.')
     } finally {
       setSubmitting(false)
     }
@@ -100,7 +106,7 @@ export default function UsersPage() {
 
       <main className="px-5 mt-4 space-y-6">
         <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
-          <p className="text-smoke-300 font-medium text-sm mb-4">Invitar nuevo usuario</p>
+          <p className="text-smoke-300 font-medium text-sm mb-4">Crear nuevo usuario</p>
 
           <div className="space-y-3">
             <input
@@ -117,6 +123,13 @@ export default function UsersPage() {
               placeholder="Email"
               className="input w-full"
             />
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="Contraseña (mínimo 6 caracteres)"
+              className="input w-full"
+            />
             <select
               value={role}
               onChange={e => setRole(e.target.value)}
@@ -131,11 +144,11 @@ export default function UsersPage() {
           {success && <p className="text-emerald-700 text-xs mt-3">{success}</p>}
 
           <button
-            onClick={handleInvite}
+            onClick={handleCreate}
             disabled={submitting}
             className="w-full mt-4 bg-ember-500 hover:bg-ember-600 disabled:opacity-50 text-white font-semibold py-3 rounded-xl"
           >
-            {submitting ? 'Enviando invitación...' : 'Enviar invitación por email'}
+            {submitting ? 'Creando usuario...' : 'Crear usuario'}
           </button>
         </div>
 
