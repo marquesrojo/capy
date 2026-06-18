@@ -11,13 +11,14 @@ export default function MenuPage() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState(null)
+  const [highDemand, setHighDemand] = useState(false)
   const { items, addItem, itemCount, subtotal } = useCart()
   const { customer, forgetCustomer } = useCustomer()
   const navigate = useNavigate()
 
   useEffect(() => {
     async function load() {
-      const [catRes, prodRes] = await Promise.all([
+      const [catRes, prodRes, venueRes] = await Promise.all([
         supabaseCustomer
           .from('categories')
           .select('*')
@@ -28,11 +29,17 @@ export default function MenuPage() {
           .from('products')
           .select('*')
           .eq('venue_id', ACTIVE_VENUE_ID)
-          .order('sort_order')
+          .order('sort_order'),
+        supabaseCustomer
+          .from('venues')
+          .select('high_demand')
+          .eq('id', ACTIVE_VENUE_ID)
+          .single()
       ])
       setCategories(catRes.data || [])
       setProducts(prodRes.data || [])
       if (catRes.data?.length) setActiveCategory(catRes.data[0].id)
+      if (venueRes.data) setHighDemand(venueRes.data.high_demand)
       setLoading(false)
     }
     load()
@@ -46,6 +53,11 @@ export default function MenuPage() {
 
   return (
     <div className="min-h-screen bg-carbon-950 pb-32">
+      {highDemand && (
+        <div className="bg-red-500/15 border-b border-red-500/30 px-5 py-3 text-center">
+          <p className="text-red-700 text-sm font-medium">⏳ Alta demanda — puede haber demora en los pedidos. ¡Gracias por tu paciencia!</p>
+        </div>
+      )}
       <header className="sticky top-0 z-10 bg-carbon-950/95 backdrop-blur border-b border-carbon-700 px-5 pt-5 pb-3">
         <div className="flex items-center justify-between mb-4">
           <div>
