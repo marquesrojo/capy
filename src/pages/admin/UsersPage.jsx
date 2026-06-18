@@ -42,23 +42,13 @@ export default function UsersPage() {
     setSuccess('')
 
     try {
-      const { data: { session }, error: sessionError } = await supabaseStaff.auth.getSession()
-
-      if (sessionError || !session) {
-        setError(`Sin sesión activa: ${sessionError?.message || 'sesión nula'}. Intentá cerrar sesión y volver a entrar.`)
-        setSubmitting(false)
-        return
-      }
-
-      console.log('Token (primeros 20 chars):', session.access_token?.slice(0, 20))
-
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-user`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`
+            'x-capy-secret': import.meta.env.VITE_CAPY_ADMIN_SECRET
           },
           body: JSON.stringify({
             email: email.trim(),
@@ -81,9 +71,8 @@ export default function UsersPage() {
         loadUsers()
       }
     } catch (err) {
-      console.error('Error completo:', err)
-      const msg = err instanceof Error ? err.message : typeof err === 'string' ? err : JSON.stringify(err) || 'error desconocido'
-      setError(`Error: ${msg}`)
+      console.error('Error:', err)
+      setError('No pudimos enviar la invitación. Intentá de nuevo.')
     } finally {
       setSubmitting(false)
     }
