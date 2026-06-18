@@ -69,9 +69,10 @@ export default function UsersPage() {
       )
 
       const result = await res.json()
+      console.log('Response status:', res.status, 'body:', JSON.stringify(result))
 
       if (!res.ok) {
-        setError(result.error || result.message || JSON.stringify(result))
+        setError(`HTTP ${res.status}: ${result.error || result.message || JSON.stringify(result)}`)
       } else {
         setSuccess(`Invitación enviada a ${email.trim()}. El usuario recibirá un email para elegir su contraseña.`)
         setEmail('')
@@ -80,8 +81,9 @@ export default function UsersPage() {
         loadUsers()
       }
     } catch (err) {
-      console.error('Error invitando usuario:', err)
-      setError(`Error de red: ${err?.message || String(err)}`)
+      console.error('Error completo:', err)
+      const msg = err instanceof Error ? err.message : typeof err === 'string' ? err : JSON.stringify(err) || 'error desconocido'
+      setError(`Error: ${msg}`)
     } finally {
       setSubmitting(false)
     }
