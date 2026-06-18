@@ -12,17 +12,37 @@ export default function AdminDashboard() {
   const [orders, setOrders] = useState([])
   const [pendingProofOrders, setPendingProofOrders] = useState([])
   const [pendingInPersonOrders, setPendingInPersonOrders] = useState([])
-  const [proofUrls, setProofUrls] = useState({}) // orderId -> signed url
+  const [proofUrls, setProofUrls] = useState({})
   const [waiters, setWaiters] = useState([])
-  const [categories, setCategories] = useState([]) // para CocinaView
+  const [categories, setCategories] = useState([])
+  const [highDemand, setHighDemand] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [view, setView] = useState('pedidos') // 'pedidos' | 'salon' | 'cocina'
+  const [view, setView] = useState('pedidos')
   const { signOut, profile } = useAuth()
 
   useEffect(() => {
     loadWaiters()
     loadCategories()
+    loadVenue()
   }, [])
+
+  async function loadVenue() {
+    const { data } = await supabaseStaff
+      .from('venues')
+      .select('high_demand')
+      .eq('id', ACTIVE_VENUE_ID)
+      .single()
+    if (data) setHighDemand(data.high_demand)
+  }
+
+  async function toggleHighDemand() {
+    const newVal = !highDemand
+    setHighDemand(newVal)
+    await supabaseStaff
+      .from('venues')
+      .update({ high_demand: newVal })
+      .eq('id', ACTIVE_VENUE_ID)
+  }
 
   async function loadCategories() {
     const { data } = await supabaseStaff
@@ -206,6 +226,20 @@ export default function AdminDashboard() {
           </button>
         </div>
       </header>
+
+      <div className="px-5 py-2 flex items-center justify-between border-b border-carbon-700">
+        <span className="text-smoke-400 text-xs">Alta demanda</span>
+        <button
+          onClick={toggleHighDemand}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+            highDemand ? 'bg-red-500' : 'bg-carbon-700'
+          }`}
+        >
+          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+            highDemand ? 'translate-x-6' : 'translate-x-1'
+          }`} />
+        </button>
+      </div>
 
       <div className="px-4 pt-3 flex gap-2">
         <button
