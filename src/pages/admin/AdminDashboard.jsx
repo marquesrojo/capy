@@ -236,7 +236,7 @@ export default function AdminDashboard() {
 
       <WaiterManager waiters={waiters} onAdd={addWaiter} onRemove={removeWaiter} />
 
-      {pendingProofOrders.length > 0 && (
+      {view !== 'cocina' && pendingProofOrders.length > 0 && (
         <div className="px-4 pt-4">
           <p className="text-ember-400 text-xs font-semibold uppercase tracking-wide mb-2">
             Comprobantes por confirmar · {pendingProofOrders.length}
@@ -255,7 +255,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {pendingInPersonOrders.length > 0 && (
+      {view !== 'cocina' && pendingInPersonOrders.length > 0 && (
         <div className="px-4 pt-4">
           <p className="text-blue-700 text-xs font-semibold uppercase tracking-wide mb-2">
             Por cobrar en persona · {pendingInPersonOrders.length}
@@ -309,22 +309,30 @@ function CocinaView({ orders, categories }) {
     categories.map(c => [c.id, c.kind || 'otro'])
   )
 
-  // Recolectar todos los items de todos los pedidos activos con su kind
-  const allItems = activeOrders.flatMap(order =>
-    (order.order_items || []).map(item => ({
-      ...item,
-      kind: kindByCategory[item.products?.category_id] || 'otro',
-      order
-    }))
-  )
-
-  // Agrupar por kind
+  // Para cada pedido, separar sus items por kind
+  // Resultado: { kind -> [{ order, items }] }
   const byKind = KIND_ORDER.reduce((acc, kind) => {
-    acc[kind] = allItems.filter(i => i.kind === kind)
+    acc[kind] = []
     return acc
   }, {})
 
-  if (allItems.length === 0) {
+  activeOrders.forEach(order => {
+    const itemsByKind = {}
+    ;(order.order_items || []).forEach(item => {
+      const kind = kindByCategory[item.products?.category_id] || 'otro'
+      if (!itemsByKind[kind]) itemsByKind[kind] = []
+      itemsByKind[kind].push(item)
+    })
+    KIND_ORDER.forEach(kind => {
+      if (itemsByKind[kind]?.length > 0) {
+        byKind[kind].push({ order, items: itemsByKind[kind] })
+      }
+    })
+  })
+
+  const totalItems = KIND_ORDER.reduce((sum, k) => sum + byKind[k].length, 0)
+
+  if (totalItems === 0) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
         <p className="text-smoke-500 text-sm">No hay pedidos activos en cocina.</p>
@@ -339,39 +347,43 @@ function CocinaView({ orders, categories }) {
           <div className="text-smoke-300 text-sm font-semibold mb-3 px-1">
             {KIND_LABELS_COCINA[kind]} · {byKind[kind].length}
           </div>
-          <div className="space-y-2">
-            {byKind[kind].map(item => {
+          <div className="space-y-3">
+            {byKind[kind].map(({ order, items }) => {
               const elapsedMin = Math.round(
-                (Date.now() - new Date(item.order.created_at).getTime()) / 60000
+                (Date.now() - new Date(order.created_at).getTime()) / 60000
               )
               const isUrgent = elapsedMin > 15
               return (
                 <div
-                  key={`${item.order.id}-${item.id}`}
-                  className={`bg-carbon-900 border rounded-xl p-3 ${
+                  key={order.id}
+                  className={`bg-carbon-900 border rounded-2xl p-4 ${
                     isUrgent ? 'border-red-500/50' : 'border-carbon-700'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-mono text-ember-400 text-xs">
-                      #{item.order.id.slice(0, 6)}
-                    </span>
+                  <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-smoke-400 text-xs">📍 {item.order.location_label}</span>
-                      <span className={`text-xs ${isUrgent ? 'text-red-700 font-semibold' : 'text-smoke-500'}`}>
-                        {elapsedMin}m
+                      <span className="font-mono text-ember-400 text-xs">
+                        #{order.id.slice(0, 6)}
                       </span>
+                      <span className="text-smoke-400 text-xs">📍 {order.location_label}</span>
                     </div>
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-mono text-ember-500 font-bold text-base">
-                      {item.quantity}×
+                    <span className={`text-xs font-medium ${isUrgent ? 'text-red-700' : 'text-smoke-500'}`}>
+                      {elapsedMin}m
                     </span>
-                    <span className="text-smoke-200 text-sm">{item.product_name}</span>
                   </div>
-                  {item.item_notes && (
-                    <p className="text-smoke-500 text-xs italic mt-0.5">({item.item_notes})</p>
-                  )}
+                  <ul className="space-y-1.5">
+                    {items.map(item => (
+                      <li key={item.id} className="flex items-baseline gap-2">
+                        <span className="font-mono text-ember-500 font-bold text-sm w-6 flex-shrink-0">
+                          {item.quantity}×
+                        </span>
+                        <span className="text-smoke-200 text-sm">{item.product_name}</span>
+                        {item.item_notes && (
+                          <span className="text-smoke-500 text-xs italic">({item.item_notes})</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )
             })}
