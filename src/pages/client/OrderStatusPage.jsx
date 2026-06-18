@@ -3,6 +3,7 @@ import { useOrderPolling } from '../../hooks/useOrderPolling'
 import { formatPrice, STATUS_LABELS, STATUS_FLOW, PAYMENT_STATUS_LABELS, PAYMENT_STATUS_COLORS } from '../../lib/utils'
 import OrderFeedback from '../../components/OrderFeedback'
 import BillRequest from '../../components/BillRequest'
+import SplitCalculator from '../../components/SplitCalculator'
 
 export default function OrderStatusPage() {
   const { orderId } = useParams()
@@ -105,6 +106,8 @@ export default function OrderStatusPage() {
         <span className="font-medium">Total</span>
         <span className="font-mono text-ember-400">{formatPrice(order.total)}</span>
       </div>
+
+      <SplitCalculator total={order.total} />
 
       {!isCancelado && (
         <BillRequest order={order} onUpdated={updated => setOrder(prev => ({ ...prev, ...updated }))} />
