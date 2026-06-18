@@ -35,7 +35,11 @@ export default function IdentifyPage() {
     <div className="min-h-screen bg-carbon-950 flex items-center justify-center px-5">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="font-display text-5xl tracking-wide text-ember-500">CAPY</h1>
+          <img
+            src="/icon-512.png"
+            alt="Capy"
+            className="w-24 h-24 mx-auto mb-3"
+          />
           <p className="text-smoke-400 text-sm mt-1">Pedí desde donde estés</p>
         </div>
 
