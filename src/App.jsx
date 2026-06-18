@@ -18,6 +18,7 @@ import HistoryPage from './pages/admin/HistoryPage'
 import MenuEditorPage from './pages/admin/MenuEditorPage'
 import FeedbackPage from './pages/admin/FeedbackPage'
 import LocationsPage from './pages/admin/LocationsPage'
+import UsersPage from './pages/admin/UsersPage'
 
 export default function App() {
   return (
@@ -26,7 +27,6 @@ export default function App() {
         <CartProvider>
           <BrowserRouter>
             <Routes>
-              {/* Cliente: sin login, identificado por nombre + whatsapp */}
               <Route path="/" element={<Navigate to="/carta" replace />} />
               <Route path="/identificacion" element={<IdentifyPage />} />
               <Route
@@ -61,12 +61,9 @@ export default function App() {
                   </RequireCustomer>
                 }
               />
-              {/* El seguimiento del pedido no requiere identificacion previa
-                  en este dispositivo (ej: si comparten el link), solo el id */}
               <Route path="/pedido-enviado/:orderId" element={<OrderConfirmedPage />} />
               <Route path="/pedido/:orderId" element={<OrderStatusPage />} />
 
-              {/* Staff: camarero y admin, con login real */}
               <Route path="/admin/login" element={<AdminLoginPage />} />
               <Route
                 path="/admin"
@@ -105,6 +102,14 @@ export default function App() {
                 element={
                   <RequireStaff>
                     <LocationsPage />
+                  </RequireStaff>
+                }
+              />
+              <Route
+                path="/admin/usuarios"
+                element={
+                  <RequireStaff>
+                    <UsersPage />
                   </RequireStaff>
                 }
               />
