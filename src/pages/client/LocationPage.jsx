@@ -46,6 +46,7 @@ export default function LocationPage() {
 
   const mesas = zones.filter(z => z.type === 'mesa')
   const sectores = zones.filter(z => z.type === 'zona')
+  const retiro = zones.filter(z => z.type === 'retiro')
 
   return (
     <div className="min-h-screen bg-carbon-950 pb-10">
@@ -75,6 +76,19 @@ export default function LocationPage() {
             </p>
             <div className="space-y-2">
               {sectores.map(zone => (
+                <ZoneButton key={zone.id} zone={zone} onClick={() => chooseZone(zone)} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {retiro.length > 0 && (
+          <div>
+            <p className="text-smoke-400 text-xs font-semibold uppercase tracking-wide mb-2">
+              Voy a retirarlo yo mismo
+            </p>
+            <div className="space-y-2">
+              {retiro.map(zone => (
                 <ZoneButton key={zone.id} zone={zone} onClick={() => chooseZone(zone)} />
               ))}
             </div>
