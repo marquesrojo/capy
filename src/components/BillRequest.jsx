@@ -209,7 +209,7 @@ function UploadProof({ order, onUpdated }) {
       onUpdated(data)
     } catch (err) {
       console.error(err)
-      setError('No pudimos subir el comprobante. Intentá de nuevo.')
+      setError(`No pudimos subir el comprobante: ${err.message || JSON.stringify(err)}`)
     } finally {
       setSubmitting(false)
     }
