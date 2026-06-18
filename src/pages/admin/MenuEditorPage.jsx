@@ -97,13 +97,37 @@ export default function MenuEditorPage() {
 
         {categories.map(cat => (
           <div key={cat.id} className="mb-6">
-            <div className="flex items-center gap-2 mb-2">
-              <h2 className="text-smoke-400 text-xs font-semibold uppercase tracking-wide">
-                {cat.name}
-              </h2>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full border ${KIND_COLORS[cat.kind] || KIND_COLORS.otro}`}>
-                {KIND_LABELS[cat.kind] || 'Otro'}
-              </span>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <h2 className="text-smoke-400 text-xs font-semibold uppercase tracking-wide">
+                  {cat.name}
+                </h2>
+                <select
+                  value={cat.kind || 'otro'}
+                  onChange={async e => {
+                    const newKind = e.target.value
+                    setCategories(prev => prev.map(c => c.id === cat.id ? { ...c, kind: newKind } : c))
+                    await supabaseStaff.from('categories').update({ kind: newKind }).eq('id', cat.id)
+                  }}
+                  className={`text-[10px] px-2 py-0.5 rounded-full border bg-transparent cursor-pointer ${KIND_COLORS[cat.kind] || KIND_COLORS.otro}`}
+                >
+                  <option value="comida">Comida</option>
+                  <option value="bebida">Bebida</option>
+                  <option value="otro">Otro</option>
+                </select>
+              </div>
+              {products.filter(p => p.category_id === cat.id).length === 0 && (
+                <button
+                  onClick={async () => {
+                    if (!confirm(`¿Borrar la categoría "${cat.name}"?`)) return
+                    await supabaseStaff.from('categories').delete().eq('id', cat.id)
+                    setCategories(prev => prev.filter(c => c.id !== cat.id))
+                  }}
+                  className="text-smoke-500 text-xs underline"
+                >
+                  Borrar
+                </button>
+              )}
             </div>
             <div className="space-y-2">
               {products
