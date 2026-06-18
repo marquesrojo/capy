@@ -42,7 +42,15 @@ export default function UsersPage() {
     setSuccess('')
 
     try {
-      const { data: { session } } = await supabaseStaff.auth.getSession()
+      const { data: { session }, error: sessionError } = await supabaseStaff.auth.getSession()
+
+      if (sessionError || !session) {
+        setError(`Sin sesión activa: ${sessionError?.message || 'sesión nula'}. Intentá cerrar sesión y volver a entrar.`)
+        setSubmitting(false)
+        return
+      }
+
+      console.log('Token (primeros 20 chars):', session.access_token?.slice(0, 20))
 
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-user`,
@@ -63,7 +71,7 @@ export default function UsersPage() {
       const result = await res.json()
 
       if (!res.ok) {
-        setError(result.error || 'Error al enviar la invitación.')
+        setError(result.error || result.message || JSON.stringify(result))
       } else {
         setSuccess(`Invitación enviada a ${email.trim()}. El usuario recibirá un email para elegir su contraseña.`)
         setEmail('')
@@ -72,7 +80,8 @@ export default function UsersPage() {
         loadUsers()
       }
     } catch (err) {
-      setError('No pudimos enviar la invitación. Intentá de nuevo.')
+      console.error('Error invitando usuario:', err)
+      setError(`Error de red: ${err?.message || String(err)}`)
     } finally {
       setSubmitting(false)
     }
