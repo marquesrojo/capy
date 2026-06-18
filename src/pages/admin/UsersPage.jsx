@@ -48,6 +48,7 @@ export default function UsersPage() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
             'x-capy-secret': import.meta.env.VITE_CAPY_ADMIN_SECRET
           },
           body: JSON.stringify({
