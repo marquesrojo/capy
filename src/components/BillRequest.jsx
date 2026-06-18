@@ -27,12 +27,15 @@ export default function BillRequest({ order, onUpdated }) {
     if (order.payment_method === 'transferencia' && !order.payment_proof_url) {
       return <UploadProof order={order} onUpdated={onUpdated} />
     }
+    const isPickup = order.location_type === 'retiro'
     return (
       <div className="mt-6 bg-carbon-900 border border-carbon-700 rounded-2xl p-5 text-center">
         <p className="text-smoke-300">
-          {order.payment_method === 'efectivo'
-            ? 'Un mozo se está acercando a cobrar en efectivo'
-            : 'Un mozo se está acercando con el posnet/QR'}
+          {isPickup
+            ? `Retirá y pagá en ${order.location_label}`
+            : order.payment_method === 'efectivo'
+              ? 'Un mozo se está acercando a cobrar en efectivo'
+              : 'Un mozo se está acercando con el posnet/QR'}
         </p>
       </div>
     )
