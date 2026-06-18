@@ -56,6 +56,13 @@ export default function OrderStatusPage() {
         </div>
       )}
 
+      {!isCancelado && order.location_type === 'retiro' && order.status === 'listo' && (
+        <div className="mt-6 bg-emerald-500/10 border border-emerald-500/40 rounded-2xl p-5 text-center">
+          <p className="text-emerald-700 font-semibold text-lg">¡Ya podés venir a buscarlo!</p>
+          <p className="text-smoke-400 text-xs mt-1">📍 {order.location_label}</p>
+        </div>
+      )}
+
       {!isCancelado && (
         <div className="mt-6 bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
           <div className="flex justify-between">
