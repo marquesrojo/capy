@@ -102,7 +102,11 @@ export default function AdminDashboard() {
         .in('payment_method', ['efectivo', 'tarjeta'])
         .order('bill_requested_at', { ascending: true })
     ])
-    setOrders(boardRes.data || [])
+    // Excluir pedidos cerrados: entregado + pagado = ya no aparecen en el panel
+    const openOrders = (boardRes.data || []).filter(o =>
+      !(o.status === 'entregado' && o.payment_status === 'aprobado')
+    )
+    setOrders(openOrders)
     setPendingProofOrders(proofRes.data || [])
     setPendingInPersonOrders(inPersonRes.data || [])
     setLoading(false)
@@ -335,7 +339,7 @@ const KIND_ORDER = ['comida', 'bebida', 'otro']
 
 function CocinaView({ orders, categories }) {
   const activeOrders = orders.filter(o =>
-    ['recibido', 'en_preparacion', 'listo', 'entregado'].includes(o.status)
+    ['recibido', 'en_preparacion'].includes(o.status)
   )
 
   // Mapa de category_id -> kind para lookup rápido
