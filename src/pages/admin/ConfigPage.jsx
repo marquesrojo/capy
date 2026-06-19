@@ -1,11 +1,28 @@
 import { Link } from 'react-router-dom'
 
+const ICON_PROPS = { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round' }
+
 const CONFIG_ITEMS = [
-  { to: '/admin/carta', icon: '🍽️', label: 'Carta', desc: 'Productos y categorías' },
-  { to: '/admin/ubicaciones', icon: '📍', label: 'Ubicaciones', desc: 'Mesas, zonas y retiro' },
-  { to: '/admin/configuracion/medios-pago', icon: '💳', label: 'Medios de pago', desc: 'Métodos disponibles para clientes' },
-  { to: '/admin/usuarios', icon: '👤', label: 'Usuarios', desc: 'Staff y administradores' },
-  { to: '/admin/encuestas', icon: '⭐', label: 'Encuestas', desc: 'Calificaciones de clientes' },
+  {
+    to: '/admin/carta', label: 'Carta', desc: 'Productos y categorías',
+    icon: <svg {...ICON_PROPS}><path d="M3 3v18M3 3h12a3 3 0 0 1 0 6H3M21 3v18" /></svg>
+  },
+  {
+    to: '/admin/ubicaciones', label: 'Ubicaciones', desc: 'Mesas, zonas y retiro',
+    icon: <svg {...ICON_PROPS}><path d="M12 21s-7-7.5-7-12a7 7 0 0 1 14 0c0 4.5-7 12-7 12Z"/><circle cx="12" cy="9" r="2.5"/></svg>
+  },
+  {
+    to: '/admin/configuracion/medios-pago', label: 'Medios de pago', desc: 'Métodos disponibles para clientes',
+    icon: <svg {...ICON_PROPS}><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+  },
+  {
+    to: '/admin/usuarios', label: 'Usuarios', desc: 'Staff y administradores',
+    icon: <svg {...ICON_PROPS}><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+  },
+  {
+    to: '/admin/encuestas', label: 'Encuestas', desc: 'Calificaciones de clientes',
+    icon: <svg {...ICON_PROPS}><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 16.9l-6.2 3.4 1.6-6.8L2.2 8.9l6.9-.6L12 2Z"/></svg>
+  },
 ]
 
 export default function ConfigPage() {
@@ -25,7 +42,7 @@ export default function ConfigPage() {
             to={item.to}
             className="flex items-center gap-4 bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-4 active:opacity-70"
           >
-            <span className="text-2xl w-8 text-center">{item.icon}</span>
+            <span className="text-ember-500 w-8 flex justify-center flex-shrink-0">{item.icon}</span>
             <div>
               <p className="text-smoke-200 font-medium text-sm">{item.label}</p>
               <p className="text-smoke-500 text-xs mt-0.5">{item.desc}</p>
