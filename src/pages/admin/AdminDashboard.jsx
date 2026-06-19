@@ -4,7 +4,7 @@ import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice, STATUS_LABELS, STATUS_COLORS } from '../../lib/utils'
 
-const BOARD_COLUMNS = ['recibido', 'en_preparacion', 'listo', 'entregado']
+const BOARD_COLUMNS = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo', 'entregado']
 const PROOF_BUCKET = 'payment-proofs'
 const ORDER_SELECT = '*, order_items(*, products(category_id)), customers(full_name, whatsapp), assigned_staff:staff_names!orders_assigned_staff_id_fkey(id, full_name)'
 
@@ -746,6 +746,7 @@ function InPersonCard({ order, waiters, onConfirm, onAssignWaiter }) {
 
 function Column({ status, orders, onUpdateStatus, waiters, onAssignWaiter }) {
   const nextStatus = {
+    pendiente_aprobacion: 'recibido',
     recibido: 'en_preparacion',
     en_preparacion: 'listo',
     listo: 'entregado'
@@ -814,9 +815,13 @@ function OrderCard({ order, nextStatus, onUpdateStatus, waiters, onAssignWaiter 
         {nextStatus && (
           <button
             onClick={() => onUpdateStatus(order.id, nextStatus)}
-            className="bg-ember-500 hover:bg-ember-600 text-white text-xs font-semibold px-3 py-1.5 rounded-full"
+            className={`text-white text-xs font-semibold px-3 py-1.5 rounded-full ${
+              order.status === 'pendiente_aprobacion'
+                ? 'bg-emerald-600 hover:bg-emerald-700'
+                : 'bg-ember-500 hover:bg-ember-600'
+            }`}
           >
-            Marcar {STATUS_LABELS[nextStatus]} →
+            {order.status === 'pendiente_aprobacion' ? 'Aprobar ✓' : `Marcar ${STATUS_LABELS[nextStatus]} →`}
           </button>
         )}
       </div>
