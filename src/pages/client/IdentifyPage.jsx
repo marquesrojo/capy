@@ -38,10 +38,9 @@ export default function IdentifyPage() {
           <img
             src="/icon-512.png"
             alt="Capy"
-            className="w-36 h-36 mx-auto mb-2"
+            className="w-40 h-40 mx-auto mb-3"
           />
-          <h1 className="font-display text-4xl tracking-wide text-ember-500">CAPY</h1>
-          <p className="text-smoke-400 text-sm mt-1">Pedí desde donde estés</p>
+          <p className="text-smoke-400 text-sm">Pedí desde donde estés</p>
         </div>
 
         <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-6">
