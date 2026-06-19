@@ -2,12 +2,65 @@ import { useEffect, useState } from 'react'
 import { supabaseCustomer } from '../lib/supabase'
 import { useCustomer } from '../hooks/useCustomer'
 
-const FACES = [
-  { value: 1, emoji: '😞', label: 'Muy mala' },
-  { value: 2, emoji: '🙁', label: 'Mala' },
-  { value: 3, emoji: '😐', label: 'Regular' },
-  { value: 4, emoji: '🙂', label: 'Buena' },
-  { value: 5, emoji: '😄', label: 'Excelente' }
+const CAPY_FACES = [
+  {
+    value: 1,
+    label: 'Muy mala',
+    svg: (
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
+        <path d="M12 16.5c-3.1 0-5.7-1.8-6.9-4.3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        <path d="M7 10a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0M14 10a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0" fill="currentColor"/>
+      </svg>
+    )
+  },
+  {
+    value: 2,
+    label: 'Mala',
+    svg: (
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
+        <path d="M16 16.5l-8-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        <circle cx="8.5" cy="10" r="1.5" fill="currentColor"/>
+        <circle cx="15.5" cy="10" r="1.5" fill="currentColor"/>
+      </svg>
+    )
+  },
+  {
+    value: 3,
+    label: 'Regular',
+    svg: (
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
+        <path d="M8 15.5h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        <circle cx="8.5" cy="10" r="1.5" fill="currentColor"/>
+        <circle cx="15.5" cy="10" r="1.5" fill="currentColor"/>
+      </svg>
+    )
+  },
+  {
+    value: 4,
+    label: 'Buena',
+    svg: (
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
+        <path d="M16 15.5c-1.3 1.3-3 2-4 2s-2.7-.7-4-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        <circle cx="8.5" cy="10" r="1.5" fill="currentColor"/>
+        <circle cx="15.5" cy="10" r="1.5" fill="currentColor"/>
+      </svg>
+    )
+  },
+  {
+    value: 5,
+    label: 'Excelente',
+    svg: (
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
+        <path d="M7 15s1.5 3 5 3 5-3 5-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        <path d="M16.5 9.5c.3.3.7.3 1 0 .6-.6 1.3-.9 2-.9.7 0 1.4.3 2 .9a.7.7 0 0 0 1 0c.3-.3.3-.7 0-1-.8-.8-1.9-1.3-3-1.3-1.1 0-2.2.5-3 1.3a.7.7 0 0 0 0 1ZM3 9.5c.3.3.7.3 1 0 .6-.6 1.3-.9 2-.9.7 0 1.4.3 2 .9a.7.7 0 0 0 1 0c.3-.3.3-.7 0-1-.8-.8-1.9-1.3-3-1.3-1.1 0-2.2.5-3 1.3a.7.7 0 0 0 0 1Z" fill="currentColor"/>
+      </svg>
+    )
+  }
 ]
 
 export default function OrderFeedback({ orderId }) {
@@ -34,7 +87,7 @@ export default function OrderFeedback({ orderId }) {
 
   async function handleSubmit() {
     if (!rating) {
-      setError('Elegí una carita antes de enviar.')
+      setError('Elegí una opción antes de enviar.')
       return
     }
     setSubmitting(true)
@@ -63,14 +116,14 @@ export default function OrderFeedback({ orderId }) {
   if (loading) return null
 
   if (existing) {
-    const face = FACES.find(f => f.value === existing.rating)
+    const face = CAPY_FACES.find(f => f.value === existing.rating)
     return (
       <div className="mt-6 bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
         <p className="text-smoke-400 text-xs font-semibold uppercase tracking-wide mb-3">
           Tu calificación
         </p>
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">{face?.emoji}</span>
+        <div className="flex items-center gap-3">
+          <span className="text-ember-500">{face?.svg}</span>
           <span className="text-smoke-300 text-sm">{face?.label}</span>
         </div>
         {existing.notes && (
@@ -83,19 +136,26 @@ export default function OrderFeedback({ orderId }) {
 
   return (
     <div className="mt-6 bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
-      <p className="text-smoke-300 font-medium text-sm mb-3">¿Cómo fue tu experiencia?</p>
+      <p className="text-smoke-300 font-medium text-sm mb-4">¿Cómo fue tu experiencia?</p>
 
-      <div className="flex justify-between mb-4">
-        {FACES.map(face => (
+      <div className="flex justify-between mb-5">
+        {CAPY_FACES.map(face => (
           <button
             key={face.value}
             type="button"
             onClick={() => setRating(face.value)}
-            className={`flex flex-col items-center gap-1 px-2 py-1.5 rounded-xl transition-colors ${
-              rating === face.value ? 'bg-ember-500/15 border border-ember-500' : ''
-            }`}
+            style={{
+              transition: 'all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1)',
+              transform: rating === face.value
+                ? 'scale(1.25)'
+                : rating !== null ? 'scale(0.9)' : 'scale(1)',
+              opacity: rating !== null && rating !== face.value ? 0.25 : 1,
+              color: rating === face.value ? '#C25A18' : '#E8772A',
+              WebkitTapHighlightColor: 'transparent'
+            }}
+            className="flex flex-col items-center gap-1.5 p-1"
           >
-            <span className="text-2xl">{face.emoji}</span>
+            {face.svg}
             <span className="text-[10px] text-smoke-500">{face.label}</span>
           </button>
         ))}
