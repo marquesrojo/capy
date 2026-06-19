@@ -21,6 +21,7 @@ import LocationsPage from './pages/admin/LocationsPage'
 import UsersPage from './pages/admin/UsersPage'
 import ConfigPage from './pages/admin/ConfigPage'
 import PaymentMethodsPage from './pages/admin/PaymentMethodsPage'
+import VenueSettingsPage from './pages/admin/VenueSettingsPage'
 
 export default function App() {
   return (
@@ -132,6 +133,14 @@ export default function App() {
                 element={
                   <RequireStaff>
                     <PaymentMethodsPage />
+                  </RequireStaff>
+                }
+              />
+              <Route
+                path="/admin/configuracion/local"
+                element={
+                  <RequireStaff>
+                    <VenueSettingsPage />
                   </RequireStaff>
                 }
               />
