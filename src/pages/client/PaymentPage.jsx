@@ -10,11 +10,6 @@ import { formatPrice } from '../../lib/utils'
 // directo a 'recibido' y sigue su flujo normal de cocina. El cobro real
 // se gestiona despues, cuando el cliente toca "La cuenta por favor"
 // desde el detalle de su pedido (ver OrderStatusPage / BillRequest).
-const PAYMENT_OPTIONS = [
-  { id: 'transferencia', label: 'Transferencia', description: 'Vas a transferir por alias' },
-  { id: 'efectivo', label: 'Efectivo', description: 'Vas a pagar en efectivo' },
-  { id: 'tarjeta', label: 'Tarjeta', description: 'Vas a pagar con tarjeta/posnet' }
-]
 
 export default function PaymentPage() {
   const { items, subtotal, location, updateQuantity, clearCart, itemCount } = useCart()
@@ -23,12 +18,29 @@ export default function PaymentPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [notes, setNotes] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState('efectivo')
+  const [paymentMethod, setPaymentMethod] = useState('')
+  const [paymentOptions, setPaymentOptions] = useState([])
 
   useEffect(() => {
     if (itemCount === 0) navigate('/carta')
     if (!location) navigate('/ubicacion')
   }, [itemCount, location, navigate])
+
+  useEffect(() => {
+    async function loadMethods() {
+      const { data } = await supabaseCustomer
+        .from('payment_methods')
+        .select('id, name')
+        .eq('venue_id', ACTIVE_VENUE_ID)
+        .eq('is_active', true)
+        .order('sort_order')
+      if (data?.length) {
+        setPaymentOptions(data)
+        setPaymentMethod(data[0].id)
+      }
+    }
+    loadMethods()
+  }, [])
 
   if (!location || itemCount === 0) return null
 
@@ -51,7 +63,7 @@ export default function PaymentPage() {
           notes,
           subtotal,
           total: subtotal,
-          payment_method: paymentMethod
+          payment_method: paymentOptions.find(o => o.id === paymentMethod)?.name || paymentMethod
         })
         .select()
         .single()
@@ -133,7 +145,7 @@ export default function PaymentPage() {
             ¿Cómo pensás pagar? (podés confirmarlo después al pedir la cuenta)
           </span>
           <div className="space-y-2">
-            {PAYMENT_OPTIONS.map(option => (
+            {paymentOptions.map(option => (
               <button
                 key={option.id}
                 type="button"
@@ -144,14 +156,16 @@ export default function PaymentPage() {
                     : 'border-carbon-700 bg-carbon-900'
                 }`}
               >
-                <p
-                  className={`text-sm font-medium ${
+                <div className="flex items-center justify-between">
+                  <p className={`text-sm font-medium ${
                     paymentMethod === option.id ? 'text-ember-400' : 'text-smoke-300'
-                  }`}
-                >
-                  {option.label}
-                </p>
-                <p className="text-smoke-500 text-xs mt-0.5">{option.description}</p>
+                  }`}>
+                    {option.name}
+                  </p>
+                  {paymentMethod === option.id && (
+                    <span className="text-ember-500 text-sm font-bold">✓</span>
+                  )}
+                </div>
               </button>
             ))}
           </div>
