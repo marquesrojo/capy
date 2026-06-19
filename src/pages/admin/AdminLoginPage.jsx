@@ -27,8 +27,13 @@ export default function AdminLoginPage() {
     <div className="min-h-screen bg-carbon-950 flex items-center justify-center px-5">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="font-display text-4xl tracking-wide text-ember-500">STAFF</h1>
-          <p className="text-smoke-400 text-sm mt-1">Acceso de camareros y administración</p>
+          <img
+            src="/icon-512.png"
+            alt="Capy"
+            className="w-28 h-28 mx-auto mb-2"
+          />
+          <h1 className="font-display text-3xl tracking-wide text-ember-500">CAPY</h1>
+          <p className="text-smoke-400 text-xs mt-1">Acceso de camareros y administración</p>
         </div>
 
         <form
