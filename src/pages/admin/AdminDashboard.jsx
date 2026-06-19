@@ -222,9 +222,11 @@ export default function AdminDashboard() {
           <Link to="/admin/ubicaciones" className="text-smoke-400 text-xs underline">
             Ubicaciones
           </Link>
-          <Link to="/admin/usuarios" className="text-smoke-400 text-xs underline">
-            Usuarios
-          </Link>
+          {profile?.role === 'admin' && (
+            <Link to="/admin/usuarios" className="text-smoke-400 text-xs underline">
+              Usuarios
+            </Link>
+          )}
           <button onClick={signOut} className="text-smoke-500 text-xs underline">
             Salir
           </button>
