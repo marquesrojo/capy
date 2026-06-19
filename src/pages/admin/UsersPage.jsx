@@ -2,9 +2,13 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabaseStaff } from '../../lib/supabase'
 
-const ROLE_LABELS = {
-  admin: 'Administrador',
-  camarero: 'Camarero'
+const ROLE_LABELS = { admin: 'Administrador', camarero: 'Camarero' }
+
+const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-user`
+const EDGE_HEADERS = {
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+  'x-capy-secret': import.meta.env.VITE_CAPY_ADMIN_SECRET
 }
 
 export default function UsersPage() {
@@ -18,9 +22,7 @@ export default function UsersPage() {
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    loadUsers()
-  }, [])
+  useEffect(() => { loadUsers() }, [])
 
   async function loadUsers() {
     const { data } = await supabaseStaff
@@ -41,48 +43,36 @@ export default function UsersPage() {
       setError('La contraseña debe tener al menos 6 caracteres.')
       return
     }
-
     setSubmitting(true)
     setError('')
     setSuccess('')
-
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-user`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            'x-capy-secret': import.meta.env.VITE_CAPY_ADMIN_SECRET
-          },
-          body: JSON.stringify({
-            email: email.trim(),
-            full_name: fullName.trim(),
-            role,
-            password: password.trim()
-          })
-        }
-      )
-
+      const res = await fetch(EDGE_URL, {
+        method: 'POST',
+        headers: EDGE_HEADERS,
+        body: JSON.stringify({ email: email.trim(), full_name: fullName.trim(), role, password: password.trim() })
+      })
       const result = await res.json()
-
       if (!res.ok) {
         setError(result.error || 'Error al crear el usuario.')
       } else {
-        setSuccess(`Usuario ${fullName.trim()} creado correctamente. Ya puede ingresar con ${email.trim()} y la contraseña que definiste.`)
-        setEmail('')
-        setFullName('')
-        setPassword('')
-        setRole('admin')
+        setSuccess(`Usuario ${fullName.trim()} creado correctamente.`)
+        setEmail(''); setFullName(''); setPassword(''); setRole('admin')
         loadUsers()
       }
-    } catch (err) {
-      console.error('Error:', err)
+    } catch {
       setError('No pudimos crear el usuario. Intentá de nuevo.')
     } finally {
       setSubmitting(false)
     }
+  }
+
+  function handleUpdated(updated) {
+    setUsers(prev => prev.map(u => u.id === updated.id ? { ...u, ...updated } : u))
+  }
+
+  function handleDeleted(id) {
+    setUsers(prev => prev.filter(u => u.id !== id))
   }
 
   if (loading) {
@@ -98,57 +88,30 @@ export default function UsersPage() {
       <header className="px-5 pt-5 pb-4 border-b border-carbon-700">
         <div className="flex items-center justify-between">
           <h1 className="font-display text-3xl text-ember-500 tracking-wide">USUARIOS</h1>
-          <Link to="/admin" className="text-smoke-400 text-xs underline">
-            ← Volver
-          </Link>
+          <Link to="/admin" className="text-smoke-400 text-xs underline">← Volver</Link>
         </div>
       </header>
 
       <main className="px-5 mt-4 space-y-6">
         <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
           <p className="text-smoke-300 font-medium text-sm mb-4">Crear nuevo usuario</p>
-
           <div className="space-y-3">
-            <input
-              type="text"
-              value={fullName}
-              onChange={e => setFullName(e.target.value)}
-              placeholder="Nombre completo"
-              className="input w-full"
-            />
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="Email"
-              className="input w-full"
-            />
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="Contraseña (mínimo 6 caracteres)"
-              className="input w-full"
-            />
-            <select
-              value={role}
-              onChange={e => setRole(e.target.value)}
-              className="input w-full"
-            >
+            <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Nombre completo" className="input w-full" />
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" className="input w-full" />
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Contraseña (mínimo 6 caracteres)" className="input w-full" />
+            <select value={role} onChange={e => setRole(e.target.value)} className="input w-full">
               <option value="admin">Administrador</option>
               <option value="camarero">Camarero</option>
             </select>
           </div>
-
           {error && <p className="text-red-700 text-xs mt-3">{error}</p>}
           {success && <p className="text-emerald-700 text-xs mt-3">{success}</p>}
-
           <button
             onClick={handleCreate}
             disabled={submitting}
             className="w-full mt-4 bg-ember-500 hover:bg-ember-600 disabled:opacity-50 text-white font-semibold py-3 rounded-xl"
           >
-            {submitting ? 'Creando usuario...' : 'Crear usuario'}
+            {submitting ? 'Creando...' : 'Crear usuario'}
           </button>
         </div>
 
@@ -158,28 +121,103 @@ export default function UsersPage() {
           </p>
           <div className="space-y-2">
             {users.map(user => (
-              <div
-                key={user.id}
-                className="bg-carbon-900 border border-carbon-700 rounded-xl px-4 py-3 flex items-center justify-between"
-              >
-                <div>
-                  <p className="text-smoke-300 text-sm font-medium">{user.full_name}</p>
-                  <p className="text-smoke-500 text-xs mt-0.5">
-                    {new Date(user.created_at).toLocaleDateString('es-AR')}
-                  </p>
-                </div>
-                <span className={`text-xs px-2.5 py-1 rounded-full border ${
-                  user.role === 'admin'
-                    ? 'border-ember-500/40 text-ember-600'
-                    : 'border-carbon-600 text-smoke-400'
-                }`}>
-                  {ROLE_LABELS[user.role]}
-                </span>
-              </div>
+              <UserRow key={user.id} user={user} onUpdated={handleUpdated} onDeleted={handleDeleted} />
             ))}
           </div>
         </div>
       </main>
+    </div>
+  )
+}
+
+function UserRow({ user, onUpdated, onDeleted }) {
+  const [editing, setEditing] = useState(false)
+  const [fullName, setFullName] = useState(user.full_name)
+  const [role, setRole] = useState(user.role)
+  const [password, setPassword] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleSave() {
+    if (!fullName.trim()) { setError('El nombre no puede estar vacío.'); return }
+    if (password && password.length < 6) { setError('La contraseña debe tener al menos 6 caracteres.'); return }
+    setSaving(true)
+    setError('')
+    try {
+      const body = { user_id: user.id, full_name: fullName.trim(), role }
+      if (password.trim()) body.password = password.trim()
+      const res = await fetch(EDGE_URL, { method: 'PATCH', headers: EDGE_HEADERS, body: JSON.stringify(body) })
+      const result = await res.json()
+      if (!res.ok) {
+        setError(result.error || 'Error al guardar.')
+      } else {
+        onUpdated({ id: user.id, full_name: fullName.trim(), role })
+        setEditing(false)
+        setPassword('')
+      }
+    } catch {
+      setError('Error de red.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!confirm(`¿Borrar al usuario ${user.full_name}? Esta acción no se puede deshacer.`)) return
+    setDeleting(true)
+    try {
+      const res = await fetch(EDGE_URL, { method: 'DELETE', headers: EDGE_HEADERS, body: JSON.stringify({ user_id: user.id }) })
+      if (res.ok) {
+        onDeleted(user.id)
+      } else {
+        const result = await res.json()
+        alert(result.error || 'Error al borrar.')
+      }
+    } catch {
+      alert('Error de red.')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  if (editing) {
+    return (
+      <div className="bg-carbon-900 border border-ember-500/40 rounded-xl p-4 space-y-3">
+        <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Nombre completo" className="input w-full" />
+        <select value={role} onChange={e => setRole(e.target.value)} className="input w-full">
+          <option value="admin">Administrador</option>
+          <option value="camarero">Camarero</option>
+        </select>
+        <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Nueva contraseña (opcional)" className="input w-full" />
+        {error && <p className="text-red-700 text-xs">{error}</p>}
+        <div className="flex gap-2">
+          <button onClick={() => { setEditing(false); setPassword(''); setError('') }} className="flex-1 border border-carbon-700 text-smoke-400 py-2 rounded-xl text-sm">
+            Cancelar
+          </button>
+          <button onClick={handleSave} disabled={saving} className="flex-1 bg-ember-500 text-white font-semibold py-2 rounded-xl text-sm disabled:opacity-50">
+            {saving ? 'Guardando...' : 'Guardar'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-carbon-900 border border-carbon-700 rounded-xl px-4 py-3 flex items-center justify-between">
+      <div>
+        <p className="text-smoke-300 text-sm font-medium">{user.full_name}</p>
+        <p className="text-smoke-500 text-xs mt-0.5">{new Date(user.created_at).toLocaleDateString('es-AR')}</p>
+      </div>
+      <div className="flex items-center gap-3">
+        <span className={`text-xs px-2.5 py-1 rounded-full border ${user.role === 'admin' ? 'border-ember-500/40 text-ember-600' : 'border-carbon-600 text-smoke-400'}`}>
+          {ROLE_LABELS[user.role]}
+        </span>
+        <button onClick={() => setEditing(true)} className="text-smoke-400 text-xs underline">Editar</button>
+        <button onClick={handleDelete} disabled={deleting} className="text-red-700 text-xs underline disabled:opacity-50">
+          {deleting ? '...' : 'Borrar'}
+        </button>
+      </div>
     </div>
   )
 }
