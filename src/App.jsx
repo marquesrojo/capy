@@ -19,6 +19,8 @@ import MenuEditorPage from './pages/admin/MenuEditorPage'
 import FeedbackPage from './pages/admin/FeedbackPage'
 import LocationsPage from './pages/admin/LocationsPage'
 import UsersPage from './pages/admin/UsersPage'
+import ConfigPage from './pages/admin/ConfigPage'
+import PaymentMethodsPage from './pages/admin/PaymentMethodsPage'
 
 export default function App() {
   return (
@@ -114,6 +116,22 @@ export default function App() {
                 element={
                   <RequireStaff>
                     <UsersPage />
+                  </RequireStaff>
+                }
+              />
+              <Route
+                path="/admin/configuracion"
+                element={
+                  <RequireStaff>
+                    <ConfigPage />
+                  </RequireStaff>
+                }
+              />
+              <Route
+                path="/admin/configuracion/medios-pago"
+                element={
+                  <RequireStaff>
+                    <PaymentMethodsPage />
                   </RequireStaff>
                 }
               />
