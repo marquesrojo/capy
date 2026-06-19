@@ -213,20 +213,9 @@ export default function AdminDashboard() {
           <Link to="/admin/historial" className="text-smoke-400 text-xs underline">
             Historial
           </Link>
-          <Link to="/admin/encuestas" className="text-smoke-400 text-xs underline">
-            Encuestas
+          <Link to="/admin/configuracion" className="text-smoke-400 text-xs underline">
+            Configuración
           </Link>
-          <Link to="/admin/carta" className="text-smoke-400 text-xs underline">
-            Editar carta
-          </Link>
-          <Link to="/admin/ubicaciones" className="text-smoke-400 text-xs underline">
-            Ubicaciones
-          </Link>
-          {profile?.role === 'admin' && (
-            <Link to="/admin/usuarios" className="text-smoke-400 text-xs underline">
-              Usuarios
-            </Link>
-          )}
           <button onClick={signOut} className="text-smoke-500 text-xs underline">
             Salir
           </button>
