@@ -16,6 +16,10 @@ const CONFIG_ITEMS = [
     icon: <svg {...ICON_PROPS}><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
   },
   {
+    to: '/admin/configuracion/local', label: 'Datos del local', desc: 'WhatsApp para validación de pedidos',
+    icon: <svg {...ICON_PROPS}><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.86 9.86 0 0 0 12.04 2" fill="none"/></svg>
+  },
+  {
     to: '/admin/usuarios', label: 'Usuarios', desc: 'Staff y administradores',
     icon: <svg {...ICON_PROPS}><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
   },
