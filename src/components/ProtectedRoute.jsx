@@ -21,6 +21,15 @@ export function RequireStaff({ children }) {
   return children
 }
 
+// Para pantallas exclusivas de admin: requiere rol 'admin' especificamente.
+export function RequireAdmin({ children }) {
+  const { user, profile, loading } = useAuth()
+  if (loading) return <FullScreenLoader />
+  if (!user) return <Navigate to="/admin/login" replace />
+  if (profile && profile.role !== 'admin') return <Navigate to="/admin" replace />
+  return children
+}
+
 function FullScreenLoader() {
   return (
     <div className="min-h-screen bg-carbon-950 flex items-center justify-center">
