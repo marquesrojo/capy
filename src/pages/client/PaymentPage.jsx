@@ -54,7 +54,7 @@ export default function PaymentPage() {
         .insert({
           venue_id: ACTIVE_VENUE_ID,
           customer_id: customer.id,
-          status: 'recibido',
+          status: 'pendiente_aprobacion',
           location_type: location.type,
           zone_id: location.zoneId,
           map_x: location.mapX,
@@ -174,6 +174,9 @@ export default function PaymentPage() {
 
       <div className="fixed bottom-0 left-0 right-0 bg-carbon-950 border-t border-carbon-700 px-5 py-4 space-y-3">
         {error && <p className="text-red-700 text-sm">{error}</p>}
+        <p className="text-smoke-500 text-xs">
+          📲 Después de confirmar vas a validar tu pedido por WhatsApp para que entre en preparación.
+        </p>
         <div className="flex items-center justify-between text-smoke-300">
           <span className="font-medium">Total</span>
           <span className="font-mono text-ember-400 text-lg">{formatPrice(subtotal)}</span>
@@ -183,7 +186,7 @@ export default function PaymentPage() {
           disabled={submitting}
           className="w-full bg-ember-500 hover:bg-ember-600 disabled:opacity-50 text-white font-semibold py-4 rounded-xl"
         >
-          {submitting ? 'Procesando...' : 'Confirmar pedido →'}
+          {submitting ? 'Procesando...' : 'Siguiente paso →'}
         </button>
       </div>
     </div>
