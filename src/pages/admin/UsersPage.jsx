@@ -27,8 +27,9 @@ export default function UsersPage() {
   async function loadUsers() {
     const { data } = await supabaseStaff
       .from('profiles')
-      .select('id, full_name, role, created_at')
+      .select('id, full_name, role, is_active, created_at')
       .in('role', ['admin', 'camarero'])
+      .order('is_active', { ascending: false })
       .order('created_at', { ascending: false })
     setUsers(data || [])
     setLoading(false)
@@ -50,7 +51,7 @@ export default function UsersPage() {
       const res = await fetch(EDGE_URL, {
         method: 'POST',
         headers: EDGE_HEADERS,
-        body: JSON.stringify({ email: email.trim(), full_name: fullName.trim(), role, password: password.trim() })
+        body: JSON.stringify({ action: 'create', email: email.trim(), full_name: fullName.trim(), role, password: password.trim() })
       })
       const result = await res.json()
       if (!res.ok) {
@@ -71,10 +72,6 @@ export default function UsersPage() {
     setUsers(prev => prev.map(u => u.id === updated.id ? { ...u, ...updated } : u))
   }
 
-  function handleDeleted(id) {
-    setUsers(prev => prev.filter(u => u.id !== id))
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen bg-carbon-950 flex items-center justify-center">
@@ -82,6 +79,9 @@ export default function UsersPage() {
       </div>
     )
   }
+
+  const activeUsers = users.filter(u => u.is_active !== false)
+  const inactiveUsers = users.filter(u => u.is_active === false)
 
   return (
     <div className="min-h-screen bg-carbon-950 pb-10">
@@ -117,26 +117,39 @@ export default function UsersPage() {
 
         <div>
           <p className="text-smoke-400 text-xs font-semibold uppercase tracking-wide mb-2">
-            Usuarios actuales · {users.length}
+            Activos · {activeUsers.length}
           </p>
           <div className="space-y-2">
-            {users.map(user => (
-              <UserRow key={user.id} user={user} onUpdated={handleUpdated} onDeleted={handleDeleted} />
+            {activeUsers.map(user => (
+              <UserRow key={user.id} user={user} onUpdated={handleUpdated} />
             ))}
           </div>
         </div>
+
+        {inactiveUsers.length > 0 && (
+          <div>
+            <p className="text-smoke-500 text-xs font-semibold uppercase tracking-wide mb-2">
+              Deshabilitados · {inactiveUsers.length}
+            </p>
+            <div className="space-y-2 opacity-50">
+              {inactiveUsers.map(user => (
+                <UserRow key={user.id} user={user} onUpdated={handleUpdated} />
+              ))}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   )
 }
 
-function UserRow({ user, onUpdated, onDeleted }) {
+function UserRow({ user, onUpdated }) {
   const [editing, setEditing] = useState(false)
   const [fullName, setFullName] = useState(user.full_name)
   const [role, setRole] = useState(user.role)
   const [password, setPassword] = useState('')
   const [saving, setSaving] = useState(false)
-  const [deleting, setDeleting] = useState(false)
+  const [toggling, setToggling] = useState(false)
   const [error, setError] = useState('')
 
   async function handleSave() {
@@ -145,9 +158,9 @@ function UserRow({ user, onUpdated, onDeleted }) {
     setSaving(true)
     setError('')
     try {
-      const body = { user_id: user.id, full_name: fullName.trim(), role }
+      const body = { action: 'update', user_id: user.id, full_name: fullName.trim(), role }
       if (password.trim()) body.password = password.trim()
-      const res = await fetch(EDGE_URL, { method: 'PATCH', headers: EDGE_HEADERS, body: JSON.stringify(body) })
+      const res = await fetch(EDGE_URL, { method: 'POST', headers: EDGE_HEADERS, body: JSON.stringify(body) })
       const result = await res.json()
       if (!res.ok) {
         setError(result.error || 'Error al guardar.')
@@ -163,21 +176,20 @@ function UserRow({ user, onUpdated, onDeleted }) {
     }
   }
 
-  async function handleDelete() {
-    if (!confirm(`¿Borrar al usuario ${user.full_name}? Esta acción no se puede deshacer.`)) return
-    setDeleting(true)
+  async function handleToggle() {
+    const action = user.is_active !== false ? 'disable' : 'enable'
+    const label = action === 'disable' ? 'deshabilitar' : 'habilitar'
+    if (!confirm(`¿${label} al usuario ${user.full_name}?`)) return
+    setToggling(true)
     try {
-      const res = await fetch(EDGE_URL, { method: 'DELETE', headers: EDGE_HEADERS, body: JSON.stringify({ user_id: user.id }) })
+      const res = await fetch(EDGE_URL, { method: 'POST', headers: EDGE_HEADERS, body: JSON.stringify({ action, user_id: user.id }) })
       if (res.ok) {
-        onDeleted(user.id)
-      } else {
-        const result = await res.json()
-        alert(result.error || 'Error al borrar.')
+        onUpdated({ id: user.id, is_active: action === 'enable' })
       }
     } catch {
       alert('Error de red.')
     } finally {
-      setDeleting(false)
+      setToggling(false)
     }
   }
 
@@ -213,9 +225,11 @@ function UserRow({ user, onUpdated, onDeleted }) {
         <span className={`text-xs px-2.5 py-1 rounded-full border ${user.role === 'admin' ? 'border-ember-500/40 text-ember-600' : 'border-carbon-600 text-smoke-400'}`}>
           {ROLE_LABELS[user.role]}
         </span>
-        <button onClick={() => setEditing(true)} className="text-smoke-400 text-xs underline">Editar</button>
-        <button onClick={handleDelete} disabled={deleting} className="text-red-700 text-xs underline disabled:opacity-50">
-          {deleting ? '...' : 'Borrar'}
+        {user.is_active !== false && (
+          <button onClick={() => setEditing(true)} className="text-smoke-400 text-xs underline">Editar</button>
+        )}
+        <button onClick={handleToggle} disabled={toggling} className="text-smoke-400 text-xs underline disabled:opacity-50">
+          {toggling ? '...' : user.is_active !== false ? 'Deshabilitar' : 'Habilitar'}
         </button>
       </div>
     </div>
