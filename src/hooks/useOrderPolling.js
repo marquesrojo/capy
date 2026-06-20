@@ -11,11 +11,24 @@ export function useOrderPolling(orderId) {
   const [order, setOrder] = useState(null)
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+
+  async function fetchOnce({ silent } = {}) {
+    if (!silent) setRefreshing(true)
+    const [{ data: orderData }, { data: itemsData }] = await Promise.all([
+      supabaseCustomer.from('orders').select(ORDER_SELECT).eq('id', orderId).single(),
+      supabaseCustomer.from('order_items').select('*').eq('order_id', orderId)
+    ])
+    setOrder(orderData)
+    setItems(itemsData || [])
+    setLoading(false)
+    if (!silent) setRefreshing(false)
+  }
 
   useEffect(() => {
     let cancelled = false
 
-    async function fetchOnce() {
+    async function initialFetch() {
       const [{ data: orderData }, { data: itemsData }] = await Promise.all([
         supabaseCustomer.from('orders').select(ORDER_SELECT).eq('id', orderId).single(),
         supabaseCustomer.from('order_items').select('*').eq('order_id', orderId)
@@ -26,7 +39,7 @@ export function useOrderPolling(orderId) {
       setLoading(false)
     }
 
-    fetchOnce()
+    initialFetch()
 
     const channel = supabaseCustomer
       .channel(`order-${orderId}`)
@@ -35,7 +48,7 @@ export function useOrderPolling(orderId) {
         { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
         payload => {
           // Realtime solo manda columnas planas de "orders", no la relacion
-          // con "staff_names". Si cambio quien esta asignado, recargamos ese
+          // con "profiles". Si cambio quien esta asignado, recargamos ese
           // dato puntual; si no, conservamos el que ya teniamos.
           setOrder(prev => {
             const merged = { ...prev, ...payload.new }
@@ -56,11 +69,17 @@ export function useOrderPolling(orderId) {
       )
       .subscribe()
 
+    // Respaldo silencioso por si el canal de Realtime se desconecta sin avisar
+    const intervalId = setInterval(() => {
+      if (!cancelled) fetchOnce({ silent: true })
+    }, 30000)
+
     return () => {
       cancelled = true
+      clearInterval(intervalId)
       supabaseCustomer.removeChannel(channel)
     }
   }, [orderId])
 
-  return { order, items, loading, setOrder }
+  return { order, items, loading, refreshing, setOrder, refetch: () => fetchOnce({ silent: false }) }
 }
