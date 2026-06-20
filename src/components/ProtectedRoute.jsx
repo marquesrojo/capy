@@ -2,12 +2,13 @@ import { Navigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useCustomer } from '../hooks/useCustomer'
 
-// Para pantallas del cliente: requiere que ya haya dado nombre+whatsapp
-// en este dispositivo (sin login real, ver useCustomer).
+// Para pantallas del cliente: requiere solo una sesion anonima activa
+// (creada automaticamente por CustomerProvider). El nombre+whatsapp se
+// piden recien al momento de confirmar el pedido, no antes.
 export function RequireCustomer({ children }) {
-  const { isIdentified, loading } = useCustomer()
+  const { loading, hasSession } = useCustomer()
   if (loading) return <FullScreenLoader />
-  if (!isIdentified) return <Navigate to="/identificacion" replace />
+  if (!hasSession) return <FullScreenLoader />
   return children
 }
 
