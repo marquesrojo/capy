@@ -1,14 +1,34 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabaseCustomer } from '../lib/supabase'
 
+// Identidad del CLIENTE final, sin login visible. Por debajo usa una
+// sesion anonima de Supabase Auth (signInAnonymously) para tener un
+// auth.uid() real con el que las politicas de RLS pueden trabajar sin
+// depender de headers custom. La primera vez que alguien pide algo, se
+// le pregunta nombre + whatsapp y se guarda un registro en "customers"
+// vinculado a ese auth.uid(). En visitas siguientes desde el mismo
+// dispositivo, la sesion ya esta guardada y no se le vuelve a preguntar.
+//
+// CAMINO FUTURO (no implementado): si se quiere ofrecer una cuenta real
+// (email+password) para que el cliente mantenga su historial entre
+// dispositivos, Supabase soporta convertir esta MISMA sesion anonima en
+// una cuenta permanente sin perder datos ni duplicar el customer_id:
+//   1. supabaseCustomer.auth.updateUser({ email })
+//   2. verificar el email con el OTP de 6 digitos que Supabase envia
+//   3. supabaseCustomer.auth.updateUser({ password })
+// El auth.uid() no cambia en este proceso, asi que todos los pedidos ya
+// asociados a este customer.id siguen funcionando igual, ahora accesibles
+// tambien desde otro dispositivo iniciando sesion con ese email+password.
 const CustomerContext = createContext(null)
 
 export function CustomerProvider({ children }) {
   const [customer, setCustomer] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [hasSession, setHasSession] = useState(false)
 
   useEffect(() => {
     async function init() {
+      // 1. Asegurar que haya una sesion (anonima o ya existente)
       let { data: sessionData } = await supabaseCustomer.auth.getSession()
 
       if (!sessionData.session) {
@@ -27,7 +47,9 @@ export function CustomerProvider({ children }) {
         setLoading(false)
         return
       }
+      setHasSession(true)
 
+      // 2. Ver si ya completo nombre+whatsapp antes (registro en customers)
       const { data: existing } = await supabaseCustomer
         .from('customers')
         .select('*')
@@ -57,6 +79,9 @@ export function CustomerProvider({ children }) {
     return { data }
   }
 
+  // "Olvidarse" en este dispositivo: cierra la sesion anonima actual.
+  // La proxima vez que entre, se crea una sesion anonima nueva y se le
+  // vuelve a pedir nombre+whatsapp.
   async function forgetCustomer() {
     await supabaseCustomer.auth.signOut()
     setCustomer(null)
@@ -65,6 +90,7 @@ export function CustomerProvider({ children }) {
   const value = {
     customer,
     loading,
+    hasSession,
     isIdentified: !!customer,
     registerCustomer,
     forgetCustomer
