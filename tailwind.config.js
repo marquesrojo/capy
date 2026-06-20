@@ -17,6 +17,24 @@ export default {
           600: '#C25A18',
           700: '#9C4612'
         },
+        // Colores oficiales del manual de marca de Club Pucara, usados
+        // unicamente en las pantallas de CLIENTE (carta, carrito, pago,
+        // estado del pedido, encuesta). El panel de admin sigue con "ember".
+        pucara: {
+          blue: {
+            300: '#5C7DAD',
+            400: '#2E5694',
+            500: '#002F6C',
+            600: '#00255A',
+            700: '#001C44'
+          },
+          red: {
+            400: '#E85A4E',
+            500: '#DA291C',
+            600: '#B81F14',
+            700: '#8F1810'
+          }
+        },
         smoke: {
           300: '#4A4742',
           400: '#6B6862',
@@ -29,7 +47,8 @@ export default {
         mono: ['"JetBrains Mono"', 'monospace']
       },
       boxShadow: {
-        ember: '0 0 0 1px rgba(255,157,66,0.25), 0 8px 24px -8px rgba(255,157,66,0.35)'
+        ember: '0 0 0 1px rgba(255,157,66,0.25), 0 8px 24px -8px rgba(255,157,66,0.35)',
+        pucara: '0 0 0 1px rgba(0,47,108,0.2), 0 8px 24px -8px rgba(0,47,108,0.35)'
       }
     }
   },
