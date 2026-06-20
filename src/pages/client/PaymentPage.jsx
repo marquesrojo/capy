@@ -21,7 +21,6 @@ export default function PaymentPage() {
   const [paymentMethod, setPaymentMethod] = useState('')
   const [paymentOptions, setPaymentOptions] = useState([])
   const [guestName, setGuestName] = useState('')
-  const [guestWhatsapp, setGuestWhatsapp] = useState('')
   const [showGuestForm, setShowGuestForm] = useState(false)
 
   useEffect(() => {
@@ -58,12 +57,12 @@ export default function PaymentPage() {
 
     let activeCustomer = customer
     if (!activeCustomer) {
-      if (!guestName.trim() || !guestWhatsapp.trim()) {
-        setError('Completá tu nombre y WhatsApp para continuar.')
+      if (!guestName.trim()) {
+        setError('Contanos tu nombre para continuar.')
         return
       }
       setSubmitting(true)
-      const { data, error: registerError } = await registerCustomer(guestName.trim(), guestWhatsapp.trim())
+      const { data, error: registerError } = await registerCustomer(guestName.trim(), null)
       if (registerError) {
         setError(`Error al guardar tus datos: ${registerError?.message || JSON.stringify(registerError)}`)
         setSubmitting(false)
@@ -200,7 +199,7 @@ export default function PaymentPage() {
         {!customer && showGuestForm && (
           <div className="pt-4 bg-carbon-900 border border-carbon-700 rounded-2xl p-4 space-y-3">
             <p className="text-smoke-300 text-sm font-medium">Antes de confirmar, contanos quién pide</p>
-            <p className="text-smoke-500 text-xs">Así podemos avisarte por WhatsApp si hace falta.</p>
+            <p className="text-smoke-500 text-xs">Así armamos tu mensaje de validación por WhatsApp.</p>
             <input
               type="text"
               value={guestName}
@@ -208,13 +207,6 @@ export default function PaymentPage() {
               placeholder="Tu nombre"
               className="input"
               autoFocus
-            />
-            <input
-              type="tel"
-              value={guestWhatsapp}
-              onChange={e => setGuestWhatsapp(e.target.value)}
-              placeholder="Tu WhatsApp (ej: +54 9 11 1234 5678)"
-              className="input"
             />
           </div>
         )}
