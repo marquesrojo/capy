@@ -12,6 +12,8 @@ export default function MenuPage() {
   const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState(null)
   const [highDemand, setHighDemand] = useState(false)
+  const [venueName, setVenueName] = useState('')
+  const [venueLogo, setVenueLogo] = useState('')
   const { items, addItem, itemCount, subtotal } = useCart()
   const { customer, forgetCustomer } = useCustomer()
   const navigate = useNavigate()
@@ -32,14 +34,18 @@ export default function MenuPage() {
           .order('sort_order'),
         supabaseCustomer
           .from('venues')
-          .select('high_demand')
+          .select('high_demand, name, logo_url')
           .eq('id', ACTIVE_VENUE_ID)
           .single()
       ])
       setCategories(catRes.data || [])
       setProducts(prodRes.data || [])
       if (catRes.data?.length) setActiveCategory(catRes.data[0].id)
-      if (venueRes.data) setHighDemand(venueRes.data.high_demand)
+      if (venueRes.data) {
+        setHighDemand(venueRes.data.high_demand)
+        setVenueName(venueRes.data.name)
+        setVenueLogo(venueRes.data.logo_url)
+      }
       setLoading(false)
     }
     load()
@@ -60,11 +66,22 @@ export default function MenuPage() {
       )}
       <header className="sticky top-0 z-10 bg-carbon-950/95 backdrop-blur border-b border-carbon-700 px-5 pt-5 pb-3">
         <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="font-display text-3xl text-ember-500 tracking-wide">CARTA</h1>
-            <p className="text-smoke-500 text-xs mt-0.5">Hola, {customer?.full_name}</p>
+          <div className="flex items-center gap-3">
+            {venueLogo && (
+              <img
+                src={venueLogo}
+                alt={venueName}
+                className="w-10 h-10 rounded-lg object-cover border border-carbon-700 flex-shrink-0"
+              />
+            )}
+            <div>
+              <h1 className="font-display text-2xl text-pucara-blue-500 tracking-wide leading-none">
+                CARTA{venueName ? ` ${venueName.toUpperCase()}` : ''}
+              </h1>
+              <p className="text-smoke-500 text-xs mt-1">Hola, {customer?.full_name}</p>
+            </div>
           </div>
-          <button onClick={async () => { await forgetCustomer(); navigate('/identificacion') }} className="text-smoke-500 text-xs underline">
+          <button onClick={async () => { await forgetCustomer(); navigate('/identificacion') }} className="text-smoke-500 text-xs underline flex-shrink-0">
             No soy yo
           </button>
         </div>
@@ -75,7 +92,7 @@ export default function MenuPage() {
               onClick={() => setActiveCategory(cat.id)}
               className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
                 activeCategory === cat.id
-                  ? 'bg-ember-500 text-white border-ember-500'
+                  ? 'bg-pucara-blue-500 text-white border-pucara-blue-500'
                   : 'border-carbon-700 text-smoke-300'
               }`}
             >
@@ -97,7 +114,7 @@ export default function MenuPage() {
       {itemCount > 0 && (
         <button
           onClick={() => navigate('/ubicacion')}
-          className="fixed bottom-20 left-5 right-5 bg-ember-500 hover:bg-ember-600 text-white rounded-2xl py-4 px-5 flex items-center justify-between shadow-ember font-semibold z-20"
+          className="fixed bottom-20 left-5 right-5 bg-pucara-blue-500 hover:bg-pucara-blue-600 text-white rounded-2xl py-4 px-5 flex items-center justify-between shadow-pucara font-semibold z-20"
         >
           <span>{itemCount} {itemCount === 1 ? 'item' : 'items'}</span>
           <span>{formatPrice(subtotal)} · Continuar →</span>
@@ -134,7 +151,7 @@ function ProductCard({ product, onAdd }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-body font-semibold text-smoke-300">{product.name}</h3>
-          <span className="font-mono text-ember-400 text-sm whitespace-nowrap">
+          <span className="font-mono text-pucara-blue-400 text-sm whitespace-nowrap">
             {formatPrice(product.price)}
           </span>
         </div>
