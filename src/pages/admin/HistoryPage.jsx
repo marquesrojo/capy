@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
+import { useAuth } from '../../hooks/useAuth'
 import { formatPrice, STATUS_LABELS, STATUS_COLORS, PAYMENT_STATUS_LABELS } from '../../lib/utils'
 
 export default function HistoryPage() {
+  const { profile } = useAuth()
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState(null)
   const [history, setHistory] = useState({})
   const [filterStatus, setFilterStatus] = useState('todos')
   const [search, setSearch] = useState('')
+  const [deletingId, setDeletingId] = useState(null)
 
   useEffect(() => {
     async function load() {
@@ -39,6 +42,25 @@ export default function HistoryPage() {
         .order('changed_at', { ascending: true })
       setHistory(prev => ({ ...prev, [orderId]: data || [] }))
     }
+  }
+
+  async function handleDelete(orderId) {
+    const confirmed = confirm('¿Borrar este pedido definitivamente? Esta acción no se puede deshacer.')
+    if (!confirmed) return
+
+    setDeletingId(orderId)
+    // order_items tiene FK a orders, hay que borrarlos primero
+    await supabaseStaff.from('order_items').delete().eq('order_id', orderId)
+    await supabaseStaff.from('order_status_history').delete().eq('order_id', orderId)
+    const { error } = await supabaseStaff.from('orders').delete().eq('id', orderId)
+
+    setDeletingId(null)
+    if (error) {
+      alert('No se pudo borrar el pedido: ' + error.message)
+      return
+    }
+    setOrders(prev => prev.filter(o => o.id !== orderId))
+    setExpandedId(null)
   }
 
   const normalizedSearch = search.trim().toLowerCase()
@@ -155,6 +177,16 @@ export default function HistoryPage() {
                     </li>
                   ))}
                 </ul>
+
+                {profile?.role === 'admin' && (
+                  <button
+                    onClick={() => handleDelete(order.id)}
+                    disabled={deletingId === order.id}
+                    className="mt-4 text-red-700 text-xs underline disabled:opacity-50"
+                  >
+                    {deletingId === order.id ? 'Borrando...' : 'Borrar pedido'}
+                  </button>
+                )}
               </div>
             )}
           </div>
