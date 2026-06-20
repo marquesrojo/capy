@@ -688,18 +688,24 @@ function WaiterSelect({ order, waiters, onAssign }) {
 
 function CustomerContact({ customer }) {
   if (!customer) return null
-  const waLink = `https://wa.me/${customer.whatsapp.replace(/[^\d]/g, '')}`
+  const waLink = customer.whatsapp
+    ? `https://wa.me/${customer.whatsapp.replace(/[^\d]/g, '')}`
+    : null
   return (
     <div className="flex items-center justify-between mb-2 bg-carbon-800 rounded-lg px-2.5 py-1.5">
       <span className="text-smoke-300 text-xs">{customer.full_name}</span>
-      <a
-        href={waLink}
-        target="_blank"
-        rel="noreferrer"
-        className="text-emerald-700 text-xs font-medium underline"
-      >
-        WhatsApp →
-      </a>
+      {waLink ? (
+        <a
+          href={waLink}
+          target="_blank"
+          rel="noreferrer"
+          className="text-emerald-700 text-xs font-medium underline"
+        >
+          WhatsApp →
+        </a>
+      ) : (
+        <span className="text-smoke-500 text-xs">Sin WhatsApp</span>
+      )}
     </div>
   )
 }
