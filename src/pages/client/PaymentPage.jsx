@@ -22,6 +22,7 @@ export default function PaymentPage() {
   const [paymentOptions, setPaymentOptions] = useState([])
   const [guestName, setGuestName] = useState('')
   const [guestWhatsapp, setGuestWhatsapp] = useState('')
+  const [showGuestForm, setShowGuestForm] = useState(false)
 
   useEffect(() => {
     if (itemCount === 0) navigate('/carta')
@@ -49,7 +50,12 @@ export default function PaymentPage() {
   async function handleConfirm() {
     setError('')
 
-    // Si todavía no completó nombre+whatsapp, validarlo y registrarlo primero
+    // Si todavía no completó nombre+whatsapp, mostrar el formulario primero
+    if (!customer && !showGuestForm) {
+      setShowGuestForm(true)
+      return
+    }
+
     let activeCustomer = customer
     if (!activeCustomer) {
       if (!guestName.trim() || !guestWhatsapp.trim()) {
@@ -59,7 +65,7 @@ export default function PaymentPage() {
       setSubmitting(true)
       const { data, error: registerError } = await registerCustomer(guestName.trim(), guestWhatsapp.trim())
       if (registerError) {
-        setError('No pudimos guardar tus datos. Intentá de nuevo.')
+        setError(`Error al guardar tus datos: ${registerError?.message || JSON.stringify(registerError)}`)
         setSubmitting(false)
         return
       }
@@ -107,7 +113,7 @@ export default function PaymentPage() {
       navigate(`/pedido-enviado/${order.id}`)
     } catch (err) {
       console.error(err)
-      setError('Hubo un problema al procesar tu pedido. Intentá de nuevo.')
+      setError(`Error: ${err?.message || JSON.stringify(err)}`)
       setSubmitting(false)
     }
   }
@@ -160,27 +166,6 @@ export default function PaymentPage() {
           />
         </label>
 
-        {!customer && (
-          <div className="pt-4 bg-carbon-900 border border-carbon-700 rounded-2xl p-4 space-y-3">
-            <p className="text-smoke-300 text-sm font-medium">Antes de confirmar, contanos quién pide</p>
-            <p className="text-smoke-500 text-xs">Así podemos avisarte por WhatsApp si hace falta.</p>
-            <input
-              type="text"
-              value={guestName}
-              onChange={e => setGuestName(e.target.value)}
-              placeholder="Tu nombre"
-              className="input"
-            />
-            <input
-              type="tel"
-              value={guestWhatsapp}
-              onChange={e => setGuestWhatsapp(e.target.value)}
-              placeholder="Tu WhatsApp (ej: +54 9 11 1234 5678)"
-              className="input"
-            />
-          </div>
-        )}
-
         <div className="pt-4">
           <span className="text-smoke-400 text-xs mb-2 block">
             ¿Cómo pensás pagar? (podés confirmarlo después al pedir la cuenta)
@@ -211,6 +196,28 @@ export default function PaymentPage() {
             ))}
           </div>
         </div>
+
+        {!customer && showGuestForm && (
+          <div className="pt-4 bg-carbon-900 border border-carbon-700 rounded-2xl p-4 space-y-3">
+            <p className="text-smoke-300 text-sm font-medium">Antes de confirmar, contanos quién pide</p>
+            <p className="text-smoke-500 text-xs">Así podemos avisarte por WhatsApp si hace falta.</p>
+            <input
+              type="text"
+              value={guestName}
+              onChange={e => setGuestName(e.target.value)}
+              placeholder="Tu nombre"
+              className="input"
+              autoFocus
+            />
+            <input
+              type="tel"
+              value={guestWhatsapp}
+              onChange={e => setGuestWhatsapp(e.target.value)}
+              placeholder="Tu WhatsApp (ej: +54 9 11 1234 5678)"
+              className="input"
+            />
+          </div>
+        )}
       </main>
 
       <div className="fixed bottom-0 left-0 right-0 bg-carbon-950 border-t border-carbon-700 px-5 py-4 space-y-3">
@@ -227,7 +234,11 @@ export default function PaymentPage() {
           disabled={submitting}
           className="w-full bg-ember-500 hover:bg-ember-600 disabled:opacity-50 text-white font-semibold py-4 rounded-xl"
         >
-          {submitting ? 'Procesando...' : 'Siguiente paso →'}
+          {submitting
+            ? 'Procesando...'
+            : !customer && showGuestForm
+              ? 'Confirmar pedido →'
+              : 'Siguiente paso →'}
         </button>
       </div>
     </div>
