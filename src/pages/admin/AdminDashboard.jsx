@@ -8,7 +8,40 @@ const BOARD_COLUMNS = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'li
 const PROOF_BUCKET = 'payment-proofs'
 const ORDER_SELECT = '*, order_items(*, products(category_id)), customers(full_name, whatsapp), assigned_staff:staff_names!orders_assigned_staff_id_fkey(id, full_name)'
 
+import { Component } from 'react'
+
+class DashboardErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { error: null }
+  }
+  static getDerivedStateFromError(error) {
+    return { error }
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="min-h-screen bg-carbon-950 flex items-center justify-center px-5">
+          <div className="text-center">
+            <p className="text-red-700 text-sm font-medium mb-2">Error al renderizar el dashboard</p>
+            <p className="text-smoke-400 text-xs break-all">{this.state.error?.message || String(this.state.error)}</p>
+          </div>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
 export default function AdminDashboard() {
+  return (
+    <DashboardErrorBoundary>
+      <AdminDashboardInner />
+    </DashboardErrorBoundary>
+  )
+}
+
+function AdminDashboardInner() {
   const [orders, setOrders] = useState([])
   const [pendingProofOrders, setPendingProofOrders] = useState([])
   const [pendingInPersonOrders, setPendingInPersonOrders] = useState([])
@@ -80,36 +113,49 @@ export default function AdminDashboard() {
     setWaiters(prev => prev.filter(w => w.id !== id))
   }
 
+  const [debugError, setDebugError] = useState(null)
+
   async function load() {
-    const [boardRes, proofRes, inPersonRes] = await Promise.all([
-      supabaseStaff
-        .from('orders')
-        .select(ORDER_SELECT)
-        .eq('venue_id', ACTIVE_VENUE_ID)
-        .in('status', BOARD_COLUMNS)
-        .order('created_at', { ascending: true }),
-      supabaseStaff
-        .from('orders')
-        .select(ORDER_SELECT)
-        .eq('venue_id', ACTIVE_VENUE_ID)
-        .eq('payment_status', 'en_revision')
-        .order('created_at', { ascending: true }),
-      supabaseStaff
-        .from('orders')
-        .select(ORDER_SELECT)
-        .eq('venue_id', ACTIVE_VENUE_ID)
-        .eq('payment_status', 'cuenta_solicitada')
-        .in('payment_method', ['efectivo', 'tarjeta'])
-        .order('bill_requested_at', { ascending: true })
-    ])
-    // Excluir pedidos cerrados: entregado + pagado = ya no aparecen en el panel
-    const openOrders = (boardRes.data || []).filter(o =>
-      !(o.status === 'entregado' && o.payment_status === 'aprobado')
-    )
-    setOrders(openOrders)
-    setPendingProofOrders(proofRes.data || [])
-    setPendingInPersonOrders(inPersonRes.data || [])
-    setLoading(false)
+    try {
+      const [boardRes, proofRes, inPersonRes] = await Promise.all([
+        supabaseStaff
+          .from('orders')
+          .select(ORDER_SELECT)
+          .eq('venue_id', ACTIVE_VENUE_ID)
+          .in('status', BOARD_COLUMNS)
+          .order('created_at', { ascending: true }),
+        supabaseStaff
+          .from('orders')
+          .select(ORDER_SELECT)
+          .eq('venue_id', ACTIVE_VENUE_ID)
+          .eq('payment_status', 'en_revision')
+          .order('created_at', { ascending: true }),
+        supabaseStaff
+          .from('orders')
+          .select(ORDER_SELECT)
+          .eq('venue_id', ACTIVE_VENUE_ID)
+          .eq('payment_status', 'cuenta_solicitada')
+          .in('payment_method', ['efectivo', 'tarjeta'])
+          .order('bill_requested_at', { ascending: true })
+      ])
+
+      if (boardRes.error) throw new Error(`boardRes: ${boardRes.error.message}`)
+      if (proofRes.error) throw new Error(`proofRes: ${proofRes.error.message}`)
+      if (inPersonRes.error) throw new Error(`inPersonRes: ${inPersonRes.error.message}`)
+
+      // Excluir pedidos cerrados: entregado + pagado = ya no aparecen en el panel
+      const openOrders = (boardRes.data || []).filter(o =>
+        !(o.status === 'entregado' && o.payment_status === 'aprobado')
+      )
+      setOrders(openOrders)
+      setPendingProofOrders(proofRes.data || [])
+      setPendingInPersonOrders(inPersonRes.data || [])
+      setLoading(false)
+    } catch (err) {
+      console.error('Error en load():', err)
+      setDebugError(err?.message || String(err))
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -198,6 +244,17 @@ export default function AdminDashboard() {
     return (
       <div className="min-h-screen bg-carbon-950 flex items-center justify-center">
         <p className="text-smoke-400 text-sm">Cargando pedidos...</p>
+      </div>
+    )
+  }
+
+  if (debugError) {
+    return (
+      <div className="min-h-screen bg-carbon-950 flex items-center justify-center px-5">
+        <div className="text-center">
+          <p className="text-red-700 text-sm font-medium mb-2">Error al cargar el dashboard</p>
+          <p className="text-smoke-400 text-xs break-all">{debugError}</p>
+        </div>
       </div>
     )
   }
