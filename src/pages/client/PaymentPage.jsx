@@ -13,13 +13,15 @@ import { formatPrice } from '../../lib/utils'
 
 export default function PaymentPage() {
   const { items, subtotal, location, updateQuantity, clearCart, itemCount } = useCart()
-  const { customer } = useCustomer()
+  const { customer, registerCustomer } = useCustomer()
   const navigate = useNavigate()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [notes, setNotes] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('')
   const [paymentOptions, setPaymentOptions] = useState([])
+  const [guestName, setGuestName] = useState('')
+  const [guestWhatsapp, setGuestWhatsapp] = useState('')
 
   useEffect(() => {
     if (itemCount === 0) navigate('/carta')
@@ -45,15 +47,33 @@ export default function PaymentPage() {
   if (!location || itemCount === 0) return null
 
   async function handleConfirm() {
-    setSubmitting(true)
     setError('')
+
+    // Si todavía no completó nombre+whatsapp, validarlo y registrarlo primero
+    let activeCustomer = customer
+    if (!activeCustomer) {
+      if (!guestName.trim() || !guestWhatsapp.trim()) {
+        setError('Completá tu nombre y WhatsApp para continuar.')
+        return
+      }
+      setSubmitting(true)
+      const { data, error: registerError } = await registerCustomer(guestName.trim(), guestWhatsapp.trim())
+      if (registerError) {
+        setError('No pudimos guardar tus datos. Intentá de nuevo.')
+        setSubmitting(false)
+        return
+      }
+      activeCustomer = data
+    }
+
+    setSubmitting(true)
 
     try {
       const { data: order, error: orderError } = await supabaseCustomer
         .from('orders')
         .insert({
           venue_id: ACTIVE_VENUE_ID,
-          customer_id: customer.id,
+          customer_id: activeCustomer.id,
           status: 'pendiente_aprobacion',
           location_type: location.type,
           zone_id: location.zoneId,
@@ -139,6 +159,27 @@ export default function PaymentPage() {
             rows={2}
           />
         </label>
+
+        {!customer && (
+          <div className="pt-4 bg-carbon-900 border border-carbon-700 rounded-2xl p-4 space-y-3">
+            <p className="text-smoke-300 text-sm font-medium">Antes de confirmar, contanos quién pide</p>
+            <p className="text-smoke-500 text-xs">Así podemos avisarte por WhatsApp si hace falta.</p>
+            <input
+              type="text"
+              value={guestName}
+              onChange={e => setGuestName(e.target.value)}
+              placeholder="Tu nombre"
+              className="input"
+            />
+            <input
+              type="tel"
+              value={guestWhatsapp}
+              onChange={e => setGuestWhatsapp(e.target.value)}
+              placeholder="Tu WhatsApp (ej: +54 9 11 1234 5678)"
+              className="input"
+            />
+          </div>
+        )}
 
         <div className="pt-4">
           <span className="text-smoke-400 text-xs mb-2 block">
