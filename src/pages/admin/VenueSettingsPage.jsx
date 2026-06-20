@@ -95,7 +95,7 @@ export default function VenueSettingsPage() {
       setTimeout(() => setSaved(false), 2500)
     } catch (err) {
       console.error(err)
-      setError('No pudimos guardar los cambios. Intentá de nuevo.')
+      setError(`No pudimos guardar: ${err?.message || JSON.stringify(err)}`)
     } finally {
       setSaving(false)
     }
