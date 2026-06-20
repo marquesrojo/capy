@@ -75,10 +75,12 @@ export default function MenuPage() {
               />
             )}
             <div>
-              <h1 className="font-display text-2xl text-pucara-blue-500 tracking-wide leading-none">
+              <h1 className="font-display text-3xl text-pucara-blue-500 tracking-wide leading-none">
                 CARTA{venueName ? ` ${venueName.toUpperCase()}` : ''}
               </h1>
-              <p className="text-smoke-500 text-xs mt-1">Hola, {customer?.full_name}</p>
+              {customer?.full_name && (
+                <p className="text-smoke-500 text-xs mt-1">Hola, {customer.full_name}</p>
+              )}
             </div>
           </div>
           <button onClick={async () => { await forgetCustomer(); navigate('/identificacion') }} className="text-smoke-500 text-xs underline flex-shrink-0">
