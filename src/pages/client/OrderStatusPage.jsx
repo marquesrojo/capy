@@ -1,3 +1,4 @@
+
 import { useParams, Link } from 'react-router-dom'
 import { useOrderPolling } from '../../hooks/useOrderPolling'
 import { formatPrice, STATUS_LABELS, STATUS_FLOW, PAYMENT_STATUS_LABELS, PAYMENT_STATUS_COLORS } from '../../lib/utils'
@@ -7,7 +8,7 @@ import SplitCalculator from '../../components/SplitCalculator'
 
 export default function OrderStatusPage() {
   const { orderId } = useParams()
-  const { order, items, loading, setOrder } = useOrderPolling(orderId)
+  const { order, items, loading, refreshing, setOrder, refetch } = useOrderPolling(orderId)
 
   if (loading) {
     return (
@@ -36,7 +37,23 @@ export default function OrderStatusPage() {
       <Link to="/pedidos" className="text-smoke-500 text-xs underline">
         ← Volver a Pedidos
       </Link>
-      <h1 className="font-display text-3xl text-ember-500 tracking-wide mt-2">TU PEDIDO</h1>
+      <div className="flex items-center justify-between mt-2">
+        <h1 className="font-display text-3xl text-ember-500 tracking-wide">TU PEDIDO</h1>
+        <button
+          onClick={refetch}
+          disabled={refreshing}
+          className="flex items-center gap-1 text-smoke-400 text-xs border border-carbon-700 rounded-full px-3 py-1.5 disabled:opacity-50"
+        >
+          <svg
+            width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            className={refreshing ? 'animate-spin' : ''}
+          >
+            <path d="M21 12a9 9 0 1 1-2.64-6.36" strokeLinecap="round"/>
+            <path d="M21 3v6h-6" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          {refreshing ? 'Actualizando...' : 'Actualizar'}
+        </button>
+      </div>
       <p className="text-smoke-400 text-sm mt-1">📍 {order.location_label}</p>
       {order.assigned_staff?.full_name && (
         <p className="text-smoke-500 text-xs mt-1">🧑‍🍳 Te atiende {order.assigned_staff.full_name}</p>
