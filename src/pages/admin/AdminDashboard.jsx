@@ -794,15 +794,15 @@ function InPersonCard({ order, waiters, onConfirm, onAssignWaiter }) {
         ))}
       </ul>
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-2">
         <span className="font-mono text-smoke-300 text-sm">{formatPrice(order.total)}</span>
-        <button
-          onClick={onConfirm}
-          className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold px-3 py-1.5 rounded-full"
-        >
-          Marcar pago recibido
-        </button>
       </div>
+      <button
+        onClick={onConfirm}
+        className="w-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold py-2 rounded-full"
+      >
+        Marcar pago recibido
+      </button>
     </div>
   )
 }
