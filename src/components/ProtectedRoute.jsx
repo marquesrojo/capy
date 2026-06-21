@@ -1,6 +1,7 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useCustomer } from '../hooks/useCustomer'
+import AdminHeader from './AdminHeader'
 
 // Para pantallas del cliente: requiere solo una sesion anonima activa
 // (creada automaticamente por CustomerProvider). El nombre+whatsapp se
@@ -19,7 +20,12 @@ export function RequireStaff({ children }) {
   if (loading) return <FullScreenLoader />
   if (!user) return <Navigate to="/admin/login" replace />
   if (profile && !isStaff) return <Navigate to="/identificacion" replace />
-  return children
+  return (
+    <>
+      <AdminHeader />
+      {children}
+    </>
+  )
 }
 
 // Para pantallas exclusivas de admin: requiere rol 'admin' especificamente.
@@ -28,7 +34,12 @@ export function RequireAdmin({ children }) {
   if (loading) return <FullScreenLoader />
   if (!user) return <Navigate to="/admin/login" replace />
   if (profile && profile.role !== 'admin') return <Navigate to="/admin" replace />
-  return children
+  return (
+    <>
+      <AdminHeader />
+      {children}
+    </>
+  )
 }
 
 function FullScreenLoader() {
