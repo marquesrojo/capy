@@ -4,6 +4,7 @@ import { supabaseCustomer, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useCart } from '../../hooks/useCart'
 import { useCustomer } from '../../hooks/useCustomer'
 import { formatPrice } from '../../lib/utils'
+import { isSpeechRecognitionSupported } from '../../lib/voiceOrderParser'
 import BottomNav from '../../components/BottomNav'
 
 export default function MenuPage() {
@@ -14,6 +15,8 @@ export default function MenuPage() {
   const [highDemand, setHighDemand] = useState(false)
   const [venueName, setVenueName] = useState('')
   const [venueLogo, setVenueLogo] = useState('')
+  const [headerBgColor, setHeaderBgColor] = useState('')
+  const [headerTextColor, setHeaderTextColor] = useState('#E8772A')
   const { items, addItem, itemCount, subtotal } = useCart()
   const { customer, forgetCustomer } = useCustomer()
   const navigate = useNavigate()
@@ -34,7 +37,7 @@ export default function MenuPage() {
           .order('sort_order'),
         supabaseCustomer
           .from('venues')
-          .select('high_demand, name, logo_url')
+          .select('high_demand, name, logo_url, header_bg_color, header_text_color')
           .eq('id', ACTIVE_VENUE_ID)
           .single()
       ])
@@ -45,6 +48,8 @@ export default function MenuPage() {
         setHighDemand(venueRes.data.high_demand)
         setVenueName(venueRes.data.name)
         setVenueLogo(venueRes.data.logo_url)
+        if (venueRes.data.header_bg_color) setHeaderBgColor(venueRes.data.header_bg_color)
+        if (venueRes.data.header_text_color) setHeaderTextColor(venueRes.data.header_text_color)
       }
       setLoading(false)
     }
@@ -64,7 +69,10 @@ export default function MenuPage() {
           <p className="text-red-700 text-sm font-medium">⏳ Alta demanda — puede haber demora en los pedidos. ¡Gracias por tu paciencia!</p>
         </div>
       )}
-      <header className="sticky top-0 z-10 bg-carbon-950/95 backdrop-blur border-b border-carbon-700 px-5 pt-5 pb-3">
+      <header
+        className="sticky top-0 z-10 bg-carbon-950/95 backdrop-blur border-b border-carbon-700 px-5 pt-5 pb-3"
+        style={headerBgColor ? { backgroundColor: headerBgColor } : undefined}
+      >
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             {venueLogo && (
@@ -75,7 +83,10 @@ export default function MenuPage() {
               />
             )}
             <div>
-              <h1 className="font-display text-3xl text-pucara-blue-500 tracking-wide leading-none">
+              <h1
+                className="font-display text-3xl tracking-wide leading-none"
+                style={{ color: headerTextColor }}
+              >
                 CARTA{venueName ? ` ${venueName.toUpperCase()}` : ''}
               </h1>
               {customer?.full_name && (
@@ -87,6 +98,18 @@ export default function MenuPage() {
             No soy yo
           </button>
         </div>
+        {isSpeechRecognitionSupported() && (
+          <button
+            onClick={() => navigate('/carta/voz')}
+            className="flex items-center gap-1.5 text-pucara-blue-500 text-xs font-medium mb-3"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="9" y="2" width="6" height="12" rx="3"/>
+              <path d="M5 10a7 7 0 0 0 14 0M12 19v3" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/>
+            </svg>
+            Pedir por voz
+          </button>
+        )}
         <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
           {categories.map(cat => (
             <button
