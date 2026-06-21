@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useAuth } from '../../hooks/useAuth'
 
 const ICON_PROPS = { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round' }
 
@@ -27,9 +28,16 @@ const CONFIG_ITEMS = [
     to: '/admin/encuestas', label: 'Encuestas', desc: 'Calificaciones de clientes',
     icon: <svg {...ICON_PROPS}><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 16.9l-6.2 3.4 1.6-6.8L2.2 8.9l6.9-.6L12 2Z"/></svg>
   },
+  {
+    to: '/admin/kpis', label: 'KPIs', desc: 'Facturación, tiempos y rendimiento', adminOnly: true,
+    icon: <svg {...ICON_PROPS}><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
+  },
 ]
 
 export default function ConfigPage() {
+  const { profile } = useAuth()
+  const items = CONFIG_ITEMS.filter(item => !item.adminOnly || profile?.role === 'admin')
+
   return (
     <div className="min-h-screen bg-carbon-950 pb-10">
       <header className="px-5 pt-5 pb-4 border-b border-carbon-700">
@@ -40,7 +48,7 @@ export default function ConfigPage() {
       </header>
 
       <main className="px-5 mt-4 space-y-2">
-        {CONFIG_ITEMS.map(item => (
+        {items.map(item => (
           <Link
             key={item.to}
             to={item.to}
