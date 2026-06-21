@@ -6,7 +6,6 @@ import { RequireCustomer, RequireStaff, RequireAdmin } from './components/Protec
 
 import IdentifyPage from './pages/client/IdentifyPage'
 import MenuPage from './pages/client/MenuPage'
-import VoiceOrderPage from './pages/client/VoiceOrderPage'
 import OrdersPage from './pages/client/OrdersPage'
 import LocationPage from './pages/client/LocationPage'
 import PaymentPage from './pages/client/PaymentPage'
@@ -40,14 +39,6 @@ export default function App() {
                 element={
                   <RequireCustomer>
                     <MenuPage />
-                  </RequireCustomer>
-                }
-              />
-              <Route
-                path="/carta/voz"
-                element={
-                  <RequireCustomer>
-                    <VoiceOrderPage />
                   </RequireCustomer>
                 }
               />
