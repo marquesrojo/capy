@@ -10,6 +10,8 @@ export default function VenueSettingsPage() {
   const [logoUrl, setLogoUrl] = useState('')
   const [logoFile, setLogoFile] = useState(null)
   const [logoPreview, setLogoPreview] = useState(null)
+  const [headerBgColor, setHeaderBgColor] = useState('#1A1A1A')
+  const [headerTextColor, setHeaderTextColor] = useState('#E8772A')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -19,12 +21,14 @@ export default function VenueSettingsPage() {
     async function load() {
       const { data } = await supabaseStaff
         .from('venues')
-        .select('name, whatsapp_number, logo_url')
+        .select('name, whatsapp_number, logo_url, header_bg_color, header_text_color')
         .eq('id', ACTIVE_VENUE_ID)
         .single()
       setName(data?.name || '')
       setWhatsapp(data?.whatsapp_number || '')
       setLogoUrl(data?.logo_url || '')
+      if (data?.header_bg_color) setHeaderBgColor(data.header_bg_color)
+      if (data?.header_text_color) setHeaderTextColor(data.header_text_color)
       setLoading(false)
     }
     load()
@@ -82,7 +86,9 @@ export default function VenueSettingsPage() {
         .update({
           name: name.trim(),
           whatsapp_number: whatsapp.trim() || null,
-          logo_url: finalLogoUrl || null
+          logo_url: finalLogoUrl || null,
+          header_bg_color: headerBgColor,
+          header_text_color: headerTextColor
         })
         .eq('id', ACTIVE_VENUE_ID)
 
@@ -159,6 +165,53 @@ export default function VenueSettingsPage() {
               <input type="file" accept="image/*" onChange={handleLogoChange} className="hidden" />
             </label>
           )}
+        </div>
+
+        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
+          <p className="text-smoke-300 font-medium text-sm mb-1">Colores del encabezado</p>
+          <p className="text-smoke-500 text-xs mb-4">
+            Fondo y texto del encabezado que aparece en la carta de tus clientes y en todas las pantallas del panel.
+          </p>
+
+          <div className="flex gap-4 mb-4">
+            <div className="flex-1">
+              <p className="text-smoke-400 text-xs mb-1.5">Fondo</p>
+              <div className="flex items-center gap-2 bg-carbon-800 rounded-lg px-2 py-1.5">
+                <input
+                  type="color"
+                  value={headerBgColor}
+                  onChange={e => setHeaderBgColor(e.target.value)}
+                  className="w-8 h-8 rounded cursor-pointer bg-transparent"
+                />
+                <span className="text-smoke-400 text-xs font-mono">{headerBgColor}</span>
+              </div>
+            </div>
+            <div className="flex-1">
+              <p className="text-smoke-400 text-xs mb-1.5">Texto</p>
+              <div className="flex items-center gap-2 bg-carbon-800 rounded-lg px-2 py-1.5">
+                <input
+                  type="color"
+                  value={headerTextColor}
+                  onChange={e => setHeaderTextColor(e.target.value)}
+                  className="w-8 h-8 rounded cursor-pointer bg-transparent"
+                />
+                <span className="text-smoke-400 text-xs font-mono">{headerTextColor}</span>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-smoke-500 text-xs mb-1.5">Vista previa</p>
+          <div
+            className="rounded-lg px-4 py-3 flex items-center gap-2.5 border border-carbon-700"
+            style={{ backgroundColor: headerBgColor }}
+          >
+            {displayLogo && (
+              <img src={displayLogo} alt="" className="w-6 h-6 rounded object-cover" />
+            )}
+            <span className="text-xs font-bold tracking-wide" style={{ color: headerTextColor }}>
+              {name ? name.toUpperCase() : 'NOMBRE DEL LOCAL'}
+            </span>
+          </div>
         </div>
 
         <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
