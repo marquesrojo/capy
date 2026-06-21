@@ -98,7 +98,10 @@ export default function MenuPage() {
             No soy yo
           </button>
         </div>
-        {isSpeechRecognitionSupported() && (
+        {/* Pedido por voz: pospuesto, falta subir VoiceOrderPage y su ruta.
+            Reactivar reemplazando "false &&" por la condicion real cuando
+            se retome esa funcionalidad. */}
+        {false && isSpeechRecognitionSupported() && (
           <button
             onClick={() => navigate('/carta/voz')}
             className="flex items-center gap-1.5 text-pucara-blue-500 text-xs font-medium mb-3"
