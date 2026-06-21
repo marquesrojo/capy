@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
+import ColorPicker from '../../components/ColorPicker'
 
 const MAX_LOGO_SIZE_MB = 4
 
@@ -12,6 +13,7 @@ export default function VenueSettingsPage() {
   const [logoPreview, setLogoPreview] = useState(null)
   const [headerBgColor, setHeaderBgColor] = useState('#1A1A1A')
   const [headerTextColor, setHeaderTextColor] = useState('#E8772A')
+  const [activePicker, setActivePicker] = useState(null) // 'bg' | 'text' | null
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -174,31 +176,44 @@ export default function VenueSettingsPage() {
           </p>
 
           <div className="flex gap-4 mb-4">
-            <div className="flex-1">
-              <p className="text-smoke-400 text-xs mb-1.5">Fondo</p>
-              <div className="flex items-center gap-2 bg-carbon-800 rounded-lg px-2 py-1.5">
-                <input
-                  type="color"
-                  value={headerBgColor}
-                  onChange={e => setHeaderBgColor(e.target.value)}
-                  className="w-8 h-8 rounded cursor-pointer bg-transparent"
-                />
-                <span className="text-smoke-400 text-xs font-mono">{headerBgColor}</span>
+            <button
+              type="button"
+              onClick={() => setActivePicker(activePicker === 'bg' ? null : 'bg')}
+              className={`flex-1 flex items-center gap-2 rounded-lg px-2 py-1.5 border ${
+                activePicker === 'bg' ? 'border-ember-500 bg-carbon-800' : 'border-carbon-700 bg-carbon-800'
+              }`}
+            >
+              <div className="w-8 h-8 rounded border border-carbon-600 flex-shrink-0" style={{ backgroundColor: headerBgColor }} />
+              <div className="text-left">
+                <p className="text-smoke-400 text-[10px]">Fondo</p>
+                <p className="text-smoke-300 text-xs font-mono">{headerBgColor}</p>
               </div>
-            </div>
-            <div className="flex-1">
-              <p className="text-smoke-400 text-xs mb-1.5">Texto</p>
-              <div className="flex items-center gap-2 bg-carbon-800 rounded-lg px-2 py-1.5">
-                <input
-                  type="color"
-                  value={headerTextColor}
-                  onChange={e => setHeaderTextColor(e.target.value)}
-                  className="w-8 h-8 rounded cursor-pointer bg-transparent"
-                />
-                <span className="text-smoke-400 text-xs font-mono">{headerTextColor}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActivePicker(activePicker === 'text' ? null : 'text')}
+              className={`flex-1 flex items-center gap-2 rounded-lg px-2 py-1.5 border ${
+                activePicker === 'text' ? 'border-ember-500 bg-carbon-800' : 'border-carbon-700 bg-carbon-800'
+              }`}
+            >
+              <div className="w-8 h-8 rounded border border-carbon-600 flex-shrink-0" style={{ backgroundColor: headerTextColor }} />
+              <div className="text-left">
+                <p className="text-smoke-400 text-[10px]">Texto</p>
+                <p className="text-smoke-300 text-xs font-mono">{headerTextColor}</p>
               </div>
-            </div>
+            </button>
           </div>
+
+          {activePicker === 'bg' && (
+            <div className="mb-4 bg-carbon-800 rounded-xl p-3">
+              <ColorPicker value={headerBgColor} onChange={setHeaderBgColor} />
+            </div>
+          )}
+          {activePicker === 'text' && (
+            <div className="mb-4 bg-carbon-800 rounded-xl p-3">
+              <ColorPicker value={headerTextColor} onChange={setHeaderTextColor} />
+            </div>
+          )}
 
           <p className="text-smoke-500 text-xs mb-1.5">Vista previa</p>
           <div
