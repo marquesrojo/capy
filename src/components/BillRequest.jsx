@@ -14,6 +14,10 @@ const MAX_PROOF_SIZE_MB = 8
 export default function BillRequest({ order, onUpdated }) {
   if (order.payment_status === 'aprobado') return null
 
+  const method = (order.payment_method || '').toLowerCase()
+  const isTransfer = method.includes('transfer')
+  const isCashMethod = method.includes('efectivo')
+
   if (order.payment_status === 'en_revision') {
     return (
       <div className="mt-6 bg-carbon-900 border border-carbon-700 rounded-2xl p-5 text-center">
@@ -24,7 +28,7 @@ export default function BillRequest({ order, onUpdated }) {
   }
 
   if (order.payment_status === 'cuenta_solicitada') {
-    if (order.payment_method === 'transferencia' && !order.payment_proof_url) {
+    if (isTransfer && !order.payment_proof_url) {
       return <UploadProof order={order} onUpdated={onUpdated} />
     }
     const isPickup = order.location_type === 'retiro'
@@ -33,7 +37,7 @@ export default function BillRequest({ order, onUpdated }) {
         <p className="text-smoke-300">
           {isPickup
             ? `Retirá y pagá en ${order.location_label}`
-            : order.payment_method === 'efectivo'
+            : isCashMethod
               ? 'Un mozo se está acercando a cobrar en efectivo'
               : 'Un mozo se está acercando con el posnet/QR'}
         </p>
@@ -51,8 +55,10 @@ function RequestBillForm({ order, onUpdated }) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
+  const isCash = (order.payment_method || '').toLowerCase().includes('efectivo')
+
   async function handleRequestBill() {
-    if (order.payment_method === 'efectivo' && cashAmount && Number(cashAmount) < order.total) {
+    if (isCash && cashAmount && Number(cashAmount) < order.total) {
       setError('El monto con el que pagás no puede ser menor al total.')
       return
     }
@@ -65,7 +71,7 @@ function RequestBillForm({ order, onUpdated }) {
         payment_status: 'cuenta_solicitada',
         bill_requested_at: new Date().toISOString()
       }
-      if (order.payment_method === 'efectivo' && cashAmount) {
+      if (isCash && cashAmount) {
         updates.cash_amount = Number(cashAmount)
       }
 
@@ -86,14 +92,14 @@ function RequestBillForm({ order, onUpdated }) {
   }
 
   // Tarjeta y transferencia: un solo toque, sin formulario intermedio
-  if (order.payment_method !== 'efectivo' && !open) {
+  if (!isCash && !open) {
     return (
       <div className="mt-6">
         {error && <p className="text-red-700 text-xs mb-2">{error}</p>}
         <button
           onClick={handleRequestBill}
           disabled={submitting}
-          className="w-full border border-ember-500 text-ember-500 disabled:opacity-50 font-semibold py-3.5 rounded-xl"
+          className="w-full border border-pucara-red-500 text-pucara-red-500 disabled:opacity-50 font-semibold py-3.5 rounded-xl"
         >
           {submitting ? 'Enviando...' : '🧾 La cuenta, por favor'}
         </button>
@@ -106,7 +112,7 @@ function RequestBillForm({ order, onUpdated }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="w-full mt-6 border border-ember-500 text-ember-500 font-semibold py-3.5 rounded-xl"
+        className="w-full mt-6 border border-pucara-red-500 text-pucara-red-500 font-semibold py-3.5 rounded-xl"
       >
         🧾 La cuenta, por favor
       </button>
@@ -114,9 +120,9 @@ function RequestBillForm({ order, onUpdated }) {
   }
 
   return (
-    <div className="mt-6 bg-carbon-900 border border-ember-500/40 rounded-2xl p-5">
+    <div className="mt-6 bg-carbon-900 border border-pucara-blue-500/40 rounded-2xl p-5">
       <p className="text-smoke-300 font-medium text-sm mb-1">Total a pagar</p>
-      <p className="font-mono text-ember-400 text-2xl mb-4">{formatPrice(order.total)}</p>
+      <p className="font-mono text-pucara-blue-400 text-2xl mb-4">{formatPrice(order.total)}</p>
 
       <label className="block mb-4">
         <span className="text-smoke-400 text-xs mb-1.5 block">
@@ -149,7 +155,7 @@ function RequestBillForm({ order, onUpdated }) {
         <button
           onClick={handleRequestBill}
           disabled={submitting}
-          className="flex-1 bg-ember-500 hover:bg-ember-600 disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl"
+          className="flex-1 bg-pucara-blue-500 hover:bg-pucara-blue-600 disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl"
         >
           {submitting ? 'Enviando...' : 'Pedir la cuenta'}
         </button>
@@ -219,16 +225,16 @@ function UploadProof({ order, onUpdated }) {
   }
 
   return (
-    <div className="mt-6 bg-carbon-900 border border-ember-500/40 rounded-2xl p-5">
+    <div className="mt-6 bg-carbon-900 border border-pucara-blue-500/40 rounded-2xl p-5">
       <p className="text-smoke-300 font-medium text-sm mb-1">Total a pagar</p>
-      <p className="font-mono text-ember-400 text-2xl mb-4">{formatPrice(order.total)}</p>
+      <p className="font-mono text-pucara-blue-400 text-2xl mb-4">{formatPrice(order.total)}</p>
 
       <p className="text-smoke-400 text-xs mb-3">
         Transferí el total a este alias y subí la foto del comprobante.
       </p>
       {transferAlias && (
         <div className="bg-carbon-800 border border-carbon-700 rounded-xl px-3 py-2.5 flex items-center justify-between mb-3">
-          <span className="font-mono text-ember-400 text-sm">{transferAlias}</span>
+          <span className="font-mono text-pucara-blue-400 text-sm">{transferAlias}</span>
           <button
             type="button"
             onClick={() => navigator.clipboard?.writeText(transferAlias)}
@@ -269,7 +275,7 @@ function UploadProof({ order, onUpdated }) {
       <button
         onClick={handleUpload}
         disabled={submitting}
-        className="w-full mt-4 bg-ember-500 hover:bg-ember-600 disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl"
+        className="w-full mt-4 bg-pucara-blue-500 hover:bg-pucara-blue-600 disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl"
       >
         {submitting ? 'Enviando...' : 'Enviar comprobante'}
       </button>
