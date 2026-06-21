@@ -2,10 +2,11 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './hooks/useAuth'
 import { CustomerProvider } from './hooks/useCustomer'
 import { CartProvider } from './hooks/useCart'
-import { RequireCustomer, RequireStaff } from './components/ProtectedRoute'
+import { RequireCustomer, RequireStaff, RequireAdmin } from './components/ProtectedRoute'
 
 import IdentifyPage from './pages/client/IdentifyPage'
 import MenuPage from './pages/client/MenuPage'
+import VoiceOrderPage from './pages/client/VoiceOrderPage'
 import OrdersPage from './pages/client/OrdersPage'
 import LocationPage from './pages/client/LocationPage'
 import PaymentPage from './pages/client/PaymentPage'
@@ -22,6 +23,7 @@ import UsersPage from './pages/admin/UsersPage'
 import ConfigPage from './pages/admin/ConfigPage'
 import PaymentMethodsPage from './pages/admin/PaymentMethodsPage'
 import VenueSettingsPage from './pages/admin/VenueSettingsPage'
+import KpisPage from './pages/admin/KpisPage'
 
 export default function App() {
   return (
@@ -38,6 +40,14 @@ export default function App() {
                 element={
                   <RequireCustomer>
                     <MenuPage />
+                  </RequireCustomer>
+                }
+              />
+              <Route
+                path="/carta/voz"
+                element={
+                  <RequireCustomer>
+                    <VoiceOrderPage />
                   </RequireCustomer>
                 }
               />
@@ -142,6 +152,14 @@ export default function App() {
                   <RequireStaff>
                     <VenueSettingsPage />
                   </RequireStaff>
+                }
+              />
+              <Route
+                path="/admin/kpis"
+                element={
+                  <RequireAdmin>
+                    <KpisPage />
+                  </RequireAdmin>
                 }
               />
 
