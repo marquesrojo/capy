@@ -135,7 +135,6 @@ function AdminDashboardInner() {
           .select(ORDER_SELECT)
           .eq('venue_id', ACTIVE_VENUE_ID)
           .eq('payment_status', 'cuenta_solicitada')
-          .in('payment_method', ['efectivo', 'tarjeta'])
           .order('bill_requested_at', { ascending: true })
       ])
 
@@ -143,13 +142,22 @@ function AdminDashboardInner() {
       if (proofRes.error) throw new Error(`proofRes: ${proofRes.error.message}`)
       if (inPersonRes.error) throw new Error(`inPersonRes: ${inPersonRes.error.message}`)
 
+      // "Por cobrar en persona" = cuenta solicitada y el metodo NO es
+      // transferencia (esos pasan por el flujo de comprobante en revision).
+      // Se compara sin distinguir mayusculas/acentos ya que el nombre del
+      // metodo viene de la tabla dinamica payment_methods, no de un enum.
+      const inPersonOrders = (inPersonRes.data || []).filter(o => {
+        const method = (o.payment_method || '').toLowerCase()
+        return !method.includes('transfer')
+      })
+
       // Excluir pedidos cerrados: entregado + pagado = ya no aparecen en el panel
       const openOrders = (boardRes.data || []).filter(o =>
         !(o.status === 'entregado' && o.payment_status === 'aprobado')
       )
       setOrders(openOrders)
       setPendingProofOrders(proofRes.data || [])
-      setPendingInPersonOrders(inPersonRes.data || [])
+      setPendingInPersonOrders(inPersonOrders)
       setLoading(false)
     } catch (err) {
       console.error('Error en load():', err)
@@ -552,6 +560,18 @@ const TYPE_FILTER_LABELS = {
 //  - efectivo: verde, con el vuelto a llevar si el cliente lo indico
 //  - tarjeta/QR: azul, posnet
 //  - transferencia en revision: ambar, solo informativo para caja
+// Los metodos de pago ahora vienen de la tabla dinamica payment_methods
+// (ej. "Efectivo", "Tarjeta / QR", "Transferencia"), no de un enum fijo en
+// minuscula. Esta funcion los normaliza a una de 3 categorias conocidas
+// para poder elegir estilos/textos sin depender del string exacto.
+function normalizePaymentMethod(method) {
+  const m = (method || '').toLowerCase()
+  if (m.includes('transfer')) return 'transferencia'
+  if (m.includes('efectivo')) return 'efectivo'
+  if (m.includes('tarjeta') || m.includes('qr') || m.includes('posnet')) return 'tarjeta'
+  return 'tarjeta'
+}
+
 const METHOD_ALERT_STYLES = {
   efectivo: 'border-emerald-500/60 bg-emerald-500/10',
   tarjeta: 'border-blue-500/60 bg-blue-500/10',
@@ -572,7 +592,7 @@ const METHOD_ALERT_LABELS = {
 
 function SalonOrderRow({ order }) {
   const isAlert = order.payment_status === 'cuenta_solicitada' || order.payment_status === 'en_revision'
-  const alertStyle = isAlert ? METHOD_ALERT_STYLES[order.payment_method] : null
+  const alertStyle = isAlert ? METHOD_ALERT_STYLES[normalizePaymentMethod(order.payment_method)] : null
 
   return (
     <div
@@ -587,12 +607,12 @@ function SalonOrderRow({ order }) {
         </span>
       </div>
       {isAlert && (
-        <p className={`text-xs font-semibold mt-1 ${METHOD_ALERT_TEXT[order.payment_method]}`}>
-          {METHOD_ALERT_LABELS[order.payment_method] || '🧾 Pidió la cuenta'}
+        <p className={`text-xs font-semibold mt-1 ${METHOD_ALERT_TEXT[normalizePaymentMethod(order.payment_method)]}`}>
+          {METHOD_ALERT_LABELS[normalizePaymentMethod(order.payment_method)] || '🧾 Pidió la cuenta'}
         </p>
       )}
       {order.payment_status === 'cuenta_solicitada' &&
-        order.payment_method === 'efectivo' &&
+        normalizePaymentMethod(order.payment_method) === 'efectivo' &&
         order.cash_amount && (
           <p className="text-emerald-700 text-xs mt-0.5">
             vuelto {formatPrice(order.cash_amount - order.total)}
@@ -764,7 +784,7 @@ function ProofCard({ order, proofUrl, onConfirm, onReject }) {
 }
 
 function InPersonCard({ order, waiters, onConfirm, onAssignWaiter }) {
-  const methodLabel = order.payment_method === 'efectivo' ? 'Efectivo' : 'Tarjeta / QR'
+  const methodLabel = order.payment_method || 'Efectivo'
   const elapsedMin = Math.round((Date.now() - new Date(order.created_at).getTime()) / 60000)
 
   return (
@@ -776,7 +796,7 @@ function InPersonCard({ order, waiters, onConfirm, onAssignWaiter }) {
       <CustomerContact customer={order.customers} />
       <p className="text-smoke-300 text-sm font-medium mb-1">📍 {order.location_label}</p>
       <p className="text-blue-700 text-xs mb-2">💳 Paga con {methodLabel}</p>
-      {order.payment_method === 'efectivo' && order.cash_amount && (
+      {normalizePaymentMethod(order.payment_method) === 'efectivo' && order.cash_amount && (
         <p className="text-emerald-700 text-xs mb-2">
           💵 Paga con {formatPrice(order.cash_amount)} · vuelto {formatPrice(order.cash_amount - order.total)}
         </p>
