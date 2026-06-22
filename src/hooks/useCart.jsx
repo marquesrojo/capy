@@ -30,6 +30,10 @@ export function CartProvider({ children }) {
     setItems(prev => prev.filter((_, i) => i !== index))
   }
 
+  function updateItemNotes(index, notes) {
+    setItems(prev => prev.map((item, i) => (i === index ? { ...item, notes } : item)))
+  }
+
   function clearCart() {
     setItems([])
   }
@@ -45,6 +49,7 @@ export function CartProvider({ children }) {
     items,
     addItem,
     updateQuantity,
+    updateItemNotes,
     removeItem,
     clearCart,
     subtotal,
