@@ -21,27 +21,31 @@ export default function WaiterOrderPage() {
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
   const [activeCategory, setActiveCategory] = useState(null)
-  const [cart, setCart] = useState({}) // { productId: { product, qty } }
+  const [cart, setCart] = useState({}) // { productId: { product, qty, notes } }
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [lastOrder, setLastOrder] = useState(null)
   const [venueWhatsapp, setVenueWhatsapp] = useState('')
+  const [quickNotes, setQuickNotes] = useState([])
+  const [activeNoteProduct, setActiveNoteProduct] = useState(null)
 
   useEffect(() => {
     if (!profile) return // esperar a que cargue el profile
     async function init() {
-      const [staffRes, zoneRes, catRes, prodRes, venueRes] = await Promise.all([
+      const [staffRes, zoneRes, catRes, prodRes, venueRes, notesRes] = await Promise.all([
         supabaseStaff.from('staff_names').select('*').eq('venue_id', ACTIVE_VENUE_ID).eq('is_active', true).order('full_name'),
         supabaseStaff.from('venue_zones').select('*').eq('venue_id', ACTIVE_VENUE_ID).eq('is_active', true).order('sort_order'),
         supabaseStaff.from('categories').select('*').eq('venue_id', ACTIVE_VENUE_ID).eq('is_active', true).order('sort_order'),
         supabaseStaff.from('products').select('*').eq('venue_id', ACTIVE_VENUE_ID).eq('is_available', true).order('sort_order'),
-        supabaseStaff.from('venues').select('whatsapp_number').eq('id', ACTIVE_VENUE_ID).single()
+        supabaseStaff.from('venues').select('whatsapp_number').eq('id', ACTIVE_VENUE_ID).single(),
+        supabaseStaff.from('quick_notes').select('*').eq('venue_id', ACTIVE_VENUE_ID).eq('is_active', true).order('sort_order')
       ])
       setStaffList(staffRes.data || [])
       setZones(zoneRes.data || [])
       setCategories(catRes.data || [])
       setProducts(prodRes.data || [])
+      setQuickNotes(notesRes.data || [])
       if (catRes.data?.length) setActiveCategory(catRes.data[0].id)
       if (venueRes.data?.whatsapp_number) setVenueWhatsapp(venueRes.data.whatsapp_number)
 
@@ -124,6 +128,7 @@ export default function WaiterOrderPage() {
         product_name: i.product.name,
         unit_price: i.product.price,
         quantity: i.qty,
+        item_notes: i.notes || null,
         line_total: i.product.price * i.qty
       }))
 
@@ -281,34 +286,74 @@ export default function WaiterOrderPage() {
       <div className="px-4 py-2 space-y-1 max-h-[45vh] overflow-y-auto">
         {visibleProducts.map(product => {
           const qty = cart[product.id]?.qty || 0
+          const itemNotes = cart[product.id]?.notes || ''
+          const isNoteOpen = activeNoteProduct === product.id
           return (
-            <div key={product.id} className="flex items-center justify-between py-2 border-b border-carbon-800">
-              <div className="flex-1 min-w-0 mr-3">
-                <p className="text-smoke-200 text-sm font-medium truncate">{product.name}</p>
-                <p className="font-mono text-ember-400 text-xs">{formatPrice(product.price)}</p>
-              </div>
-              {qty === 0 ? (
-                <button
-                  onClick={() => addToCart(product)}
-                  className="w-8 h-8 bg-ember-500 hover:bg-ember-600 text-white rounded-full text-lg font-bold flex items-center justify-center flex-shrink-0"
-                >
-                  +
-                </button>
-              ) : (
-                <div className="flex items-center gap-2 flex-shrink-0">
+            <div key={product.id} className="py-2 border-b border-carbon-800">
+              <div className="flex items-center justify-between">
+                <div className="flex-1 min-w-0 mr-3">
+                  <p className="text-smoke-200 text-sm font-medium truncate">{product.name}</p>
+                  <p className="font-mono text-ember-400 text-xs">{formatPrice(product.price)}</p>
+                  {itemNotes && <p className="text-smoke-500 text-[10px] italic mt-0.5">{itemNotes}</p>}
+                </div>
+                {qty === 0 ? (
                   <button
-                    onClick={() => removeFromCart(product)}
-                    className="w-8 h-8 border border-carbon-700 text-smoke-300 rounded-full text-lg font-bold flex items-center justify-center"
-                  >
-                    −
-                  </button>
-                  <span className="text-smoke-200 text-sm font-semibold w-4 text-center">{qty}</span>
-                  <button
-                    onClick={() => addToCart(product)}
-                    className="w-8 h-8 bg-ember-500 hover:bg-ember-600 text-white rounded-full text-lg font-bold flex items-center justify-center"
+                    onClick={() => { addToCart(product); setActiveNoteProduct(product.id) }}
+                    className="w-8 h-8 bg-ember-500 hover:bg-ember-600 text-white rounded-full text-lg font-bold flex items-center justify-center flex-shrink-0"
                   >
                     +
                   </button>
+                ) : (
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => { removeFromCart(product); if (qty <= 1) setActiveNoteProduct(null) }}
+                      className="w-8 h-8 border border-carbon-700 text-smoke-300 rounded-full text-lg font-bold flex items-center justify-center"
+                    >
+                      −
+                    </button>
+                    <span className="text-smoke-200 text-sm font-semibold w-4 text-center">{qty}</span>
+                    <button
+                      onClick={() => addToCart(product)}
+                      className="w-8 h-8 bg-ember-500 hover:bg-ember-600 text-white rounded-full text-lg font-bold flex items-center justify-center"
+                    >
+                      +
+                    </button>
+                    <button
+                      onClick={() => setActiveNoteProduct(isNoteOpen ? null : product.id)}
+                      className="w-8 h-8 border border-carbon-700 text-smoke-400 rounded-full text-xs flex items-center justify-center"
+                    >
+                      📝
+                    </button>
+                  </div>
+                )}
+              </div>
+              {isNoteOpen && qty > 0 && quickNotes.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {quickNotes.map(qn => {
+                    const active = itemNotes.includes(qn.label)
+                    return (
+                      <button
+                        key={qn.id}
+                        onClick={() => {
+                          setCart(prev => {
+                            const current = prev[product.id] || { product, qty: 1 }
+                            const currentNotes = current.notes || ''
+                            const newNotes = active
+                              ? currentNotes.replace(qn.label, '').replace(/,\s*,/g, ',').replace(/^,\s*|,\s*$/g, '').trim()
+                              : currentNotes ? `${currentNotes}, ${qn.label}` : qn.label
+                            return { ...prev, [product.id]: { ...current, notes: newNotes } }
+                          })
+                        }}
+                        className={`text-xs px-2.5 py-1 rounded-full border ${
+                          active
+                            ? 'bg-ember-500 text-white border-ember-500'
+                            : 'border-carbon-700 text-smoke-400'
+                        }`}
+                      >
+                        {qn.label}
+                      </button>
+                    )
+                  })}
                 </div>
               )}
             </div>
