@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import { supabaseStaff } from '../../lib/supabase'
 
 export default function AdminLoginPage() {
   const { signInWithEmail } = useAuth()
@@ -14,11 +15,24 @@ export default function AdminLoginPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
-    const { error } = await signInWithEmail(email, password)
+    const { data, error } = await signInWithEmail(email, password)
     setLoading(false)
     if (error) {
       setError('Email o contraseña incorrectos.')
       return
+    }
+    // Leer el perfil directamente para saber el rol antes de redirigir
+    const userId = data?.user?.id
+    if (userId) {
+      const { data: profile } = await supabaseStaff
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .single()
+      if (profile?.role === 'camarero') {
+        navigate('/admin/tomar')
+        return
+      }
     }
     navigate('/admin')
   }
