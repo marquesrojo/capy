@@ -276,6 +276,16 @@ function AdminDashboardInner() {
           <p className="text-smoke-500 text-xs mt-0.5">{profile?.full_name}</p>
         </div>
         <div className="flex gap-3 items-center">
+          <button
+            onClick={() => load()}
+            className="flex items-center gap-1 text-smoke-400 text-xs border border-carbon-700 rounded-full px-2.5 py-1"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 12a9 9 0 1 1-2.64-6.36" strokeLinecap="round"/>
+              <path d="M21 3v6h-6" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Actualizar
+          </button>
           <Link to="/admin/historial" className="text-smoke-400 text-xs underline">
             Historial
           </Link>
@@ -378,7 +388,7 @@ function AdminDashboardInner() {
       {view === 'salon' ? (
         <SalonView orders={orders} />
       ) : view === 'cocina' ? (
-        <CocinaView orders={orders} categories={categories} />
+        <CocinaView orders={orders} categories={categories} onUpdateStatus={updateStatus} onRefresh={load} />
       ) : view === 'tomar' ? (
         <WaiterOrderPage />
       ) : (
@@ -402,18 +412,15 @@ function AdminDashboardInner() {
 const KIND_LABELS_COCINA = { bebida: '🥤 Bebidas', comida: '🍽️ Comida', otro: '📦 Otros' }
 const KIND_ORDER = ['comida', 'bebida', 'otro']
 
-function CocinaView({ orders, categories }) {
+function CocinaView({ orders, categories, onUpdateStatus, onRefresh }) {
   const activeOrders = orders.filter(o =>
     ['recibido', 'en_preparacion'].includes(o.status)
   )
 
-  // Mapa de category_id -> kind para lookup rápido
   const kindByCategory = Object.fromEntries(
     categories.map(c => [c.id, c.kind || 'otro'])
   )
 
-  // Para cada pedido, separar sus items por kind
-  // Resultado: { kind -> [{ order, items }] }
   const byKind = KIND_ORDER.reduce((acc, kind) => {
     acc[kind] = []
     return acc
@@ -437,62 +444,89 @@ function CocinaView({ orders, categories }) {
 
   if (totalItems === 0) {
     return (
-      <div className="flex items-center justify-center h-[60vh]">
+      <div className="flex flex-col items-center justify-center h-[60vh] gap-3">
         <p className="text-smoke-500 text-sm">No hay pedidos activos en cocina.</p>
+        <button onClick={onRefresh} className="flex items-center gap-1 text-smoke-400 text-xs border border-carbon-700 rounded-full px-3 py-1.5">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21 12a9 9 0 1 1-2.64-6.36" strokeLinecap="round"/>
+            <path d="M21 3v6h-6" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          Actualizar
+        </button>
       </div>
     )
   }
 
   return (
-    <div className="flex gap-4 overflow-x-auto p-4 items-start">
-      {KIND_ORDER.filter(kind => byKind[kind].length > 0).map(kind => (
-        <div key={kind} className="flex-shrink-0 w-72">
-          <div className="text-smoke-300 text-sm font-semibold mb-3 px-1">
-            {KIND_LABELS_COCINA[kind]} · {byKind[kind].length}
-          </div>
-          <div className="space-y-3">
-            {byKind[kind].map(({ order, items }) => {
-              const elapsedMin = Math.round(
-                (Date.now() - new Date(order.created_at).getTime()) / 60000
-              )
-              const isUrgent = elapsedMin > 15
-              return (
-                <div
-                  key={order.id}
-                  className={`bg-carbon-900 border rounded-2xl p-4 ${
-                    isUrgent ? 'border-red-500/50' : 'border-carbon-700'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-ember-400 text-xs">
-                        #{order.id.slice(0, 6)}
-                      </span>
-                      <span className="text-smoke-400 text-xs">📍 {order.location_label}</span>
-                    </div>
-                    <span className={`text-xs font-medium ${isUrgent ? 'text-red-700' : 'text-smoke-500'}`}>
-                      {elapsedMin}m
-                    </span>
-                  </div>
-                  <ul className="space-y-1.5">
-                    {items.map(item => (
-                      <li key={item.id} className="flex items-baseline gap-2">
-                        <span className="font-mono text-ember-500 font-bold text-sm w-6 flex-shrink-0">
-                          {item.quantity}×
+    <div>
+      <div className="flex justify-end px-4 pt-3">
+        <button onClick={onRefresh} className="flex items-center gap-1 text-smoke-400 text-xs border border-carbon-700 rounded-full px-3 py-1.5">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21 12a9 9 0 1 1-2.64-6.36" strokeLinecap="round"/>
+            <path d="M21 3v6h-6" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          Actualizar
+        </button>
+      </div>
+      <div className="flex gap-4 overflow-x-auto p-4 items-start">
+        {KIND_ORDER.filter(kind => byKind[kind].length > 0).map(kind => (
+          <div key={kind} className="flex-shrink-0 w-72">
+            <div className="text-smoke-300 text-sm font-semibold mb-3 px-1">
+              {KIND_LABELS_COCINA[kind]} · {byKind[kind].length}
+            </div>
+            <div className="space-y-3">
+              {byKind[kind].map(({ order, items }) => {
+                const elapsedMin = Math.round(
+                  (Date.now() - new Date(order.created_at).getTime()) / 60000
+                )
+                const isUrgent = elapsedMin > 15
+                const isEnPreparacion = order.status === 'en_preparacion'
+                return (
+                  <div
+                    key={order.id}
+                    className={`bg-carbon-900 border rounded-2xl p-4 ${
+                      isUrgent ? 'border-red-500/50' : 'border-carbon-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-ember-400 text-xs">
+                          #{order.id.slice(0, 6)}
                         </span>
-                        <span className="text-smoke-200 text-sm">{item.product_name}</span>
-                        {item.item_notes && (
-                          <span className="text-smoke-500 text-xs italic">({item.item_notes})</span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )
-            })}
+                        <span className="text-smoke-400 text-xs">📍 {order.location_label}</span>
+                      </div>
+                      <span className={`text-xs font-medium ${isUrgent ? 'text-red-700' : 'text-smoke-500'}`}>
+                        {elapsedMin}m
+                      </span>
+                    </div>
+                    <ul className="space-y-1.5 mb-3">
+                      {items.map(item => (
+                        <li key={item.id} className="flex items-baseline gap-2">
+                          <span className="font-mono text-ember-500 font-bold text-sm w-6 flex-shrink-0">
+                            {item.quantity}×
+                          </span>
+                          <span className="text-smoke-200 text-sm">{item.product_name}</span>
+                          {item.item_notes && (
+                            <span className="text-smoke-500 text-xs italic">({item.item_notes})</span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                    {isEnPreparacion && (
+                      <button
+                        onClick={() => onUpdateStatus(order.id, 'listo')}
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2 rounded-xl"
+                      >
+                        Listo ✓
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   )
 }
