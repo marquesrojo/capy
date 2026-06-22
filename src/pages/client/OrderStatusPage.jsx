@@ -11,6 +11,7 @@ export default function OrderStatusPage() {
   const { orderId } = useParams()
   const { order, items, loading, refreshing, setOrder, refetch } = useOrderPolling(orderId)
   const [cancelling, setCancelling] = useState(false)
+  const [calling, setCalling] = useState(false)
 
   async function handleCancel() {
     if (!confirm('¿Querés anular este pedido?')) return
@@ -21,6 +22,24 @@ export default function OrderStatusPage() {
       .eq('id', orderId)
     setCancelling(false)
     if (!error) setOrder(prev => ({ ...prev, status: 'cancelado' }))
+  }
+
+  async function handleCallWaiter() {
+    setCalling(true)
+    const { error } = await supabaseCustomer
+      .from('orders')
+      .update({ waiter_called_at: new Date().toISOString() })
+      .eq('id', orderId)
+    setCalling(false)
+    if (!error) setOrder(prev => ({ ...prev, waiter_called_at: new Date().toISOString() }))
+  }
+
+  async function handleCancelCall() {
+    await supabaseCustomer
+      .from('orders')
+      .update({ waiter_called_at: null })
+      .eq('id', orderId)
+    setOrder(prev => ({ ...prev, waiter_called_at: null }))
   }
 
   if (loading) {
@@ -148,6 +167,33 @@ export default function OrderStatusPage() {
 
       {!isCancelado && (
         <BillRequest order={order} onUpdated={updated => setOrder(prev => ({ ...prev, ...updated }))} />
+      )}
+
+      {['recibido', 'en_preparacion', 'listo'].includes(order.status) && (
+        <div className="mt-4">
+          {order.waiter_called_at ? (
+            <div className="bg-amber-500/10 border border-amber-500/40 rounded-2xl p-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span>🔔</span>
+                <p className="text-amber-700 text-sm font-medium">Camarero en camino...</p>
+              </div>
+              <button
+                onClick={handleCancelCall}
+                className="text-smoke-500 text-xs underline"
+              >
+                Cancelar
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleCallWaiter}
+              disabled={calling}
+              className="w-full border border-ember-500 text-ember-500 font-medium py-3.5 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              🔔 Llamar al camarero
+            </button>
+          )}
+        </div>
       )}
 
       {['pendiente_aprobacion', 'recibido'].includes(order.status) && (
