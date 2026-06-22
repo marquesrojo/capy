@@ -337,8 +337,6 @@ function AdminDashboardInner() {
         </button>
       </div>
 
-      <WaiterManager waiters={waiters} onAdd={addWaiter} onRemove={removeWaiter} />
-
       {view !== 'cocina' && pendingProofOrders.length > 0 && (
         <div className="px-4 pt-4">
           <p className="text-ember-400 text-xs font-semibold uppercase tracking-wide mb-2">
