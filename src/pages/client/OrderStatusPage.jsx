@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useOrderPolling } from '../../hooks/useOrderPolling'
+import { supabaseCustomer } from '../../lib/supabase'
 import { formatPrice, STATUS_LABELS, STATUS_FLOW, PAYMENT_STATUS_LABELS, PAYMENT_STATUS_COLORS } from '../../lib/utils'
 import OrderFeedback from '../../components/OrderFeedback'
 import BillRequest from '../../components/BillRequest'
@@ -8,6 +10,18 @@ import SplitCalculator from '../../components/SplitCalculator'
 export default function OrderStatusPage() {
   const { orderId } = useParams()
   const { order, items, loading, refreshing, setOrder, refetch } = useOrderPolling(orderId)
+  const [cancelling, setCancelling] = useState(false)
+
+  async function handleCancel() {
+    if (!confirm('¿Querés anular este pedido?')) return
+    setCancelling(true)
+    const { error } = await supabaseCustomer
+      .from('orders')
+      .update({ status: 'cancelado' })
+      .eq('id', orderId)
+    setCancelling(false)
+    if (!error) setOrder(prev => ({ ...prev, status: 'cancelado' }))
+  }
 
   if (loading) {
     return (
@@ -134,6 +148,16 @@ export default function OrderStatusPage() {
 
       {!isCancelado && (
         <BillRequest order={order} onUpdated={updated => setOrder(prev => ({ ...prev, ...updated }))} />
+      )}
+
+      {['pendiente_aprobacion', 'recibido'].includes(order.status) && (
+        <button
+          onClick={handleCancel}
+          disabled={cancelling}
+          className="w-full mt-2 text-red-700 text-xs underline disabled:opacity-50"
+        >
+          {cancelling ? 'Anulando...' : 'Anular pedido'}
+        </button>
       )}
 
       {order.status === 'entregado' && <OrderFeedback orderId={order.id} />}
