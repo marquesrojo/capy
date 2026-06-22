@@ -1,3 +1,4 @@
+
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useOrderPolling } from '../../hooks/useOrderPolling'
@@ -169,32 +170,30 @@ export default function OrderStatusPage() {
         <BillRequest order={order} onUpdated={updated => setOrder(prev => ({ ...prev, ...updated }))} />
       )}
 
-      {!isCancelado && order.status !== 'entregado' && (
-        <div className="mt-4">
-          {order.waiter_called_at ? (
-            <div className="bg-amber-500/10 border border-amber-500/40 rounded-2xl p-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span>🔔</span>
-                <p className="text-amber-700 text-sm font-medium">Camarero en camino...</p>
-              </div>
-              <button
-                onClick={handleCancelCall}
-                className="text-smoke-500 text-xs underline"
-              >
-                Cancelar
-              </button>
+      <div className="mt-4">
+        {order.waiter_called_at ? (
+          <div className="bg-amber-500/10 border border-amber-500/40 rounded-2xl p-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span>🔔</span>
+              <p className="text-amber-700 text-sm font-medium">Camarero en camino...</p>
             </div>
-          ) : (
             <button
-              onClick={handleCallWaiter}
-              disabled={calling}
-              className="w-full border border-ember-500 text-ember-500 font-medium py-3.5 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-50"
+              onClick={handleCancelCall}
+              className="text-smoke-500 text-xs underline"
             >
-              🔔 Llamar al camarero
+              Cancelar
             </button>
-          )}
-        </div>
-      )}
+          </div>
+        ) : (
+          <button
+            onClick={handleCallWaiter}
+            disabled={calling}
+            className="w-full border border-ember-500 text-ember-500 font-medium py-3.5 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            🔔 Llamar al camarero
+          </button>
+        )}
+      </div>
 
       {['pendiente_aprobacion', 'recibido'].includes(order.status) && (
         <button
