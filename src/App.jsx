@@ -24,6 +24,7 @@ import PaymentMethodsPage from './pages/admin/PaymentMethodsPage'
 import VenueSettingsPage from './pages/admin/VenueSettingsPage'
 import KpisPage from './pages/admin/KpisPage'
 import WaiterModePage from './pages/admin/WaiterModePage'
+import WaitersPage from './pages/admin/WaitersPage'
 
 export default function App() {
   return (
@@ -159,6 +160,14 @@ export default function App() {
                 element={
                   <RequireStaff>
                     <WaiterModePage />
+                  </RequireStaff>
+                }
+              />
+              <Route
+                path="/admin/camareros"
+                element={
+                  <RequireStaff>
+                    <WaitersPage />
                   </RequireStaff>
                 }
               />
