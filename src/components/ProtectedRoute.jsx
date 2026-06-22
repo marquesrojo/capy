@@ -20,6 +20,13 @@ export function RequireStaff({ children }) {
   if (loading) return <FullScreenLoader />
   if (!user) return <Navigate to="/admin/login" replace />
   if (profile && !isStaff) return <Navigate to="/identificacion" replace />
+  // Camareros van siempre a /admin/tomar, no al dashboard completo
+  if (profile?.role === 'camarero' && typeof window !== 'undefined') {
+    const path = window.location.pathname
+    if (path === '/admin' || path === '/admin/') {
+      return <Navigate to="/admin/tomar" replace />
+    }
+  }
   return (
     <>
       <AdminHeader />
