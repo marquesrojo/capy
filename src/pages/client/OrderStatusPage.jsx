@@ -169,7 +169,7 @@ export default function OrderStatusPage() {
         <BillRequest order={order} onUpdated={updated => setOrder(prev => ({ ...prev, ...updated }))} />
       )}
 
-      {['recibido', 'en_preparacion', 'listo'].includes(order.status) && (
+      {!isCancelado && order.status !== 'entregado' && (
         <div className="mt-4">
           {order.waiter_called_at ? (
             <div className="bg-amber-500/10 border border-amber-500/40 rounded-2xl p-4 flex items-center justify-between">
