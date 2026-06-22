@@ -480,7 +480,6 @@ function CocinaView({ orders, categories, onUpdateStatus, onRefresh }) {
                   (Date.now() - new Date(order.created_at).getTime()) / 60000
                 )
                 const isUrgent = elapsedMin > 15
-                const isEnPreparacion = order.status === 'en_preparacion'
                 return (
                   <div
                     key={order.id}
@@ -512,14 +511,12 @@ function CocinaView({ orders, categories, onUpdateStatus, onRefresh }) {
                         </li>
                       ))}
                     </ul>
-                    {isEnPreparacion && (
-                      <button
-                        onClick={() => onUpdateStatus(order.id, 'listo')}
-                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2 rounded-xl"
-                      >
-                        Listo ✓
-                      </button>
-                    )}
+                    <button
+                      onClick={() => onUpdateStatus(order.id, 'listo')}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2 rounded-xl"
+                    >
+                      Listo ✓
+                    </button>
                   </div>
                 )
               })}
