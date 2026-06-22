@@ -12,7 +12,7 @@ import { formatPrice } from '../../lib/utils'
 // desde el detalle de su pedido (ver OrderStatusPage / BillRequest).
 
 export default function PaymentPage() {
-  const { items, subtotal, location, updateQuantity, clearCart, itemCount } = useCart()
+  const { items, subtotal, location, updateQuantity, updateItemNotes, clearCart, itemCount } = useCart()
   const { customer, registerCustomer } = useCustomer()
   const navigate = useNavigate()
   const [submitting, setSubmitting] = useState(false)
@@ -22,6 +22,8 @@ export default function PaymentPage() {
   const [paymentOptions, setPaymentOptions] = useState([])
   const [guestName, setGuestName] = useState('')
   const [showGuestForm, setShowGuestForm] = useState(false)
+  const [quickNotes, setQuickNotes] = useState([])
+  const [activeNoteIndex, setActiveNoteIndex] = useState(null)
 
   useEffect(() => {
     if (itemCount === 0) navigate('/carta')
@@ -29,19 +31,28 @@ export default function PaymentPage() {
   }, [itemCount, location, navigate])
 
   useEffect(() => {
-    async function loadMethods() {
-      const { data } = await supabaseCustomer
-        .from('payment_methods')
-        .select('id, name')
-        .eq('venue_id', ACTIVE_VENUE_ID)
-        .eq('is_active', true)
-        .order('sort_order')
-      if (data?.length) {
-        setPaymentOptions(data)
-        setPaymentMethod(data[0].id)
+    async function loadData() {
+      const [methodsRes, notesRes] = await Promise.all([
+        supabaseCustomer
+          .from('payment_methods')
+          .select('id, name')
+          .eq('venue_id', ACTIVE_VENUE_ID)
+          .eq('is_active', true)
+          .order('sort_order'),
+        supabaseCustomer
+          .from('quick_notes')
+          .select('id, label')
+          .eq('venue_id', ACTIVE_VENUE_ID)
+          .eq('is_active', true)
+          .order('sort_order')
+      ])
+      if (methodsRes.data?.length) {
+        setPaymentOptions(methodsRes.data)
+        setPaymentMethod(methodsRes.data[0].id)
       }
+      setQuickNotes(notesRes.data || [])
     }
-    loadMethods()
+    loadData()
   }, [])
 
   if (!location || itemCount === 0) return null
@@ -134,42 +145,80 @@ export default function PaymentPage() {
 
       <main className="px-5 space-y-2">
         {items.map((item, index) => (
-          <div
-            key={index}
-            className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4 flex items-center justify-between gap-3"
-          >
-            <div className="flex-1 min-w-0">
-              <p className="text-smoke-300 font-medium text-sm">{item.product.name}</p>
-              <p className="font-mono text-smoke-500 text-xs mt-0.5">
-                {formatPrice(item.product.price)} c/u
-              </p>
+          <div key={index} className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-smoke-300 font-medium text-sm">{item.product.name}</p>
+                <p className="font-mono text-smoke-500 text-xs mt-0.5">
+                  {formatPrice(item.product.price)} c/u
+                </p>
+                {item.notes && (
+                  <p className="text-smoke-500 text-[10px] italic mt-0.5">{item.notes}</p>
+                )}
+              </div>
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <button
+                  onClick={() => updateQuantity(index, item.quantity - 1)}
+                  className="w-11 h-11 rounded-full bg-carbon-700 text-smoke-300 flex items-center justify-center text-lg font-bold active:bg-carbon-600"
+                >
+                  −
+                </button>
+                <span className="text-smoke-300 w-5 text-center font-semibold">{item.quantity}</span>
+                <button
+                  onClick={() => updateQuantity(index, item.quantity + 1)}
+                  className="w-11 h-11 rounded-full bg-carbon-700 text-smoke-300 flex items-center justify-center text-lg font-bold active:bg-carbon-600"
+                >
+                  +
+                </button>
+              </div>
+              <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                <span className="font-mono text-pucara-blue-400 font-semibold text-sm">
+                  {formatPrice(item.product.price * item.quantity)}
+                </span>
+                <div className="flex gap-2">
+                  {quickNotes.length > 0 && (
+                    <button
+                      onClick={() => setActiveNoteIndex(activeNoteIndex === index ? null : index)}
+                      className="text-smoke-500 text-[10px]"
+                    >
+                      📝
+                    </button>
+                  )}
+                  <button
+                    onClick={() => updateQuantity(index, 0)}
+                    className="text-smoke-500 text-[10px] underline"
+                  >
+                    quitar
+                  </button>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <button
-                onClick={() => updateQuantity(index, item.quantity - 1)}
-                className="w-11 h-11 rounded-full bg-carbon-700 text-smoke-300 flex items-center justify-center text-lg font-bold active:bg-carbon-600"
-              >
-                −
-              </button>
-              <span className="text-smoke-300 w-5 text-center font-semibold">{item.quantity}</span>
-              <button
-                onClick={() => updateQuantity(index, item.quantity + 1)}
-                className="w-11 h-11 rounded-full bg-carbon-700 text-smoke-300 flex items-center justify-center text-lg font-bold active:bg-carbon-600"
-              >
-                +
-              </button>
-            </div>
-            <div className="flex flex-col items-end gap-1 flex-shrink-0">
-              <span className="font-mono text-pucara-blue-400 font-semibold text-sm">
-                {formatPrice(item.product.price * item.quantity)}
-              </span>
-              <button
-                onClick={() => updateQuantity(index, 0)}
-                className="text-smoke-500 text-[10px] underline"
-              >
-                quitar
-              </button>
-            </div>
+            {activeNoteIndex === index && quickNotes.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {quickNotes.map(qn => {
+                  const active = (item.notes || '').includes(qn.label)
+                  return (
+                    <button
+                      key={qn.id}
+                      onClick={() => {
+                        const current = item.notes || ''
+                        const newNotes = active
+                          ? current.replace(qn.label, '').replace(/,\s*,/g, ',').replace(/^,\s*|,\s*$/g, '').trim()
+                          : current ? `${current}, ${qn.label}` : qn.label
+                        updateItemNotes(index, newNotes)
+                      }}
+                      className={`text-xs px-2.5 py-1 rounded-full border ${
+                        active
+                          ? 'bg-pucara-blue-500 text-white border-pucara-blue-500'
+                          : 'border-carbon-700 text-smoke-400'
+                      }`}
+                    >
+                      {qn.label}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </div>
         ))}
 
