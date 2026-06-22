@@ -22,7 +22,7 @@ export default function AdminLoginPage() {
       return
     }
     // Leer el perfil directamente para saber el rol antes de redirigir
-    const userId = data?.user?.id
+    const userId = data?.user?.id || data?.session?.user?.id
     if (userId) {
       const { data: profile } = await supabaseStaff
         .from('profiles')
