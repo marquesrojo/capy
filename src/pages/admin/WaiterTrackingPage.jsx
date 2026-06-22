@@ -35,7 +35,7 @@ export default function WaiterTrackingPage() {
   async function loadOrders() {
     const { data } = await supabaseStaff
       .from('orders')
-      .select('id, status, location_label, total, created_at, assigned_staff:staff_names!orders_assigned_staff_id_fkey(full_name), order_items(product_name, quantity)')
+      .select('id, status, location_label, total, created_at, waiter_called_at, assigned_staff:staff_names!orders_assigned_staff_id_fkey(full_name), order_items(product_name, quantity)')
       .eq('venue_id', ACTIVE_VENUE_ID)
       .in('status', ACTIVE_STATUSES)
       .order('created_at', { ascending: true })
@@ -51,6 +51,11 @@ export default function WaiterTrackingPage() {
       .eq('id', orderId)
     setApproving(null)
     loadOrders()
+  }
+
+  async function dismissCall(orderId) {
+    await supabaseStaff.from('orders').update({ waiter_called_at: null }).eq('id', orderId)
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, waiter_called_at: null } : o))
   }
 
   if (loading) {
@@ -90,7 +95,7 @@ export default function WaiterTrackingPage() {
             {items.map(order => {
               const elapsedMin = Math.round((Date.now() - new Date(order.created_at).getTime()) / 60000)
               return (
-                <div key={order.id} className="bg-carbon-900 border border-carbon-700 rounded-xl px-3 py-3">
+                <div key={order.id} className={`bg-carbon-900 border rounded-xl px-3 py-3 ${order.waiter_called_at ? 'border-amber-500/40' : 'border-carbon-700'}`}>
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-ember-400 text-xs">#{order.id.slice(0, 6)}</span>
@@ -100,6 +105,17 @@ export default function WaiterTrackingPage() {
                       {elapsedMin} min
                     </span>
                   </div>
+                  {order.waiter_called_at && (
+                    <div className="flex items-center justify-between mb-1.5 bg-amber-500/10 rounded-lg px-2 py-1">
+                      <span className="text-amber-700 text-xs font-semibold">🔔 Te están llamando</span>
+                      <button
+                        onClick={() => dismissCall(order.id)}
+                        className="text-smoke-500 text-[10px] underline"
+                      >
+                        Atendido
+                      </button>
+                    </div>
+                  )}
                   <div className="text-smoke-400 text-xs space-y-0.5">
                     {(order.order_items || []).map((item, i) => (
                       <p key={i}>{item.quantity}× {item.product_name}</p>
