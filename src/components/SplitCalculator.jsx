@@ -96,35 +96,28 @@ export default function SplitCalculator({ total, assignedStaff }) {
                 <span className="font-mono text-pucara-blue-400">{formatPrice(perPerson)}</span>
               </div>
             )}
+            {assignedStaff?.alias_bancario && (
+              <div className="mt-3 pt-3 border-t border-carbon-700">
+                <p className="text-smoke-400 text-xs mb-2">
+                  Transferile la propina a {assignedStaff.full_name}:
+                </p>
+                <div className="flex items-center justify-between gap-3 bg-carbon-800 rounded-xl px-3 py-2.5">
+                  <span className="font-mono text-smoke-200 text-sm">{assignedStaff.alias_bancario}</span>
+                  <button
+                    type="button"
+                    onClick={handleCopyAlias}
+                    className={`text-xs font-semibold px-3 py-1.5 rounded-full flex-shrink-0 transition-colors ${
+                      copied ? 'bg-emerald-600 text-white' : 'bg-pucara-blue-500 text-white'
+                    }`}
+                  >
+                    {copied ? '¡Copiado! ✓' : 'Copiar alias'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
-
-      {/* Alias del camarero para propina */}
-      {assignedStaff?.alias_bancario && (
-        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4">
-          <p className="text-smoke-300 text-sm font-medium mb-1">
-            ¿Te gustó la atención de {assignedStaff.full_name}?
-          </p>
-          <p className="text-smoke-500 text-xs mb-3">
-            Podés dejarle una propina transfiriendo a su alias:
-          </p>
-          <div className="flex items-center justify-between gap-3 bg-carbon-800 rounded-xl px-3 py-2.5">
-            <span className="font-mono text-smoke-200 text-sm">{assignedStaff.alias_bancario}</span>
-            <button
-              type="button"
-              onClick={handleCopyAlias}
-              className={`text-xs font-semibold px-3 py-1.5 rounded-full flex-shrink-0 transition-colors ${
-                copied
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-pucara-blue-500 text-white'
-              }`}
-            >
-              {copied ? '¡Copiado! ✓' : 'Copiar alias'}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
