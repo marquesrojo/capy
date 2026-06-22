@@ -120,8 +120,16 @@ export default function PaymentPage() {
   return (
     <div className="min-h-screen bg-carbon-950 pb-40">
       <header className="px-5 pt-6 pb-4">
-        <h1 className="font-display text-3xl text-pucara-blue-500 tracking-wide">TU PEDIDO</h1>
-        <p className="text-smoke-400 text-sm mt-1">📍 {location.label}</p>
+        <div className="flex items-center justify-between mb-1">
+          <h1 className="font-display text-3xl text-pucara-blue-500 tracking-wide">TU PEDIDO</h1>
+          <button
+            onClick={() => navigate('/carta')}
+            className="text-pucara-blue-500 text-xs font-medium underline"
+          >
+            ← Agregar más
+          </button>
+        </div>
+        <p className="text-smoke-400 text-sm">📍 {location.label}</p>
       </header>
 
       <main className="px-5 space-y-2">
@@ -151,9 +159,17 @@ export default function PaymentPage() {
                 +
               </button>
             </div>
-            <span className="font-mono text-pucara-blue-400 font-semibold text-sm flex-shrink-0">
-              {formatPrice(item.product.price * item.quantity)}
-            </span>
+            <div className="flex flex-col items-end gap-1 flex-shrink-0">
+              <span className="font-mono text-pucara-blue-400 font-semibold text-sm">
+                {formatPrice(item.product.price * item.quantity)}
+              </span>
+              <button
+                onClick={() => updateQuantity(index, 0)}
+                className="text-smoke-500 text-[10px] underline"
+              >
+                quitar
+              </button>
+            </div>
           </div>
         ))}
 
