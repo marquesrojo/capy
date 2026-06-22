@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useCustomer } from '../hooks/useCustomer'
 import AdminHeader from './AdminHeader'
@@ -17,15 +17,13 @@ export function RequireCustomer({ children }) {
 // admin o camarero.
 export function RequireStaff({ children }) {
   const { user, profile, loading, isStaff } = useAuth()
+  const location = useLocation()
   if (loading) return <FullScreenLoader />
   if (!user) return <Navigate to="/admin/login" replace />
   if (profile && !isStaff) return <Navigate to="/identificacion" replace />
   // Camareros van siempre a /admin/tomar, no al dashboard completo
-  if (profile?.role === 'camarero' && typeof window !== 'undefined') {
-    const path = window.location.pathname
-    if (path === '/admin' || path === '/admin/') {
-      return <Navigate to="/admin/tomar" replace />
-    }
+  if (profile?.role === 'camarero' && (location.pathname === '/admin' || location.pathname === '/admin/')) {
+    return <Navigate to="/admin/tomar" replace />
   }
   return (
     <>
