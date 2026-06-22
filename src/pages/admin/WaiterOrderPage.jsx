@@ -25,21 +25,25 @@ export default function WaiterOrderPage() {
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [lastOrder, setLastOrder] = useState(null)
+  const [venueWhatsapp, setVenueWhatsapp] = useState('')
 
   useEffect(() => {
     if (!profile) return // esperar a que cargue el profile
     async function init() {
-      const [staffRes, zoneRes, catRes, prodRes] = await Promise.all([
+      const [staffRes, zoneRes, catRes, prodRes, venueRes] = await Promise.all([
         supabaseStaff.from('staff_names').select('*').eq('venue_id', ACTIVE_VENUE_ID).eq('is_active', true).order('full_name'),
         supabaseStaff.from('venue_zones').select('*').eq('venue_id', ACTIVE_VENUE_ID).eq('is_active', true).order('sort_order'),
         supabaseStaff.from('categories').select('*').eq('venue_id', ACTIVE_VENUE_ID).eq('is_active', true).order('sort_order'),
-        supabaseStaff.from('products').select('*').eq('venue_id', ACTIVE_VENUE_ID).eq('is_available', true).order('sort_order')
+        supabaseStaff.from('products').select('*').eq('venue_id', ACTIVE_VENUE_ID).eq('is_available', true).order('sort_order'),
+        supabaseStaff.from('venues').select('whatsapp_number').eq('id', ACTIVE_VENUE_ID).single()
       ])
       setStaffList(staffRes.data || [])
       setZones(zoneRes.data || [])
       setCategories(catRes.data || [])
       setProducts(prodRes.data || [])
       if (catRes.data?.length) setActiveCategory(catRes.data[0].id)
+      if (venueRes.data?.whatsapp_number) setVenueWhatsapp(venueRes.data.whatsapp_number)
 
       if (profile?.is_shared_account) {
         setStep('choose_waiter')
@@ -126,6 +130,7 @@ export default function WaiterOrderPage() {
       const { error: itemsError } = await supabaseStaff.from('order_items').insert(orderItems)
       if (itemsError) throw itemsError
 
+      setLastOrder({ order, items: cartItems, zone: selectedZone, staff: selectedStaff })
       setCart({})
       setNotes('')
       setSelectedZone(null)
@@ -170,21 +175,50 @@ export default function WaiterOrderPage() {
   }
 
   if (step === 'done') {
+    // Armar mensaje de WhatsApp con la comanda
+    const waMessage = lastOrder ? [
+      `🧾 COMANDA - ${lastOrder.zone?.name || 'Sin ubicación'}`,
+      `👤 ${lastOrder.staff?.full_name || 'Camarero'}`,
+      '',
+      ...(lastOrder.items || []).map(i => `• ${i.qty}x ${i.product.name}`),
+      '',
+      `💰 Total: ${formatPrice(lastOrder.items?.reduce((s, i) => s + i.product.price * i.qty, 0) || 0)}`
+    ].join('\n') : ''
+
+    const waLink = venueWhatsapp
+      ? `https://wa.me/${venueWhatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(waMessage)}`
+      : null
+
     return (
       <div className="px-5 py-10 text-center">
         <p className="text-3xl mb-3">✅</p>
         <p className="text-smoke-200 font-semibold text-lg mb-1">¡Pedido enviado a cocina!</p>
         <p className="text-smoke-400 text-sm mb-6">El pedido entró directo a preparación.</p>
+
+        {waLink && (
+          <a
+            href={waLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3.5 rounded-xl mb-3"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.86 9.86 0 0 0 12.04 2"/>
+            </svg>
+            Enviar comanda por WhatsApp
+          </a>
+        )}
+
         <button
           onClick={() => setStep('menu')}
-          className="w-full bg-ember-500 hover:bg-ember-600 text-white font-semibold py-3.5 rounded-xl"
+          className="w-full bg-ember-500 hover:bg-ember-600 text-white font-semibold py-3.5 rounded-xl mb-2"
         >
           Tomar otro pedido
         </button>
         {profile?.is_shared_account && (
           <button
             onClick={() => { setSelectedStaff(null); setStep('choose_waiter') }}
-            className="w-full mt-2 border border-carbon-700 text-smoke-400 py-3 rounded-xl text-sm"
+            className="w-full border border-carbon-700 text-smoke-400 py-3 rounded-xl text-sm"
           >
             Cambiar camarero
           </button>
