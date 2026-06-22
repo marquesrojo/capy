@@ -23,6 +23,7 @@ import ConfigPage from './pages/admin/ConfigPage'
 import PaymentMethodsPage from './pages/admin/PaymentMethodsPage'
 import VenueSettingsPage from './pages/admin/VenueSettingsPage'
 import KpisPage from './pages/admin/KpisPage'
+import WaiterModePage from './pages/admin/WaiterModePage'
 
 export default function App() {
   return (
@@ -151,6 +152,14 @@ export default function App() {
                   <RequireAdmin>
                     <KpisPage />
                   </RequireAdmin>
+                }
+              />
+              <Route
+                path="/admin/tomar"
+                element={
+                  <RequireStaff>
+                    <WaiterModePage />
+                  </RequireStaff>
                 }
               />
 
