@@ -14,6 +14,7 @@ const STATUS_EMOJI = {
 export default function WaiterTrackingPage() {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
+  const [approving, setApproving] = useState(null)
 
   useEffect(() => {
     loadOrders()
@@ -40,6 +41,16 @@ export default function WaiterTrackingPage() {
       .order('created_at', { ascending: true })
     setOrders(data || [])
     setLoading(false)
+  }
+
+  async function approveOrder(orderId) {
+    setApproving(orderId)
+    await supabaseStaff
+      .from('orders')
+      .update({ status: 'recibido' })
+      .eq('id', orderId)
+    setApproving(null)
+    loadOrders()
   }
 
   if (loading) {
@@ -96,9 +107,20 @@ export default function WaiterTrackingPage() {
                   </div>
                   <div className="flex items-center justify-between mt-2">
                     <span className="font-mono text-smoke-400 text-xs">{formatPrice(order.total)}</span>
-                    {order.assigned_staff?.full_name && (
-                      <span className="text-smoke-500 text-[10px]">🧑‍🍳 {order.assigned_staff.full_name}</span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {order.assigned_staff?.full_name && (
+                        <span className="text-smoke-500 text-[10px]">🧑‍🍳 {order.assigned_staff.full_name}</span>
+                      )}
+                      {order.status === 'pendiente_aprobacion' && (
+                        <button
+                          onClick={() => approveOrder(order.id)}
+                          disabled={approving === order.id}
+                          className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-semibold px-3 py-1 rounded-full"
+                        >
+                          {approving === order.id ? '...' : 'Aprobar ✓'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               )
