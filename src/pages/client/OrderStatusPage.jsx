@@ -1,4 +1,3 @@
-
 import { useParams, Link } from 'react-router-dom'
 import { useOrderPolling } from '../../hooks/useOrderPolling'
 import { formatPrice, STATUS_LABELS, STATUS_FLOW, PAYMENT_STATUS_LABELS, PAYMENT_STATUS_COLORS } from '../../lib/utils'
@@ -38,7 +37,7 @@ export default function OrderStatusPage() {
         ← Volver a Pedidos
       </Link>
       <div className="flex items-center justify-between mt-2">
-        <h1 className="font-display text-3xl text-ember-500 tracking-wide">TU PEDIDO</h1>
+        <h1 className="font-display text-3xl text-pucara-blue-500 tracking-wide">TU PEDIDO</h1>
         <button
           onClick={refetch}
           disabled={refreshing}
@@ -88,20 +87,20 @@ export default function OrderStatusPage() {
                 {i > 0 && (
                   <div
                     className={`absolute right-1/2 top-2.5 h-0.5 w-full -z-10 ${
-                      i <= currentStepIndex ? 'bg-ember-500' : 'bg-carbon-700'
+                      i <= currentStepIndex ? 'bg-pucara-blue-500' : 'bg-carbon-700'
                     }`}
                   />
                 )}
                 <div
                   className={`w-5 h-5 rounded-full border-2 z-10 ${
                     i <= currentStepIndex
-                      ? 'bg-ember-500 border-ember-500'
+                      ? 'bg-pucara-blue-500 border-pucara-blue-500'
                       : 'bg-carbon-900 border-carbon-700'
                   }`}
                 />
                 <span
                   className={`text-[10px] mt-2 text-center ${
-                    i <= currentStepIndex ? 'text-ember-400' : 'text-smoke-500'
+                    i <= currentStepIndex ? 'text-pucara-blue-400' : 'text-smoke-500'
                   }`}
                 >
                   {STATUS_LABELS[step]}
@@ -121,17 +120,17 @@ export default function OrderStatusPage() {
             <span className="text-smoke-300 text-sm">
               {item.quantity}× {item.product_name}
             </span>
-            <span className="font-mono text-ember-400 text-sm">{formatPrice(item.line_total)}</span>
+            <span className="font-mono text-pucara-blue-400 text-sm">{formatPrice(item.line_total)}</span>
           </div>
         ))}
       </div>
 
       <div className="mt-4 flex justify-between text-smoke-300 px-1">
         <span className="font-medium">Total</span>
-        <span className="font-mono text-ember-400">{formatPrice(order.total)}</span>
+        <span className="font-mono text-pucara-blue-400">{formatPrice(order.total)}</span>
       </div>
 
-      <SplitCalculator total={order.total} />
+      <SplitCalculator total={order.total} assignedStaff={order.assigned_staff} />
 
       {!isCancelado && (
         <BillRequest order={order} onUpdated={updated => setOrder(prev => ({ ...prev, ...updated }))} />
