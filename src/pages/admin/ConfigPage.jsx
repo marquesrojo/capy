@@ -29,6 +29,10 @@ const CONFIG_ITEMS = [
     icon: <svg {...ICON_PROPS}><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
   },
   {
+    to: '/admin/notas-rapidas', label: 'Notas rápidas', desc: 'Chips de aclaraciones al tomar pedidos',
+    icon: <svg {...ICON_PROPS}><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+  },
+  {
     to: '/admin/encuestas', label: 'Encuestas', desc: 'Calificaciones de clientes',
     icon: <svg {...ICON_PROPS}><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 16.9l-6.2 3.4 1.6-6.8L2.2 8.9l6.9-.6L12 2Z"/></svg>
   },
