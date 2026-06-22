@@ -205,9 +205,14 @@ function AdminDashboardInner() {
     if (pendingProofOrders.length) loadUrls()
   }, [pendingProofOrders])
 
-  async function updateStatus(orderId, newStatus) {
-    setOrders(prev => prev.map(o => (o.id === orderId ? { ...o, status: newStatus } : o)))
-    await supabaseStaff.from('orders').update({ status: newStatus }).eq('id', orderId)
+  async function updateStatus(orderId, newStatus, extraFields = {}) {
+    setOrders(prev => prev.map(o => (o.id === orderId ? { ...o, status: newStatus, ...extraFields } : o)))
+    await supabaseStaff.from('orders').update({ status: newStatus, ...extraFields }).eq('id', orderId)
+  }
+
+  async function dismissWaiterCall(orderId) {
+    setOrders(prev => prev.map(o => (o.id === orderId ? { ...o, waiter_called_at: null } : o)))
+    await supabaseStaff.from('orders').update({ waiter_called_at: null }).eq('id', orderId)
   }
 
   async function assignWaiter(orderId, staffId) {
@@ -399,6 +404,7 @@ function AdminDashboardInner() {
               status={status}
               orders={orders.filter(o => o.status === status)}
               onUpdateStatus={updateStatus}
+              onDismissCall={dismissWaiterCall}
               waiters={waiters}
               onAssignWaiter={assignWaiter}
             />
@@ -867,7 +873,7 @@ function InPersonCard({ order, waiters, onConfirm, onAssignWaiter }) {
   )
 }
 
-function Column({ status, orders, onUpdateStatus, waiters, onAssignWaiter }) {
+function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssignWaiter }) {
   const nextStatus = {
     pendiente_aprobacion: 'recibido',
     recibido: 'en_preparacion',
@@ -895,6 +901,7 @@ function Column({ status, orders, onUpdateStatus, waiters, onAssignWaiter }) {
             nextStatus={nextStatus}
             prevStatus={prevStatus}
             onUpdateStatus={onUpdateStatus}
+            onDismissCall={onDismissCall}
             waiters={waiters}
             onAssignWaiter={onAssignWaiter}
           />
@@ -904,7 +911,7 @@ function Column({ status, orders, onUpdateStatus, waiters, onAssignWaiter }) {
   )
 }
 
-function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, waiters, onAssignWaiter }) {
+function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCall, waiters, onAssignWaiter }) {
   const [showWaiterSelect, setShowWaiterSelect] = useState(false)
   const elapsedMin = Math.round((Date.now() - new Date(order.created_at).getTime()) / 60000)
 
@@ -943,6 +950,18 @@ function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, waiters, onA
         </div>
       ) : (
         <CustomerContact customer={order.customers} />
+      )}
+
+      {order.waiter_called_at && (
+        <div className="flex items-center justify-between mb-2 bg-amber-500/10 border border-amber-500/40 rounded-lg px-2.5 py-1.5">
+          <span className="text-amber-700 text-xs font-semibold">🔔 Te están llamando</span>
+          <button
+            onClick={() => onDismissCall(order.id)}
+            className="text-smoke-500 text-[10px] underline"
+          >
+            Atendido
+          </button>
+        </div>
       )}
 
       <p className="text-smoke-300 text-sm font-medium mb-2">📍 {order.location_label}</p>
