@@ -25,6 +25,7 @@ import VenueSettingsPage from './pages/admin/VenueSettingsPage'
 import KpisPage from './pages/admin/KpisPage'
 import WaiterModePage from './pages/admin/WaiterModePage'
 import WaitersPage from './pages/admin/WaitersPage'
+import QuickNotesPage from './pages/admin/QuickNotesPage'
 
 export default function App() {
   return (
@@ -168,6 +169,14 @@ export default function App() {
                 element={
                   <RequireStaff>
                     <WaitersPage />
+                  </RequireStaff>
+                }
+              />
+              <Route
+                path="/admin/notas-rapidas"
+                element={
+                  <RequireStaff>
+                    <QuickNotesPage />
                   </RequireStaff>
                 }
               />
