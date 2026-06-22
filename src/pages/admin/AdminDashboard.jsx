@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice, STATUS_LABELS, STATUS_COLORS } from '../../lib/utils'
+import WaiterOrderPage from './WaiterOrderPage'
 
 const BOARD_COLUMNS = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo', 'entregado']
 const PROOF_BUCKET = 'payment-proofs'
@@ -326,6 +327,14 @@ function AdminDashboardInner() {
         >
           Cocina
         </button>
+        <button
+          onClick={() => setView('tomar')}
+          className={`px-3 py-1.5 rounded-full text-xs font-medium border ${
+            view === 'tomar' ? 'bg-ember-500 text-white border-ember-500' : 'border-carbon-700 text-smoke-400'
+          }`}
+        >
+          Tomar pedido
+        </button>
       </div>
 
       <WaiterManager waiters={waiters} onAdd={addWaiter} onRemove={removeWaiter} />
@@ -372,6 +381,8 @@ function AdminDashboardInner() {
         <SalonView orders={orders} />
       ) : view === 'cocina' ? (
         <CocinaView orders={orders} categories={categories} />
+      ) : view === 'tomar' ? (
+        <WaiterOrderPage />
       ) : (
         <div className="flex gap-4 overflow-x-auto p-4">
           {BOARD_COLUMNS.map(status => (
@@ -873,7 +884,16 @@ function OrderCard({ order, nextStatus, onUpdateStatus, waiters, onAssignWaiter 
         </span>
       </div>
 
-      <CustomerContact customer={order.customers} />
+      {order.created_by_staff ? (
+        <div className="flex items-center gap-2 mb-2 bg-carbon-800 rounded-lg px-2.5 py-1.5">
+          <span className="text-smoke-400 text-xs">🧑‍🍳</span>
+          <span className="text-smoke-300 text-xs font-medium">
+            Tomado por {order.assigned_staff?.full_name || 'camarero'}
+          </span>
+        </div>
+      ) : (
+        <CustomerContact customer={order.customers} />
+      )}
       <p className="text-smoke-300 text-sm font-medium mb-2">📍 {order.location_label}</p>
 
       <div className="mb-2">
