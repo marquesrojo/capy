@@ -27,7 +27,7 @@ export default function UsersPage() {
   async function loadUsers() {
     const { data } = await supabaseStaff
       .from('profiles')
-      .select('id, full_name, role, is_active, created_at')
+      .select('id, full_name, role, is_active, is_shared_account, created_at')
       .in('role', ['admin', 'camarero'])
       .order('is_active', { ascending: false })
       .order('created_at', { ascending: false })
@@ -150,7 +150,22 @@ function UserRow({ user, onUpdated }) {
   const [password, setPassword] = useState('')
   const [saving, setSaving] = useState(false)
   const [toggling, setToggling] = useState(false)
+  const [togglingShared, setTogglingShared] = useState(false)
   const [error, setError] = useState('')
+
+  async function handleToggleShared() {
+    setTogglingShared(true)
+    const { error: updateError } = await supabaseStaff
+      .from('profiles')
+      .update({ is_shared_account: !user.is_shared_account })
+      .eq('id', user.id)
+    setTogglingShared(false)
+    if (!updateError) {
+      onUpdated({ id: user.id, is_shared_account: !user.is_shared_account })
+    } else {
+      alert('No se pudo actualizar. ' + updateError.message)
+    }
+  }
 
   async function handleSave() {
     if (!fullName.trim()) { setError('El nombre no puede estar vacío.'); return }
@@ -220,11 +235,19 @@ function UserRow({ user, onUpdated }) {
       <div>
         <p className="text-smoke-300 text-sm font-medium">{user.full_name}</p>
         <p className="text-smoke-500 text-xs mt-0.5">{new Date(user.created_at).toLocaleDateString('es-AR')}</p>
+        {user.is_shared_account && (
+          <p className="text-blue-700 text-[10px] mt-0.5">👥 Cuenta compartida (toma de pedido)</p>
+        )}
       </div>
       <div className="flex items-center gap-3">
         <span className={`text-xs px-2.5 py-1 rounded-full border ${user.role === 'admin' ? 'border-ember-500/40 text-ember-600' : 'border-carbon-600 text-smoke-400'}`}>
           {ROLE_LABELS[user.role]}
         </span>
+        {user.role === 'camarero' && user.is_active !== false && (
+          <button onClick={handleToggleShared} disabled={togglingShared} className="text-blue-700 text-xs underline disabled:opacity-50">
+            {togglingShared ? '...' : user.is_shared_account ? 'Quitar compartida' : 'Marcar compartida'}
+          </button>
+        )}
         {user.is_active !== false && (
           <button onClick={() => setEditing(true)} className="text-smoke-400 text-xs underline">Editar</button>
         )}
