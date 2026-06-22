@@ -1,6 +1,7 @@
-import { Component } from 'react'
+import { Component, useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import WaiterOrderPage from './WaiterOrderPage'
+import WaiterTrackingPage from './WaiterTrackingPage'
 
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null } }
@@ -20,23 +21,44 @@ class ErrorBoundary extends Component {
 
 export default function WaiterModePage() {
   const { profile, signOut } = useAuth()
+  const [tab, setTab] = useState('tomar')
 
   return (
     <div className="min-h-screen bg-carbon-950">
-      <header className="px-5 pt-4 pb-3 border-b border-carbon-700 flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-2xl text-ember-500 tracking-wide">TOMAR PEDIDO</h1>
-          {profile?.full_name && (
-            <p className="text-smoke-500 text-xs mt-0.5">{profile.full_name}</p>
-          )}
+      <header className="px-5 pt-4 pb-3 border-b border-carbon-700">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h1 className="font-display text-2xl text-ember-500 tracking-wide">CAPY</h1>
+            {profile?.full_name && (
+              <p className="text-smoke-500 text-xs mt-0.5">{profile.full_name}</p>
+            )}
+          </div>
+          <button onClick={signOut} className="text-smoke-500 text-xs underline">
+            Salir
+          </button>
         </div>
-        <button onClick={signOut} className="text-smoke-500 text-xs underline">
-          Salir
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setTab('tomar')}
+            className={`px-4 py-1.5 rounded-full text-xs font-medium border ${
+              tab === 'tomar' ? 'bg-ember-500 text-white border-ember-500' : 'border-carbon-700 text-smoke-400'
+            }`}
+          >
+            Tomar pedido
+          </button>
+          <button
+            onClick={() => setTab('seguimiento')}
+            className={`px-4 py-1.5 rounded-full text-xs font-medium border ${
+              tab === 'seguimiento' ? 'bg-ember-500 text-white border-ember-500' : 'border-carbon-700 text-smoke-400'
+            }`}
+          >
+            Seguimiento
+          </button>
+        </div>
       </header>
 
       <ErrorBoundary>
-        <WaiterOrderPage />
+        {tab === 'tomar' ? <WaiterOrderPage /> : <WaiterTrackingPage />}
       </ErrorBoundary>
     </div>
   )
