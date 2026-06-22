@@ -120,7 +120,7 @@ export default function PaymentPage() {
   return (
     <div className="min-h-screen bg-carbon-950 pb-40">
       <header className="px-5 pt-6 pb-4">
-        <h1 className="font-display text-3xl text-ember-500 tracking-wide">TU PEDIDO</h1>
+        <h1 className="font-display text-3xl text-pucara-blue-500 tracking-wide">TU PEDIDO</h1>
         <p className="text-smoke-400 text-sm mt-1">📍 {location.label}</p>
       </header>
 
@@ -128,29 +128,32 @@ export default function PaymentPage() {
         {items.map((item, index) => (
           <div
             key={index}
-            className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4 flex items-center justify-between"
+            className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4 flex items-center justify-between gap-3"
           >
             <div className="flex-1 min-w-0">
-              <p className="text-smoke-300 font-medium">{item.product.name}</p>
-              <p className="font-mono text-ember-400 text-xs mt-0.5">
+              <p className="text-smoke-300 font-medium text-sm">{item.product.name}</p>
+              <p className="font-mono text-smoke-500 text-xs mt-0.5">
                 {formatPrice(item.product.price)} c/u
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-shrink-0">
               <button
                 onClick={() => updateQuantity(index, item.quantity - 1)}
-                className="w-7 h-7 rounded-full bg-carbon-700 text-smoke-300 flex items-center justify-center"
+                className="w-11 h-11 rounded-full bg-carbon-700 text-smoke-300 flex items-center justify-center text-lg font-bold active:bg-carbon-600"
               >
                 −
               </button>
-              <span className="text-smoke-300 w-5 text-center">{item.quantity}</span>
+              <span className="text-smoke-300 w-5 text-center font-semibold">{item.quantity}</span>
               <button
                 onClick={() => updateQuantity(index, item.quantity + 1)}
-                className="w-7 h-7 rounded-full bg-carbon-700 text-smoke-300 flex items-center justify-center"
+                className="w-11 h-11 rounded-full bg-carbon-700 text-smoke-300 flex items-center justify-center text-lg font-bold active:bg-carbon-600"
               >
                 +
               </button>
             </div>
+            <span className="font-mono text-pucara-blue-400 font-semibold text-sm flex-shrink-0">
+              {formatPrice(item.product.price * item.quantity)}
+            </span>
           </div>
         ))}
 
@@ -177,18 +180,18 @@ export default function PaymentPage() {
                 onClick={() => setPaymentMethod(option.id)}
                 className={`w-full text-left rounded-xl p-3 border transition-colors ${
                   paymentMethod === option.id
-                    ? 'border-ember-500 bg-ember-500/10'
+                    ? 'border-pucara-blue-500 bg-pucara-blue-500/10'
                     : 'border-carbon-700 bg-carbon-900'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <p className={`text-sm font-medium ${
-                    paymentMethod === option.id ? 'text-ember-400' : 'text-smoke-300'
+                    paymentMethod === option.id ? 'text-pucara-blue-400' : 'text-smoke-300'
                   }`}>
                     {option.name}
                   </p>
                   {paymentMethod === option.id && (
-                    <span className="text-ember-500 text-sm font-bold">✓</span>
+                    <span className="text-pucara-red-500 text-sm font-bold">✓</span>
                   )}
                 </div>
               </button>
@@ -219,12 +222,12 @@ export default function PaymentPage() {
         </p>
         <div className="flex items-center justify-between text-smoke-300">
           <span className="font-medium">Total</span>
-          <span className="font-mono text-ember-400 text-lg">{formatPrice(subtotal)}</span>
+          <span className="font-mono text-pucara-blue-400 text-lg">{formatPrice(subtotal)}</span>
         </div>
         <button
           onClick={handleConfirm}
           disabled={submitting}
-          className="w-full bg-ember-500 hover:bg-ember-600 disabled:opacity-50 text-white font-semibold py-4 rounded-xl"
+          className="w-full bg-pucara-blue-500 hover:bg-pucara-blue-600 disabled:opacity-50 text-white font-semibold py-4 rounded-xl"
         >
           {submitting
             ? 'Procesando...'
