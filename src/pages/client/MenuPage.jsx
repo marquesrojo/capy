@@ -17,7 +17,12 @@ export default function MenuPage() {
   const [venueLogo, setVenueLogo] = useState('')
   const [headerBgColor, setHeaderBgColor] = useState('')
   const [headerTextColor, setHeaderTextColor] = useState('#E8772A')
-  const { items, addItem, itemCount, subtotal } = useCart()
+  const { items, addItem, updateQuantity, itemCount, subtotal } = useCart()
+
+  function handleRemoveFromMenu(product) {
+    const index = items.findIndex(i => i.product.id === product.id)
+    if (index >= 0) updateQuantity(index, items[index].quantity - 1)
+  }
   const { customer, forgetCustomer } = useCustomer()
   const navigate = useNavigate()
 
@@ -135,7 +140,13 @@ export default function MenuPage() {
           <p className="text-smoke-500 text-sm text-center py-10">No hay productos en esta categoría.</p>
         )}
         {visibleProducts.map(product => (
-          <ProductCard key={product.id} product={product} onAdd={addItem} />
+          <ProductCard
+            key={product.id}
+            product={product}
+            onAdd={addItem}
+            onRemove={handleRemoveFromMenu}
+            qty={items.find(i => i.product.id === product.id)?.quantity || 0}
+          />
         ))}
       </main>
 
@@ -154,15 +165,7 @@ export default function MenuPage() {
   )
 }
 
-function ProductCard({ product, onAdd }) {
-  const [added, setAdded] = useState(false)
-
-  function handleAdd() {
-    onAdd(product, 1)
-    setAdded(true)
-    setTimeout(() => setAdded(false), 900)
-  }
-
+function ProductCard({ product, onAdd, onRemove, qty }) {
   return (
     <div
       className={`bg-carbon-900 border rounded-2xl p-4 flex gap-4 transition-colors ${
@@ -190,15 +193,29 @@ function ProductCard({ product, onAdd }) {
         <div className="mt-3">
           {!product.is_available ? (
             <span className="text-red-700 text-xs font-medium">Agotado</span>
-          ) : (
+          ) : qty === 0 ? (
             <button
-              onClick={handleAdd}
-              className={`text-xs font-semibold px-4 py-1.5 rounded-full transition-colors ${
-                added ? 'bg-emerald-500 text-white' : 'bg-carbon-700 text-smoke-300 hover:bg-carbon-600'
-              }`}
+              onClick={() => onAdd(product, 1)}
+              className="min-w-[44px] min-h-[44px] text-xs font-semibold px-4 py-2 rounded-full bg-ember-500 text-white active:bg-ember-600"
             >
-              {added ? 'Agregado ✓' : 'Agregar'}
+              Agregar
             </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => onRemove(product)}
+                className="w-11 h-11 rounded-full bg-carbon-700 text-smoke-300 flex items-center justify-center text-lg font-bold active:bg-carbon-600"
+              >
+                −
+              </button>
+              <span className="text-smoke-200 font-semibold w-6 text-center">{qty}</span>
+              <button
+                onClick={() => onAdd(product, 1)}
+                className="w-11 h-11 rounded-full bg-ember-500 text-white flex items-center justify-center text-lg font-bold active:bg-ember-600"
+              >
+                +
+              </button>
+            </div>
           )}
         </div>
       </div>
