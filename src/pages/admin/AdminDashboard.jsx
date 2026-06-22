@@ -875,6 +875,13 @@ function Column({ status, orders, onUpdateStatus, waiters, onAssignWaiter }) {
     listo: 'entregado'
   }[status]
 
+  const prevStatus = {
+    recibido: 'pendiente_aprobacion',
+    en_preparacion: 'recibido',
+    listo: 'en_preparacion',
+    entregado: 'listo'
+  }[status]
+
   return (
     <div className="flex-shrink-0 w-72">
       <div className={`px-3 py-2 rounded-lg border text-sm font-semibold mb-3 ${STATUS_COLORS[status]}`}>
@@ -886,6 +893,7 @@ function Column({ status, orders, onUpdateStatus, waiters, onAssignWaiter }) {
             key={order.id}
             order={order}
             nextStatus={nextStatus}
+            prevStatus={prevStatus}
             onUpdateStatus={onUpdateStatus}
             waiters={waiters}
             onAssignWaiter={onAssignWaiter}
@@ -896,19 +904,32 @@ function Column({ status, orders, onUpdateStatus, waiters, onAssignWaiter }) {
   )
 }
 
-function OrderCard({ order, nextStatus, onUpdateStatus, waiters, onAssignWaiter }) {
+function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, waiters, onAssignWaiter }) {
+  const [showWaiterSelect, setShowWaiterSelect] = useState(false)
   const elapsedMin = Math.round((Date.now() - new Date(order.created_at).getTime()) / 60000)
-  const isUrgent = elapsedMin > 15 && order.status !== 'entregado'
+
+  // Semáforo: verde <15, amarillo 15-30, rojo >30
+  const trafficColor = order.status === 'entregado'
+    ? 'text-smoke-500'
+    : elapsedMin > 30
+      ? 'text-red-700 font-semibold'
+      : elapsedMin > 15
+        ? 'text-amber-600 font-semibold'
+        : 'text-emerald-700'
+
+  const borderColor = order.status === 'entregado'
+    ? 'border-carbon-700'
+    : elapsedMin > 30
+      ? 'border-red-500/50'
+      : elapsedMin > 15
+        ? 'border-amber-500/40'
+        : 'border-carbon-700'
 
   return (
-    <div
-      className={`bg-carbon-900 border rounded-2xl p-4 ${
-        isUrgent ? 'border-red-500/50' : 'border-carbon-700'
-      }`}
-    >
+    <div className={`bg-carbon-900 border rounded-2xl p-4 ${borderColor}`}>
       <div className="flex items-center justify-between mb-2">
         <span className="font-mono text-ember-400 text-xs">#{order.id.slice(0, 6)}</span>
-        <span className={`text-xs ${isUrgent ? 'text-red-700 font-semibold' : 'text-smoke-500'}`}>
+        <span className={`text-xs ${trafficColor}`}>
           {elapsedMin} min
         </span>
       </div>
@@ -923,10 +944,31 @@ function OrderCard({ order, nextStatus, onUpdateStatus, waiters, onAssignWaiter 
       ) : (
         <CustomerContact customer={order.customers} />
       )}
+
       <p className="text-smoke-300 text-sm font-medium mb-2">📍 {order.location_label}</p>
 
+      {/* Selector de camarero expandible */}
       <div className="mb-2">
-        <WaiterSelect order={order} waiters={waiters} onAssign={onAssignWaiter} />
+        {showWaiterSelect || order.assigned_staff_id ? (
+          <div className="flex items-center gap-2">
+            <WaiterSelect order={order} waiters={waiters} onAssign={onAssignWaiter} />
+            {showWaiterSelect && (
+              <button
+                onClick={() => setShowWaiterSelect(false)}
+                className="text-smoke-500 text-xs"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowWaiterSelect(true)}
+            className="text-smoke-400 text-xs border border-carbon-700 rounded-full px-2.5 py-1"
+          >
+            + Asignar camarero
+          </button>
+        )}
       </div>
 
       <ul className="space-y-1 mb-3">
@@ -942,20 +984,31 @@ function OrderCard({ order, nextStatus, onUpdateStatus, waiters, onAssignWaiter 
         <p className="text-ember-400/80 text-xs mb-3 italic">"{order.notes}"</p>
       )}
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <span className="font-mono text-smoke-300 text-sm">{formatPrice(order.total)}</span>
-        {nextStatus && (
-          <button
-            onClick={() => onUpdateStatus(order.id, nextStatus)}
-            className={`text-white text-xs font-semibold px-3 py-1.5 rounded-full ${
-              order.status === 'pendiente_aprobacion'
-                ? 'bg-emerald-600 hover:bg-emerald-700'
-                : 'bg-ember-500 hover:bg-ember-600'
-            }`}
-          >
-            {order.status === 'pendiente_aprobacion' ? 'Aprobar ✓' : `Marcar ${STATUS_LABELS[nextStatus]} →`}
-          </button>
-        )}
+        <div className="flex items-center gap-1.5">
+          {prevStatus && (
+            <button
+              onClick={() => onUpdateStatus(order.id, prevStatus)}
+              className="text-smoke-500 border border-carbon-700 text-xs px-2 py-1.5 rounded-full"
+              title={`Volver a ${STATUS_LABELS[prevStatus]}`}
+            >
+              ↺
+            </button>
+          )}
+          {nextStatus && (
+            <button
+              onClick={() => onUpdateStatus(order.id, nextStatus)}
+              className={`text-white text-xs font-semibold px-3 py-1.5 rounded-full ${
+                order.status === 'pendiente_aprobacion'
+                  ? 'bg-emerald-600 hover:bg-emerald-700'
+                  : 'bg-ember-500 hover:bg-ember-600'
+              }`}
+            >
+              {order.status === 'pendiente_aprobacion' ? 'Aprobar ✓' : `${STATUS_LABELS[nextStatus]} →`}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
