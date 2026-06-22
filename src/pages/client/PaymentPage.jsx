@@ -23,7 +23,6 @@ export default function PaymentPage() {
   const [guestName, setGuestName] = useState('')
   const [showGuestForm, setShowGuestForm] = useState(false)
   const [quickNotes, setQuickNotes] = useState([])
-  const [activeNoteIndex, setActiveNoteIndex] = useState(null)
 
   useEffect(() => {
     if (itemCount === 0) navigate('/carta')
@@ -152,9 +151,6 @@ export default function PaymentPage() {
                 <p className="font-mono text-smoke-500 text-xs mt-0.5">
                   {formatPrice(item.product.price)} c/u
                 </p>
-                {item.notes && (
-                  <p className="text-smoke-500 text-[10px] italic mt-0.5">{item.notes}</p>
-                )}
               </div>
               <div className="flex items-center gap-3 flex-shrink-0">
                 <button
@@ -175,50 +171,14 @@ export default function PaymentPage() {
                 <span className="font-mono text-pucara-blue-400 font-semibold text-sm">
                   {formatPrice(item.product.price * item.quantity)}
                 </span>
-                <div className="flex gap-2">
-                  {quickNotes.length > 0 && (
-                    <button
-                      onClick={() => setActiveNoteIndex(activeNoteIndex === index ? null : index)}
-                      className="text-smoke-500 text-[10px]"
-                    >
-                      📝
-                    </button>
-                  )}
-                  <button
-                    onClick={() => updateQuantity(index, 0)}
-                    className="text-smoke-500 text-[10px] underline"
-                  >
-                    quitar
-                  </button>
-                </div>
+                <button
+                  onClick={() => updateQuantity(index, 0)}
+                  className="text-smoke-500 text-[10px] underline"
+                >
+                  quitar
+                </button>
               </div>
             </div>
-            {activeNoteIndex === index && quickNotes.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {quickNotes.map(qn => {
-                  const active = (item.notes || '').includes(qn.label)
-                  return (
-                    <button
-                      key={qn.id}
-                      onClick={() => {
-                        const current = item.notes || ''
-                        const newNotes = active
-                          ? current.replace(qn.label, '').replace(/,\s*,/g, ',').replace(/^,\s*|,\s*$/g, '').trim()
-                          : current ? `${current}, ${qn.label}` : qn.label
-                        updateItemNotes(index, newNotes)
-                      }}
-                      className={`text-xs px-2.5 py-1 rounded-full border ${
-                        active
-                          ? 'bg-pucara-blue-500 text-white border-pucara-blue-500'
-                          : 'border-carbon-700 text-smoke-400'
-                      }`}
-                    >
-                      {qn.label}
-                    </button>
-                  )
-                })}
-              </div>
-            )}
           </div>
         ))}
 
@@ -231,6 +191,32 @@ export default function PaymentPage() {
             className="input resize-none"
             rows={2}
           />
+          {quickNotes.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {quickNotes.map(qn => {
+                const active = notes.includes(qn.label)
+                return (
+                  <button
+                    key={qn.id}
+                    type="button"
+                    onClick={() => {
+                      const newNotes = active
+                        ? notes.replace(qn.label, '').replace(/,\s*,/g, ',').replace(/^,\s*|,\s*$/g, '').trim()
+                        : notes ? `${notes}, ${qn.label}` : qn.label
+                      setNotes(newNotes)
+                    }}
+                    className={`text-xs px-2.5 py-1 rounded-full border ${
+                      active
+                        ? 'bg-pucara-blue-500 text-white border-pucara-blue-500'
+                        : 'border-carbon-600 text-smoke-500'
+                    }`}
+                  >
+                    {qn.label}
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </label>
 
         <div className="pt-4">
