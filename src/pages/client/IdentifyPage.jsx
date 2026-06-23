@@ -1,93 +1,86 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useCustomer } from '../../hooks/useCustomer'
+import { supabaseCustomer, ACTIVE_VENUE_ID } from '../../lib/supabase'
 
 export default function IdentifyPage() {
-  const { registerCustomer } = useCustomer()
   const navigate = useNavigate()
-  const [fullName, setFullName] = useState('')
-  const [whatsapp, setWhatsapp] = useState('')
+  const [orderNumber, setOrderNumber] = useState('')
+  const [finding, setFinding] = useState(false)
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
 
-  async function handleSubmit(e) {
+  async function handleFindOrder(e) {
     e.preventDefault()
+    if (!orderNumber.trim()) return
+    setFinding(true)
     setError('')
 
-    const cleanWhatsapp = whatsapp.replace(/[^\d+]/g, '')
-    if (cleanWhatsapp.length < 8) {
-      setError('Ingresá un número de WhatsApp válido, con código de área.')
+    const { data } = await supabaseCustomer
+      .from('orders')
+      .select('id')
+      .eq('venue_id', ACTIVE_VENUE_ID)
+      .eq('daily_number', parseInt(orderNumber))
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    setFinding(false)
+
+    if (!data) {
+      setError('No encontramos ese número. Verificá con el camarero.')
       return
     }
-
-    setLoading(true)
-    const { error } = await registerCustomer(fullName.trim(), cleanWhatsapp)
-    setLoading(false)
-
-    if (error) {
-      setError('No pudimos guardar tus datos. Intentá de nuevo.')
-      return
-    }
-    navigate('/carta')
+    navigate(`/pedidos/${data.id}`)
   }
 
   return (
-    <div className="min-h-screen bg-carbon-950 flex items-center justify-center px-5">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <img
-            src="/icon-512.png"
-            alt="Capy"
-            className="w-40 h-40 mx-auto mb-3"
-          />
-          <p className="text-smoke-400 text-sm">Pedí desde donde estés</p>
+    <div className="min-h-screen bg-carbon-950 flex flex-col items-center justify-center px-5 py-10">
+      <div className="w-full max-w-sm space-y-6">
+
+        <div className="text-center">
+          <img src="/icon-512.png" alt="Capy" className="w-24 h-24 mx-auto mb-3" />
+          <p className="font-display text-4xl text-ember-500 tracking-wide">CAPY</p>
+          <p className="text-smoke-500 text-sm mt-1">Pedí desde donde estés</p>
         </div>
 
-        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-6">
-          <p className="text-smoke-300 text-sm mb-4">
-            Antes de empezar, contanos quién pide. Así el mozo te puede contactar si hace falta.
-          </p>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <label className="block">
-              <span className="text-smoke-400 text-xs mb-1.5 block">Tu nombre</span>
-              <input
-                type="text"
-                required
-                value={fullName}
-                onChange={e => setFullName(e.target.value)}
-                className="input"
-                placeholder="Ej: Juan Pérez"
-              />
-            </label>
-
-            <label className="block">
-              <span className="text-smoke-400 text-xs mb-1.5 block">Tu WhatsApp</span>
-              <input
-                type="tel"
-                required
-                value={whatsapp}
-                onChange={e => setWhatsapp(e.target.value)}
-                className="input"
-                placeholder="Ej: +54 9 11 1234 5678"
-              />
-            </label>
-
-            {error && <p className="text-red-700 text-sm">{error}</p>}
-
+        {/* Seguir pedido */}
+        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
+          <p className="text-smoke-200 font-medium text-sm mb-1">¿Ya tenés un pedido?</p>
+          <p className="text-smoke-500 text-xs mb-3">Ingresá el número que te dio el camarero</p>
+          <form onSubmit={handleFindOrder} className="flex gap-2">
+            <input
+              type="number"
+              value={orderNumber}
+              onChange={e => setOrderNumber(e.target.value)}
+              placeholder="Nº de pedido"
+              className="input flex-1 text-center font-mono text-lg py-3"
+              min="1"
+            />
             <button
               type="submit"
-              disabled={loading}
-              className="w-full bg-ember-500 hover:bg-ember-600 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-colors"
+              disabled={finding || !orderNumber.trim()}
+              className="bg-ember-500 hover:bg-ember-600 disabled:opacity-50 text-white font-semibold px-4 rounded-xl"
             >
-              {loading ? 'Cargando...' : 'Ver la carta →'}
+              {finding ? '...' : 'Ver →'}
             </button>
-
-            <p className="text-smoke-500 text-[11px] text-center">
-              No necesitás contraseña. Vamos a recordar tus datos en este dispositivo.
-            </p>
           </form>
+          {error && <p className="text-red-700 text-xs mt-2">{error}</p>}
         </div>
+
+        {/* Separador */}
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-px bg-carbon-700" />
+          <span className="text-smoke-600 text-xs">o</span>
+          <div className="flex-1 h-px bg-carbon-700" />
+        </div>
+
+        {/* Armar pedido */}
+        <button
+          onClick={() => navigate('/carta')}
+          className="w-full bg-pucara-blue-500 hover:bg-pucara-blue-600 text-white font-semibold py-4 rounded-2xl text-lg"
+        >
+          Ver la carta →
+        </button>
+
       </div>
     </div>
   )
