@@ -78,7 +78,7 @@ export default function IdentifyPage() {
           onClick={() => navigate('/carta')}
           className="w-full bg-pucara-blue-500 hover:bg-pucara-blue-600 text-white font-semibold py-4 rounded-2xl text-lg"
         >
-          Ver la carta →
+          Hacé tu pedido →
         </button>
 
       </div>
