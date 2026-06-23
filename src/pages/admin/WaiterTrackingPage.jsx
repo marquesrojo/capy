@@ -98,7 +98,7 @@ export default function WaiterTrackingPage() {
                 <div key={order.id} className={`bg-carbon-900 border rounded-xl px-3 py-3 ${order.waiter_called_at ? 'border-amber-500/40' : 'border-carbon-700'}`}>
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-ember-400 text-xs">#{order.id.slice(0, 6)}</span>
+                      <span className="font-mono text-ember-400 text-xs">{order.daily_number ? `#${order.daily_number}` : `#${order.id.slice(0, 6)}`}</span>
                       <span className="text-smoke-400 text-xs">📍 {order.location_label}</span>
                     </div>
                     <span className={`text-xs ${elapsedMin > 15 ? 'text-red-700' : 'text-smoke-500'}`}>
