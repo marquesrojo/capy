@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabaseCustomer } from '../lib/supabase'
 
-const ORDER_SELECT = '*, assigned_staff:staff_names!orders_assigned_staff_id_fkey(id, full_name, alias_bancario)'
+const ORDER_SELECT = '*, assigned_staff:staff_names!orders_assigned_staff_id_fkey(id, full_name, alias_bancario), daily_number, prep_time_minutes, prep_started_at'
 
 // Sigue el estado de un pedido en tiempo real via Supabase Realtime.
 // Esto funciona porque el cliente ahora usa una sesion real de Supabase
