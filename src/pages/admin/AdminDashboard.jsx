@@ -496,7 +496,7 @@ function CocinaView({ orders, categories, onUpdateStatus, onRefresh }) {
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-ember-400 text-xs">
-                          #{order.id.slice(0, 6)}
+                          {order.daily_number ? `#${order.daily_number}` : `#${order.id.slice(0, 6)}`}
                         </span>
                         <span className="text-smoke-400 text-xs">📍 {order.location_label}</span>
                       </div>
@@ -682,7 +682,7 @@ function SalonOrderRow({ order }) {
       }`}
     >
       <div className="flex items-center justify-between">
-        <span className="font-mono text-ember-400 text-xs">#{order.id.slice(0, 6)}</span>
+        <span className="font-mono text-ember-400 text-xs">{order.daily_number ? `#${order.daily_number}` : `#${order.id.slice(0, 6)}`}</span>
         <span className={`text-[10px] px-2 py-0.5 rounded-full border ${STATUS_COLORS[order.status]}`}>
           {STATUS_LABELS[order.status]}
         </span>
@@ -817,7 +817,7 @@ function ProofCard({ order, proofUrl, onConfirm, onReject }) {
   return (
     <div className="flex-shrink-0 w-56 bg-carbon-900 border border-ember-500/40 rounded-2xl p-3">
       <div className="flex items-center justify-between mb-2">
-        <span className="font-mono text-ember-400 text-xs">#{order.id.slice(0, 6)}</span>
+        <span className="font-mono text-ember-400 text-xs">{order.daily_number ? `#${order.daily_number}` : `#${order.id.slice(0, 6)}`}</span>
         <span className="font-mono text-smoke-300 text-xs">{formatPrice(order.total)}</span>
       </div>
       <CustomerContact customer={order.customers} />
@@ -871,7 +871,7 @@ function InPersonCard({ order, waiters, onConfirm, onAssignWaiter }) {
   return (
     <div className="flex-shrink-0 w-56 bg-carbon-900 border border-blue-500/40 rounded-2xl p-3">
       <div className="flex items-center justify-between mb-2">
-        <span className="font-mono text-ember-400 text-xs">#{order.id.slice(0, 6)}</span>
+        <span className="font-mono text-ember-400 text-xs">{order.daily_number ? `#${order.daily_number}` : `#${order.id.slice(0, 6)}`}</span>
         <span className="text-smoke-500 text-xs">{elapsedMin} min</span>
       </div>
       <CustomerContact customer={order.customers} />
@@ -971,7 +971,7 @@ function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCal
     <div className={`bg-carbon-900 border rounded-2xl p-4 ${borderColor}`}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="font-mono text-ember-400 text-xs">#{order.id.slice(0, 6)}</span>
+          <span className="font-mono text-ember-400 text-xs">{order.daily_number ? `#${order.daily_number}` : `#${order.id.slice(0, 6)}`}</span>
           {order.daily_number && (
             <span className="font-mono text-ember-500 font-bold text-sm">#{order.daily_number}</span>
           )}
