@@ -35,7 +35,7 @@ export default function App() {
           <BrowserRouter>
             <Routes>
               {/* Cliente: sin login, identificado por nombre + whatsapp */}
-              <Route path="/" element={<Navigate to="/carta" replace />} />
+              <Route path="/" element={<IdentifyPage />} />
               <Route path="/identificacion" element={<IdentifyPage />} />
               <Route
                 path="/carta"
