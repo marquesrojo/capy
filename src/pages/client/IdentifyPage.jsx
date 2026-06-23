@@ -29,7 +29,7 @@ export default function IdentifyPage() {
       setError('No encontramos ese número. Verificá con el camarero.')
       return
     }
-    navigate(`/pedidos/${data.id}`)
+    navigate(`/pedido/${data.id}`)
   }
 
   return (
