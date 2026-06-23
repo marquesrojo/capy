@@ -198,6 +198,13 @@ export default function WaiterOrderPage() {
       <div className="px-5 py-10 text-center">
         <p className="text-3xl mb-3">✅</p>
         <p className="text-smoke-200 font-semibold text-lg mb-1">¡Pedido enviado a cocina!</p>
+        {lastOrder?.order?.daily_number && (
+          <div className="my-4 bg-carbon-900 border border-carbon-700 rounded-2xl py-4 px-6 inline-block">
+            <p className="text-smoke-500 text-xs mb-1">Número de pedido</p>
+            <p className="font-mono text-ember-500 text-5xl font-bold">#{lastOrder.order.daily_number}</p>
+            <p className="text-smoke-500 text-xs mt-1">Decíselo al cliente para que siga su pedido</p>
+          </div>
+        )}
         <p className="text-smoke-400 text-sm mb-6">El pedido entró directo a preparación.</p>
 
         {waLink && (
