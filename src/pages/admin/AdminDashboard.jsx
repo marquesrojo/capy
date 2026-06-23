@@ -522,6 +522,35 @@ function CocinaView({ orders, categories, onUpdateStatus, onRefresh }) {
                         📝 {order.notes}
                       </p>
                     )}
+
+                    {/* Tiempo de preparación */}
+                    {!order.prep_started_at ? (
+                      <div className="mb-2">
+                        <p className="text-smoke-500 text-[10px] mb-1.5">Tiempo estimado</p>
+                        <div className="flex flex-wrap gap-1.5 mb-2">
+                          {[10, 15, 20, 25, 30].map(min => (
+                            <button
+                              key={min}
+                              onClick={async () => {
+                                await supabaseStaff.from('orders').update({
+                                  prep_time_minutes: min,
+                                  prep_started_at: new Date().toISOString()
+                                }).eq('id', order.id)
+                                onRefresh()
+                              }}
+                              className="text-xs px-2.5 py-1 rounded-full border border-carbon-700 text-smoke-400 hover:border-ember-500 hover:text-ember-500"
+                            >
+                              {min}m
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mb-2 text-xs text-smoke-500">
+                        ⏱ {order.prep_time_minutes} min estimados
+                      </div>
+                    )}
+
                     <button
                       onClick={() => onUpdateStatus(order.id, 'listo')}
                       className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2 rounded-xl"
@@ -940,7 +969,12 @@ function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCal
   return (
     <div className={`bg-carbon-900 border rounded-2xl p-4 ${borderColor}`}>
       <div className="flex items-center justify-between mb-2">
-        <span className="font-mono text-ember-400 text-xs">#{order.id.slice(0, 6)}</span>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-ember-400 text-xs">#{order.id.slice(0, 6)}</span>
+          {order.daily_number && (
+            <span className="font-mono text-ember-500 font-bold text-sm">#{order.daily_number}</span>
+          )}
+        </div>
         <span className={`text-xs ${trafficColor}`}>
           {elapsedMin} min
         </span>
