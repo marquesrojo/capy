@@ -1,5 +1,4 @@
-
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useOrderPolling } from '../../hooks/useOrderPolling'
 import { supabaseCustomer } from '../../lib/supabase'
@@ -7,6 +6,48 @@ import { formatPrice, STATUS_LABELS, STATUS_FLOW, PAYMENT_STATUS_LABELS, PAYMENT
 import OrderFeedback from '../../components/OrderFeedback'
 import BillRequest from '../../components/BillRequest'
 import SplitCalculator from '../../components/SplitCalculator'
+
+function PrepCountdown({ prepStartedAt, prepTimeMinutes }) {
+  const [remaining, setRemaining] = useState(null)
+
+  useEffect(() => {
+    function calc() {
+      const started = new Date(prepStartedAt).getTime()
+      const totalMs = prepTimeMinutes * 60 * 1000
+      const elapsed = Date.now() - started
+      const left = Math.max(0, Math.ceil((totalMs - elapsed) / 1000))
+      setRemaining(left)
+    }
+    calc()
+    const interval = setInterval(calc, 1000)
+    return () => clearInterval(interval)
+  }, [prepStartedAt, prepTimeMinutes])
+
+  if (remaining === null) return null
+
+  const minutes = Math.floor(remaining / 60)
+  const seconds = remaining % 60
+  const progress = Math.max(0, Math.min(100, ((prepTimeMinutes * 60 - remaining) / (prepTimeMinutes * 60)) * 100))
+  const isDone = remaining === 0
+
+  return (
+    <div className={`rounded-2xl p-4 border ${isDone ? 'bg-emerald-500/10 border-emerald-500/40' : 'bg-carbon-900 border-carbon-700'}`}>
+      <p className="text-smoke-400 text-xs mb-2">⏱ Tiempo estimado de preparación</p>
+      <div className="flex items-center justify-between mb-3">
+        <p className={`font-mono text-3xl font-bold ${isDone ? 'text-emerald-600' : 'text-ember-500'}`}>
+          {isDone ? '¡Listo pronto!' : `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`}
+        </p>
+        <p className="text-smoke-500 text-xs">{prepTimeMinutes} min estimados</p>
+      </div>
+      <div className="w-full bg-carbon-700 rounded-full h-2">
+        <div
+          className={`h-2 rounded-full transition-all duration-1000 ${isDone ? 'bg-emerald-500' : 'bg-ember-500'}`}
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+    </div>
+  )
+}
 
 export default function OrderStatusPage() {
   const { orderId } = useParams()
@@ -71,7 +112,12 @@ export default function OrderStatusPage() {
         ← Volver a Pedidos
       </Link>
       <div className="flex items-center justify-between mt-2">
-        <h1 className="font-display text-3xl text-pucara-blue-500 tracking-wide">TU PEDIDO</h1>
+        <div>
+          <h1 className="font-display text-3xl text-pucara-blue-500 tracking-wide">TU PEDIDO</h1>
+          {order.daily_number && (
+            <p className="text-smoke-500 text-xs mt-0.5">Número <span className="font-mono text-ember-500 font-semibold">#{order.daily_number}</span></p>
+          )}
+        </div>
         <button
           onClick={refetch}
           disabled={refreshing}
@@ -90,6 +136,15 @@ export default function OrderStatusPage() {
       <p className="text-smoke-400 text-sm mt-1">📍 {order.location_label}</p>
       {order.assigned_staff?.full_name && (
         <p className="text-smoke-500 text-xs mt-1">🧑‍🍳 Te atiende {order.assigned_staff.full_name}</p>
+      )}
+
+      {order.status === 'en_preparacion' && order.prep_started_at && order.prep_time_minutes && (
+        <div className="mt-3">
+          <PrepCountdown
+            prepStartedAt={order.prep_started_at}
+            prepTimeMinutes={order.prep_time_minutes}
+          />
+        </div>
       )}
 
       <div className="mt-3">
