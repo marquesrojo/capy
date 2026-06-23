@@ -534,7 +534,8 @@ function CocinaView({ orders, categories, onUpdateStatus, onRefresh }) {
                               onClick={async () => {
                                 await supabaseStaff.from('orders').update({
                                   prep_time_minutes: min,
-                                  prep_started_at: new Date().toISOString()
+                                  prep_started_at: new Date().toISOString(),
+                                  status: 'en_preparacion'
                                 }).eq('id', order.id)
                                 onRefresh()
                               }}
