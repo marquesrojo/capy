@@ -512,11 +512,16 @@ function CocinaView({ orders, categories, onUpdateStatus, onRefresh }) {
                           </span>
                           <span className="text-smoke-200 text-sm">{item.product_name}</span>
                           {item.item_notes && (
-                            <span className="text-smoke-500 text-xs italic">({item.item_notes})</span>
+                            <span className="text-amber-600 text-xs italic">— {item.item_notes}</span>
                           )}
                         </li>
                       ))}
                     </ul>
+                    {order.notes && (
+                      <p className="text-amber-600 text-xs italic mb-3 border-l-2 border-amber-500/40 pl-2">
+                        📝 {order.notes}
+                      </p>
+                    )}
                     <button
                       onClick={() => onUpdateStatus(order.id, 'listo')}
                       className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2 rounded-xl"
