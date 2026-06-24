@@ -13,6 +13,7 @@ export default function MenuPage() {
   const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState(null)
   const [search, setSearch] = useState('')
+  const [highDemand, setHighDemand] = useState(false)
   const [venueName, setVenueName] = useState('')
   const [venueLogo, setVenueLogo] = useState('')
   const [headerBgColor, setHeaderBgColor] = useState('')
