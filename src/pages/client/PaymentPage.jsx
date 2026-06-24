@@ -219,37 +219,6 @@ export default function PaymentPage() {
           )}
         </label>
 
-        <div className="pt-4">
-          <span className="text-smoke-400 text-xs mb-2 block">
-            ¿Cómo pensás pagar? (podés confirmarlo después al pedir la cuenta)
-          </span>
-          <div className="space-y-2">
-            {paymentOptions.map(option => (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() => setPaymentMethod(option.id)}
-                className={`w-full text-left rounded-xl p-3 border transition-colors ${
-                  paymentMethod === option.id
-                    ? 'border-pucara-blue-500 bg-pucara-blue-500/10'
-                    : 'border-carbon-700 bg-carbon-900'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <p className={`text-sm font-medium ${
-                    paymentMethod === option.id ? 'text-pucara-blue-400' : 'text-smoke-300'
-                  }`}>
-                    {option.name}
-                  </p>
-                  {paymentMethod === option.id && (
-                    <span className="text-pucara-red-500 text-sm font-bold">✓</span>
-                  )}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-
         {!customer && showGuestForm && (
           <div className="pt-4 bg-carbon-900 border border-carbon-700 rounded-2xl p-4 space-y-3">
             <p className="text-smoke-300 text-sm font-medium">Antes de confirmar, contanos quién pide</p>
