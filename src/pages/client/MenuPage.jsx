@@ -12,7 +12,7 @@ export default function MenuPage() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState(null)
-  const [highDemand, setHighDemand] = useState(false)
+  const [search, setSearch] = useState('')
   const [venueName, setVenueName] = useState('')
   const [venueLogo, setVenueLogo] = useState('')
   const [headerBgColor, setHeaderBgColor] = useState('')
@@ -61,7 +61,12 @@ export default function MenuPage() {
     load()
   }, [])
 
-  const visibleProducts = products.filter(p => p.category_id === activeCategory)
+  const visibleProducts = search.trim()
+    ? products.filter(p =>
+        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        (p.description || '').toLowerCase().includes(search.toLowerCase())
+      )
+    : products.filter(p => p.category_id === activeCategory)
 
   if (loading) {
     return <CenteredMessage text="Cargando carta..." />
@@ -118,26 +123,51 @@ export default function MenuPage() {
             Pedir por voz
           </button>
         )}
-        <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
-          {categories.map(cat => (
+        <div className="relative mb-2">
+          <input
+            type="search"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Buscar en la carta..."
+            className="input w-full pl-8 py-2 text-sm"
+          />
+          <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 text-smoke-500" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.35-4.35" strokeLinecap="round"/>
+          </svg>
+          {search && (
             <button
-              key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
-              className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
-                activeCategory === cat.id
-                  ? 'bg-pucara-blue-500 text-white border-pucara-blue-500'
-                  : 'border-carbon-700 text-smoke-300'
-              }`}
+              onClick={() => setSearch('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-smoke-500 text-sm"
             >
-              {cat.name}
+              ✕
             </button>
-          ))}
+          )}
         </div>
+        {!search && (
+          <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
+            {categories.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+                  activeCategory === cat.id
+                    ? 'bg-pucara-blue-500 text-white border-pucara-blue-500'
+                    : 'border-carbon-700 text-smoke-300'
+                }`}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+        )}
       </header>
 
       <main className="px-5 pt-4 space-y-3">
         {visibleProducts.length === 0 && (
-          <p className="text-smoke-500 text-sm text-center py-10">No hay productos en esta categoría.</p>
+          <p className="text-smoke-500 text-sm text-center py-10">
+            {search ? `No encontramos "${search}" en la carta.` : 'No hay productos en esta categoría.'}
+          </p>
         )}
         {visibleProducts.map(product => (
           <ProductCard
@@ -196,7 +226,7 @@ function ProductCard({ product, onAdd, onRemove, qty }) {
           ) : qty === 0 ? (
             <button
               onClick={() => onAdd(product, 1)}
-              className="min-w-[44px] min-h-[44px] text-xs font-semibold px-4 py-2 rounded-full bg-ember-500 text-white active:bg-ember-600"
+              className="min-w-[44px] min-h-[44px] text-xs font-semibold px-4 py-2 rounded-full bg-pucara-blue-500 text-white active:bg-pucara-blue-600"
             >
               Agregar
             </button>
@@ -211,7 +241,7 @@ function ProductCard({ product, onAdd, onRemove, qty }) {
               <span className="text-smoke-200 font-semibold w-6 text-center">{qty}</span>
               <button
                 onClick={() => onAdd(product, 1)}
-                className="w-11 h-11 rounded-full bg-ember-500 text-white flex items-center justify-center text-lg font-bold active:bg-ember-600"
+                className="w-11 h-11 rounded-full bg-pucara-blue-500 text-white flex items-center justify-center text-lg font-bold active:bg-pucara-blue-600"
               >
                 +
               </button>
