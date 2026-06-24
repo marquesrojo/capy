@@ -15,7 +15,7 @@ function NavTab({ to, label, icon }) {
       to={to}
       className={({ isActive }) =>
         `flex-1 flex flex-col items-center gap-0.5 py-3 text-xs font-medium transition-colors ${
-          isActive ? 'text-ember-500' : 'text-smoke-500'
+          isActive ? 'text-pucara-blue-500' : 'text-smoke-500'
         }`
       }
     >
