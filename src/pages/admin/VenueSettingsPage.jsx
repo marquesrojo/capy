@@ -14,7 +14,6 @@ export default function VenueSettingsPage() {
   const [headerBgColor, setHeaderBgColor] = useState('#1A1A1A')
   const [headerTextColor, setHeaderTextColor] = useState('#E8772A')
   const [mpEnabled, setMpEnabled] = useState(false)
-  const [mpAccessToken, setMpAccessToken] = useState('')
   const [activePicker, setActivePicker] = useState(null) // 'bg' | 'text' | null
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -33,8 +32,7 @@ export default function VenueSettingsPage() {
       setLogoUrl(data?.logo_url || '')
       if (data?.header_bg_color) setHeaderBgColor(data.header_bg_color)
       if (data?.header_text_color) setHeaderTextColor(data.header_text_color)
-      setMpEnabled(data?.mp_enabled || false)
-      setMpAccessToken(data?.mp_access_token || '')
+      if (data?.mp_enabled !== undefined) setMpEnabled(data.mp_enabled)
       setLoading(false)
     }
     load()
@@ -95,8 +93,7 @@ export default function VenueSettingsPage() {
           logo_url: finalLogoUrl || null,
           header_bg_color: headerBgColor,
           header_text_color: headerTextColor,
-          mp_enabled: mpEnabled,
-          mp_access_token: mpAccessToken.trim() || null
+          mp_enabled: mpEnabled
         })
         .eq('id', ACTIVE_VENUE_ID)
 
@@ -251,7 +248,7 @@ export default function VenueSettingsPage() {
 
         {error && <p className="text-red-700 text-xs px-1">{error}</p>}
         <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between">
             <div>
               <p className="text-smoke-300 font-medium text-sm">Mercado Pago</p>
               <p className="text-smoke-500 text-xs mt-0.5">Los clientes pueden pagar directamente desde Capy</p>
@@ -268,21 +265,6 @@ export default function VenueSettingsPage() {
               }`} />
             </button>
           </div>
-          {mpEnabled && (
-            <div className="mt-3">
-              <span className="text-smoke-400 text-xs mb-1.5 block">Access Token de Mercado Pago</span>
-              <input
-                type="text"
-                value={mpAccessToken}
-                onChange={e => setMpAccessToken(e.target.value)}
-                placeholder="APP_USR-... o TEST-..."
-                className="input text-xs font-mono"
-              />
-              <p className="text-smoke-500 text-[10px] mt-1">
-                Obtenelo en mercadopago.com.ar/developers → Credenciales
-              </p>
-            </div>
-          )}
         </div>
 
         {saved && <p className="text-emerald-700 text-xs px-1">Guardado.</p>}
