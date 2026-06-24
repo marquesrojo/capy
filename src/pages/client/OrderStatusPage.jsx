@@ -54,7 +54,6 @@ export default function OrderStatusPage() {
   const { order, items, loading, refreshing, setOrder, refetch } = useOrderPolling(orderId)
   const [cancelling, setCancelling] = useState(false)
   const [calling, setCalling] = useState(false)
-  const [payingWithMP, setPayingWithMP] = useState(false)
   const prevStatusRef = useState(null)
 
   // Sonido + vibración cuando el pedido pasa a "Listo"
@@ -86,35 +85,6 @@ export default function OrderStatusPage() {
     }
     prevStatusRef[0] = order.status
   }, [order?.status])
-
-  async function handlePayWithMP() {
-    setPayingWithMP(true)
-    try {
-      const { data: { session } } = await supabaseCustomer.auth.getSession()
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-payment`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`
-        },
-        body: JSON.stringify({
-          orderId: order.id,
-          total: order.total,
-          orderNumber: order.daily_number
-        })
-      })
-      const data = await res.json()
-      if (data.sandbox_init_point) {
-        window.location.href = data.sandbox_init_point
-      } else if (data.init_point) {
-        window.location.href = data.init_point
-      }
-    } catch (err) {
-      alert('Error al conectar con Mercado Pago. Intentá de nuevo.')
-    } finally {
-      setPayingWithMP(false)
-    }
-  }
 
   async function handleCancel() {
     if (!confirm('¿Querés anular este pedido?')) return
@@ -281,16 +251,6 @@ export default function OrderStatusPage() {
       </div>
 
       <SplitCalculator total={order.total} assignedStaff={order.assigned_staff} />
-
-      {!isCancelado && order.payment_status === 'pendiente' && (
-        <button
-          onClick={handlePayWithMP}
-          disabled={payingWithMP}
-          className="w-full mt-3 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white font-semibold py-4 rounded-2xl flex items-center justify-center gap-2"
-        >
-          {payingWithMP ? 'Conectando...' : '💙 Pagar con Mercado Pago'}
-        </button>
-      )}
 
       {!isCancelado && (
         <BillRequest order={order} onUpdated={updated => setOrder(prev => ({ ...prev, ...updated }))} />
