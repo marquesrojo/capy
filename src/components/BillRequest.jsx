@@ -1,17 +1,28 @@
-import { useState } from 'react'
-import { supabaseCustomer } from '../lib/supabase'
+import { useEffect, useState } from 'react'
+import { supabaseCustomer, ACTIVE_VENUE_ID } from '../lib/supabase'
 import { formatPrice } from '../lib/utils'
 
 const MAX_PROOF_SIZE_MB = 8
 
-// "La cuenta por favor" ahora son dos pasos separados, como en la
-// practica real de un local:
-//  1. Pedir la cuenta (un toque). Para efectivo se puede indicar con
-//     cuanto se va a pagar (vuelto); para tarjeta/transferencia no hace
-//     falta nada mas en este paso.
-//  2. Solo si es transferencia: una vez pedida la cuenta, aparece un
-//     paso aparte para subir el comprobante (despues de transferir).
 export default function BillRequest({ order, onUpdated }) {
+  const [mpEnabled, setMpEnabled] = useState(false)
+  const [mpAccessToken, setMpAccessToken] = useState('')
+
+  useEffect(() => {
+    async function loadVenue() {
+      const { data } = await supabaseCustomer
+        .from('venues')
+        .select('mp_enabled, mp_access_token')
+        .eq('id', ACTIVE_VENUE_ID)
+        .single()
+      if (data) {
+        setMpEnabled(data.mp_enabled || false)
+        setMpAccessToken(data.mp_access_token || '')
+      }
+    }
+    loadVenue()
+  }, [])
+
   if (order.payment_status === 'aprobado') return null
 
   const method = (order.payment_method || '').toLowerCase()
@@ -39,127 +50,165 @@ export default function BillRequest({ order, onUpdated }) {
             ? `Retirá y pagá en ${order.location_label}`
             : isCashMethod
               ? 'Un mozo se está acercando a cobrar en efectivo'
-              : 'Un mozo se está acercando con el posnet/QR'}
+              : 'Un mozo se está acercando con el posnet'}
         </p>
       </div>
     )
   }
 
-  // payment_status === 'pendiente' o 'rechazado': todavia no pidio la cuenta
-  return <RequestBillForm order={order} onUpdated={onUpdated} />
+  return (
+    <RequestBillForm
+      order={order}
+      onUpdated={onUpdated}
+      mpEnabled={mpEnabled}
+    />
+  )
 }
 
-function RequestBillForm({ order, onUpdated }) {
-  const [open, setOpen] = useState(false)
+function RequestBillForm({ order, onUpdated, mpEnabled }) {
+  const [showOptions, setShowOptions] = useState(false)
+  const [selectedMethod, setSelectedMethod] = useState(null)
   const [cashAmount, setCashAmount] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [payingWithMP, setPayingWithMP] = useState(false)
   const [error, setError] = useState('')
 
-  const isCash = (order.payment_method || '').toLowerCase().includes('efectivo')
-
-  async function handleRequestBill() {
-    if (isCash && cashAmount && Number(cashAmount) < order.total) {
-      setError('El monto con el que pagás no puede ser menor al total.')
-      return
-    }
-
+  async function handleRequestBill(method) {
     setSubmitting(true)
     setError('')
-
     try {
       const updates = {
         payment_status: 'cuenta_solicitada',
+        payment_method: method,
         bill_requested_at: new Date().toISOString()
       }
-      if (isCash && cashAmount) {
+      if (method === 'Efectivo' && cashAmount) {
         updates.cash_amount = Number(cashAmount)
       }
-
       const { data, error: updateError } = await supabaseCustomer
         .from('orders')
         .update(updates)
         .eq('id', order.id)
         .select()
         .single()
-
       if (updateError) throw updateError
       onUpdated(data)
     } catch (err) {
-      console.error(err)
       setError('No pudimos pedir la cuenta. Intentá de nuevo.')
       setSubmitting(false)
     }
   }
 
-  // Tarjeta y transferencia: un solo toque, sin formulario intermedio
-  if (!isCash && !open) {
-    return (
-      <div className="mt-6">
-        {error && <p className="text-red-700 text-xs mb-2">{error}</p>}
-        <button
-          onClick={handleRequestBill}
-          disabled={submitting}
-          className="w-full border border-pucara-red-500 text-pucara-red-500 disabled:opacity-50 font-semibold py-3.5 rounded-xl"
-        >
-          {submitting ? 'Enviando...' : '🧾 La cuenta, por favor'}
-        </button>
-      </div>
-    )
+  async function handlePayWithMP() {
+    setPayingWithMP(true)
+    try {
+      const { data: { session } } = await supabaseCustomer.auth.getSession()
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
+          orderId: order.id,
+          total: order.total,
+          orderNumber: order.daily_number
+        })
+      })
+      const data = await res.json()
+      if (data.sandbox_init_point) {
+        window.location.href = data.sandbox_init_point
+      } else if (data.init_point) {
+        window.location.href = data.init_point
+      } else {
+        throw new Error('No se pudo generar el link de pago')
+      }
+    } catch (err) {
+      setError('Error al conectar con Mercado Pago. Intentá de nuevo.')
+      setPayingWithMP(false)
+    }
   }
 
-  // Efectivo: mismo boton, pero abre el campo opcional de vuelto antes de confirmar
-  if (!open) {
+  if (!showOptions) {
     return (
-      <button
-        onClick={() => setOpen(true)}
-        className="w-full mt-6 border border-pucara-red-500 text-pucara-red-500 font-semibold py-3.5 rounded-xl"
-      >
-        🧾 La cuenta, por favor
-      </button>
+      <div className="mt-6 space-y-3">
+        {mpEnabled && (
+          <button
+            onClick={handlePayWithMP}
+            disabled={payingWithMP}
+            className="w-full bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white font-semibold py-4 rounded-2xl flex items-center justify-center gap-2"
+          >
+            {payingWithMP ? 'Conectando...' : '💙 Pagar con Mercado Pago'}
+          </button>
+        )}
+        <button
+          onClick={() => setShowOptions(true)}
+          className="w-full border border-pucara-red-500 text-pucara-red-500 font-semibold py-3.5 rounded-xl"
+        >
+          🧾 La cuenta, por favor
+        </button>
+      </div>
     )
   }
 
   return (
-    <div className="mt-6 bg-carbon-900 border border-pucara-blue-500/40 rounded-2xl p-5">
-      <p className="text-smoke-300 font-medium text-sm mb-1">Total a pagar</p>
-      <p className="font-mono text-pucara-blue-400 text-2xl mb-4">{formatPrice(order.total)}</p>
+    <div className="mt-6 bg-carbon-900 border border-carbon-700 rounded-2xl p-5 space-y-3">
+      <p className="text-smoke-300 font-medium text-sm">¿Cómo vas a pagar?</p>
 
-      <label className="block mb-4">
-        <span className="text-smoke-400 text-xs mb-1.5 block">
-          ¿Con cuánto pagás? (para que te lleven el vuelto exacto, opcional)
-        </span>
-        <input
-          type="number"
-          inputMode="decimal"
-          value={cashAmount}
-          onChange={e => setCashAmount(e.target.value)}
-          placeholder={`Mínimo ${formatPrice(order.total)}`}
-          className="input"
-        />
-        {cashAmount && Number(cashAmount) >= order.total && (
-          <p className="text-smoke-500 text-xs mt-1">
-            Vuelto: {formatPrice(Number(cashAmount) - order.total)}
-          </p>
-        )}
-      </label>
+      {/* Efectivo */}
+      <button
+        onClick={() => setSelectedMethod(selectedMethod === 'efectivo' ? null : 'efectivo')}
+        className={`w-full text-left px-4 py-3 rounded-xl border text-sm font-medium ${
+          selectedMethod === 'efectivo'
+            ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700'
+            : 'border-carbon-700 text-smoke-300'
+        }`}
+      >
+        💵 Efectivo
+      </button>
 
-      {error && <p className="text-red-700 text-xs mb-3">{error}</p>}
+      {selectedMethod === 'efectivo' && (
+        <div className="space-y-2">
+          <input
+            type="number"
+            inputMode="decimal"
+            value={cashAmount}
+            onChange={e => setCashAmount(e.target.value)}
+            placeholder={`Mínimo ${formatPrice(order.total)}`}
+            className="input text-sm"
+          />
+          {cashAmount && Number(cashAmount) >= order.total && (
+            <p className="text-smoke-500 text-xs">
+              Vuelto: {formatPrice(Number(cashAmount) - order.total)}
+            </p>
+          )}
+          <button
+            onClick={() => handleRequestBill('Efectivo')}
+            disabled={submitting}
+            className="w-full bg-emerald-600 text-white font-semibold py-3 rounded-xl text-sm disabled:opacity-50"
+          >
+            {submitting ? 'Enviando...' : 'Confirmar — cobran en efectivo'}
+          </button>
+        </div>
+      )}
 
-      <div className="flex gap-2">
-        <button
-          onClick={() => setOpen(false)}
-          className="flex-1 border border-carbon-700 text-smoke-300 text-sm font-medium py-2.5 rounded-xl"
-        >
-          Cancelar
-        </button>
-        <button
-          onClick={handleRequestBill}
-          disabled={submitting}
-          className="flex-1 bg-pucara-blue-500 hover:bg-pucara-blue-600 disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl"
-        >
-          {submitting ? 'Enviando...' : 'Pedir la cuenta'}
-        </button>
-      </div>
+      {/* Posnet */}
+      <button
+        onClick={() => handleRequestBill('Posnet')}
+        disabled={submitting}
+        className="w-full text-left px-4 py-3 rounded-xl border border-carbon-700 text-smoke-300 text-sm font-medium disabled:opacity-50"
+      >
+        💳 Posnet / Tarjeta
+      </button>
+
+      {error && <p className="text-red-700 text-xs">{error}</p>}
+
+      <button
+        onClick={() => setShowOptions(false)}
+        className="w-full text-smoke-500 text-xs underline"
+      >
+        Cancelar
+      </button>
     </div>
   )
 }
