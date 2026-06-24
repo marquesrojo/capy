@@ -415,40 +415,27 @@ function AdminDashboardInner() {
   )
 }
 
-const KIND_LABELS_COCINA = { bebida: '🥤 Bebidas', comida: '🍽️ Comida', otro: '📦 Otros' }
-const KIND_ORDER = ['comida', 'bebida', 'otro']
+const KIND_ORDER = ['comida', 'otro']
 
 function CocinaView({ orders, categories, onUpdateStatus, onRefresh }) {
-  const activeOrders = orders.filter(o =>
-    ['recibido', 'en_preparacion'].includes(o.status)
-  )
-
+  // Solo comida y otros — bebidas las maneja el mostrador
   const kindByCategory = Object.fromEntries(
     categories.map(c => [c.id, c.kind || 'otro'])
   )
 
-  const byKind = KIND_ORDER.reduce((acc, kind) => {
-    acc[kind] = []
-    return acc
-  }, {})
-
-  activeOrders.forEach(order => {
-    const itemsByKind = {}
-    ;(order.order_items || []).forEach(item => {
-      const kind = kindByCategory[item.products?.category_id] || 'otro'
-      if (!itemsByKind[kind]) itemsByKind[kind] = []
-      itemsByKind[kind].push(item)
+  const activeOrders = orders
+    .filter(o => ['recibido', 'en_preparacion'].includes(o.status))
+    .map(order => {
+      const foodItems = (order.order_items || []).filter(item => {
+        const kind = kindByCategory[item.products?.category_id] || 'otro'
+        return kind !== 'bebida'
+      })
+      return { order, items: foodItems }
     })
-    KIND_ORDER.forEach(kind => {
-      if (itemsByKind[kind]?.length > 0) {
-        byKind[kind].push({ order, items: itemsByKind[kind] })
-      }
-    })
-  })
+    .filter(({ items }) => items.length > 0)
+    .sort((a, b) => new Date(a.order.created_at) - new Date(b.order.created_at))
 
-  const totalItems = KIND_ORDER.reduce((sum, k) => sum + byKind[k].length, 0)
-
-  if (totalItems === 0) {
+  if (activeOrders.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] gap-3">
         <p className="text-smoke-500 text-sm">No hay pedidos activos en cocina.</p>
@@ -465,7 +452,10 @@ function CocinaView({ orders, categories, onUpdateStatus, onRefresh }) {
 
   return (
     <div>
-      <div className="flex justify-end px-4 pt-3">
+      <div className="flex items-center justify-between px-4 pt-3 pb-1">
+        <p className="text-smoke-400 text-xs font-semibold uppercase tracking-wide">
+          Cocina · {activeOrders.length} pedidos
+        </p>
         <button onClick={onRefresh} className="flex items-center gap-1 text-smoke-400 text-xs border border-carbon-700 rounded-full px-3 py-1.5">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M21 12a9 9 0 1 1-2.64-6.36" strokeLinecap="round"/>
@@ -474,96 +464,100 @@ function CocinaView({ orders, categories, onUpdateStatus, onRefresh }) {
           Actualizar
         </button>
       </div>
-      <div className="flex gap-4 overflow-x-auto p-4 items-start">
-        {KIND_ORDER.filter(kind => byKind[kind].length > 0).map(kind => (
-          <div key={kind} className="flex-shrink-0 w-72">
-            <div className="text-smoke-300 text-sm font-semibold mb-3 px-1">
-              {KIND_LABELS_COCINA[kind]} · {byKind[kind].length}
-            </div>
-            <div className="space-y-3">
-              {byKind[kind].map(({ order, items }) => {
-                const elapsedMin = Math.round(
-                  (Date.now() - new Date(order.created_at).getTime()) / 60000
-                )
-                const isUrgent = elapsedMin > 15
-                return (
-                  <div
-                    key={order.id}
-                    className={`bg-carbon-900 border rounded-2xl p-4 ${
-                      isUrgent ? 'border-red-500/50' : 'border-carbon-700'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-ember-400 text-xs">
-                          {order.daily_number ? `#${order.daily_number}` : `#${order.id.slice(0, 6)}`}
-                        </span>
-                        <span className="text-smoke-400 text-xs">📍 {order.location_label}</span>
-                      </div>
-                      <span className={`text-xs font-medium ${isUrgent ? 'text-red-700' : 'text-smoke-500'}`}>
-                        {elapsedMin}m
-                      </span>
-                    </div>
-                    <ul className="space-y-1.5 mb-3">
-                      {items.map(item => (
-                        <li key={item.id} className="flex items-baseline gap-2">
-                          <span className="font-mono text-ember-500 font-bold text-sm w-6 flex-shrink-0">
-                            {item.quantity}×
-                          </span>
-                          <span className="text-smoke-200 text-sm">{item.product_name}</span>
-                          {item.item_notes && (
-                            <span className="text-amber-600 text-xs italic">— {item.item_notes}</span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                    {order.notes && (
-                      <p className="text-amber-600 text-xs italic mb-3 border-l-2 border-amber-500/40 pl-2">
-                        📝 {order.notes}
-                      </p>
-                    )}
 
-                    {/* Tiempo de preparación */}
-                    {!order.prep_started_at ? (
-                      <div className="mb-2">
-                        <p className="text-smoke-500 text-[10px] mb-1.5">Tiempo estimado</p>
-                        <div className="flex flex-wrap gap-1.5 mb-2">
-                          {[10, 15, 20, 25, 30].map(min => (
-                            <button
-                              key={min}
-                              onClick={async () => {
-                                await supabaseStaff.from('orders').update({
-                                  prep_time_minutes: min,
-                                  prep_started_at: new Date().toISOString(),
-                                  status: 'en_preparacion'
-                                }).eq('id', order.id)
-                                onRefresh()
-                              }}
-                              className="text-xs px-2.5 py-1 rounded-full border border-carbon-700 text-smoke-400 hover:border-ember-500 hover:text-ember-500"
-                            >
-                              {min}m
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="mb-2 text-xs text-smoke-500">
-                        ⏱ {order.prep_time_minutes} min estimados
-                      </div>
-                    )}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 p-4">
+        {activeOrders.map(({ order, items }) => {
+          const elapsedMin = Math.round(
+            (Date.now() - new Date(order.created_at).getTime()) / 60000
+          )
+          const trafficColor = elapsedMin > 30
+            ? 'text-red-600 bg-red-500/10 border-red-500/50'
+            : elapsedMin > 15
+              ? 'text-amber-600 bg-amber-500/10 border-amber-500/40'
+              : 'text-emerald-600 bg-emerald-500/10 border-emerald-500/30'
 
-                    <button
-                      onClick={() => onUpdateStatus(order.id, 'listo')}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2 rounded-xl"
-                    >
-                      Listo ✓
-                    </button>
+          const cardBorder = elapsedMin > 30
+            ? 'border-red-500/50'
+            : elapsedMin > 15
+              ? 'border-amber-500/40'
+              : 'border-carbon-700'
+
+          return (
+            <div
+              key={order.id}
+              className={`bg-carbon-900 border rounded-2xl p-3 flex flex-col ${cardBorder}`}
+            >
+              {/* Header: número + ubicación + tiempo */}
+              <div className="flex items-start justify-between mb-2">
+                <div>
+                  <p className="font-mono text-ember-500 font-bold text-xl leading-none">
+                    #{order.daily_number || order.id.slice(0, 4)}
+                  </p>
+                  <p className="text-smoke-300 text-sm font-medium mt-0.5">
+                    {order.location_label}
+                  </p>
+                </div>
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${trafficColor}`}>
+                  {elapsedMin}m
+                </span>
+              </div>
+
+              {/* Ítems */}
+              <ul className="flex-1 space-y-1 mb-3">
+                {items.map(item => (
+                  <li key={item.id} className="text-smoke-200 text-sm">
+                    <span className="font-mono text-ember-400 font-bold">{item.quantity}×</span>{' '}
+                    {item.product_name}
+                    {item.item_notes && (
+                      <span className="block text-amber-600 text-xs italic ml-4">↳ {item.item_notes}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+
+              {/* Notas generales */}
+              {order.notes && (
+                <p className="text-amber-600 text-xs italic mb-2 border-l-2 border-amber-500/40 pl-2">
+                  📝 {order.notes}
+                </p>
+              )}
+
+              {/* Tiempo estimado */}
+              {!order.prep_started_at ? (
+                <div className="mb-2">
+                  <div className="flex flex-wrap gap-1 mb-1.5">
+                    {[10, 15, 20, 25, 30].map(min => (
+                      <button
+                        key={min}
+                        onClick={async () => {
+                          await supabaseStaff.from('orders').update({
+                            prep_time_minutes: min,
+                            prep_started_at: new Date().toISOString(),
+                            status: 'en_preparacion'
+                          }).eq('id', order.id)
+                          onRefresh()
+                        }}
+                        className="text-[10px] px-2 py-0.5 rounded-full border border-carbon-700 text-smoke-400 hover:border-ember-500 hover:text-ember-500"
+                      >
+                        {min}m
+                      </button>
+                    ))}
                   </div>
-                )
-              })}
+                </div>
+              ) : (
+                <p className="text-smoke-500 text-[10px] mb-2">⏱ {order.prep_time_minutes} min estimados</p>
+              )}
+
+              {/* Botón Listo */}
+              <button
+                onClick={() => onUpdateStatus(order.id, 'listo')}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-base"
+              >
+                Listo ✓
+              </button>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
