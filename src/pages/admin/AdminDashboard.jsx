@@ -51,6 +51,7 @@ function AdminDashboardInner() {
   const [categories, setCategories] = useState([])
   const [highDemand, setHighDemand] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [view, setView] = useState('pedidos')
   const { signOut, profile } = useAuth()
 
@@ -116,7 +117,8 @@ function AdminDashboardInner() {
 
   const [debugError, setDebugError] = useState(null)
 
-  async function load() {
+  async function load({ silent } = {}) {
+    if (!silent) setRefreshing(true)
     try {
       const [boardRes, proofRes, inPersonRes] = await Promise.all([
         supabaseStaff
@@ -160,10 +162,12 @@ function AdminDashboardInner() {
       setPendingProofOrders(proofRes.data || [])
       setPendingInPersonOrders(inPersonOrders)
       setLoading(false)
+      setRefreshing(false)
     } catch (err) {
       console.error('Error en load():', err)
       setDebugError(err?.message || String(err))
       setLoading(false)
+      setRefreshing(false)
     }
   }
 
@@ -178,7 +182,7 @@ function AdminDashboardInner() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'orders', filter: `venue_id=eq.${ACTIVE_VENUE_ID}` },
-        () => load()
+        () => load({ silent: true })
       )
       .subscribe()
 
@@ -283,13 +287,17 @@ function AdminDashboardInner() {
         <div className="flex gap-3 items-center">
           <button
             onClick={() => load()}
-            className="flex items-center gap-1 text-smoke-400 text-xs border border-carbon-700 rounded-full px-2.5 py-1"
+            disabled={refreshing}
+            className="flex items-center gap-1 text-smoke-400 text-xs border border-carbon-700 rounded-full px-2.5 py-1 disabled:opacity-50"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+              className={refreshing ? 'animate-spin' : ''}
+            >
               <path d="M21 12a9 9 0 1 1-2.64-6.36" strokeLinecap="round"/>
               <path d="M21 3v6h-6" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            Actualizar
+            {refreshing ? 'Actualizando...' : 'Actualizar'}
           </button>
           <Link to="/admin/historial" className="text-smoke-400 text-xs underline">
             Historial
