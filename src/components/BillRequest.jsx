@@ -6,18 +6,16 @@ const MAX_PROOF_SIZE_MB = 8
 
 export default function BillRequest({ order, onUpdated }) {
   const [mpEnabled, setMpEnabled] = useState(false)
-  const [mpAccessToken, setMpAccessToken] = useState('')
 
   useEffect(() => {
     async function loadVenue() {
       const { data } = await supabaseCustomer
         .from('venues')
-        .select('mp_enabled, mp_access_token')
+        .select('mp_enabled')
         .eq('id', ACTIVE_VENUE_ID)
         .single()
       if (data) {
         setMpEnabled(data.mp_enabled || false)
-        setMpAccessToken(data.mp_access_token || '')
       }
     }
     loadVenue()
