@@ -63,6 +63,13 @@ export default function BillRequest({ order, onUpdated }) {
   )
 }
 
+const ICON = {
+  mp: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h2"/><path d="M10 15h4"/></svg>,
+  cash: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/></svg>,
+  posnet: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 14h4"/></svg>,
+  bill: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h5"/></svg>,
+}
+
 function RequestBillForm({ order, onUpdated, mpEnabled }) {
   const [showOptions, setShowOptions] = useState(false)
   const [selectedMethod, setSelectedMethod] = useState(null)
@@ -129,44 +136,47 @@ function RequestBillForm({ order, onUpdated, mpEnabled }) {
 
   if (!showOptions) {
     return (
-      <div className="mt-6 space-y-3">
-        {mpEnabled && (
-          <button
-            onClick={handlePayWithMP}
-            disabled={payingWithMP}
-            className="w-full bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white font-semibold py-4 rounded-2xl flex items-center justify-center gap-2"
-          >
-            {payingWithMP ? 'Conectando...' : '💙 Pagar con Mercado Pago'}
-          </button>
-        )}
+      <div className="mt-6">
         <button
           onClick={() => setShowOptions(true)}
-          className="w-full border border-pucara-red-500 text-pucara-red-500 font-semibold py-3.5 rounded-xl"
+          className="w-full border border-ember-500 text-ember-500 font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2"
         >
-          🧾 La cuenta, por favor
+          {ICON.bill}
+          La cuenta, por favor
         </button>
       </div>
     )
   }
 
   return (
-    <div className="mt-6 bg-carbon-900 border border-carbon-700 rounded-2xl p-5 space-y-3">
-      <p className="text-smoke-300 font-medium text-sm">¿Cómo vas a pagar?</p>
+    <div className="mt-6 bg-carbon-900 border border-carbon-700 rounded-2xl p-5 space-y-2">
+      <p className="text-smoke-300 font-medium text-sm mb-3">¿Cómo vas a pagar?</p>
 
-      {/* Efectivo */}
+      {mpEnabled && (
+        <button
+          onClick={handlePayWithMP}
+          disabled={payingWithMP}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-carbon-700 text-smoke-300 text-sm font-medium disabled:opacity-50 bg-carbon-800"
+        >
+          {ICON.mp}
+          {payingWithMP ? 'Conectando con Mercado Pago...' : 'Mercado Pago'}
+        </button>
+      )}
+
       <button
         onClick={() => setSelectedMethod(selectedMethod === 'efectivo' ? null : 'efectivo')}
-        className={`w-full text-left px-4 py-3 rounded-xl border text-sm font-medium ${
+        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium bg-carbon-800 ${
           selectedMethod === 'efectivo'
-            ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700'
+            ? 'border-ember-500 text-smoke-200'
             : 'border-carbon-700 text-smoke-300'
         }`}
       >
-        💵 Efectivo
+        {ICON.cash}
+        Efectivo
       </button>
 
       {selectedMethod === 'efectivo' && (
-        <div className="space-y-2">
+        <div className="space-y-2 px-1">
           <input
             type="number"
             inputMode="decimal"
@@ -183,27 +193,27 @@ function RequestBillForm({ order, onUpdated, mpEnabled }) {
           <button
             onClick={() => handleRequestBill('Efectivo')}
             disabled={submitting}
-            className="w-full bg-emerald-600 text-white font-semibold py-3 rounded-xl text-sm disabled:opacity-50"
+            className="w-full bg-ember-500 text-white font-semibold py-3 rounded-xl text-sm disabled:opacity-50"
           >
             {submitting ? 'Enviando...' : 'Confirmar — cobran en efectivo'}
           </button>
         </div>
       )}
 
-      {/* Posnet */}
       <button
         onClick={() => handleRequestBill('Posnet')}
         disabled={submitting}
-        className="w-full text-left px-4 py-3 rounded-xl border border-carbon-700 text-smoke-300 text-sm font-medium disabled:opacity-50"
+        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-carbon-700 text-smoke-300 text-sm font-medium disabled:opacity-50 bg-carbon-800"
       >
-        💳 Posnet / Tarjeta
+        {ICON.posnet}
+        Posnet / Tarjeta
       </button>
 
       {error && <p className="text-red-700 text-xs">{error}</p>}
 
       <button
         onClick={() => setShowOptions(false)}
-        className="w-full text-smoke-500 text-xs underline"
+        className="w-full text-smoke-500 text-xs underline pt-1"
       >
         Cancelar
       </button>
