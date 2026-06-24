@@ -115,6 +115,8 @@ export default function OrderStatusPage() {
       setPayingWithMP(false)
     }
   }
+
+  async function handleCancel() {
     if (!confirm('¿Querés anular este pedido?')) return
     setCancelling(true)
     const { error } = await supabaseCustomer
