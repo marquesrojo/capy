@@ -139,8 +139,8 @@ export default function OrderStatusPage() {
 
   return (
     <div className="min-h-screen bg-carbon-950 px-5 pt-6 pb-10">
-      <Link to="/pedidos" className="text-smoke-500 text-xs underline">
-        ← Volver a Pedidos
+      <Link to="/" className="text-smoke-500 text-xs underline">
+        ← Inicio
       </Link>
       <div className="flex items-center justify-between mt-2">
         <div>
