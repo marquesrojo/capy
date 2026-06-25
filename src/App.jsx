@@ -26,6 +26,7 @@ import KpisPage from './pages/admin/KpisPage'
 import WaiterModePage from './pages/admin/WaiterModePage'
 import WaitersPage from './pages/admin/WaitersPage'
 import QuickNotesPage from './pages/admin/QuickNotesPage'
+import MercadoPagoReturnPage from './pages/client/MercadoPagoReturnPage'
 
 export default function App() {
   return (
@@ -181,6 +182,7 @@ export default function App() {
                 }
               />
 
+              <Route path="/pedido-pagado" element={<MercadoPagoReturnPage />} />
               <Route path="*" element={<Navigate to="/carta" replace />} />
             </Routes>
           </BrowserRouter>
