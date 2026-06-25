@@ -50,6 +50,7 @@ function AdminDashboardInner() {
   const [waiters, setWaiters] = useState([])
   const [categories, setCategories] = useState([])
   const [highDemand, setHighDemand] = useState(false)
+  const [paidOrders, setPaidOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [view, setView] = useState('pedidos')
@@ -120,7 +121,7 @@ function AdminDashboardInner() {
   async function load({ silent } = {}) {
     if (!silent) setRefreshing(true)
     try {
-      const [boardRes, proofRes, inPersonRes] = await Promise.all([
+      const [boardRes, proofRes, inPersonRes, paidRes] = await Promise.all([
         supabaseStaff
           .from('orders')
           .select(ORDER_SELECT)
@@ -138,7 +139,15 @@ function AdminDashboardInner() {
           .select(ORDER_SELECT)
           .eq('venue_id', ACTIVE_VENUE_ID)
           .eq('payment_status', 'cuenta_solicitada')
-          .order('bill_requested_at', { ascending: true })
+          .order('bill_requested_at', { ascending: true }),
+        supabaseStaff
+          .from('orders')
+          .select(ORDER_SELECT)
+          .eq('venue_id', ACTIVE_VENUE_ID)
+          .eq('payment_status', 'aprobado')
+          .gte('created_at', new Date().toISOString().split('T')[0])
+          .order('payment_confirmed_at', { ascending: false })
+          .limit(50)
       ])
 
       if (boardRes.error) throw new Error(`boardRes: ${boardRes.error.message}`)
@@ -161,6 +170,7 @@ function AdminDashboardInner() {
       setOrders(openOrders)
       setPendingProofOrders(proofRes.data || [])
       setPendingInPersonOrders(inPersonOrders)
+      setPaidOrders(paidRes.data || [])
       setLoading(false)
       setRefreshing(false)
     } catch (err) {
@@ -417,6 +427,36 @@ function AdminDashboardInner() {
               onAssignWaiter={assignWaiter}
             />
           ))}
+          {/* Columna de pagados de hoy */}
+          <div className="flex-shrink-0 w-72">
+            <div className="px-3 py-2 rounded-lg border border-emerald-500/40 text-sm font-semibold mb-3 text-emerald-700 bg-emerald-500/10">
+              Pagado hoy · {paidOrders.length}
+            </div>
+            <div className="space-y-3">
+              {paidOrders.map(order => {
+                const elapsedMin = Math.round((Date.now() - new Date(order.created_at).getTime()) / 60000)
+                return (
+                  <div key={order.id} className="bg-carbon-900 border border-emerald-500/20 rounded-2xl p-4 opacity-75">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-ember-400 text-xs">{order.daily_number ? `#${order.daily_number}` : `#${order.id.slice(0, 6)}`}</span>
+                        {order.daily_number && <span className="font-mono text-ember-500 font-bold text-sm">#{order.daily_number}</span>}
+                      </div>
+                      <span className="text-smoke-500 text-xs">{elapsedMin} min</span>
+                    </div>
+                    <p className="text-smoke-400 text-xs mb-1">📍 {order.location_label}</p>
+                    <p className="text-emerald-700 text-xs font-medium">
+                      {(order.payment_method || '').toLowerCase().includes('mercado') ? '💙 Mercado Pago' : order.payment_method}
+                    </p>
+                    <p className="font-mono text-smoke-300 text-sm mt-2">{formatPrice(order.total)}</p>
+                  </div>
+                )
+              })}
+              {paidOrders.length === 0 && (
+                <p className="text-smoke-600 text-xs text-center py-4">Sin pagos hoy todavía</p>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
