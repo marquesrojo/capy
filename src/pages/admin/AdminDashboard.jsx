@@ -391,25 +391,6 @@ function AdminDashboardInner() {
         </div>
       )}
 
-      {view !== 'cocina' && pendingInPersonOrders.length > 0 && (
-        <div className="px-4 pt-4">
-          <p className="text-blue-700 text-xs font-semibold uppercase tracking-wide mb-2">
-            Por cobrar en persona · {pendingInPersonOrders.length}
-          </p>
-          <div className="flex gap-3 overflow-x-auto pb-2">
-            {pendingInPersonOrders.map(order => (
-              <InPersonCard
-                key={order.id}
-                order={order}
-                waiters={waiters}
-                onConfirm={() => confirmPayment(order)}
-                onAssignWaiter={assignWaiter}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
       {view === 'salon' ? (
         <SalonView orders={orders} />
       ) : view === 'cocina' ? (
@@ -429,35 +410,65 @@ function AdminDashboardInner() {
               onAssignWaiter={assignWaiter}
             />
           ))}
-          {/* Columna de pagados de hoy */}
+
+          {/* Columna Cobros: Por cobrar + Pagado hoy */}
           <div className="flex-shrink-0 w-72">
-            <div className="px-3 py-2 rounded-lg border border-emerald-500/40 text-sm font-semibold mb-3 text-emerald-700 bg-emerald-500/10">
-              Pagado hoy · {paidOrders.length}
+            <div className="px-3 py-2 rounded-lg border border-carbon-600 text-sm font-semibold mb-3 text-smoke-300 bg-carbon-800">
+              Cobros · {pendingInPersonOrders.length + paidOrders.length}
             </div>
-            <div className="space-y-3">
-              {paidOrders.map(order => {
-                const elapsedMin = Math.round((Date.now() - new Date(order.created_at).getTime()) / 60000)
-                return (
-                  <div key={order.id} className="bg-carbon-900 border border-emerald-500/20 rounded-2xl p-4 opacity-75">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-ember-400 text-xs">{order.daily_number ? `#${order.daily_number}` : `#${order.id.slice(0, 6)}`}</span>
-                        {order.daily_number && <span className="font-mono text-ember-500 font-bold text-sm">#{order.daily_number}</span>}
+
+            {/* Por cobrar */}
+            {pendingInPersonOrders.length > 0 && (
+              <div className="mb-3">
+                <p className="text-blue-700 text-[10px] font-semibold uppercase tracking-wide mb-2 px-1">
+                  Por cobrar · {pendingInPersonOrders.length}
+                </p>
+                <div className="space-y-2">
+                  {pendingInPersonOrders.map(order => (
+                    <InPersonCard
+                      key={order.id}
+                      order={order}
+                      waiters={waiters}
+                      onConfirm={() => confirmPayment(order)}
+                      onAssignWaiter={assignWaiter}
+                      compact
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Pagado hoy */}
+            {(pendingInPersonOrders.length > 0 && paidOrders.length > 0) && (
+              <div className="border-t border-carbon-700 mt-2 pt-2 mb-2" />
+            )}
+            {paidOrders.length > 0 && (
+              <div>
+                <p className="text-emerald-700 text-[10px] font-semibold uppercase tracking-wide mb-2 px-1">
+                  Pagado hoy · {paidOrders.length}
+                </p>
+                <div className="space-y-2">
+                  {paidOrders.map(order => (
+                    <div key={order.id} className="bg-carbon-900 border border-emerald-500/20 rounded-xl px-3 py-2.5 opacity-75">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-mono text-ember-500 font-bold text-sm">
+                          #{order.daily_number || order.id.slice(0, 6)}
+                        </span>
+                        <span className="text-emerald-700 text-xs font-medium">
+                          {(order.payment_method || '').toLowerCase().includes('mercado') ? 'Mercado Pago' : order.payment_method}
+                        </span>
                       </div>
-                      <span className="text-smoke-500 text-xs">{elapsedMin} min</span>
+                      <p className="text-smoke-400 text-xs">📍 {order.location_label}</p>
+                      <p className="font-mono text-smoke-300 text-sm mt-1">{formatPrice(order.total)}</p>
                     </div>
-                    <p className="text-smoke-400 text-xs mb-1">📍 {order.location_label}</p>
-                    <p className="text-emerald-700 text-xs font-medium">
-                      {(order.payment_method || '').toLowerCase().includes('mercado') ? '💙 Mercado Pago' : order.payment_method}
-                    </p>
-                    <p className="font-mono text-smoke-300 text-sm mt-2">{formatPrice(order.total)}</p>
-                  </div>
-                )
-              })}
-              {paidOrders.length === 0 && (
-                <p className="text-smoke-600 text-xs text-center py-4">Sin pagos hoy todavía</p>
-              )}
-            </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {pendingInPersonOrders.length === 0 && paidOrders.length === 0 && (
+              <p className="text-smoke-600 text-xs text-center py-4">Sin cobros pendientes</p>
+            )}
           </div>
         </div>
       )}
@@ -908,9 +919,38 @@ function ProofCard({ order, proofUrl, onConfirm, onReject }) {
   )
 }
 
-function InPersonCard({ order, waiters, onConfirm, onAssignWaiter }) {
+function InPersonCard({ order, waiters, onConfirm, onAssignWaiter, compact }) {
   const methodLabel = order.payment_method || 'Efectivo'
   const elapsedMin = Math.round((Date.now() - new Date(order.created_at).getTime()) / 60000)
+
+  if (compact) {
+    return (
+      <div className="bg-carbon-900 border border-blue-500/30 rounded-xl px-3 py-2.5">
+        <div className="flex items-center justify-between mb-1">
+          <span className="font-mono text-ember-500 font-bold text-sm">
+            #{order.daily_number || order.id.slice(0, 6)}
+          </span>
+          <span className="text-smoke-500 text-xs">{elapsedMin}m</span>
+        </div>
+        <p className="text-smoke-400 text-xs mb-1">📍 {order.location_label}</p>
+        <p className="text-blue-700 text-xs mb-2">{methodLabel}</p>
+        {normalizePaymentMethod(order.payment_method) === 'efectivo' && order.cash_amount && (
+          <p className="text-emerald-700 text-xs mb-2">
+            Vuelto {formatPrice(order.cash_amount - order.total)}
+          </p>
+        )}
+        <div className="flex items-center justify-between">
+          <span className="font-mono text-smoke-300 text-sm">{formatPrice(order.total)}</span>
+          <button
+            onClick={onConfirm}
+            className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold py-1.5 px-3 rounded-full"
+          >
+            Cobrado ✓
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex-shrink-0 w-56 bg-carbon-900 border border-blue-500/40 rounded-2xl p-3">
