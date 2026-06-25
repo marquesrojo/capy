@@ -1,1 +1,9 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "co.capyapp.twa",
+        "sha256_cert_fingerprints": ["78:6C:B1:0C:79:5C:BF:3C:32:53:AF:53:00:69:DD:07:A4:52:7A:3C:57:85:BD:5E:4C:33:E3:F3:29:B6:1E:05"]
+      }
+    }]
 
