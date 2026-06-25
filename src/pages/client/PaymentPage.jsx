@@ -72,6 +72,11 @@ export default function PaymentPage() {
         return
       }
       setSubmitting(true)
+      // Asegurar sesión anónima activa antes de registrar
+      const { data: sessionData } = await supabaseCustomer.auth.getSession()
+      if (!sessionData.session) {
+        await supabaseCustomer.auth.signInAnonymously()
+      }
       const { data, error: registerError } = await registerCustomer(guestName.trim(), null)
       if (registerError) {
         setError(`Error al guardar tus datos: ${registerError?.message || JSON.stringify(registerError)}`)
