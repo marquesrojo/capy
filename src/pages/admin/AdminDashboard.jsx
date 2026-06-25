@@ -145,7 +145,7 @@ function AdminDashboardInner() {
           .select(ORDER_SELECT)
           .eq('venue_id', ACTIVE_VENUE_ID)
           .eq('payment_status', 'aprobado')
-          .gte('created_at', new Date().toISOString().split('T')[0])
+          .gte('payment_confirmed_at', new Date(new Date().setHours(0,0,0,0)).toISOString())
           .order('payment_confirmed_at', { ascending: false })
           .limit(50)
       ])
@@ -244,17 +244,19 @@ function AdminDashboardInner() {
   // persona en efectivo/tarjeta). Esto NO toca el status de cocina/entrega:
   // son dos ejes independientes, el pedido puede llevar rato "entregado".
   async function confirmPayment(order) {
+    const confirmedAt = new Date().toISOString()
     await supabaseStaff
       .from('orders')
       .update({
         payment_status: 'aprobado',
         payment_confirmed_by: profile.id,
-        payment_confirmed_at: new Date().toISOString()
+        payment_confirmed_at: confirmedAt
       })
       .eq('id', order.id)
     setPendingProofOrders(prev => prev.filter(o => o.id !== order.id))
     setPendingInPersonOrders(prev => prev.filter(o => o.id !== order.id))
-    load()
+    setPaidOrders(prev => [{ ...order, payment_status: 'aprobado', payment_confirmed_at: confirmedAt }, ...prev])
+    load({ silent: true })
   }
 
   async function rejectPayment(order) {
