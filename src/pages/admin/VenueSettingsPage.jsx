@@ -25,7 +25,7 @@ export default function VenueSettingsPage() {
     async function load() {
       const { data } = await supabaseStaff
         .from('venues')
-        .select('name, whatsapp_number, logo_url, header_bg_color, header_text_color')
+        .select('name, whatsapp_number, logo_url, header_bg_color, header_text_color, mp_enabled, kitchen_alias')
         .eq('id', ACTIVE_VENUE_ID)
         .single()
       setName(data?.name || '')
