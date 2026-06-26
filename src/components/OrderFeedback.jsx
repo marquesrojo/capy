@@ -63,7 +63,7 @@ const CAPY_FACES = [
   }
 ]
 
-export default function OrderFeedback({ orderId }) {
+export default function OrderFeedback({ orderId, staffId }) {
   const { customer } = useCustomer()
   const [existing, setExisting] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -101,7 +101,8 @@ export default function OrderFeedback({ orderId }) {
         order_id: orderId,
         customer_id: customer?.id || null,
         rating,
-        notes: notes.trim() || null
+        notes: notes.trim() || null,
+        staff_id: staffId || null
       })
       .select()
       .single()
