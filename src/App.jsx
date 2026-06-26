@@ -27,6 +27,7 @@ import WaiterModePage from './pages/admin/WaiterModePage'
 import WaitersPage from './pages/admin/WaitersPage'
 import QuickNotesPage from './pages/admin/QuickNotesPage'
 import QRPage from './pages/admin/QRPage'
+import ShiftSummaryPage from './pages/admin/ShiftSummaryPage'
 import MercadoPagoReturnPage from './pages/client/MercadoPagoReturnPage'
 
 export default function App() {
@@ -187,6 +188,14 @@ export default function App() {
                 element={
                   <RequireStaff>
                     <QRPage />
+                  </RequireStaff>
+                }
+              />
+              <Route
+                path="/admin/mi-turno"
+                element={
+                  <RequireStaff>
+                    <ShiftSummaryPage />
                   </RequireStaff>
                 }
               />
