@@ -26,6 +26,7 @@ import KpisPage from './pages/admin/KpisPage'
 import WaiterModePage from './pages/admin/WaiterModePage'
 import WaitersPage from './pages/admin/WaitersPage'
 import QuickNotesPage from './pages/admin/QuickNotesPage'
+import QRPage from './pages/admin/QRPage'
 import MercadoPagoReturnPage from './pages/client/MercadoPagoReturnPage'
 
 export default function App() {
@@ -178,6 +179,14 @@ export default function App() {
                 element={
                   <RequireStaff>
                     <QuickNotesPage />
+                  </RequireStaff>
+                }
+              />
+              <Route
+                path="/admin/qr"
+                element={
+                  <RequireStaff>
+                    <QRPage />
                   </RequireStaff>
                 }
               />
