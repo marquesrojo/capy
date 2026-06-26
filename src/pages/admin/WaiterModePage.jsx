@@ -3,6 +3,8 @@ import { useAuth } from '../../hooks/useAuth'
 import WaiterOrderPage from './WaiterOrderPage'
 import WaiterTrackingPage from './WaiterTrackingPage'
 import ShiftSummaryPage from './ShiftSummaryPage'
+import MiCarrera from './MiCarrera'
+import RankingMozos from './RankingMozos'
 
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null } }
@@ -20,54 +22,75 @@ class ErrorBoundary extends Component {
   }
 }
 
+const TABS = [
+  {
+    id: 'tomar', label: 'Comanda',
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+  },
+  {
+    id: 'seguimiento', label: 'Pedidos',
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+  },
+  {
+    id: 'turno', label: 'Turno',
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+  },
+  {
+    id: 'carrera', label: 'Carrera',
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+  },
+  {
+    id: 'ranking', label: 'Ranking',
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+  },
+]
+
 export default function WaiterModePage() {
   const { profile, signOut } = useAuth()
   const [tab, setTab] = useState('tomar')
 
   return (
-    <div className="min-h-screen bg-carbon-950">
-      <header className="px-5 pt-4 pb-3 border-b border-carbon-700">
+    <div className="min-h-screen bg-[#F0F4F8]">
+      {/* Header */}
+      <div className="bg-[#F0F4F8] border-b border-black/6 px-5 pt-4 pb-0">
         <div className="flex items-center justify-between mb-3">
-          <div>
-            <h1 className="font-display text-2xl text-ember-500 tracking-wide">CAPY</h1>
-            {profile?.full_name && (
-              <p className="text-smoke-500 text-xs mt-0.5">{profile.full_name}</p>
-            )}
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-[#008080] flex items-center justify-center text-white font-bold text-sm">
+              {profile?.full_name?.slice(0, 2).toUpperCase()}
+            </div>
+            <div>
+              <p className="font-bold text-[#1A2A3A] text-sm">{profile?.full_name}</p>
+              <p className="text-[#008080] text-[10px] font-semibold uppercase tracking-wide">Camarero</p>
+            </div>
           </div>
-          <button onClick={signOut} className="text-smoke-500 text-xs underline">
-            Salir
-          </button>
+          <button onClick={signOut} className="text-[#8896A5] text-xs underline">Salir</button>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setTab('tomar')}
-            className={`px-4 py-1.5 rounded-full text-xs font-medium border ${
-              tab === 'tomar' ? 'bg-ember-500 text-white border-ember-500' : 'border-carbon-700 text-smoke-400'
-            }`}
-          >
-            Tomar pedido
-          </button>
-          <button
-            onClick={() => setTab('seguimiento')}
-            className={`px-4 py-1.5 rounded-full text-xs font-medium border ${
-              tab === 'seguimiento' ? 'bg-ember-500 text-white border-ember-500' : 'border-carbon-700 text-smoke-400'
-            }`}
-          >
-            Seguimiento
-          </button>
-          <button
-            onClick={() => setTab('turno')}
-            className={`px-4 py-1.5 rounded-full text-xs font-medium border ${
-              tab === 'turno' ? 'bg-ember-500 text-white border-ember-500' : 'border-carbon-700 text-smoke-400'
-            }`}
-          >
-            Mi turno
-          </button>
+
+        {/* Nav tabs */}
+        <div className="flex">
+          {TABS.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`flex-1 flex flex-col items-center gap-1 py-2.5 border-b-2 text-[9px] font-semibold uppercase tracking-wide transition-colors ${
+                tab === t.id
+                  ? 'border-[#008080] text-[#008080]'
+                  : 'border-transparent text-[#8896A5]'
+              }`}
+            >
+              {t.icon}
+              {t.label}
+            </button>
+          ))}
         </div>
-      </header>
+      </div>
 
       <ErrorBoundary>
-        {tab === 'tomar' ? <WaiterOrderPage /> : tab === 'seguimiento' ? <WaiterTrackingPage /> : <ShiftSummaryPage embedded />}
+        {tab === 'tomar' && <WaiterOrderPage />}
+        {tab === 'seguimiento' && <WaiterTrackingPage />}
+        {tab === 'turno' && <ShiftSummaryPage embedded />}
+        {tab === 'carrera' && <MiCarrera />}
+        {tab === 'ranking' && <RankingMozos />}
       </ErrorBoundary>
     </div>
   )
