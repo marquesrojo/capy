@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabaseCustomer } from '../lib/supabase'
+import { supabaseCustomer, ACTIVE_VENUE_ID } from '../lib/supabase'
 import { useCustomer } from '../hooks/useCustomer'
 
 const CAPY_FACES = [
@@ -71,15 +71,17 @@ export default function OrderFeedback({ orderId }) {
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [kitchenAlias, setKitchenAlias] = useState(null)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabaseCustomer
-        .from('order_feedback')
-        .select('*')
-        .eq('order_id', orderId)
-        .maybeSingle()
-      setExisting(data)
+      const [feedbackRes, venueRes] = await Promise.all([
+        supabaseCustomer.from('order_feedback').select('*').eq('order_id', orderId).maybeSingle(),
+        supabaseCustomer.from('venues').select('kitchen_alias').eq('id', ACTIVE_VENUE_ID).single()
+      ])
+      setExisting(feedbackRes.data)
+      setKitchenAlias(venueRes.data?.kitchen_alias || null)
       setLoading(false)
     }
     load()
@@ -97,7 +99,7 @@ export default function OrderFeedback({ orderId }) {
       .from('order_feedback')
       .insert({
         order_id: orderId,
-        customer_id: customer.id,
+        customer_id: customer?.id || null,
         rating,
         notes: notes.trim() || null
       })
@@ -113,23 +115,52 @@ export default function OrderFeedback({ orderId }) {
     setExisting(data)
   }
 
+  function handleCopyAlias() {
+    navigator.clipboard.writeText(kitchenAlias)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   if (loading) return null
 
   if (existing) {
     const face = CAPY_FACES.find(f => f.value === existing.rating)
+    const showKitchenTip = existing.rating >= 4 && kitchenAlias
     return (
-      <div className="mt-6 bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
-        <p className="text-smoke-400 text-xs font-semibold uppercase tracking-wide mb-3">
-          Tu calificación
-        </p>
-        <div className="flex items-center gap-3">
-          <span className="text-ember-500">{face?.svg}</span>
-          <span className="text-smoke-300 text-sm">{face?.label}</span>
+      <div className="mt-6 space-y-3">
+        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
+          <p className="text-smoke-400 text-xs font-semibold uppercase tracking-wide mb-3">
+            Tu calificación
+          </p>
+          <div className="flex items-center gap-3">
+            <span className="text-pucara-blue-500">{face?.svg}</span>
+            <span className="text-smoke-300 text-sm">{face?.label}</span>
+          </div>
+          {existing.notes && (
+            <p className="text-smoke-400 text-sm mt-3 italic">"{existing.notes}"</p>
+          )}
+          <p className="text-smoke-500 text-xs mt-3">¡Gracias por tu opinión!</p>
         </div>
-        {existing.notes && (
-          <p className="text-smoke-400 text-sm mt-3 italic">"{existing.notes}"</p>
+
+        {showKitchenTip && (
+          <div className="bg-carbon-900 border border-amber-500/30 rounded-2xl p-5">
+            <p className="text-amber-600 text-sm font-medium mb-1">
+              ¿Te gustó la comida?
+            </p>
+            <p className="text-smoke-400 text-xs mb-3">
+              El equipo de cocina también agradece tu apoyo
+            </p>
+            <div className="flex items-center gap-2 bg-carbon-800 rounded-xl px-4 py-3">
+              <span className="font-mono text-smoke-200 text-sm flex-1">{kitchenAlias}</span>
+              <button
+                onClick={handleCopyAlias}
+                className="text-xs font-semibold text-amber-600 border border-amber-500/40 rounded-full px-3 py-1"
+              >
+                {copied ? '¡Copiado!' : 'Copiar'}
+              </button>
+            </div>
+          </div>
         )}
-        <p className="text-smoke-500 text-xs mt-3">¡Gracias por tu opinión!</p>
       </div>
     )
   }
@@ -150,7 +181,7 @@ export default function OrderFeedback({ orderId }) {
                 ? 'scale(1.25)'
                 : rating !== null ? 'scale(0.9)' : 'scale(1)',
               opacity: rating !== null && rating !== face.value ? 0.25 : 1,
-              color: rating === face.value ? '#C25A18' : '#E8772A',
+              color: rating === face.value ? '#001C44' : '#002F6C',
               WebkitTapHighlightColor: 'transparent'
             }}
             className="flex flex-col items-center gap-1.5 p-1"
@@ -174,7 +205,7 @@ export default function OrderFeedback({ orderId }) {
       <button
         onClick={handleSubmit}
         disabled={submitting}
-        className="w-full bg-ember-500 hover:bg-ember-600 disabled:opacity-50 text-white font-semibold py-2.5 rounded-xl text-sm"
+        className="w-full bg-pucara-blue-500 hover:bg-pucara-blue-600 disabled:opacity-50 text-white font-semibold py-2.5 rounded-xl text-sm"
       >
         {submitting ? 'Enviando...' : 'Enviar calificación'}
       </button>
