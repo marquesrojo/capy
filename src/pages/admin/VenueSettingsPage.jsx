@@ -14,6 +14,7 @@ export default function VenueSettingsPage() {
   const [headerBgColor, setHeaderBgColor] = useState('#1A1A1A')
   const [headerTextColor, setHeaderTextColor] = useState('#E8772A')
   const [mpEnabled, setMpEnabled] = useState(false)
+  const [kitchenAlias, setKitchenAlias] = useState('')
   const [activePicker, setActivePicker] = useState(null) // 'bg' | 'text' | null
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -33,6 +34,7 @@ export default function VenueSettingsPage() {
       if (data?.header_bg_color) setHeaderBgColor(data.header_bg_color)
       if (data?.header_text_color) setHeaderTextColor(data.header_text_color)
       if (data?.mp_enabled !== undefined) setMpEnabled(data.mp_enabled)
+      if (data?.kitchen_alias) setKitchenAlias(data.kitchen_alias)
       setLoading(false)
     }
     load()
@@ -93,7 +95,8 @@ export default function VenueSettingsPage() {
           logo_url: finalLogoUrl || null,
           header_bg_color: headerBgColor,
           header_text_color: headerTextColor,
-          mp_enabled: mpEnabled
+          mp_enabled: mpEnabled,
+          kitchen_alias: kitchenAlias.trim() || null
         })
         .eq('id', ACTIVE_VENUE_ID)
 
@@ -265,6 +268,18 @@ export default function VenueSettingsPage() {
               }`} />
             </button>
           </div>
+        </div>
+
+        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
+          <p className="text-smoke-300 font-medium text-sm mb-1">Alias de propina — Cocina</p>
+          <p className="text-smoke-500 text-xs mb-3">Aparece en la encuesta cuando el cliente califica 4 o 5 estrellas</p>
+          <input
+            type="text"
+            value={kitchenAlias}
+            onChange={e => setKitchenAlias(e.target.value)}
+            placeholder="Ej: cocina.pucara"
+            className="input text-sm"
+          />
         </div>
 
         {saved && <p className="text-emerald-700 text-xs px-1">Guardado.</p>}
