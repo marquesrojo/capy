@@ -4,7 +4,7 @@ import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice } from '../../lib/utils'
 
-export default function ShiftSummaryPage() {
+export default function ShiftSummaryPage({ embedded }) {
   const { profile } = useAuth()
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState(null)
@@ -82,9 +82,11 @@ export default function ShiftSummaryPage() {
 
   return (
     <div className="min-h-screen bg-carbon-950 px-5 py-8">
-      <div className="flex items-center gap-3 mb-6">
-        <Link to="/admin" className="text-smoke-500 text-sm">← Volver</Link>
-      </div>
+      {!embedded && (
+        <div className="flex items-center gap-3 mb-6">
+          <Link to="/admin" className="text-smoke-500 text-sm">← Volver</Link>
+        </div>
+      )}
 
       <h1 className="font-display text-3xl text-ember-500 tracking-wide mb-1">MI TURNO</h1>
       <p className="text-smoke-500 text-xs mb-1">{profile?.full_name}</p>
