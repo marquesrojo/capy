@@ -10,6 +10,10 @@ export default function ShiftSummaryPage({ embedded }) {
   const [stats, setStats] = useState(null)
   const [feedback, setFeedback] = useState([])
   const [staffId, setStaffId] = useState(null)
+  const [tips, setTips] = useState([])
+  const [tipAmount, setTipAmount] = useState('')
+  const [tipNotes, setTipNotes] = useState('')
+  const [addingTip, setAddingTip] = useState(false)
 
   useEffect(() => {
     if (!profile) return
@@ -19,7 +23,6 @@ export default function ShiftSummaryPage({ embedded }) {
   async function loadStaffAndSummary() {
     setLoading(true)
 
-    // Buscar el staff_names del camarero logueado por nombre
     const { data: staffData } = await supabaseStaff
       .from('staff_names')
       .select('id')
@@ -31,7 +34,7 @@ export default function ShiftSummaryPage({ embedded }) {
     setStaffId(sid)
 
     if (!sid) {
-      setStats({ totalOrders: 0, totalAmount: 0, avgRating: null, ratingsCount: 0 })
+      setStats({ totalOrders: 0, totalAmount: 0, avgRating: null, ratingsCount: 0, totalTips: 0 })
       setLoading(false)
       return
     }
@@ -39,7 +42,7 @@ export default function ShiftSummaryPage({ embedded }) {
     const startOfDay = new Date()
     startOfDay.setHours(0, 0, 0, 0)
 
-    const [ordersRes, ratingsRes] = await Promise.all([
+    const [ordersRes, ratingsRes, tipsRes] = await Promise.all([
       supabaseStaff
         .from('orders')
         .select('id, total, status, payment_status, created_at')
@@ -51,11 +54,18 @@ export default function ShiftSummaryPage({ embedded }) {
         .select('rating, notes, created_at')
         .eq('staff_id', sid)
         .gte('created_at', startOfDay.toISOString())
+        .order('created_at', { ascending: false }),
+      supabaseStaff
+        .from('waiter_tips')
+        .select('id, amount, notes, created_at')
+        .eq('staff_id', sid)
+        .gte('created_at', startOfDay.toISOString())
         .order('created_at', { ascending: false })
     ])
 
     const orders = ordersRes.data || []
     const ratings = ratingsRes.data || []
+    const tipsData = tipsRes.data || []
 
     setStats({
       totalOrders: orders.length,
@@ -63,10 +73,40 @@ export default function ShiftSummaryPage({ embedded }) {
       avgRating: ratings.length
         ? (ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length).toFixed(1)
         : null,
-      ratingsCount: ratings.length
+      ratingsCount: ratings.length,
+      totalTips: tipsData.reduce((sum, t) => sum + (t.amount || 0), 0)
     })
     setFeedback(ratings)
+    setTips(tipsData)
     setLoading(false)
+  }
+
+  async function handleAddTip() {
+    if (!tipAmount || !staffId) return
+    setAddingTip(true)
+    const { data } = await supabaseStaff
+      .from('waiter_tips')
+      .insert({
+        venue_id: ACTIVE_VENUE_ID,
+        staff_id: staffId,
+        amount: Number(tipAmount),
+        notes: tipNotes.trim() || null
+      })
+      .select()
+      .single()
+    if (data) {
+      setTips(prev => [data, ...prev])
+      setStats(prev => ({ ...prev, totalTips: prev.totalTips + data.amount }))
+      setTipAmount('')
+      setTipNotes('')
+    }
+    setAddingTip(false)
+  }
+
+  async function handleDeleteTip(tip) {
+    await supabaseStaff.from('waiter_tips').delete().eq('id', tip.id)
+    setTips(prev => prev.filter(t => t.id !== tip.id))
+    setStats(prev => ({ ...prev, totalTips: prev.totalTips - tip.amount }))
   }
 
   const FACE_LABELS = ['', 'Muy mala', 'Mala', 'Regular', 'Buena', 'Excelente']
@@ -94,6 +134,7 @@ export default function ShiftSummaryPage({ embedded }) {
         {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
       </p>
 
+      {/* Stats */}
       <div className="grid grid-cols-2 gap-3 mb-6">
         <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4">
           <p className="text-smoke-500 text-xs mb-1">Pedidos</p>
@@ -103,19 +144,72 @@ export default function ShiftSummaryPage({ embedded }) {
           <p className="text-smoke-500 text-xs mb-1">Total</p>
           <p className="font-mono text-smoke-200 font-bold text-lg">{formatPrice(stats.totalAmount)}</p>
         </div>
-        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4 col-span-2">
-          <p className="text-smoke-500 text-xs mb-1">Calificación promedio</p>
+        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4">
+          <p className="text-smoke-500 text-xs mb-1">Calificación</p>
           {stats.avgRating ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-baseline gap-1">
               <p className="font-mono text-pucara-blue-400 font-bold text-3xl">{stats.avgRating}</p>
-              <p className="text-smoke-400 text-sm">/ 5 · {stats.ratingsCount} {stats.ratingsCount === 1 ? 'opinión' : 'opiniones'}</p>
+              <p className="text-smoke-500 text-xs">/ 5</p>
             </div>
           ) : (
-            <p className="text-smoke-500 text-sm">Sin calificaciones todavía</p>
+            <p className="text-smoke-500 text-sm">—</p>
           )}
+        </div>
+        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4">
+          <p className="text-smoke-500 text-xs mb-1">Propinas</p>
+          <p className="font-mono text-emerald-600 font-bold text-2xl">{formatPrice(stats.totalTips)}</p>
         </div>
       </div>
 
+      {/* Registro de propinas */}
+      <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4 mb-6">
+        <p className="text-smoke-300 font-medium text-sm mb-3">Registrar propina</p>
+        <div className="flex gap-2 mb-2">
+          <input
+            type="number"
+            inputMode="decimal"
+            value={tipAmount}
+            onChange={e => setTipAmount(e.target.value)}
+            placeholder="Monto"
+            className="input flex-1"
+          />
+          <button
+            onClick={handleAddTip}
+            disabled={addingTip || !tipAmount}
+            className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-semibold px-4 rounded-xl text-sm"
+          >
+            + Agregar
+          </button>
+        </div>
+        <input
+          type="text"
+          value={tipNotes}
+          onChange={e => setTipNotes(e.target.value)}
+          placeholder="Nota opcional (ej: Mesa 4)"
+          className="input text-sm"
+        />
+
+        {tips.length > 0 && (
+          <div className="mt-3 space-y-2">
+            {tips.map(tip => (
+              <div key={tip.id} className="flex items-center justify-between bg-carbon-800 rounded-xl px-3 py-2">
+                <div>
+                  <span className="font-mono text-emerald-600 font-semibold text-sm">{formatPrice(tip.amount)}</span>
+                  {tip.notes && <span className="text-smoke-500 text-xs ml-2">{tip.notes}</span>}
+                </div>
+                <button
+                  onClick={() => handleDeleteTip(tip)}
+                  className="text-smoke-600 text-xs underline"
+                >
+                  Borrar
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Calificaciones */}
       {feedback.length > 0 && (
         <div>
           <p className="text-smoke-400 text-xs font-semibold uppercase tracking-wide mb-3">
@@ -134,7 +228,7 @@ export default function ShiftSummaryPage({ embedded }) {
         </div>
       )}
 
-      {stats.totalOrders === 0 && (
+      {stats.totalOrders === 0 && tips.length === 0 && (
         <div className="text-center py-12">
           <p className="text-smoke-500 text-sm">Todavía no tomaste pedidos hoy.</p>
         </div>
