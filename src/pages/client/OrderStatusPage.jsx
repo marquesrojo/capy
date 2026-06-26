@@ -295,7 +295,7 @@ export default function OrderStatusPage() {
         </button>
       )}
 
-      {order.status === 'entregado' && <OrderFeedback orderId={order.id} />}
+      {order.status === 'entregado' && <OrderFeedback orderId={order.id} staffId={order.assigned_staff_id} />}
     </div>
   )
 }
