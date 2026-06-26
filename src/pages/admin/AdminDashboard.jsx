@@ -314,6 +314,9 @@ function AdminDashboardInner() {
           <Link to="/admin/historial" className="text-smoke-400 text-xs underline">
             Historial
           </Link>
+          <Link to="/admin/mi-turno" className="text-smoke-400 text-xs underline">
+            Mi turno
+          </Link>
           <Link to="/admin/configuracion" className="text-smoke-400 text-xs underline">
             Configuración
           </Link>
