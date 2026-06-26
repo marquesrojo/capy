@@ -2,6 +2,7 @@ import { Component, useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import WaiterOrderPage from './WaiterOrderPage'
 import WaiterTrackingPage from './WaiterTrackingPage'
+import ShiftSummaryPage from './ShiftSummaryPage'
 
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null } }
@@ -54,11 +55,19 @@ export default function WaiterModePage() {
           >
             Seguimiento
           </button>
+          <button
+            onClick={() => setTab('turno')}
+            className={`px-4 py-1.5 rounded-full text-xs font-medium border ${
+              tab === 'turno' ? 'bg-ember-500 text-white border-ember-500' : 'border-carbon-700 text-smoke-400'
+            }`}
+          >
+            Mi turno
+          </button>
         </div>
       </header>
 
       <ErrorBoundary>
-        {tab === 'tomar' ? <WaiterOrderPage /> : <WaiterTrackingPage />}
+        {tab === 'tomar' ? <WaiterOrderPage /> : tab === 'seguimiento' ? <WaiterTrackingPage /> : <ShiftSummaryPage embedded />}
       </ErrorBoundary>
     </div>
   )
