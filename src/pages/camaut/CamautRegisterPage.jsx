@@ -45,58 +45,30 @@ export default function CamautRegisterPage() {
       const userId = authData.user?.id
       if (!userId) throw new Error('No se pudo crear el usuario')
 
-      // 2. Crear venue personal del camarero
-      const { data: venueData, error: venueError } = await supabaseStaff
-        .from('venues')
-        .insert({
-          name: `${fullName.trim()} — Capy`,
-          whatsapp_number: null,
-        })
-        .select('id')
-        .single()
-      if (venueError) throw venueError
-
-      const venueId = venueData.id
-
-      // 3. Actualizar profile PRIMERO para que is_staff() funcione
-      await supabaseStaff
-        .from('profiles')
-        .update({
-          full_name: fullName.trim(),
-          role: 'camarero',
-          venue_id: venueId,
-          is_autonomous: true
-        })
-        .eq('id', userId)
-
-      // 4. Crear registro en staff_names
-      // Verificar que el alias no esté tomado
-      if (alias.trim()) {
-        const { data: existingAlias } = await supabaseStaff
-          .from('staff_names')
-          .select('id')
-          .eq('alias', alias.trim())
-          .single()
-        if (existingAlias) {
-          setError('Ese alias ya está en uso. Elegí otro.')
-          setLoading(false)
-          return
-        }
-      }
-
-      const { data: staffData, error: staffError } = await supabaseStaff
-        .from('staff_names')
-        .insert({
-          venue_id: venueId,
-          full_name: fullName.trim(),
+      // Usar Edge Function para crear venue y staff_names (bypasea RLS)
+      const { data: { session } } = await supabaseStaff.auth.getSession()
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/register-camaut`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
+          userId,
+          fullName: fullName.trim(),
           alias: alias.trim() || null,
-          linkedin_url: linkedin.trim() || null,
-          document_number: docNumber.trim() || null,
-          is_active: true
+          linkedin: linkedin.trim() || null,
+          docNumber: docNumber.trim() || null
         })
-        .select('id')
-        .single()
-      if (staffError) throw staffError
+      })
+
+      const result = await res.json()
+      if (result.error === 'alias_taken') {
+        setError('Ese alias ya está en uso. Elegí otro.')
+        setLoading(false)
+        return
+      }
+      if (result.error) throw new Error(result.error)
 
       // Registro exitoso — mostrar mensaje de confirmación
       setStep(3)
