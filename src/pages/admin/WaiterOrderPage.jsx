@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice } from '../../lib/utils'
@@ -205,6 +205,10 @@ export default function WaiterOrderPage() {
             <p className="text-[#8896A5] text-xs mt-1">Decíselo al cliente para que siga su pedido</p>
           </div>
         )}
+
+        {lastOrder?.order?.id && (
+          <OrderQR orderId={lastOrder.order.id} />
+        )}
         <p className="text-[#8896A5] text-sm mb-6">El pedido entró directo a preparación.</p>
 
         {waLink && (
@@ -399,6 +403,35 @@ export default function WaiterOrderPage() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function OrderQR({ orderId }) {
+  const canvasRef = useRef(null)
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    if (!canvasRef.current || !orderId) return
+    const url = `https://capyapp.co/pedido/${orderId}`
+    import('qrcode').then(QRCode => {
+      QRCode.toCanvas(canvasRef.current, url, {
+        width: 180,
+        margin: 2,
+        color: { dark: '#1A2A3A', light: '#FFFFFF' }
+      }, (err) => { if (!err) setReady(true) })
+    })
+  }, [orderId])
+
+  return (
+    <div className="my-4">
+      <p className="text-[#8896A5] text-xs mb-2">O escaneá el QR con el celular</p>
+      <div className="inline-block bg-white border border-black/10 rounded-2xl p-3">
+        <canvas ref={canvasRef} style={{ display: ready ? 'block' : 'none' }} />
+        {!ready && <div className="w-[180px] h-[180px] bg-[#F0F4F8] rounded-xl flex items-center justify-center">
+          <p className="text-[#8896A5] text-xs">Generando QR...</p>
+        </div>}
+      </div>
     </div>
   )
 }
