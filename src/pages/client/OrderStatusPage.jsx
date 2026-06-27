@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useOrderPolling } from '../../hooks/useOrderPolling'
 import { supabaseCustomer } from '../../lib/supabase'
@@ -54,6 +54,7 @@ export default function OrderStatusPage() {
   const { order, items, loading, refreshing, setOrder, refetch } = useOrderPolling(orderId)
   const [cancelling, setCancelling] = useState(false)
   const [calling, setCalling] = useState(false)
+  const [showQR, setShowQR] = useState(false)
   const prevStatusRef = useState(null)
 
   // Sonido + vibración cuando el pedido pasa a "Listo"
@@ -149,21 +150,51 @@ export default function OrderStatusPage() {
             <p className="text-smoke-500 text-xs mt-0.5">Número <span className="font-mono text-ember-500 font-semibold">#{order.daily_number}</span></p>
           )}
         </div>
-        <button
-          onClick={refetch}
-          disabled={refreshing}
-          className="flex items-center gap-1 text-smoke-400 text-xs border border-carbon-700 rounded-full px-3 py-1.5 disabled:opacity-50"
-        >
-          <svg
-            width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-            className={refreshing ? 'animate-spin' : ''}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowQR(true)}
+            className="text-smoke-400 text-xs border border-carbon-700 rounded-full px-3 py-1.5"
           >
-            <path d="M21 12a9 9 0 1 1-2.64-6.36" strokeLinecap="round"/>
-            <path d="M21 3v6h-6" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          {refreshing ? 'Actualizando...' : 'Actualizar'}
-        </button>
+            QR
+          </button>
+          <button
+            onClick={refetch}
+            disabled={refreshing}
+            className="flex items-center gap-1 text-smoke-400 text-xs border border-carbon-700 rounded-full px-3 py-1.5 disabled:opacity-50"
+          >
+            <svg
+              width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+              className={refreshing ? 'animate-spin' : ''}
+            >
+              <path d="M21 12a9 9 0 1 1-2.64-6.36" strokeLinecap="round"/>
+              <path d="M21 3v6h-6" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            {refreshing ? 'Actualizando...' : 'Actualizar'}
+          </button>
+        </div>
       </div>
+
+      {showQR && (
+        <div
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6"
+          onClick={() => setShowQR(false)}
+        >
+          <div
+            className="bg-carbon-900 border border-carbon-700 rounded-3xl p-6 text-center max-w-xs w-full"
+            onClick={e => e.stopPropagation()}
+          >
+            <p className="font-bold text-smoke-200 text-base mb-1">Compartí tu pedido</p>
+            <p className="text-smoke-500 text-xs mb-4">Mostráselo al camarero o compartilo</p>
+            <ClientQRCode orderId={order.id} />
+            <button
+              onClick={() => setShowQR(false)}
+              className="mt-4 w-full border border-carbon-700 text-smoke-400 py-2.5 rounded-xl text-sm"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
       <p className="text-smoke-400 text-sm mt-1">📍 {order.location_label}</p>
       {order.assigned_staff?.full_name && (
         <p className="text-smoke-500 text-xs mt-1">🧑‍🍳 Te atiende {order.assigned_staff.full_name}</p>
@@ -296,6 +327,36 @@ export default function OrderStatusPage() {
       )}
 
       {order.status === 'entregado' && <OrderFeedback orderId={order.id} staffId={order.assigned_staff_id} />}
+    </div>
+  )
+}
+
+function ClientQRCode({ orderId }) {
+  const canvasRef = useRef(null)
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    if (!canvasRef.current || !orderId) return
+    const url = `https://capyapp.co/pedido/${orderId}`
+    import('qrcode').then(QRCode => {
+      QRCode.toCanvas(canvasRef.current, url, {
+        width: 200,
+        margin: 2,
+        color: { dark: '#1A1A1A', light: '#F5F0EB' }
+      }, (err) => { if (!err) setReady(true) })
+    })
+  }, [orderId])
+
+  return (
+    <div className="flex justify-center">
+      <div className="bg-[#F5F0EB] rounded-2xl p-3 inline-block">
+        <canvas ref={canvasRef} style={{ display: ready ? 'block' : 'none' }} />
+        {!ready && (
+          <div className="w-[200px] h-[200px] bg-carbon-800 rounded-xl flex items-center justify-center">
+            <p className="text-smoke-500 text-xs">Generando QR...</p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
