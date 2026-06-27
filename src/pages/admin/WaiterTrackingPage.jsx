@@ -229,11 +229,25 @@ function EditOrderPage({ order, onClose }) {
   async function handleSave() {
     setSaving(true)
 
-    // Borrar todos los order_items actuales
-    await supabaseStaff.from('order_items').delete().eq('order_id', order.id)
+    const originalIds = order.order_items.map(i => i.id)
+    const editedIds = items.filter(i => !i.id.startsWith('new-')).map(i => i.id)
 
-    // Insertar los nuevos
-    const newItems = items.map(i => ({
+    // 1. Borrar ítems que se quitaron
+    const deletedIds = originalIds.filter(id => !editedIds.includes(id))
+    if (deletedIds.length > 0) {
+      await supabaseStaff.from('order_items').delete().in('id', deletedIds)
+    }
+
+    // 2. Actualizar cantidades de los existentes
+    for (const item of items.filter(i => !i.id.startsWith('new-'))) {
+      await supabaseStaff
+        .from('order_items')
+        .update({ quantity: item.quantity })
+        .eq('id', item.id)
+    }
+
+    // 3. Insertar los nuevos
+    const newItems = items.filter(i => i.id.startsWith('new-')).map(i => ({
       order_id: order.id,
       product_id: i.product_id,
       product_name: i.product_name,
@@ -241,15 +255,12 @@ function EditOrderPage({ order, onClose }) {
       unit_price: i.unit_price,
       item_notes: i.item_notes || null
     }))
+    if (newItems.length > 0) {
+      await supabaseStaff.from('order_items').insert(newItems)
+    }
 
-    await supabaseStaff.from('order_items').insert(newItems)
+    // 4. Actualizar total
     await supabaseStaff.from('orders').update({ total: newTotal }).eq('id', order.id)
-
-    // Verificar que el insert funcionó
-    const { data: savedItems } = await supabaseStaff
-      .from('order_items')
-      .select('id, product_name, quantity')
-      .eq('order_id', order.id)
 
     setSaving(false)
     await new Promise(r => setTimeout(r, 500))
