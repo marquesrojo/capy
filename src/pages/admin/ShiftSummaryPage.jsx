@@ -110,60 +110,60 @@ export default function ShiftSummaryPage({ embedded }) {
   }
 
   const FACE_LABELS = ['', 'Muy mala', 'Mala', 'Regular', 'Buena', 'Excelente']
-  const FACE_COLORS = ['', 'text-red-700', 'text-orange-600', 'text-amber-600', 'text-emerald-600', 'text-emerald-500']
+  const FACE_COLORS = ['', 'text-red-700', 'text-orange-600', 'text-amber-600', 'text-[#4DD0E1]', 'text-emerald-500']
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-carbon-950 flex items-center justify-center">
-        <p className="text-smoke-400 text-sm">Cargando resumen...</p>
+      <div className="min-h-screen bg-[#F0F4F8] flex items-center justify-center">
+        <p className="text-[#8896A5] text-sm">Cargando resumen...</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-carbon-950 px-5 py-8">
+    <div className="min-h-screen bg-[#F0F4F8] px-5 py-8">
       {!embedded && (
         <div className="flex items-center gap-3 mb-6">
-          <Link to="/admin" className="text-smoke-500 text-sm">← Volver</Link>
+          <Link to="/admin" className="text-[#8896A5] text-sm">← Volver</Link>
         </div>
       )}
 
-      <h1 className="font-display text-3xl text-ember-500 tracking-wide mb-1">MI TURNO</h1>
-      <p className="text-smoke-500 text-xs mb-1">{profile?.full_name}</p>
+      <h1 className="font-display text-3xl text-[#008080] tracking-wide mb-1">MI TURNO</h1>
+      <p className="text-[#8896A5] text-xs mb-1">{profile?.full_name}</p>
       <p className="text-smoke-600 text-xs mb-6">
         {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
       </p>
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 mb-6">
-        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4">
-          <p className="text-smoke-500 text-xs mb-1">Pedidos</p>
-          <p className="font-mono text-ember-500 font-bold text-3xl">{stats.totalOrders}</p>
+        <div className="bg-white border border-black/10 rounded-2xl p-4">
+          <p className="text-[#8896A5] text-xs mb-1">Pedidos</p>
+          <p className="font-mono text-[#008080] font-bold text-3xl">{stats.totalOrders}</p>
         </div>
-        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4">
-          <p className="text-smoke-500 text-xs mb-1">Total</p>
-          <p className="font-mono text-smoke-200 font-bold text-lg">{formatPrice(stats.totalAmount)}</p>
+        <div className="bg-white border border-black/10 rounded-2xl p-4">
+          <p className="text-[#8896A5] text-xs mb-1">Total</p>
+          <p className="font-mono text-[#1A2A3A] font-bold text-lg">{formatPrice(stats.totalAmount)}</p>
         </div>
-        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4">
-          <p className="text-smoke-500 text-xs mb-1">Calificación</p>
+        <div className="bg-white border border-black/10 rounded-2xl p-4">
+          <p className="text-[#8896A5] text-xs mb-1">Calificación</p>
           {stats.avgRating ? (
             <div className="flex items-baseline gap-1">
-              <p className="font-mono text-pucara-blue-400 font-bold text-3xl">{stats.avgRating}</p>
-              <p className="text-smoke-500 text-xs">/ 5</p>
+              <p className="font-mono text-[#008080] font-bold text-3xl">{stats.avgRating}</p>
+              <p className="text-[#8896A5] text-xs">/ 5</p>
             </div>
           ) : (
-            <p className="text-smoke-500 text-sm">—</p>
+            <p className="text-[#8896A5] text-sm">—</p>
           )}
         </div>
-        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4">
-          <p className="text-smoke-500 text-xs mb-1">Propinas</p>
-          <p className="font-mono text-emerald-600 font-bold text-2xl">{formatPrice(stats.totalTips)}</p>
+        <div className="bg-white border border-black/10 rounded-2xl p-4">
+          <p className="text-[#8896A5] text-xs mb-1">Propinas</p>
+          <p className="font-mono text-[#4DD0E1] font-bold text-2xl">{formatPrice(stats.totalTips)}</p>
         </div>
       </div>
 
       {/* Registro de propinas */}
-      <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4 mb-6">
-        <p className="text-smoke-300 font-medium text-sm mb-3">Registrar propina</p>
+      <div className="bg-white border border-black/10 rounded-2xl p-4 mb-6">
+        <p className="text-[#3A4A5A] font-medium text-sm mb-3">Registrar propina</p>
         <div className="flex gap-2 mb-2">
           <input
             type="number"
@@ -176,7 +176,7 @@ export default function ShiftSummaryPage({ embedded }) {
           <button
             onClick={handleAddTip}
             disabled={addingTip || !tipAmount}
-            className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-semibold px-4 rounded-xl text-sm"
+            className="bg-[#4DD0E1] hover:bg-[#00B0C8] disabled:opacity-50 text-white font-semibold px-4 rounded-xl text-sm"
           >
             + Agregar
           </button>
@@ -192,10 +192,10 @@ export default function ShiftSummaryPage({ embedded }) {
         {tips.length > 0 && (
           <div className="mt-3 space-y-2">
             {tips.map(tip => (
-              <div key={tip.id} className="flex items-center justify-between bg-carbon-800 rounded-xl px-3 py-2">
+              <div key={tip.id} className="flex items-center justify-between bg-[#F8FAFC] rounded-xl px-3 py-2">
                 <div>
-                  <span className="font-mono text-emerald-600 font-semibold text-sm">{formatPrice(tip.amount)}</span>
-                  {tip.notes && <span className="text-smoke-500 text-xs ml-2">{tip.notes}</span>}
+                  <span className="font-mono text-[#4DD0E1] font-semibold text-sm">{formatPrice(tip.amount)}</span>
+                  {tip.notes && <span className="text-[#8896A5] text-xs ml-2">{tip.notes}</span>}
                 </div>
                 <button
                   onClick={() => handleDeleteTip(tip)}
@@ -212,16 +212,16 @@ export default function ShiftSummaryPage({ embedded }) {
       {/* Calificaciones */}
       {feedback.length > 0 && (
         <div>
-          <p className="text-smoke-400 text-xs font-semibold uppercase tracking-wide mb-3">
+          <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">
             Opiniones de hoy
           </p>
           <div className="space-y-2">
             {feedback.map((f, i) => (
-              <div key={i} className="bg-carbon-900 border border-carbon-700 rounded-xl px-4 py-3 flex items-start gap-3">
+              <div key={i} className="bg-white border border-black/10 rounded-xl px-4 py-3 flex items-start gap-3">
                 <span className={`text-sm font-semibold ${FACE_COLORS[f.rating]}`}>
                   {FACE_LABELS[f.rating]}
                 </span>
-                {f.notes && <p className="text-smoke-400 text-sm italic flex-1">"{f.notes}"</p>}
+                {f.notes && <p className="text-[#8896A5] text-sm italic flex-1">"{f.notes}"</p>}
               </div>
             ))}
           </div>
@@ -230,7 +230,7 @@ export default function ShiftSummaryPage({ embedded }) {
 
       {stats.totalOrders === 0 && tips.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-smoke-500 text-sm">Todavía no tomaste pedidos hoy.</p>
+          <p className="text-[#8896A5] text-sm">Todavía no tomaste pedidos hoy.</p>
         </div>
       )}
     </div>
