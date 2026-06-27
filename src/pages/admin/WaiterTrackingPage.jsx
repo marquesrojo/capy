@@ -12,7 +12,8 @@ const STATUS_EMOJI = {
   listo: '✅'
 }
 
-export default function WaiterTrackingPage() {
+export default function WaiterTrackingPage({ venueId: propVenueId }) {
+  const activeVenueId = propVenueId || ACTIVE_VENUE_ID
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [approving, setApproving] = useState(null)
@@ -26,7 +27,7 @@ export default function WaiterTrackingPage() {
     loadStaff()
     const channel = supabaseStaff
       .channel('waiter-tracking')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `venue_id=eq.${ACTIVE_VENUE_ID}` }, () => loadOrders())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `venue_id=eq.${activeVenueId}` }, () => loadOrders())
       .subscribe()
     return () => supabaseStaff.removeChannel(channel)
   }, [])
@@ -35,7 +36,7 @@ export default function WaiterTrackingPage() {
     const { data: ordersData } = await supabaseStaff
       .from('orders')
       .select('id, status, location_label, total, created_at, waiter_called_at, daily_number, assigned_staff:staff_names!orders_assigned_staff_id_fkey(full_name)')
-      .eq('venue_id', ACTIVE_VENUE_ID)
+      .eq('venue_id', activeVenueId)
       .in('status', ACTIVE_STATUSES)
       .order('created_at', { ascending: true })
 
@@ -66,7 +67,7 @@ export default function WaiterTrackingPage() {
     const { data } = await supabaseStaff
       .from('staff_names')
       .select('id, full_name')
-      .eq('venue_id', ACTIVE_VENUE_ID)
+      .eq('venue_id', activeVenueId)
       .eq('is_active', true)
       .order('full_name')
     setStaffList(data || [])
@@ -279,8 +280,8 @@ function EditOrderPage({ order, onClose }) {
 
   async function loadCarta() {
     const [catRes, prodRes] = await Promise.all([
-      supabaseStaff.from('categories').select('id, name').eq('venue_id', ACTIVE_VENUE_ID).order('sort_order'),
-      supabaseStaff.from('products').select('id, name, price, category_id').eq('venue_id', ACTIVE_VENUE_ID).eq('is_available', true)
+      supabaseStaff.from('categories').select('id, name').eq('venue_id', activeVenueId).order('sort_order'),
+      supabaseStaff.from('products').select('id, name, price, category_id').eq('venue_id', activeVenueId).eq('is_available', true)
     ])
     setCategories(catRes.data || [])
     setProducts(prodRes.data || [])
