@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
@@ -1042,6 +1042,7 @@ function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssi
 
 function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCall, waiters, onAssignWaiter }) {
   const [showWaiterSelect, setShowWaiterSelect] = useState(false)
+  const [showQR, setShowQR] = useState(false)
   const elapsedMin = Math.round((Date.now() - new Date(order.created_at).getTime()) / 60000)
 
   // Semáforo: verde <15, amarillo 15-30, rojo >30
@@ -1140,6 +1141,13 @@ function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCal
       <div className="flex items-center justify-between gap-2">
         <span className="font-mono text-smoke-300 text-sm">{formatPrice(order.total)}</span>
         <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setShowQR(true)}
+            className="text-smoke-500 border border-carbon-700 text-xs px-2 py-1.5 rounded-full"
+            title="Ver QR del pedido"
+          >
+            QR
+          </button>
           {prevStatus && (
             <button
               onClick={() => onUpdateStatus(order.id, prevStatus)}
@@ -1162,6 +1170,61 @@ function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCal
             </button>
           )}
         </div>
+      </div>
+
+      {showQR && (
+        <div
+          className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-6"
+          onClick={() => setShowQR(false)}
+        >
+          <div
+            className="bg-carbon-900 border border-carbon-700 rounded-3xl p-6 text-center max-w-xs w-full"
+            onClick={e => e.stopPropagation()}
+          >
+            <p className="font-bold text-smoke-200 text-lg mb-1">
+              #{order.daily_number || order.id.slice(0, 6)}
+            </p>
+            <p className="text-smoke-500 text-xs mb-4">📍 {order.location_label}</p>
+            <KanbanQRCode orderId={order.id} />
+            <p className="text-smoke-500 text-xs mt-3">El cliente escanea y sigue su pedido</p>
+            <button
+              onClick={() => setShowQR(false)}
+              className="mt-4 w-full border border-carbon-700 text-smoke-400 py-2.5 rounded-xl text-sm"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function KanbanQRCode({ orderId }) {
+  const canvasRef = useRef(null)
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    if (!canvasRef.current || !orderId) return
+    const url = `https://capyapp.co/pedido/${orderId}`
+    import('qrcode').then(QRCode => {
+      QRCode.toCanvas(canvasRef.current, url, {
+        width: 200,
+        margin: 2,
+        color: { dark: '#1A1A1A', light: '#F5F0EB' }
+      }, (err) => { if (!err) setReady(true) })
+    })
+  }, [orderId])
+
+  return (
+    <div className="flex justify-center">
+      <div className="bg-[#F5F0EB] rounded-2xl p-3 inline-block">
+        <canvas ref={canvasRef} style={{ display: ready ? 'block' : 'none' }} />
+        {!ready && (
+          <div className="w-[200px] h-[200px] bg-carbon-800 rounded-xl flex items-center justify-center">
+            <p className="text-smoke-500 text-xs">Generando QR...</p>
+          </div>
+        )}
       </div>
     </div>
   )
