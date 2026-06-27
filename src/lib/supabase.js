@@ -20,7 +20,13 @@ export const supabaseStaff = createClient(supabaseUrl, supabaseAnonKey, {
   }
 })
 
-// Cliente de Supabase para clientes SIN LOGIN visible. Usa el sistema de
+export const supabaseCamaut = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    storageKey: 'sb-camaut-auth'
+  }
+}) Usa el sistema de
 // "anonymous sign-ins" de Supabase Auth (supabase.auth.signInAnonymously()):
 // crea una sesion real con su propio auth.uid(), sin pedir email ni
 // contraseña, y sin depender de headers custom (que el navegador bloquea
