@@ -4,7 +4,8 @@ import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice } from '../../lib/utils'
 
-export default function ShiftSummaryPage({ embedded }) {
+export default function ShiftSummaryPage({ embedded, venueId: propVenueId }) {
+  const activeVenueId = propVenueId || ACTIVE_VENUE_ID
   const { profile } = useAuth()
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState(null)
@@ -26,7 +27,7 @@ export default function ShiftSummaryPage({ embedded }) {
     const { data: staffData } = await supabaseStaff
       .from('staff_names')
       .select('id')
-      .eq('venue_id', ACTIVE_VENUE_ID)
+      .eq('venue_id', activeVenueId)
       .ilike('full_name', profile.full_name?.trim() || '')
       .single()
 
@@ -46,7 +47,7 @@ export default function ShiftSummaryPage({ embedded }) {
       supabaseStaff
         .from('orders')
         .select('id, total, status, payment_status, created_at')
-        .eq('venue_id', ACTIVE_VENUE_ID)
+        .eq('venue_id', activeVenueId)
         .eq('assigned_staff_id', sid)
         .gte('created_at', startOfDay.toISOString()),
       supabaseStaff
@@ -87,7 +88,7 @@ export default function ShiftSummaryPage({ embedded }) {
     const { data } = await supabaseStaff
       .from('waiter_tips')
       .insert({
-        venue_id: ACTIVE_VENUE_ID,
+        venue_id: activeVenueId,
         staff_id: staffId,
         amount: Number(tipAmount),
         notes: tipNotes.trim() || null
