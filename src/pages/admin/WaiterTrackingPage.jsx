@@ -28,13 +28,33 @@ export default function WaiterTrackingPage() {
   }, [])
 
   async function loadOrders() {
-    const { data } = await supabaseStaff
+    const { data: ordersData } = await supabaseStaff
       .from('orders')
-      .select('id, status, location_label, total, created_at, waiter_called_at, daily_number, assigned_staff:staff_names!orders_assigned_staff_id_fkey(full_name), order_items(id, product_id, product_name, quantity, unit_price, item_notes)')
+      .select('id, status, location_label, total, created_at, waiter_called_at, daily_number, assigned_staff:staff_names!orders_assigned_staff_id_fkey(full_name)')
       .eq('venue_id', ACTIVE_VENUE_ID)
       .in('status', ACTIVE_STATUSES)
       .order('created_at', { ascending: true })
-    setOrders(data || [])
+
+    if (!ordersData?.length) { setOrders([]); setLoading(false); return }
+
+    const orderIds = ordersData.map(o => o.id)
+    const { data: itemsData } = await supabaseStaff
+      .from('order_items')
+      .select('id, order_id, product_id, product_name, quantity, unit_price, item_notes')
+      .in('order_id', orderIds)
+
+    const itemsByOrder = (itemsData || []).reduce((acc, item) => {
+      if (!acc[item.order_id]) acc[item.order_id] = []
+      acc[item.order_id].push(item)
+      return acc
+    }, {})
+
+    const combined = ordersData.map(o => ({
+      ...o,
+      order_items: itemsByOrder[o.id] || []
+    }))
+
+    setOrders(combined)
     setLoading(false)
   }
 
