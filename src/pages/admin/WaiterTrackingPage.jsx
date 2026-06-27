@@ -253,6 +253,7 @@ function EditOrderPage({ order, onClose }) {
       product_name: i.product_name,
       quantity: i.quantity,
       unit_price: i.unit_price,
+      line_total: i.unit_price * i.quantity,
       item_notes: i.item_notes || null
     }))
     if (newItems.length > 0) {
