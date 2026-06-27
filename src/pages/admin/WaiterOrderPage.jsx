@@ -152,7 +152,7 @@ export default function WaiterOrderPage() {
   if (step === 'loading') {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="text-smoke-400 text-sm">Cargando...</p>
+        <p className="text-[#8896A5] text-sm">Cargando...</p>
       </div>
     )
   }
@@ -160,20 +160,20 @@ export default function WaiterOrderPage() {
   if (step === 'choose_waiter') {
     return (
       <div className="px-5 py-6">
-        <p className="text-smoke-300 font-medium text-sm mb-4">¿Quién está tomando el pedido?</p>
+        <p className="text-[#3A4A5A] font-medium text-sm mb-4">¿Quién está tomando el pedido?</p>
         <div className="space-y-2">
           {staffList.map(s => (
             <button
               key={s.id}
               onClick={() => { setSelectedStaff(s); setStep('menu') }}
-              className="w-full bg-carbon-900 border border-carbon-700 rounded-xl px-4 py-3 text-left text-smoke-200 font-medium"
+              className="w-full bg-white border border-black/10 rounded-xl px-4 py-3 text-left text-[#1A2A3A] font-medium"
             >
               {s.full_name}
             </button>
           ))}
         </div>
         {staffList.length === 0 && (
-          <p className="text-smoke-500 text-sm">No hay camareros activos. Agregalos desde "Gestionar camareros".</p>
+          <p className="text-[#8896A5] text-sm">No hay camareros activos. Agregalos desde "Gestionar camareros".</p>
         )}
       </div>
     )
@@ -197,15 +197,15 @@ export default function WaiterOrderPage() {
     return (
       <div className="px-5 py-10 text-center">
         <p className="text-3xl mb-3">✅</p>
-        <p className="text-smoke-200 font-semibold text-lg mb-1">¡Pedido enviado a cocina!</p>
+        <p className="text-[#1A2A3A] font-semibold text-lg mb-1">¡Pedido enviado a cocina!</p>
         {lastOrder?.order?.daily_number && (
-          <div className="my-4 bg-carbon-900 border border-carbon-700 rounded-2xl py-4 px-6 inline-block">
-            <p className="text-smoke-500 text-xs mb-1">Número de pedido</p>
-            <p className="font-mono text-ember-500 text-5xl font-bold">#{lastOrder.order.daily_number}</p>
-            <p className="text-smoke-500 text-xs mt-1">Decíselo al cliente para que siga su pedido</p>
+          <div className="my-4 bg-white border border-black/10 rounded-2xl py-4 px-6 inline-block">
+            <p className="text-[#8896A5] text-xs mb-1">Número de pedido</p>
+            <p className="font-mono text-[#008080] text-5xl font-bold">#{lastOrder.order.daily_number}</p>
+            <p className="text-[#8896A5] text-xs mt-1">Decíselo al cliente para que siga su pedido</p>
           </div>
         )}
-        <p className="text-smoke-400 text-sm mb-6">El pedido entró directo a preparación.</p>
+        <p className="text-[#8896A5] text-sm mb-6">El pedido entró directo a preparación.</p>
 
         {waLink && (
           <a
@@ -223,14 +223,14 @@ export default function WaiterOrderPage() {
 
         <button
           onClick={() => setStep('menu')}
-          className="w-full bg-ember-500 hover:bg-ember-600 text-white font-semibold py-3.5 rounded-xl mb-2"
+          className="w-full bg-[#008080] hover:bg-[#006666] text-white font-semibold py-3.5 rounded-xl mb-2"
         >
           Tomar otro pedido
         </button>
         {profile?.is_shared_account && (
           <button
             onClick={() => { setSelectedStaff(null); setStep('choose_waiter') }}
-            className="w-full border border-carbon-700 text-smoke-400 py-3 rounded-xl text-sm"
+            className="w-full border border-black/10 text-[#8896A5] py-3 rounded-xl text-sm"
           >
             Cambiar camarero
           </button>
@@ -244,14 +244,14 @@ export default function WaiterOrderPage() {
   return (
     <div>
       {/* Header con camarero seleccionado y ubicación */}
-      <div className="px-4 pt-3 pb-2 border-b border-carbon-700 flex items-center justify-between">
+      <div className="px-4 pt-3 pb-2 border-b border-black/10 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-smoke-400 text-xs">🧑‍🍳</span>
-          <span className="text-smoke-300 text-xs font-medium">{selectedStaff?.full_name || 'Sin asignar'}</span>
+          <span className="text-[#8896A5] text-xs">🧑‍🍳</span>
+          <span className="text-[#3A4A5A] text-xs font-medium">{selectedStaff?.full_name || 'Sin asignar'}</span>
           {profile?.is_shared_account && (
             <button
               onClick={() => { setSelectedStaff(null); setStep('choose_waiter') }}
-              className="text-smoke-500 text-[10px] underline"
+              className="text-[#8896A5] text-[10px] underline"
             >
               cambiar
             </button>
@@ -273,15 +273,15 @@ export default function WaiterOrderPage() {
       </div>
 
       {/* Filtro de categorías */}
-      <div className="flex gap-2 overflow-x-auto px-4 py-2 border-b border-carbon-700">
+      <div className="flex gap-2 overflow-x-auto px-4 py-2 border-b border-black/10">
         {categories.map(cat => (
           <button
             key={cat.id}
             onClick={() => setActiveCategory(cat.id)}
             className={`px-3 py-1 rounded-full text-xs whitespace-nowrap border flex-shrink-0 ${
               activeCategory === cat.id
-                ? 'bg-ember-500 text-white border-ember-500'
-                : 'border-carbon-700 text-smoke-400'
+                ? 'bg-[#008080] text-white border-[#008080]'
+                : 'border-black/10 text-[#8896A5]'
             }`}
           >
             {cat.name}
@@ -299,14 +299,14 @@ export default function WaiterOrderPage() {
             <div key={product.id} className="py-2 border-b border-carbon-800">
               <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0 mr-3">
-                  <p className="text-smoke-200 text-sm font-medium truncate">{product.name}</p>
-                  <p className="font-mono text-ember-400 text-xs">{formatPrice(product.price)}</p>
-                  {itemNotes && <p className="text-smoke-500 text-[10px] italic mt-0.5">{itemNotes}</p>}
+                  <p className="text-[#1A2A3A] text-sm font-medium truncate">{product.name}</p>
+                  <p className="font-mono text-[#008080] text-xs">{formatPrice(product.price)}</p>
+                  {itemNotes && <p className="text-[#8896A5] text-[10px] italic mt-0.5">{itemNotes}</p>}
                 </div>
                 {qty === 0 ? (
                   <button
                     onClick={() => { addToCart(product); setActiveNoteProduct(product.id) }}
-                    className="w-8 h-8 bg-ember-500 hover:bg-ember-600 text-white rounded-full text-lg font-bold flex items-center justify-center flex-shrink-0"
+                    className="w-8 h-8 bg-[#008080] hover:bg-[#006666] text-white rounded-full text-lg font-bold flex items-center justify-center flex-shrink-0"
                   >
                     +
                   </button>
@@ -314,20 +314,20 @@ export default function WaiterOrderPage() {
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <button
                       onClick={() => { removeFromCart(product); if (qty <= 1) setActiveNoteProduct(null) }}
-                      className="w-8 h-8 border border-carbon-700 text-smoke-300 rounded-full text-lg font-bold flex items-center justify-center"
+                      className="w-8 h-8 border border-black/10 text-[#3A4A5A] rounded-full text-lg font-bold flex items-center justify-center"
                     >
                       −
                     </button>
-                    <span className="text-smoke-200 text-sm font-semibold w-4 text-center">{qty}</span>
+                    <span className="text-[#1A2A3A] text-sm font-semibold w-4 text-center">{qty}</span>
                     <button
                       onClick={() => addToCart(product)}
-                      className="w-8 h-8 bg-ember-500 hover:bg-ember-600 text-white rounded-full text-lg font-bold flex items-center justify-center"
+                      className="w-8 h-8 bg-[#008080] hover:bg-[#006666] text-white rounded-full text-lg font-bold flex items-center justify-center"
                     >
                       +
                     </button>
                     <button
                       onClick={() => setActiveNoteProduct(isNoteOpen ? null : product.id)}
-                      className="w-8 h-8 border border-carbon-700 text-smoke-400 rounded-full text-xs flex items-center justify-center"
+                      className="w-8 h-8 border border-black/10 text-[#8896A5] rounded-full text-xs flex items-center justify-center"
                     >
                       📝
                     </button>
@@ -353,8 +353,8 @@ export default function WaiterOrderPage() {
                         }}
                         className={`text-xs px-2.5 py-1 rounded-full border ${
                           active
-                            ? 'bg-ember-500 text-white border-ember-500'
-                            : 'border-carbon-700 text-smoke-400'
+                            ? 'bg-[#008080] text-white border-[#008080]'
+                            : 'border-black/10 text-[#8896A5]'
                         }`}
                       >
                         {qn.label}
@@ -370,10 +370,10 @@ export default function WaiterOrderPage() {
 
       {/* Resumen y confirmar */}
       {cartItems.length > 0 && (
-        <div className="px-4 pt-3 pb-4 border-t border-carbon-700 space-y-3">
+        <div className="px-4 pt-3 pb-4 border-t border-black/10 space-y-3">
           <div className="space-y-1 max-h-24 overflow-y-auto">
             {cartItems.map(i => (
-              <div key={i.product.id} className="flex justify-between text-xs text-smoke-400">
+              <div key={i.product.id} className="flex justify-between text-xs text-[#8896A5]">
                 <span>{i.qty}× {i.product.name}</span>
                 <span className="font-mono">{formatPrice(i.product.price * i.qty)}</span>
               </div>
@@ -388,11 +388,11 @@ export default function WaiterOrderPage() {
           />
           {error && <p className="text-red-700 text-xs">{error}</p>}
           <div className="flex items-center justify-between">
-            <span className="font-mono text-ember-400 font-semibold">{formatPrice(subtotal)}</span>
+            <span className="font-mono text-[#008080] font-semibold">{formatPrice(subtotal)}</span>
             <button
               onClick={handleConfirm}
               disabled={submitting || !selectedZone}
-              className="bg-ember-500 hover:bg-ember-600 disabled:opacity-50 text-white font-semibold px-6 py-2.5 rounded-xl text-sm"
+              className="bg-[#008080] hover:bg-[#006666] disabled:opacity-50 text-white font-semibold px-6 py-2.5 rounded-xl text-sm"
             >
               {submitting ? 'Enviando...' : 'Enviar a cocina →'}
             </button>
