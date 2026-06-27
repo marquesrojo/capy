@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabaseCamaut } from '../../lib/supabase'
+import { supabaseCamaut, supabaseStaff } from '../../lib/supabase'
 import WaiterModePage from '../admin/WaiterModePage'
 
 export default function CamautAppPage() {
@@ -26,6 +26,12 @@ export default function CamautAppPage() {
       navigate('/camaut/login')
       return
     }
+
+    // Sincronizar sesión con supabaseStaff para que WaiterModePage funcione
+    await supabaseStaff.auth.setSession({
+      access_token: session.access_token,
+      refresh_token: session.refresh_token
+    })
 
     setAuthorized(true)
     setChecking(false)
