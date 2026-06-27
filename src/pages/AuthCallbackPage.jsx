@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabaseStaff } from '../lib/supabase'
+import { supabaseCamaut } from '../lib/supabase'
 
 export default function AuthCallbackPage() {
   const navigate = useNavigate()
@@ -11,7 +11,7 @@ export default function AuthCallbackPage() {
       // Dar tiempo a Supabase para procesar el token del hash
       await new Promise(r => setTimeout(r, 1000))
 
-      const { data: { session }, error } = await supabaseStaff.auth.getSession()
+      const { data: { session }, error } = await supabaseCamaut.auth.getSession()
 
       if (error || !session) {
         // Verificar si hay error en el hash
@@ -25,7 +25,7 @@ export default function AuthCallbackPage() {
         return
       }
 
-      const { data: profile } = await supabaseStaff
+      const { data: profile } = await supabaseCamaut
         .from('profiles')
         .select('role, is_autonomous')
         .eq('id', session.user.id)
