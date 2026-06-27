@@ -79,6 +79,8 @@ export default function WaiterTrackingPage() {
     setAssigningOrder(null)
     loadOrders()
   }
+
+  async function approveOrder(orderId) {
     setApproving(orderId)
     await supabaseStaff.from('orders').update({ status: 'recibido' }).eq('id', orderId)
     setApproving(null)
