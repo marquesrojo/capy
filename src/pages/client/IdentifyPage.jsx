@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabaseCustomer, ACTIVE_VENUE_ID } from '../../lib/supabase'
 
@@ -7,6 +7,14 @@ export default function IdentifyPage() {
   const [orderNumber, setOrderNumber] = useState('')
   const [finding, setFinding] = useState(false)
   const [error, setError] = useState('')
+
+  // Detectar si viene de un link de confirmación de email
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash && (hash.includes('access_token') || hash.includes('error'))) {
+      navigate('/auth/callback' + hash)
+    }
+  }, [])
 
   async function handleFindOrder(e) {
     e.preventDefault()
