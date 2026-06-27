@@ -29,6 +29,7 @@ import QuickNotesPage from './pages/admin/QuickNotesPage'
 import QRPage from './pages/admin/QRPage'
 import ShiftSummaryPage from './pages/admin/ShiftSummaryPage'
 import MercadoPagoReturnPage from './pages/client/MercadoPagoReturnPage'
+import AuthCallbackPage from './pages/AuthCallbackPage'
 import CamautLandingPage from './pages/camaut/CamautLandingPage'
 import CamautRegisterPage from './pages/camaut/CamautRegisterPage'
 import CamautLoginPage from './pages/camaut/CamautLoginPage'
@@ -205,6 +206,7 @@ export default function App() {
               />
 
               <Route path="/pedido-pagado" element={<MercadoPagoReturnPage />} />
+              <Route path="/auth/callback" element={<AuthCallbackPage />} />
               <Route path="/camaut" element={<CamautLandingPage />} />
               <Route path="/camaut/registro" element={<CamautRegisterPage />} />
               <Route path="/camaut/login" element={<CamautLoginPage />} />
