@@ -16,17 +16,6 @@ export default function CamautAppPage() {
     const { data: { session } } = await supabaseCamaut.auth.getSession()
     if (!session) { navigate('/camaut/login'); return }
 
-    const { data: profile } = await supabaseCamaut
-      .from('profiles')
-      .select('role, is_autonomous, venue_id')
-      .eq('id', session.user.id)
-      .single()
-
-    if (!profile || !profile.is_autonomous) {
-      navigate('/camaut/login')
-      return
-    }
-
     // Sincronizar sesión con supabaseStaff para que WaiterModePage funcione
     await supabaseStaff.auth.setSession({
       access_token: session.access_token,
