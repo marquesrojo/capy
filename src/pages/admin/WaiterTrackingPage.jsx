@@ -17,9 +17,12 @@ export default function WaiterTrackingPage() {
   const [loading, setLoading] = useState(true)
   const [approving, setApproving] = useState(null)
   const [editingOrder, setEditingOrder] = useState(null)
+  const [staffList, setStaffList] = useState([])
+  const [assigningOrder, setAssigningOrder] = useState(null)
 
   useEffect(() => {
     loadOrders()
+    loadStaff()
     const channel = supabaseStaff
       .channel('waiter-tracking')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `venue_id=eq.${ACTIVE_VENUE_ID}` }, () => loadOrders())
@@ -58,7 +61,24 @@ export default function WaiterTrackingPage() {
     setLoading(false)
   }
 
-  async function approveOrder(orderId) {
+  async function loadStaff() {
+    const { data } = await supabaseStaff
+      .from('staff_names')
+      .select('id, full_name')
+      .eq('venue_id', ACTIVE_VENUE_ID)
+      .eq('is_active', true)
+      .order('full_name')
+    setStaffList(data || [])
+  }
+
+  async function assignStaff(orderId, staffId) {
+    await supabaseStaff
+      .from('orders')
+      .update({ assigned_staff_id: staffId })
+      .eq('id', orderId)
+    setAssigningOrder(null)
+    loadOrders()
+  }
     setApproving(orderId)
     await supabaseStaff.from('orders').update({ status: 'recibido' }).eq('id', orderId)
     setApproving(null)
@@ -148,6 +168,16 @@ export default function WaiterTrackingPage() {
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-[#1A2A3A] text-sm font-semibold">{formatPrice(order.total)}</span>
                     <div className="flex items-center gap-2">
+                      {order.assigned_staff?.full_name ? (
+                        <span className="text-[#8896A5] text-[10px]">🧑‍🍳 {order.assigned_staff.full_name}</span>
+                      ) : (
+                        <button
+                          onClick={() => setAssigningOrder(order.id)}
+                          className="border border-[#008080]/50 text-[#008080] text-xs font-semibold px-3 py-1 rounded-full"
+                        >
+                          + Asignarme
+                        </button>
+                      )}
                       {canEdit && (
                         <button
                           onClick={() => setEditingOrder(order)}
@@ -167,6 +197,30 @@ export default function WaiterTrackingPage() {
                       )}
                     </div>
                   </div>
+
+                  {/* Selector de camarero */}
+                  {assigningOrder === order.id && (
+                    <div className="mt-2 bg-[#F8FAFC] border border-black/10 rounded-xl p-2">
+                      <p className="text-[10px] text-[#8896A5] mb-2">¿Quién sos?</p>
+                      <div className="space-y-1">
+                        {staffList.map(s => (
+                          <button
+                            key={s.id}
+                            onClick={() => assignStaff(order.id, s.id)}
+                            className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-[#1A2A3A] hover:bg-[#008080]/10"
+                          >
+                            {s.full_name}
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => setAssigningOrder(null)}
+                        className="w-full text-center text-[#8896A5] text-xs underline mt-2"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  )}
                 </div>
               )
             })}
