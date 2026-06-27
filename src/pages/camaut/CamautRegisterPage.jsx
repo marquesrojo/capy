@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { supabaseStaff } from '../../lib/supabase'
+import { supabaseCamaut } from '../../lib/supabase'
 
 export default function CamautRegisterPage() {
   const navigate = useNavigate()
@@ -33,7 +33,7 @@ export default function CamautRegisterPage() {
 
     try {
       // 1. Crear usuario en Supabase Auth
-      const { data: authData, error: authError } = await supabaseStaff.auth.signUp({
+      const { data: authData, error: authError } = await supabaseCamaut.auth.signUp({
         email: email.trim(),
         password,
         options: {
@@ -46,7 +46,7 @@ export default function CamautRegisterPage() {
       if (!userId) throw new Error('No se pudo crear el usuario')
 
       // Usar Edge Function para crear venue y staff_names (bypasea RLS)
-      const { data: { session } } = await supabaseStaff.auth.getSession()
+      const { data: { session } } = await supabaseCamaut.auth.getSession()
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/register-camaut`, {
         method: 'POST',
         headers: {
