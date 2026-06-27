@@ -26,8 +26,9 @@ export const supabaseCamaut = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     storageKey: 'sb-camaut-auth'
   }
-}) Usa el sistema de
-// "anonymous sign-ins" de Supabase Auth (supabase.auth.signInAnonymously()):
+})
+
+// Cliente de Supabase para clientes SIN LOGIN visible.
 // crea una sesion real con su propio auth.uid(), sin pedir email ni
 // contraseña, y sin depender de headers custom (que el navegador bloquea
 // por una limitacion de CORS de PostgREST que no se puede configurar).
