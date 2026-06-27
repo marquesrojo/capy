@@ -61,7 +61,7 @@ export default function WaiterTrackingPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="text-smoke-400 text-sm">Cargando...</p>
+        <p className="text-[#8896A5] text-sm">Cargando...</p>
       </div>
     )
   }
@@ -69,7 +69,7 @@ export default function WaiterTrackingPage() {
   if (orders.length === 0) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="text-smoke-500 text-sm">No hay pedidos activos en este momento.</p>
+        <p className="text-[#8896A5] text-sm">No hay pedidos activos en este momento.</p>
       </div>
     )
   }
@@ -87,7 +87,7 @@ export default function WaiterTrackingPage() {
         <div key={status}>
           <div className="flex items-center gap-2 mb-2">
             <span>{STATUS_EMOJI[status]}</span>
-            <p className="text-smoke-400 text-xs font-semibold uppercase tracking-wide">
+            <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide">
               {STATUS_LABELS[status]} · {items.length}
             </p>
           </div>
@@ -95,37 +95,37 @@ export default function WaiterTrackingPage() {
             {items.map(order => {
               const elapsedMin = Math.round((Date.now() - new Date(order.created_at).getTime()) / 60000)
               return (
-                <div key={order.id} className={`bg-carbon-900 border rounded-xl px-3 py-3 ${order.waiter_called_at ? 'border-amber-500/40' : 'border-carbon-700'}`}>
+                <div key={order.id} className={`bg-white border rounded-xl px-3 py-3 ${order.waiter_called_at ? 'border-[#008080]/20' : 'border-black/10'}`}>
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-ember-400 text-xs">{order.daily_number ? `#${order.daily_number}` : `#${order.id.slice(0, 6)}`}</span>
-                      <span className="text-smoke-400 text-xs">📍 {order.location_label}</span>
+                      <span className="font-mono text-[#008080] text-xs">{order.daily_number ? `#${order.daily_number}` : `#${order.id.slice(0, 6)}`}</span>
+                      <span className="text-[#8896A5] text-xs">📍 {order.location_label}</span>
                     </div>
-                    <span className={`text-xs ${elapsedMin > 15 ? 'text-red-700' : 'text-smoke-500'}`}>
+                    <span className={`text-xs ${elapsedMin > 15 ? 'text-red-700' : 'text-[#8896A5]'}`}>
                       {elapsedMin} min
                     </span>
                   </div>
                   {order.waiter_called_at && (
-                    <div className="flex items-center justify-between mb-1.5 bg-amber-500/10 rounded-lg px-2 py-1">
+                    <div className="flex items-center justify-between mb-1.5 bg-[#008080]/10 rounded-lg px-2 py-1">
                       <span className="text-amber-700 text-xs font-semibold">🔔 Te están llamando</span>
                       <button
                         onClick={() => dismissCall(order.id)}
-                        className="text-smoke-500 text-[10px] underline"
+                        className="text-[#8896A5] text-[10px] underline"
                       >
                         Atendido
                       </button>
                     </div>
                   )}
-                  <div className="text-smoke-400 text-xs space-y-0.5">
+                  <div className="text-[#8896A5] text-xs space-y-0.5">
                     {(order.order_items || []).map((item, i) => (
                       <p key={i}>{item.quantity}× {item.product_name}</p>
                     ))}
                   </div>
                   <div className="flex items-center justify-between mt-2">
-                    <span className="font-mono text-smoke-400 text-xs">{formatPrice(order.total)}</span>
+                    <span className="font-mono text-[#8896A5] text-xs">{formatPrice(order.total)}</span>
                     <div className="flex items-center gap-2">
                       {order.assigned_staff?.full_name && (
-                        <span className="text-smoke-500 text-[10px]">🧑‍🍳 {order.assigned_staff.full_name}</span>
+                        <span className="text-[#8896A5] text-[10px]">🧑‍🍳 {order.assigned_staff.full_name}</span>
                       )}
                       {order.status === 'pendiente_aprobacion' && (
                         <button
