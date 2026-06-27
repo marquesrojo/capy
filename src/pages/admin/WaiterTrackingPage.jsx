@@ -223,6 +223,8 @@ function EditOrderPage({ order, onClose }) {
     await supabaseStaff.from('orders').update({ total: newTotal }).eq('id', order.id)
 
     setSaving(false)
+    // Pequeño delay para que el realtime no interfiera
+    await new Promise(r => setTimeout(r, 300))
     onClose()
   }
 
