@@ -8,16 +8,23 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     async function handleCallback() {
-      // Supabase lee automáticamente el hash de la URL
+      // Dar tiempo a Supabase para procesar el token del hash
+      await new Promise(r => setTimeout(r, 1000))
+
       const { data: { session }, error } = await supabaseStaff.auth.getSession()
 
       if (error || !session) {
-        setError('No pudimos verificar tu cuenta. Intentá de nuevo.')
+        // Verificar si hay error en el hash
+        const hash = window.location.hash
+        if (hash.includes('error=access_denied')) {
+          setError('El link expiró. Registrate de nuevo.')
+        } else {
+          setError('No pudimos verificar tu cuenta. Intentá de nuevo.')
+        }
         setTimeout(() => navigate('/camaut/login'), 3000)
         return
       }
 
-      // Ver si es camarero autónomo o admin
       const { data: profile } = await supabaseStaff
         .from('profiles')
         .select('role, is_autonomous')
