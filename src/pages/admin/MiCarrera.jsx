@@ -3,7 +3,8 @@ import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { LEVELS, BADGES, getLevel, getNextLevel, getXPProgress } from '../../lib/xpUtils'
 
-export default function MiCarrera() {
+export default function MiCarrera({ venueId: propVenueId }) {
+  const activeVenueId = propVenueId || ACTIVE_VENUE_ID
   const { profile } = useAuth()
   const [staff, setStaff] = useState(null)
   const [badges, setBadges] = useState([])
@@ -22,7 +23,7 @@ export default function MiCarrera() {
     const { data: staffData } = await supabaseStaff
       .from('staff_names')
       .select('*')
-      .eq('venue_id', ACTIVE_VENUE_ID)
+      .eq('venue_id', activeVenueId)
       .ilike('full_name', profile.full_name?.trim() || '')
       .single()
 
