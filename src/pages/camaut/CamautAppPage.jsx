@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabaseStaff } from '../../lib/supabase'
+import { supabaseCamaut } from '../../lib/supabase'
 import WaiterModePage from '../admin/WaiterModePage'
 
 export default function CamautAppPage() {
@@ -13,10 +13,10 @@ export default function CamautAppPage() {
   }, [])
 
   async function checkAuth() {
-    const { data: { session } } = await supabaseStaff.auth.getSession()
+    const { data: { session } } = await supabaseCamaut.auth.getSession()
     if (!session) { navigate('/camaut/login'); return }
 
-    const { data: profile } = await supabaseStaff
+    const { data: profile } = await supabaseCamaut
       .from('profiles')
       .select('role, is_autonomous, venue_id')
       .eq('id', session.user.id)
