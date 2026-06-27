@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { formatPrice, STATUS_LABELS } from '../../lib/utils'
 
@@ -19,6 +19,7 @@ export default function WaiterTrackingPage() {
   const [editingOrder, setEditingOrder] = useState(null)
   const [staffList, setStaffList] = useState([])
   const [assigningOrder, setAssigningOrder] = useState(null)
+  const [qrOrder, setQrOrder] = useState(null)
 
   useEffect(() => {
     loadOrders()
@@ -124,6 +125,31 @@ export default function WaiterTrackingPage() {
 
   return (
     <div className="px-4 py-4 space-y-4">
+      {/* Modal QR */}
+      {qrOrder && (
+        <div
+          className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-6"
+          onClick={() => setQrOrder(null)}
+        >
+          <div
+            className="bg-white rounded-3xl p-6 text-center max-w-xs w-full"
+            onClick={e => e.stopPropagation()}
+          >
+            <p className="font-bold text-[#1A2A3A] text-lg mb-1">
+              #{qrOrder.daily_number || qrOrder.id.slice(0, 6)}
+            </p>
+            <p className="text-[#8896A5] text-xs mb-4">📍 {qrOrder.location_label}</p>
+            <OrderQRCode orderId={qrOrder.id} />
+            <p className="text-[#8896A5] text-xs mt-3">El cliente escanea y sigue su pedido</p>
+            <button
+              onClick={() => setQrOrder(null)}
+              className="mt-4 w-full border border-black/10 text-[#8896A5] py-2.5 rounded-xl text-sm"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
       {Object.entries(grouped).map(([status, items]) => (
         <div key={status}>
           <div className="flex items-center gap-2 mb-2">
@@ -188,6 +214,12 @@ export default function WaiterTrackingPage() {
                           Editar
                         </button>
                       )}
+                      <button
+                        onClick={() => setQrOrder(order)}
+                        className="border border-black/10 text-[#8896A5] text-xs font-semibold px-3 py-1 rounded-full"
+                      >
+                        QR
+                      </button>
                       {order.status === 'pendiente_aprobacion' && (
                         <button
                           onClick={() => approveOrder(order.id)}
@@ -425,6 +457,35 @@ function EditOrderPage({ order, onClose }) {
         >
           {saving ? 'Guardando...' : 'Confirmar cambios →'}
         </button>
+      </div>
+    </div>
+  )
+}
+function OrderQRCode({ orderId }) {
+  const canvasRef = useRef(null)
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    if (!canvasRef.current || !orderId) return
+    const url = `https://capyapp.co/pedido/${orderId}`
+    import('qrcode').then(QRCode => {
+      QRCode.toCanvas(canvasRef.current, url, {
+        width: 200,
+        margin: 2,
+        color: { dark: '#1A2A3A', light: '#FFFFFF' }
+      }, (err) => { if (!err) setReady(true) })
+    })
+  }, [orderId])
+
+  return (
+    <div className="flex justify-center">
+      <div className="bg-white border border-black/8 rounded-2xl p-3 inline-block">
+        <canvas ref={canvasRef} style={{ display: ready ? 'block' : 'none' }} />
+        {!ready && (
+          <div className="w-[200px] h-[200px] bg-[#F0F4F8] rounded-xl flex items-center justify-center">
+            <p className="text-[#8896A5] text-xs">Generando QR...</p>
+          </div>
+        )}
       </div>
     </div>
   )
