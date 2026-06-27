@@ -194,6 +194,11 @@ function AdminDashboardInner() {
         { event: '*', schema: 'public', table: 'orders', filter: `venue_id=eq.${ACTIVE_VENUE_ID}` },
         () => load({ silent: true })
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'order_items' },
+        () => load({ silent: true })
+      )
       .subscribe()
 
     return () => supabaseStaff.removeChannel(channel)
