@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
+import { supabaseCamaut, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice } from '../../lib/utils'
 
@@ -54,7 +54,7 @@ function PerfilTab({ profile }) {
 
   async function loadStaff() {
     if (!profile) return
-    const { data } = await supabaseStaff
+    const { data } = await supabaseCamaut
       .from('staff_names')
       .select('*')
       .ilike('full_name', profile.full_name?.trim() || '')
@@ -72,7 +72,7 @@ function PerfilTab({ profile }) {
     e.preventDefault()
     if (!staffData) return
     setSaving(true)
-    await supabaseStaff
+    await supabaseCamaut
       .from('staff_names')
       .update({
         full_name: fullName.trim(),
@@ -140,7 +140,7 @@ function CartaTab({ profile }) {
 
   async function loadCarta() {
     if (!profile) return
-    const { data: profileData } = await supabaseStaff
+    const { data: profileData } = await supabaseCamaut
       .from('profiles')
       .select('venue_id')
       .eq('id', profile.id)
@@ -150,8 +150,8 @@ function CartaTab({ profile }) {
     setVenueId(profileData.venue_id)
 
     const [catRes, prodRes] = await Promise.all([
-      supabaseStaff.from('categories').select('*').eq('venue_id', profileData.venue_id).order('sort_order'),
-      supabaseStaff.from('products').select('*').eq('venue_id', profileData.venue_id).order('name')
+      supabaseCamaut.from('categories').select('*').eq('venue_id', profileData.venue_id).order('sort_order'),
+      supabaseCamaut.from('products').select('*').eq('venue_id', profileData.venue_id).order('name')
     ])
     setCategories(catRes.data || [])
     setProducts(prodRes.data || [])
@@ -161,7 +161,7 @@ function CartaTab({ profile }) {
   async function addCategory() {
     if (!newCatName.trim() || !venueId) return
     setAddingCat(true)
-    const { data } = await supabaseStaff
+    const { data } = await supabaseCamaut
       .from('categories')
       .insert({ venue_id: venueId, name: newCatName.trim(), kind: 'comida', sort_order: categories.length })
       .select().single()
@@ -173,7 +173,7 @@ function CartaTab({ profile }) {
   async function addProduct() {
     if (!newProd.name.trim() || !newProd.price || !newProd.category_id || !venueId) return
     setAddingProd(true)
-    const { data } = await supabaseStaff
+    const { data } = await supabaseCamaut
       .from('products')
       .insert({
         venue_id: venueId,
@@ -189,12 +189,12 @@ function CartaTab({ profile }) {
   }
 
   async function toggleProduct(product) {
-    await supabaseStaff.from('products').update({ is_available: !product.is_available }).eq('id', product.id)
+    await supabaseCamaut.from('products').update({ is_available: !product.is_available }).eq('id', product.id)
     setProducts(prev => prev.map(p => p.id === product.id ? { ...p, is_available: !p.is_available } : p))
   }
 
   async function deleteProduct(id) {
-    await supabaseStaff.from('products').delete().eq('id', id)
+    await supabaseCamaut.from('products').delete().eq('id', id)
     setProducts(prev => prev.filter(p => p.id !== id))
   }
 
@@ -318,11 +318,11 @@ function WhatsappTab({ profile }) {
 
   async function loadVenue() {
     if (!profile) return
-    const { data: profileData } = await supabaseStaff
+    const { data: profileData } = await supabaseCamaut
       .from('profiles').select('venue_id').eq('id', profile.id).single()
     if (!profileData?.venue_id) return
     setVenueId(profileData.venue_id)
-    const { data } = await supabaseStaff
+    const { data } = await supabaseCamaut
       .from('venues').select('whatsapp_number').eq('id', profileData.venue_id).single()
     if (data) setWhatsapp(data.whatsapp_number || '')
   }
@@ -331,7 +331,7 @@ function WhatsappTab({ profile }) {
     e.preventDefault()
     if (!venueId) return
     setSaving(true)
-    await supabaseStaff.from('venues').update({ whatsapp_number: whatsapp.trim() }).eq('id', venueId)
+    await supabaseCamaut.from('venues').update({ whatsapp_number: whatsapp.trim() }).eq('id', venueId)
     setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
