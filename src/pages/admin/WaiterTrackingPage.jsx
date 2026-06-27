@@ -54,7 +54,10 @@ export default function WaiterTrackingPage() {
     return (
       <EditOrderPage
         order={editingOrder}
-        onClose={() => { setEditingOrder(null); loadOrders() }}
+        onClose={async () => {
+          await loadOrders()
+          setEditingOrder(null)
+        }}
       />
     )
   }
@@ -222,9 +225,14 @@ function EditOrderPage({ order, onClose }) {
     await supabaseStaff.from('order_items').insert(newItems)
     await supabaseStaff.from('orders').update({ total: newTotal }).eq('id', order.id)
 
+    // Verificar que el insert funcionó
+    const { data: savedItems } = await supabaseStaff
+      .from('order_items')
+      .select('id, product_name, quantity')
+      .eq('order_id', order.id)
+
     setSaving(false)
-    // Pequeño delay para que el realtime no interfiera
-    await new Promise(r => setTimeout(r, 300))
+    await new Promise(r => setTimeout(r, 500))
     onClose()
   }
 
