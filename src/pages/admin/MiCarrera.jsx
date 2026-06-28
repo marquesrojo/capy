@@ -24,7 +24,6 @@ export default function MiCarrera({ venueId: propVenueId }) {
       .from('staff_names')
       .select('*')
       .eq('venue_id', activeVenueId)
-      .ilike('full_name', profile.full_name?.trim() || '')
       .single()
 
     if (staffData) {
