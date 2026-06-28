@@ -171,10 +171,12 @@ function CartaTab({ profile }) {
   }
 
   async function deleteCategory(id) {
-    await supabaseStaff.from('categories').delete().eq('id', id)
+    await supabaseCamaut.from('categories').delete().eq('id', id)
     setCategories(prev => prev.filter(c => c.id !== id))
     setProducts(prev => prev.filter(p => p.category_id !== id))
   }
+
+  async function addProduct() {
     if (!newProd.name.trim() || !newProd.price || !newProd.category_id || !venueId) return
     setAddingProd(true)
     const { data } = await supabaseCamaut
@@ -193,6 +195,14 @@ function CartaTab({ profile }) {
   }
 
   async function toggleProduct(product) {
+    await supabaseCamaut.from('products').update({ is_available: !product.is_available }).eq('id', product.id)
+    setProducts(prev => prev.map(p => p.id === product.id ? { ...p, is_available: !p.is_available } : p))
+  }
+
+  async function deleteProduct(id) {
+    await supabaseCamaut.from('products').delete().eq('id', id)
+    setProducts(prev => prev.filter(p => p.id !== id))
+  }
     await supabaseCamaut.from('products').update({ is_available: !product.is_available }).eq('id', product.id)
     setProducts(prev => prev.map(p => p.id === product.id ? { ...p, is_available: !p.is_available } : p))
   }
