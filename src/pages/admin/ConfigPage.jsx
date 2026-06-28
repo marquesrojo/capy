@@ -21,11 +21,12 @@ const CONFIG_ITEMS = [
     icon: <svg {...ICON_PROPS}><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.86 9.86 0 0 0 12.04 2" fill="none"/></svg>
   },
   {
-    to: '/admin/camareros', label: 'Camareros', desc: 'Gestión de camareros vinculados, nombres y usuarios',
+    to: '/admin/camareros', label: 'Usuarios', desc: 'Admins y camareros Capy vinculados al local',
     icon: <svg {...ICON_PROPS}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
   },
   {
     to: '/admin/notas-rapidas', label: 'Notas rápidas', desc: 'Chips de aclaraciones al tomar pedidos',
+    icon: <svg {...ICON_PROPS}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
   },
   {
     to: '/admin/qr', label: 'Códigos QR', desc: 'Generá y descargá los QR para clientes y camareros',
