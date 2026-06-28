@@ -21,12 +21,8 @@ const CONFIG_ITEMS = [
     icon: <svg {...ICON_PROPS}><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.86 9.86 0 0 0 12.04 2" fill="none"/></svg>
   },
   {
-    to: '/admin/camareros', label: 'Camareros', desc: 'Nombres para asignar pedidos y alias de propina',
+    to: '/admin/camareros', label: 'Camareros', desc: 'Gestión de camareros vinculados, nombres y usuarios',
     icon: <svg {...ICON_PROPS}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-  },
-  {
-    to: '/admin/usuarios', label: 'Usuarios', desc: 'Cuentas de acceso (admin y camareros con login)', adminOnly: true,
-    icon: <svg {...ICON_PROPS}><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
   },
   {
     to: '/admin/notas-rapidas', label: 'Notas rápidas', desc: 'Chips de aclaraciones al tomar pedidos',
