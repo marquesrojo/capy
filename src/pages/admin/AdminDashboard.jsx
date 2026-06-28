@@ -1032,7 +1032,6 @@ function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssi
           </div>
         )}
       </div>
-      </div>
     </div>
   )
 }
