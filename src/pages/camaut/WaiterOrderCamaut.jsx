@@ -9,6 +9,8 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
   const [zones, setZones] = useState([])
+  const [noteOpenMap, setNoteOpenMap] = useState({})
+  const [quickNotes, setQuickNotes] = useState([])
   const [activeCategory, setActiveCategory] = useState(null)
   const [cart, setCart] = useState({})
   const [selectedZone, setSelectedZone] = useState(null)
@@ -34,37 +36,45 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
 
   async function loadCarta() {
     setLoading(true)
-    const [catRes, prodRes, venueRes, staffRes, zoneRes] = await Promise.all([
+    const [catRes, prodRes, venueRes, staffRes, zoneRes, notesRes] = await Promise.all([
       supabaseStaff.from('categories').select('id, name').eq('venue_id', activeVenueId).order('sort_order'),
       supabaseStaff.from('products').select('id, name, price, category_id').eq('venue_id', activeVenueId).eq('is_available', true),
       supabaseStaff.from('venues').select('whatsapp_number').eq('id', activeVenueId).single(),
       supabaseStaff.from('staff_names').select('id').eq('venue_id', venueId).single(),
-      supabaseStaff.from('venue_zones').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order')
+      supabaseStaff.from('venue_zones').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order'),
+      supabaseStaff.from('quick_notes').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order')
     ])
     setCategories(catRes.data || [])
     setProducts(prodRes.data || [])
     setWhatsapp(venueRes.data?.whatsapp_number || '')
     setStaffId(staffRes.data?.id || null)
     setZones(zoneRes.data || [])
+    setQuickNotes(notesRes.data || [])
     if (catRes.data?.length) setActiveCategory(catRes.data[0].id)
     setLoading(false)
   }
 
   function changeQty(productId, delta) {
     setCart(prev => {
-      const current = prev[productId] || 0
-      const next = current + delta
+      const current = prev[productId]
+      const currentQty = typeof current === 'object' ? current.qty : (current || 0)
+      const next = currentQty + delta
       if (next <= 0) {
         const { [productId]: _, ...rest } = prev
         return rest
+      }
+      if (typeof current === 'object') {
+        return { ...prev, [productId]: { ...current, qty: next } }
       }
       return { ...prev, [productId]: next }
     })
   }
 
-  const cartItems = Object.entries(cart).map(([productId, qty]) => {
+  const cartItems = Object.entries(cart).map(([productId, val]) => {
     const product = products.find(p => p.id === productId)
-    return { product, qty }
+    const qty = typeof val === 'object' ? val.qty : val
+    const notes = typeof val === 'object' ? val.notes : ''
+    return { product, qty, notes }
   }).filter(i => i.product)
 
   const total = cartItems.reduce((sum, i) => sum + i.product.price * i.qty, 0)
@@ -92,7 +102,8 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
             product_id: i.product.id,
             product_name: i.product.name,
             quantity: i.qty,
-            unit_price: i.product.price
+            unit_price: i.product.price,
+            item_notes: i.notes || null
           }))
         })
       })
@@ -261,27 +272,81 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
 
       {/* Productos */}
       <div className="px-4 space-y-2 mt-1">
-        {visibleProducts.map(product => (
-          <div key={product.id} className="bg-white rounded-xl px-4 py-3 flex items-center justify-between border border-black/5 shadow-sm">
-            <div>
-              <p className="text-sm font-semibold text-[#1A2A3A]">{product.name}</p>
-              <p className="text-xs text-[#008080] font-semibold">{formatPrice(product.price)}</p>
+        {visibleProducts.map(product => {
+          const qty = cart[product.id]?.qty || cart[product.id] || 0
+          const itemNotes = cart[product.id]?.notes || ''
+          const noteOpen = noteOpenMap[product.id] || false
+          return (
+            <div key={product.id} className="bg-white rounded-xl px-4 py-3 border border-black/5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-[#1A2A3A]">{product.name}</p>
+                  <p className="text-xs text-[#008080] font-semibold">{formatPrice(product.price)}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {qty > 0 && (
+                    <button
+                      onClick={() => setNoteOpenMap(prev => ({ ...prev, [product.id]: !prev[product.id] }))}
+                      className={`text-[10px] px-2 py-1 rounded-lg border ${
+                        itemNotes ? 'border-[#008080] text-[#008080]' : 'border-black/10 text-[#8896A5]'
+                      }`}
+                    >
+                      {itemNotes ? '📝' : '+ nota'}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => changeQty(product.id, -1)}
+                    className="w-7 h-7 rounded-lg border border-black/10 bg-[#F8FAFC] text-[#3A4A5A] font-bold text-sm flex items-center justify-center"
+                  >−</button>
+                  <span className="font-bold text-[#1A2A3A] text-sm w-5 text-center">{qty}</span>
+                  <button
+                    onClick={() => changeQty(product.id, 1)}
+                    className="w-7 h-7 rounded-lg bg-[#4DD0E1] text-white font-bold text-sm flex items-center justify-center"
+                  >+</button>
+                </div>
+              </div>
+              {noteOpen && qty > 0 && quickNotes.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {quickNotes.map(qn => {
+                    const active = itemNotes.includes(qn.label)
+                    return (
+                      <button
+                        key={qn.id}
+                        onClick={() => {
+                          setCart(prev => {
+                            const current = prev[product.id] || { qty: 1 }
+                            const currentNotes = current.notes || ''
+                            const newNotes = active
+                              ? currentNotes.replace(qn.label, '').replace(/,\s*,/g, ',').replace(/^,\s*|,\s*$/g, '').trim()
+                              : currentNotes ? `${currentNotes}, ${qn.label}` : qn.label
+                            return { ...prev, [product.id]: { ...current, product, notes: newNotes } }
+                          })
+                        }}
+                        className={`text-xs px-2.5 py-1 rounded-full border ${
+                          active ? 'bg-[#008080] text-white border-[#008080]' : 'border-black/10 text-[#8896A5]'
+                        }`}
+                      >
+                        {qn.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+              {noteOpen && qty > 0 && (
+                <input
+                  type="text"
+                  value={itemNotes}
+                  onChange={e => setCart(prev => ({
+                    ...prev,
+                    [product.id]: { ...(prev[product.id] || { qty: 1 }), product, notes: e.target.value }
+                  }))}
+                  placeholder="Nota libre..."
+                  className="mt-2 w-full border border-black/10 rounded-lg px-3 py-1.5 text-xs text-[#1A2A3A] bg-[#F8FAFC]"
+                />
+              )}
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => changeQty(product.id, -1)}
-                className="w-7 h-7 rounded-lg border border-black/10 bg-[#F8FAFC] text-[#3A4A5A] font-bold text-sm flex items-center justify-center"
-              >−</button>
-              <span className="font-bold text-[#1A2A3A] text-sm w-5 text-center">
-                {cart[product.id] || 0}
-              </span>
-              <button
-                onClick={() => changeQty(product.id, 1)}
-                className="w-7 h-7 rounded-lg bg-[#4DD0E1] text-white font-bold text-sm flex items-center justify-center"
-              >+</button>
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Footer con total */}
