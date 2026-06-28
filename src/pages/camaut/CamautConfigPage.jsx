@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { supabaseCamaut, ACTIVE_VENUE_ID } from '../../lib/supabase'
+import { supabaseCamaut, supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice } from '../../lib/utils'
 
@@ -55,10 +55,16 @@ function PerfilTab({ profile }) {
 
   async function loadStaff() {
     if (!profile) return
-    const { data } = await supabaseCamaut
+    const { data: profileData } = await supabaseStaff
+      .from('profiles')
+      .select('venue_id')
+      .eq('id', profile.id)
+      .single()
+    if (!profileData?.venue_id) return
+    const { data } = await supabaseStaff
       .from('staff_names')
       .select('*')
-      .ilike('full_name', profile.full_name?.trim() || '')
+      .eq('venue_id', profileData.venue_id)
       .single()
     if (data) {
       setStaffData(data)
@@ -73,7 +79,7 @@ function PerfilTab({ profile }) {
     e.preventDefault()
     if (!staffData) return
     setSaving(true)
-    await supabaseCamaut
+    await supabaseStaff
       .from('staff_names')
       .update({
         full_name: fullName.trim(),
