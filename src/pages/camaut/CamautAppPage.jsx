@@ -46,7 +46,7 @@ export default function CamautAppPage() {
         .select('full_name, xp')
         .eq('venue_id', vId)
         .single()
-      setStaffName(staffData?.full_name || fullNameFromMeta)
+      setStaffName(fullNameFromMeta || staffData?.full_name || null)
       setStaffXP(staffData?.xp || 0)
     } else {
       setStaffName(fullNameFromMeta)
