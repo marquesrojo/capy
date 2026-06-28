@@ -181,7 +181,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
             {COLUMNS.map(col => {
               const colOrders = linkedOrders.filter(o => o.status === col.id && o.venue_id === v.id)
               return (
-                <div key={col.id} className="flex-shrink-0 w-48">
+                <div key={col.id} className="flex-1 min-w-44">
                   <div className={`px-3 py-2 rounded-xl text-xs font-semibold mb-2 text-center ${
                     col.id === 'listo' ? 'bg-emerald-100 text-emerald-700' :
                     col.id === 'en_preparacion' ? 'bg-[#008080]/10 text-[#008080]' :
