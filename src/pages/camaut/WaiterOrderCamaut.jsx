@@ -4,7 +4,7 @@ import { formatPrice } from '../../lib/utils'
 import { useAuth } from '../../hooks/useAuth'
 import { awardXP } from '../../lib/xpUtils'
 
-export default function WaiterOrderCamaut({ venueId }) {
+export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
   const { profile } = useAuth()
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
@@ -15,23 +15,24 @@ export default function WaiterOrderCamaut({ venueId }) {
   const [location, setLocation] = useState('')
   const [notes, setNotes] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
+  const [activeVenueId, setActiveVenueId] = useState(venueId)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [lastOrder, setLastOrder] = useState(null)
   const [staffId, setStaffId] = useState(null)
 
   useEffect(() => {
-    if (venueId) loadCarta()
-  }, [venueId])
+    if (activeVenueId) loadCarta()
+  }, [activeVenueId])
 
   async function loadCarta() {
     setLoading(true)
     const [catRes, prodRes, venueRes, staffRes, zoneRes] = await Promise.all([
-      supabaseStaff.from('categories').select('id, name').eq('venue_id', venueId).order('sort_order'),
-      supabaseStaff.from('products').select('id, name, price, category_id').eq('venue_id', venueId).eq('is_available', true),
-      supabaseStaff.from('venues').select('whatsapp_number').eq('id', venueId).single(),
+      supabaseStaff.from('categories').select('id, name').eq('venue_id', activeVenueId).order('sort_order'),
+      supabaseStaff.from('products').select('id, name, price, category_id').eq('venue_id', activeVenueId).eq('is_available', true),
+      supabaseStaff.from('venues').select('whatsapp_number').eq('id', activeVenueId).single(),
       supabaseStaff.from('staff_names').select('id').eq('venue_id', venueId).single(),
-      supabaseStaff.from('venue_zones').select('*').eq('venue_id', venueId).eq('is_active', true).order('sort_order')
+      supabaseStaff.from('venue_zones').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order')
     ])
     setCategories(catRes.data || [])
     setProducts(prodRes.data || [])
@@ -180,6 +181,37 @@ export default function WaiterOrderCamaut({ venueId }) {
 
   return (
     <div className="bg-[#F0F4F8] pb-32">
+      {/* Selector de carta si hay venues vinculados */}
+      {linkedVenues.length > 0 && (
+        <div className="px-4 pt-4 pb-2">
+          <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-2">Carta</p>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => { setActiveVenueId(venueId); setCart({}); setSelectedZone(null) }}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold border ${
+                activeVenueId === venueId
+                  ? 'bg-[#008080] text-white border-[#008080]'
+                  : 'bg-white border-black/10 text-[#3A4A5A]'
+              }`}
+            >
+              Mi Carta
+            </button>
+            {linkedVenues.map(v => (
+              <button
+                key={v.id}
+                onClick={() => { setActiveVenueId(v.id); setCart({}); setSelectedZone(null) }}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold border ${
+                  activeVenueId === v.id
+                    ? 'bg-[#008080] text-white border-[#008080]'
+                    : 'bg-white border-black/10 text-[#3A4A5A]'
+                }`}
+              >
+                {v.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       {/* Ubicación */}
       <div className="px-4 pt-4 pb-2">
         <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-2">Ubicación</p>
