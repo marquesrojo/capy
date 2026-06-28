@@ -10,6 +10,7 @@ export default function CamautAppPage() {
   const [venueId, setVenueId] = useState(null)
   const [staffName, setStaffName] = useState(null)
   const [staffXP, setStaffXP] = useState(0)
+  const [linkedVenues, setLinkedVenues] = useState([])
 
   useEffect(() => {
     checkAuth()
@@ -51,6 +52,14 @@ export default function CamautAppPage() {
       setStaffName(fullNameFromMeta)
     }
 
+    // Cargar venues vinculados
+    const { data: linked } = await supabaseStaff
+      .from('venue_staff')
+      .select('venue:venues(id, name)')
+      .eq('staff_profile_id', session.user.id)
+      .eq('status', 'active')
+    setLinkedVenues(linked?.map(l => l.venue).filter(Boolean) || [])
+
     setAuthorized(true)
     setChecking(false)
   }
@@ -65,5 +74,5 @@ export default function CamautAppPage() {
 
   if (!authorized) return null
 
-  return <CamautAppShell venueId={venueId} staffName={staffName} staffXP={staffXP} />
+  return <CamautAppShell venueId={venueId} staffName={staffName} staffXP={staffXP} linkedVenues={linkedVenues} />
 }
