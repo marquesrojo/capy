@@ -8,8 +8,10 @@ export default function WaiterOrderCamaut({ venueId }) {
   const { profile } = useAuth()
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
+  const [zones, setZones] = useState([])
   const [activeCategory, setActiveCategory] = useState(null)
   const [cart, setCart] = useState({})
+  const [selectedZone, setSelectedZone] = useState(null)
   const [location, setLocation] = useState('')
   const [notes, setNotes] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
@@ -24,16 +26,18 @@ export default function WaiterOrderCamaut({ venueId }) {
 
   async function loadCarta() {
     setLoading(true)
-    const [catRes, prodRes, venueRes, staffRes] = await Promise.all([
+    const [catRes, prodRes, venueRes, staffRes, zoneRes] = await Promise.all([
       supabaseStaff.from('categories').select('id, name').eq('venue_id', venueId).order('sort_order'),
       supabaseStaff.from('products').select('id, name, price, category_id').eq('venue_id', venueId).eq('is_available', true),
       supabaseStaff.from('venues').select('whatsapp_number').eq('id', venueId).single(),
-      supabaseStaff.from('staff_names').select('id').eq('venue_id', venueId).single()
+      supabaseStaff.from('staff_names').select('id').eq('venue_id', venueId).single(),
+      supabaseStaff.from('venue_zones').select('*').eq('venue_id', venueId).eq('is_active', true).order('sort_order')
     ])
     setCategories(catRes.data || [])
     setProducts(prodRes.data || [])
     setWhatsapp(venueRes.data?.whatsapp_number || '')
     setStaffId(staffRes.data?.id || null)
+    setZones(zoneRes.data || [])
     if (catRes.data?.length) setActiveCategory(catRes.data[0].id)
     setLoading(false)
   }
@@ -57,8 +61,10 @@ export default function WaiterOrderCamaut({ venueId }) {
 
   const total = cartItems.reduce((sum, i) => sum + i.product.price * i.qty, 0)
 
+  const locationLabel = selectedZone?.name || location.trim()
+
   async function handleSubmit() {
-    if (!cartItems.length || !location.trim()) return
+    if (!cartItems.length || !locationLabel) return
     setSubmitting(true)
 
     try {
@@ -70,7 +76,7 @@ export default function WaiterOrderCamaut({ venueId }) {
         },
         body: JSON.stringify({
           venueId,
-          locationLabel: location.trim(),
+          locationLabel,
           staffId: staffId || null,
           total,
           items: cartItems.map(i => ({
@@ -86,7 +92,7 @@ export default function WaiterOrderCamaut({ venueId }) {
 
       if (result.success) {
         if (staffId) await awardXP(staffId, 'send_order')
-        setLastOrder({ order: result.order, items: cartItems, location: location.trim(), total })
+        setLastOrder({ order: result.order, items: cartItems, location: locationLabel, total })
         setCart({})
         setLocation('')
         setNotes('')
@@ -177,13 +183,40 @@ export default function WaiterOrderCamaut({ venueId }) {
       {/* Ubicación */}
       <div className="px-4 pt-4 pb-2">
         <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-2">Ubicación</p>
-        <input
-          type="text"
-          value={location}
-          onChange={e => setLocation(e.target.value)}
-          placeholder="Ej: Mesa 4, Barra, Terraza..."
-          className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-white text-[#1A2A3A]"
-        />
+        {zones.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {zones.map(zone => (
+              <button
+                key={zone.id}
+                onClick={() => { setSelectedZone(zone); setLocation('') }}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold border ${
+                  selectedZone?.id === zone.id
+                    ? 'bg-[#008080] text-white border-[#008080]'
+                    : 'bg-white border-black/10 text-[#3A4A5A]'
+                }`}
+              >
+                {zone.name}
+              </button>
+            ))}
+            <button
+              onClick={() => setSelectedZone(null)}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold border ${
+                !selectedZone ? 'bg-[#008080] text-white border-[#008080]' : 'bg-white border-black/10 text-[#8896A5]'
+              }`}
+            >
+              Otra
+            </button>
+          </div>
+        ) : null}
+        {(!selectedZone) && (
+          <input
+            type="text"
+            value={location}
+            onChange={e => setLocation(e.target.value)}
+            placeholder="Ej: Mesa 4, Barra, Terraza..."
+            className={`w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-white text-[#1A2A3A] ${zones.length > 0 ? 'mt-2' : ''}`}
+          />
+        )}
       </div>
 
       {/* Categorías */}
@@ -238,7 +271,7 @@ export default function WaiterOrderCamaut({ venueId }) {
             </div>
             <button
               onClick={handleSubmit}
-              disabled={submitting || !location.trim()}
+              disabled={submitting || !locationLabel}
               className="bg-[#008080] disabled:opacity-50 text-white font-bold px-6 py-3 rounded-xl text-sm"
             >
               {submitting ? 'Enviando...' : 'Confirmar →'}
