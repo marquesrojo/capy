@@ -61,38 +61,33 @@ export default function WaiterOrderCamaut({ venueId }) {
     if (!cartItems.length || !location.trim()) return
     setSubmitting(true)
 
-    // Crear el pedido en la BD
-    const orderData = {
-      venue_id: venueId,
-      location_label: location.trim(),
-      status: 'en_preparacion',
-      total,
-    }
-    if (staffId) orderData.assigned_staff_id = staffId
+    const { data: { session } } = await supabaseStaff.auth.getSession()
 
-    const { data: order } = await supabaseStaff
-      .from('orders')
-      .insert(orderData)
-      .select('id, daily_number')
-      .single()
-
-    if (order) {
-      // Insertar items
-      await supabaseStaff.from('order_items').insert(
-        cartItems.map(i => ({
-          order_id: order.id,
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/camaut-order`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`
+      },
+      body: JSON.stringify({
+        venueId,
+        locationLabel: location.trim(),
+        staffId: staffId || null,
+        total,
+        items: cartItems.map(i => ({
           product_id: i.product.id,
           product_name: i.product.name,
           quantity: i.qty,
-          unit_price: i.product.price,
-          line_total: i.product.price * i.qty
+          unit_price: i.product.price
         }))
-      )
+      })
+    })
 
-      // XP por comanda
+    const result = await res.json()
+
+    if (result.success) {
       if (staffId) await awardXP(staffId, 'send_order')
-
-      setLastOrder({ order, items: cartItems, location: location.trim(), total })
+      setLastOrder({ order: result.order, items: cartItems, location: location.trim(), total })
       setCart({})
       setLocation('')
       setNotes('')
