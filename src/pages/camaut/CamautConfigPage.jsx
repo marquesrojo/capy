@@ -99,6 +99,12 @@ function PerfilTab({ profile }) {
         document_number: docNumber.trim() || null
       })
       .eq('id', staffData.id)
+
+    // Sincronizar nombre en profiles también
+    await supabaseStaff
+      .from('profiles')
+      .update({ full_name: fullName.trim() })
+      .eq('id', profile.id)
     setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
