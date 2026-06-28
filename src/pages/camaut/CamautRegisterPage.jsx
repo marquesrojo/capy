@@ -37,7 +37,10 @@ export default function CamautRegisterPage() {
         email: email.trim(),
         password,
         options: {
-          data: { full_name: fullName.trim() }
+          data: { 
+            full_name: fullName.trim(),
+            role: 'camarero'
+          }
         }
       })
       if (authError) throw authError
