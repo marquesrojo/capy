@@ -28,7 +28,7 @@ const TABS = [
   },
 ]
 
-const MICAPY_TABS = ['perfil', 'carta', 'ubicaciones', 'whatsapp', 'carrera', 'ranking']
+const MICAPY_TABS = ['perfil', 'carta', 'ubicaciones', 'whatsapp', 'vincular', 'carrera', 'ranking']
 
 export default function CamautAppShell({ venueId, staffName: initialName, staffXP: initialXP }) {
   const navigate = useNavigate()
@@ -123,11 +123,86 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
           <div className="px-5 py-5">
             {micapyTab === 'carrera' && <MiCarrera venueId={venueId} />}
             {micapyTab === 'ranking' && <RankingMozos globalOnly />}
+            {micapyTab === 'vincular' && <VincularTab />}
             {['perfil', 'carta', 'ubicaciones', 'whatsapp'].includes(micapyTab) && (
               <CamautConfigPage key={micapyTab} embedded initialTab={micapyTab} />
             )}
           </div>
         </div>
+      )}
+    </div>
+  )
+}
+
+function VincularTab() {
+  const navigate = useNavigate()
+  const [linkedVenues, setLinkedVenues] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadLinked()
+  }, [])
+
+  async function loadLinked() {
+    const { data: { session } } = await supabaseCamaut.auth.getSession()
+    if (!session) return
+    const { data } = await supabaseStaff
+      .from('venue_staff')
+      .select('id, status, venue:venues(id, name), joined_at')
+      .eq('staff_profile_id', session.user.id)
+      .eq('status', 'active')
+    setLinkedVenues(data || [])
+    setLoading(false)
+  }
+
+  async function handleDesvincular(id) {
+    await supabaseStaff
+      .from('venue_staff')
+      .update({ status: 'inactive', left_at: new Date().toISOString() })
+      .eq('id', id)
+    setLinkedVenues(prev => prev.filter(v => v.id !== id))
+  }
+
+  if (loading) return <p className="text-[#8896A5] text-sm text-center py-8">Cargando...</p>
+
+  return (
+    <div className="space-y-4">
+      <button
+        onClick={() => navigate('/camaut/vincular')}
+        className="w-full bg-[#008080] text-white font-bold py-3.5 rounded-2xl text-sm flex items-center justify-center gap-2"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        Vincularme a un restaurante
+      </button>
+
+      {linkedVenues.length > 0 && (
+        <div>
+          <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-2">Restaurantes vinculados</p>
+          <div className="space-y-2">
+            {linkedVenues.map(v => (
+              <div key={v.id} className="bg-white rounded-2xl px-4 py-3 border border-black/5 flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-[#1A2A3A] text-sm">{v.venue?.name}</p>
+                  <p className="text-[#8896A5] text-xs">Vinculado desde {new Date(v.joined_at).toLocaleDateString('es-AR')}</p>
+                </div>
+                <button
+                  onClick={() => handleDesvincular(v.id)}
+                  className="text-red-400 text-xs underline"
+                >
+                  Desvincular
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {linkedVenues.length === 0 && (
+        <p className="text-[#8896A5] text-sm text-center py-4">No estás vinculado a ningún restaurante todavía.</p>
       )}
     </div>
   )
