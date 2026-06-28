@@ -38,7 +38,7 @@ export default function CamautAppPage() {
     setVenueId(vId)
 
     // Nombre desde metadata del usuario como fallback
-    const fullNameFromMeta = session.user?.user_metadata?.full_name || null
+    const fullNameFromMeta = session.user?.user_metadata?.full_name || profile?.full_name || null
 
     if (vId) {
       const { data: staffData } = await supabaseStaff
