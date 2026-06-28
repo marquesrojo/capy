@@ -76,7 +76,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
         },
         body: JSON.stringify({
-          venueId,
+          venueId: activeVenueId,
           locationLabel,
           staffId: staffId || null,
           total,
