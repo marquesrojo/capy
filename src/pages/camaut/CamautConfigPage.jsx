@@ -100,11 +100,14 @@ function PerfilTab({ profile }) {
       })
       .eq('id', staffData.id)
 
-    // Sincronizar nombre en profiles también
-    await supabaseStaff
-      .from('profiles')
-      .update({ full_name: fullName.trim() })
-      .eq('id', profile.id)
+    // Sincronizar nombre en profiles usando auth.uid()
+    const { data: { user } } = await supabaseStaff.auth.getUser()
+    if (user) {
+      await supabaseStaff
+        .from('profiles')
+        .update({ full_name: fullName.trim() })
+        .eq('id', user.id)
+    }
     setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
