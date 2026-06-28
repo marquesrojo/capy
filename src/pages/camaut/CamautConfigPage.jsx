@@ -170,7 +170,11 @@ function CartaTab({ profile }) {
     setAddingCat(false)
   }
 
-  async function addProduct() {
+  async function deleteCategory(id) {
+    await supabaseStaff.from('categories').delete().eq('id', id)
+    setCategories(prev => prev.filter(c => c.id !== id))
+    setProducts(prev => prev.filter(p => p.category_id !== id))
+  }
     if (!newProd.name.trim() || !newProd.price || !newProd.category_id || !venueId) return
     setAddingProd(true)
     const { data } = await supabaseCamaut
@@ -262,8 +266,14 @@ function CartaTab({ profile }) {
         const catProducts = products.filter(p => p.category_id === cat.id)
         return (
           <div key={cat.id} className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
-            <div className="px-4 py-3 border-b border-black/5 bg-[#F8FAFC]">
+            <div className="px-4 py-3 border-b border-black/5 bg-[#F8FAFC] flex items-center justify-between">
               <p className="font-semibold text-[#1A2A3A] text-sm">{cat.name}</p>
+              <button
+                onClick={() => deleteCategory(cat.id)}
+                className="text-red-400 text-xs underline"
+              >
+                Borrar
+              </button>
             </div>
             {catProducts.length === 0 ? (
               <p className="text-[#B0BEC5] text-xs px-4 py-3">Sin productos todavía</p>
