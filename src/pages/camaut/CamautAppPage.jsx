@@ -7,6 +7,7 @@ export default function CamautAppPage() {
   const navigate = useNavigate()
   const [checking, setChecking] = useState(true)
   const [authorized, setAuthorized] = useState(false)
+  const [venueId, setVenueId] = useState(null)
 
   useEffect(() => {
     checkAuth()
@@ -16,12 +17,23 @@ export default function CamautAppPage() {
     const { data: { session } } = await supabaseCamaut.auth.getSession()
     if (!session) { navigate('/camaut/login'); return }
 
-    // Sincronizar sesión con supabaseStaff para que WaiterModePage funcione
+    // Esperar a que la sesión esté lista
+    await new Promise(r => setTimeout(r, 300))
+
+    // Sincronizar sesión con supabaseStaff
     await supabaseStaff.auth.setSession({
       access_token: session.access_token,
       refresh_token: session.refresh_token
     })
 
+    // Leer venue_id con supabaseStaff que ya tiene la sesión sincronizada
+    const { data: profile } = await supabaseStaff
+      .from('profiles')
+      .select('venue_id, is_autonomous')
+      .eq('id', session.user.id)
+      .single()
+
+    setVenueId(profile?.venue_id || null)
     setAuthorized(true)
     setChecking(false)
   }
@@ -36,5 +48,5 @@ export default function CamautAppPage() {
 
   if (!authorized) return null
 
-  return <WaiterModePage />
+  return <WaiterModePage venueId={venueId} />
 }
