@@ -12,7 +12,6 @@ export default function CamautVincularPage() {
   const [confirming, setConfirming] = useState(false)
 
   useEffect(() => {
-    // Si viene con code en la URL, buscar el venue automáticamente
     if (searchParams.get('code')) {
       handleSearch(searchParams.get('code'))
     }
@@ -41,8 +40,16 @@ export default function CamautVincularPage() {
 
   async function handleVincular() {
     setConfirming(true)
+    setError('')
+
     const { data: { session } } = await supabaseCamaut.auth.getSession()
     if (!session) { navigate('/camaut/login'); return }
+
+    // Sincronizar sesión con supabaseStaff
+    await supabaseStaff.auth.setSession({
+      access_token: session.access_token,
+      refresh_token: session.refresh_token
+    })
 
     // Verificar si ya está vinculado
     const { data: existing } = await supabaseStaff
@@ -50,7 +57,7 @@ export default function CamautVincularPage() {
       .select('id, status')
       .eq('venue_id', venue.id)
       .eq('staff_profile_id', session.user.id)
-      .single()
+      .maybeSingle()
 
     if (existing?.status === 'active') {
       setError('Ya estás vinculado a este restaurante.')
@@ -59,20 +66,23 @@ export default function CamautVincularPage() {
     }
 
     if (existing) {
-      // Reactivar vinculación
       await supabaseStaff
         .from('venue_staff')
         .update({ status: 'active', left_at: null })
         .eq('id', existing.id)
     } else {
-      // Nueva vinculación
-      await supabaseStaff
+      const { error: insertError } = await supabaseStaff
         .from('venue_staff')
         .insert({
           venue_id: venue.id,
           staff_profile_id: session.user.id,
           status: 'active'
         })
+      if (insertError) {
+        setError('Error al vincular: ' + insertError.message)
+        setConfirming(false)
+        return
+      }
     }
 
     setConfirming(false)
