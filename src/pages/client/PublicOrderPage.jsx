@@ -29,7 +29,7 @@ export default function PublicOrderPage() {
   }, [id])
 
   async function loadOrder() {
-    const { data: orderData } = await supabaseStaff
+    const { data: orderData } = await supabasePublic
       .from('orders')
       .select('id, status, location_label, total, daily_number, created_at')
       .eq('id', id)
@@ -37,7 +37,7 @@ export default function PublicOrderPage() {
 
     if (!orderData) { setNotFound(true); setLoading(false); return }
 
-    const { data: itemsData } = await supabaseStaff
+    const { data: itemsData } = await supabasePublic
       .from('order_items')
       .select('product_name, quantity, unit_price')
       .eq('order_id', id)
@@ -48,7 +48,7 @@ export default function PublicOrderPage() {
 
     // Polling cada 10 segundos
     const interval = setInterval(async () => {
-      const { data } = await supabaseStaff
+      const { data } = await supabasePublic
         .from('orders')
         .select('status')
         .eq('id', id)
