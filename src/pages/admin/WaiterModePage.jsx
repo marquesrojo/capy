@@ -8,6 +8,7 @@ import ShiftSummaryPage from './ShiftSummaryPage'
 import MiCarrera from './MiCarrera'
 import RankingMozos from './RankingMozos'
 import CamautConfigPage from '../camaut/CamautConfigPage'
+import WaiterOrderCamaut from '../camaut/WaiterOrderCamaut'
 
 class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { error: null } }
@@ -104,7 +105,10 @@ export default function WaiterModePage({ venueId }) {
       </div>
 
       <ErrorBoundary>
-        {tab === 'tomar' && <WaiterOrderPage venueId={venueId} />}
+        {tab === 'tomar' && (profile?.is_autonomous
+          ? <WaiterOrderCamaut venueId={venueId} />
+          : <WaiterOrderPage venueId={venueId} />
+        )}
         {tab === 'seguimiento' && <WaiterTrackingPage venueId={venueId} />}
         {tab === 'turno' && <ShiftSummaryPage embedded venueId={venueId} />}
         {tab === 'carrera' && <MiCarrera venueId={venueId} />}
