@@ -3,22 +3,22 @@ import { formatPrice } from '../../lib/utils'
 import { supabaseStaff } from '../../lib/supabase'
 
 const COLUMNS = [
-  { id: 'recibido', label: 'Recibido' },
-  { id: 'en_preparacion', label: 'Preparación' },
-  { id: 'listo', label: 'Listo ✓' },
-  { id: 'entregado', label: 'Entregado' },
+  { id: 'recibido', label: 'Recibido', statuses: ['recibido', 'pendiente_aprobacion'] },
+  { id: 'en_preparacion', label: 'Preparación', statuses: ['en_preparacion', 'listo'] },
+  { id: 'entregado', label: 'Entregado', statuses: ['entregado'] },
 ]
 
 const NEXT_STATUS = {
   recibido: 'en_preparacion',
-  en_preparacion: 'listo',
+  pendiente_aprobacion: 'recibido',
+  en_preparacion: 'entregado',
   listo: 'entregado',
 }
 
 const PREV_STATUS = {
   en_preparacion: 'recibido',
   listo: 'en_preparacion',
-  entregado: 'listo',
+  entregado: 'en_preparacion',
 }
 
 export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
@@ -97,13 +97,12 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
       {/* Kanban propio — editable */}
       {activeTab === 'propio' && (
         <div className="overflow-x-auto px-4 py-4">
-          <div className="flex gap-3" style={{ minWidth: `${COLUMNS.length * 200}px` }}>
+          <div className="flex gap-3" style={{ minWidth: `${COLUMNS.length * 180}px` }}>
             {COLUMNS.map(col => {
-              const colOrders = ownOrders.filter(o => o.status === col.id)
+              const colOrders = ownOrders.filter(o => col.statuses.includes(o.status))
               return (
-                <div key={col.id} className="flex-shrink-0 w-48">
+                <div key={col.id} className="flex-1 min-w-44">
                   <div className={`px-3 py-2 rounded-xl text-xs font-semibold mb-2 text-center ${
-                    col.id === 'listo' ? 'bg-emerald-100 text-emerald-700' :
                     col.id === 'en_preparacion' ? 'bg-[#008080]/10 text-[#008080]' :
                     col.id === 'entregado' ? 'bg-[#E8EDF2] text-[#8896A5]' :
                     'bg-white text-[#3A4A5A] border border-black/8'
@@ -112,7 +111,12 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
                   </div>
                   <div className="space-y-2">
                     {colOrders.map(order => (
-                      <div key={order.id} className="bg-white rounded-xl p-3 border border-black/5 shadow-sm">
+                      <div key={order.id} className={`bg-white rounded-xl p-3 border shadow-sm ${
+                        order.status === 'listo' ? 'border-emerald-300' : 'border-black/5'
+                      }`}>
+                        {order.status === 'listo' && (
+                          <p className="text-emerald-600 text-[10px] font-semibold mb-1">✓ Listo</p>
+                        )}
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-mono text-[#008080] font-bold text-sm">
                             #{order.daily_number || order.id.slice(0, 4)}
@@ -133,25 +137,27 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
                         <p className="font-mono text-[#1A2A3A] text-xs font-semibold mb-2">
                           {formatPrice(order.total)}
                         </p>
-                        <div className="flex gap-1">
-                          {PREV_STATUS[order.status] && (
-                            <button
-                              onClick={() => updateStatus(order.id, PREV_STATUS[order.status])}
-                              className="flex-1 border border-black/10 text-[#8896A5] text-[10px] py-1 rounded-lg"
-                            >
-                              ↺
-                            </button>
-                          )}
-                          {NEXT_STATUS[order.status] && (
-                            <button
-                              onClick={() => updateStatus(order.id, NEXT_STATUS[order.status])}
-                              className="flex-1 bg-[#008080] text-white text-[10px] py-1 rounded-lg font-semibold"
-                            >
-                              {col.id === 'recibido' ? 'Preparar' :
-                               col.id === 'en_preparacion' ? 'Listo ✓' : 'Entregar'}
-                            </button>
-                          )}
-                        </div>
+                        {col.id !== 'entregado' && (
+                          <div className="flex gap-1">
+                            {PREV_STATUS[order.status] && (
+                              <button
+                                onClick={() => updateStatus(order.id, PREV_STATUS[order.status])}
+                                className="flex-1 border border-black/10 text-[#8896A5] text-[10px] py-1 rounded-lg"
+                              >
+                                ↺
+                              </button>
+                            )}
+                            {NEXT_STATUS[order.status] && (
+                              <button
+                                onClick={() => updateStatus(order.id, NEXT_STATUS[order.status])}
+                                className="flex-1 bg-[#008080] text-white text-[10px] py-1 rounded-lg font-semibold"
+                              >
+                                {order.status === 'recibido' || order.status === 'pendiente_aprobacion' ? 'Preparar' :
+                                 order.status === 'en_preparacion' ? 'Listo ✓' : 'Entregar'}
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                     {colOrders.length === 0 && (
@@ -171,7 +177,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
           <p className="text-[#8896A5] text-xs mb-3">
             Solo lectura — los pedidos los gestiona {v.name.replace(' — Capy', '')}
           </p>
-          <div className="flex gap-3" style={{ minWidth: `${COLUMNS.length * 200}px` }}>
+          <div className="flex gap-3" style={{ minWidth: `${COLUMNS.length * 180}px` }}>
             {COLUMNS.map(col => {
               const colOrders = linkedOrders.filter(o => o.status === col.id && o.venue_id === v.id)
               return (
