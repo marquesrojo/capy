@@ -965,7 +965,7 @@ function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssi
   const totalCount = orders.length + pendingInPersonOrders.length + paidOrders.length
 
   return (
-    <div className="flex-shrink-0 w-80">
+    <div className="flex-1 min-w-80">
       <div className={`px-3 py-2 rounded-lg border text-sm font-semibold mb-3 ${STATUS_COLORS[status]}`}>
         {columnLabel} · {totalCount}
       </div>
