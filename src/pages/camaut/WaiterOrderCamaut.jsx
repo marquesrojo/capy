@@ -62,15 +62,17 @@ export default function WaiterOrderCamaut({ venueId }) {
     setSubmitting(true)
 
     // Crear el pedido en la BD
+    const orderData = {
+      venue_id: venueId,
+      location_label: location.trim(),
+      status: 'en_preparacion',
+      total,
+    }
+    if (staffId) orderData.assigned_staff_id = staffId
+
     const { data: order } = await supabaseStaff
       .from('orders')
-      .insert({
-        venue_id: venueId,
-        location_label: location.trim(),
-        status: 'en_preparacion',
-        total,
-        assigned_staff_id: staffId
-      })
+      .insert(orderData)
       .select('id, daily_number')
       .single()
 
