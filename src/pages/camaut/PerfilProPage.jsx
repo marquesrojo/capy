@@ -58,31 +58,35 @@ export default function PerfilProPage({ venueId }) {
     if (!form.title.trim() || !staffId) return
     setSaving(true)
 
-    // Sincronizar sesión de camaut con supabaseStaff
-    const { data: { session } } = await supabaseCamaut.auth.getSession()
-    if (session) {
-      await supabaseStaff.auth.setSession({
-        access_token: session.access_token,
-        refresh_token: session.refresh_token
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/camaut-experience`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+      },
+      body: JSON.stringify({
+        staffId,
+        type: form.type,
+        title: form.title.trim(),
+        institution: form.institution.trim() || null,
+        role: form.role.trim() || null,
+        date_from: form.date_from || null,
+        date_to: form.current ? null : (form.date_to || null),
+        current: form.current,
+        description: form.description.trim() || null
       })
-    }
-
-    await supabaseStaff.from('staff_experience').insert({
-      staff_id: staffId,
-      type: form.type,
-      title: form.title.trim(),
-      institution: form.institution.trim() || null,
-      role: form.role.trim() || null,
-      date_from: form.date_from || null,
-      date_to: form.current ? null : (form.date_to || null),
-      current: form.current,
-      description: form.description.trim() || null
     })
 
-    setSaving(false)
-    setShowForm(false)
-    setForm({ type: activeSection, title: '', institution: '', role: '', date_from: '', date_to: '', current: false, description: '' })
-    loadAll()
+    const result = await res.json()
+    if (result.success) {
+      setSaving(false)
+      setShowForm(false)
+      setForm({ type: activeSection, title: '', institution: '', role: '', date_from: '', date_to: '', current: false, description: '' })
+      loadAll()
+    } else {
+      alert('Error: ' + result.error)
+      setSaving(false)
+    }
   }
 
   async function handleDelete(id) {
