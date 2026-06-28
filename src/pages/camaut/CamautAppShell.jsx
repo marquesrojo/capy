@@ -30,7 +30,7 @@ const TABS = [
 
 const MICAPY_TABS = ['perfil', 'carta', 'ubicaciones', 'whatsapp', 'vincular', 'carrera', 'ranking']
 
-export default function CamautAppShell({ venueId, staffName: initialName, staffXP: initialXP }) {
+export default function CamautAppShell({ venueId, staffName: initialName, staffXP: initialXP, linkedVenues = [] }) {
   const navigate = useNavigate()
   const [tab, setTab] = useState('tomar')
   const [micapyTab, setMicapyTab] = useState('perfil')
@@ -99,7 +99,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
       </div>
 
       {/* Contenido */}
-      {tab === 'tomar' && <WaiterOrderCamaut venueId={venueId} />}
+      {tab === 'tomar' && <WaiterOrderCamaut venueId={venueId} linkedVenues={linkedVenues} />}
       {tab === 'pedidos' && <WaiterTrackingPage venueId={venueId} />}
       {tab === 'turno' && <ShiftSummaryPage embedded venueId={venueId} />}
 
