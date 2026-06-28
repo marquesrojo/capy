@@ -190,7 +190,7 @@ function MiCapyPage({ venueId, profile, micapyTab, setMicapyTab }) {
         {micapyTab === 'carrera' && <MiCarrera venueId={venueId} />}
         {micapyTab === 'ranking' && <RankingMozos />}
         {(micapyTab === 'perfil' || micapyTab === 'carta' || micapyTab === 'ubicaciones' || micapyTab === 'whatsapp') && (
-          <CamautConfigPage initialTab={micapyTab} />
+          <CamautConfigPage embedded initialTab={micapyTab} />
         )}
       </div>
     </div>
