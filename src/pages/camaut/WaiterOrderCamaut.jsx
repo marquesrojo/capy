@@ -216,40 +216,13 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
       <div className="px-4 pt-4 pb-2">
         <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-2">Ubicación</p>
         {zones.length > 0 ? (
-          <>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {zones.map(zone => (
-                <button
-                  key={zone.id}
-                  onClick={() => { setSelectedZone(zone); setLocation('') }}
-                  className={`px-4 py-2 rounded-xl text-sm font-semibold border ${
-                    selectedZone?.id === zone.id
-                      ? 'bg-[#008080] text-white border-[#008080]'
-                      : 'bg-white border-black/10 text-[#3A4A5A]'
-                  }`}
-                >
-                  {zone.name}
-                </button>
-              ))}
-              <button
-                onClick={() => setSelectedZone({ id: 'otra', name: null })}
-                className={`px-4 py-2 rounded-xl text-sm font-semibold border ${
-                  selectedZone?.id === 'otra' ? 'bg-[#008080] text-white border-[#008080]' : 'bg-white border-black/10 text-[#8896A5]'
-                }`}
-              >
-                Otra
-              </button>
-            </div>
-            {selectedZone?.id === 'otra' && (
-              <input
-                type="text"
-                value={location}
-                onChange={e => setLocation(e.target.value)}
-                placeholder="Escribí la ubicación..."
-                className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-white text-[#1A2A3A]"
-              />
-            )}
-          </>
+          <ZoneSelector
+            zones={zones}
+            selectedZone={selectedZone}
+            onSelect={(zone) => { setSelectedZone(zone); setLocation('') }}
+            location={location}
+            onLocationChange={setLocation}
+          />
         ) : (
           <input
             type="text"
@@ -320,6 +293,67 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
             </button>
           </div>
         </div>
+      )}
+    </div>
+  )
+}
+
+function ZoneSelector({ zones, selectedZone, onSelect, location, onLocationChange }) {
+  const [open, setOpen] = useState(false)
+
+  const displayLabel = selectedZone?.id === 'otra'
+    ? location || 'Escribí la ubicación...'
+    : selectedZone?.name || 'Seleccioná una ubicación'
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-sm font-semibold ${
+          selectedZone && selectedZone.id !== 'otra'
+            ? 'bg-[#008080] text-white border-[#008080]'
+            : 'bg-white border-black/10 text-[#3A4A5A]'
+        }`}
+      >
+        <span>{displayLabel}</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${open ? 'rotate-180' : ''}`}>
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute top-full left-0 right-0 z-10 mt-1 bg-white border border-black/10 rounded-xl shadow-lg overflow-hidden">
+          <div className="max-h-48 overflow-y-auto divide-y divide-black/5">
+            {zones.map(zone => (
+              <button
+                key={zone.id}
+                onClick={() => { onSelect(zone); setOpen(false) }}
+                className={`w-full text-left px-4 py-3 text-sm ${
+                  selectedZone?.id === zone.id ? 'bg-[#008080]/10 text-[#008080] font-semibold' : 'text-[#3A4A5A]'
+                }`}
+              >
+                {zone.name}
+              </button>
+            ))}
+            <button
+              onClick={() => { onSelect({ id: 'otra', name: null }); setOpen(false) }}
+              className="w-full text-left px-4 py-3 text-sm text-[#8896A5]"
+            >
+              Otra ubicación...
+            </button>
+          </div>
+        </div>
+      )}
+
+      {selectedZone?.id === 'otra' && (
+        <input
+          type="text"
+          value={location}
+          onChange={e => onLocationChange(e.target.value)}
+          placeholder="Escribí la ubicación..."
+          className="w-full mt-2 border border-black/10 rounded-xl px-4 py-3 text-sm bg-white text-[#1A2A3A]"
+          autoFocus
+        />
       )}
     </div>
   )
