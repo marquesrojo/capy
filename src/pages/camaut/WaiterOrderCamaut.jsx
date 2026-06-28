@@ -62,7 +62,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
 
   const total = cartItems.reduce((sum, i) => sum + i.product.price * i.qty, 0)
 
-  const locationLabel = selectedZone?.name || location.trim()
+  const locationLabel = (selectedZone && selectedZone.id !== 'otra') ? selectedZone.name : location.trim()
 
   async function handleSubmit() {
     if (!cartItems.length || !locationLabel) return
@@ -216,37 +216,47 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
       <div className="px-4 pt-4 pb-2">
         <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-2">Ubicación</p>
         {zones.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {zones.map(zone => (
+          <>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {zones.map(zone => (
+                <button
+                  key={zone.id}
+                  onClick={() => { setSelectedZone(zone); setLocation('') }}
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold border ${
+                    selectedZone?.id === zone.id
+                      ? 'bg-[#008080] text-white border-[#008080]'
+                      : 'bg-white border-black/10 text-[#3A4A5A]'
+                  }`}
+                >
+                  {zone.name}
+                </button>
+              ))}
               <button
-                key={zone.id}
-                onClick={() => { setSelectedZone(zone); setLocation('') }}
+                onClick={() => setSelectedZone({ id: 'otra', name: null })}
                 className={`px-4 py-2 rounded-xl text-sm font-semibold border ${
-                  selectedZone?.id === zone.id
-                    ? 'bg-[#008080] text-white border-[#008080]'
-                    : 'bg-white border-black/10 text-[#3A4A5A]'
+                  selectedZone?.id === 'otra' ? 'bg-[#008080] text-white border-[#008080]' : 'bg-white border-black/10 text-[#8896A5]'
                 }`}
               >
-                {zone.name}
+                Otra
               </button>
-            ))}
-            <button
-              onClick={() => setSelectedZone(null)}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold border ${
-                !selectedZone ? 'bg-[#008080] text-white border-[#008080]' : 'bg-white border-black/10 text-[#8896A5]'
-              }`}
-            >
-              Otra
-            </button>
-          </div>
-        ) : null}
-        {(!selectedZone) && (
+            </div>
+            {selectedZone?.id === 'otra' && (
+              <input
+                type="text"
+                value={location}
+                onChange={e => setLocation(e.target.value)}
+                placeholder="Escribí la ubicación..."
+                className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-white text-[#1A2A3A]"
+              />
+            )}
+          </>
+        ) : (
           <input
             type="text"
             value={location}
             onChange={e => setLocation(e.target.value)}
             placeholder="Ej: Mesa 4, Barra, Terraza..."
-            className={`w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-white text-[#1A2A3A] ${zones.length > 0 ? 'mt-2' : ''}`}
+            className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-white text-[#1A2A3A]"
           />
         )}
       </div>
