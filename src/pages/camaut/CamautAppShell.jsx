@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabaseCamaut } from '../../lib/supabase'
+import { supabaseCamaut, supabaseStaff } from '../../lib/supabase'
 import { getLevel, getXPProgress } from '../../lib/xpUtils'
 import WaiterOrderCamaut from './WaiterOrderCamaut'
 import WaiterTrackingPage from '../admin/WaiterTrackingPage'
@@ -30,10 +30,25 @@ const TABS = [
 
 const MICAPY_TABS = ['perfil', 'carta', 'ubicaciones', 'whatsapp', 'carrera', 'ranking']
 
-export default function CamautAppShell({ venueId, staffName, staffXP }) {
+export default function CamautAppShell({ venueId, staffName: initialName, staffXP: initialXP }) {
   const navigate = useNavigate()
   const [tab, setTab] = useState('tomar')
   const [micapyTab, setMicapyTab] = useState('perfil')
+  const [staffName, setStaffName] = useState(initialName)
+  const [staffXP, setStaffXP] = useState(initialXP || 0)
+
+  useEffect(() => {
+    if (!venueId) return
+    supabaseStaff
+      .from('staff_names')
+      .select('full_name, xp')
+      .eq('venue_id', venueId)
+      .single()
+      .then(({ data }) => {
+        if (data?.full_name) setStaffName(data.full_name)
+        if (data?.xp !== undefined) setStaffXP(data.xp)
+      })
+  }, [venueId])
 
   const xp = staffXP || 0
   const level = getLevel(xp)
