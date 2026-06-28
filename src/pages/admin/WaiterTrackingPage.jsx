@@ -470,7 +470,7 @@ function OrderQRCode({ orderId }) {
 
   useEffect(() => {
     if (!canvasRef.current || !orderId) return
-    const url = `https://capyapp.co/pedido/${orderId}`
+    const url = `https://capyapp.co/ver-pedido/${orderId}`
     import('qrcode').then(QRCode => {
       QRCode.toCanvas(canvasRef.current, url, {
         width: 200,
