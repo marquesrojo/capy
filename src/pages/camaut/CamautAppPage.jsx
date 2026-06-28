@@ -11,6 +11,7 @@ export default function CamautAppPage() {
   const [staffName, setStaffName] = useState(null)
   const [staffXP, setStaffXP] = useState(0)
   const [linkedVenues, setLinkedVenues] = useState([])
+  const [staffId, setStaffId] = useState(null)
 
   useEffect(() => {
     checkAuth()
@@ -44,10 +45,11 @@ export default function CamautAppPage() {
     if (vId) {
       const { data: staffData } = await supabaseStaff
         .from('staff_names')
-        .select('full_name')
+        .select('id, full_name')
         .eq('venue_id', vId)
         .single()
       setStaffName(staffData?.full_name || fullNameFromMeta || null)
+      setStaffId(staffData?.id || null)
     } else {
       setStaffName(fullNameFromMeta)
     }
@@ -74,5 +76,5 @@ export default function CamautAppPage() {
 
   if (!authorized) return null
 
-  return <CamautAppShell venueId={venueId} staffName={staffName} staffXP={staffXP} linkedVenues={linkedVenues} />
+  return <CamautAppShell venueId={venueId} staffName={staffName} staffXP={staffXP} linkedVenues={linkedVenues} staffId={staffId} />
 }
