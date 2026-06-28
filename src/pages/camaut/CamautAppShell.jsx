@@ -8,6 +8,7 @@ import ShiftSummaryPage from '../admin/ShiftSummaryPage'
 import MiCarrera from '../admin/MiCarrera'
 import RankingMozos from '../admin/RankingMozos'
 import CamautConfigPage from './CamautConfigPage'
+import PerfilProPage from './PerfilProPage'
 
 const TABS = [
   {
@@ -28,7 +29,7 @@ const TABS = [
   },
 ]
 
-const MICAPY_TABS = ['perfil', 'carta', 'ubicaciones', 'whatsapp', 'vincular', 'carrera', 'ranking']
+const MICAPY_TABS = ['perfil', 'perfil_pro', 'carta', 'vincular', 'carrera', 'ranking']
 
 export default function CamautAppShell({ venueId, staffName: initialName, staffXP: initialXP, linkedVenues = [] }) {
   const navigate = useNavigate()
@@ -115,7 +116,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                     micapyTab === t ? 'border-[#008080] text-[#008080]' : 'border-transparent text-[#8896A5]'
                   }`}
                 >
-                  {t === 'micapy' ? 'Mi Capy' : t.charAt(0).toUpperCase() + t.slice(1)}
+                  {t === 'micapy' ? 'Mi Capy' : t === 'perfil_pro' ? 'Perfil Pro' : t === 'vincular' ? 'Vincular' : t === 'carta' ? 'Mi Carta' : t === 'whatsapp' ? 'WhatsApp' : t.charAt(0).toUpperCase() + t.slice(1)}
                 </button>
               ))}
             </div>
@@ -124,8 +125,17 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
             {micapyTab === 'carrera' && <MiCarrera venueId={venueId} />}
             {micapyTab === 'ranking' && <RankingMozos globalOnly />}
             {micapyTab === 'vincular' && <VincularTab />}
-            {['perfil', 'carta', 'ubicaciones', 'whatsapp'].includes(micapyTab) && (
-              <CamautConfigPage key={micapyTab} embedded initialTab={micapyTab} />
+            {micapyTab === 'perfil_pro' && <PerfilProPage venueId={venueId} />}
+            {micapyTab === 'carta' && (
+              <>
+                <CamautConfigPage key="carta" embedded initialTab="carta" />
+                <div className="mt-4">
+                  <CamautConfigPage key="ubicaciones" embedded initialTab="ubicaciones" />
+                </div>
+              </>
+            )}
+            {micapyTab === 'perfil' && (
+              <CamautConfigPage key="perfil" embedded initialTab="perfil" />
             )}
           </div>
         </div>
