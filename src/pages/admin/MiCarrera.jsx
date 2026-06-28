@@ -3,6 +3,14 @@ import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { LEVELS, BADGES, getLevel, getNextLevel, getXPProgress } from '../../lib/xpUtils'
 
+const BADGE_SVGS = {
+  first_order: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+  streak_7: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>,
+  orders_100: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
+  gold_star: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>,
+  first_invite: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+}
+
 export default function MiCarrera({ venueId: propVenueId }) {
   const activeVenueId = propVenueId || ACTIVE_VENUE_ID
   const { profile } = useAuth()
@@ -234,10 +242,14 @@ export default function MiCarrera({ venueId: propVenueId }) {
                 className={`flex items-center gap-3 p-3 rounded-xl border ${
                   unlocked
                     ? 'bg-[#F0FDF8] border-[#008080]/20'
-                    : 'bg-[#F8FAFC] border-black/5 opacity-50'
+                    : 'bg-[#F8FAFC] border-black/5 opacity-40'
                 }`}
               >
-                <span className="text-2xl">{badge.icon}</span>
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                  unlocked ? 'bg-[#008080]/10 text-[#008080]' : 'bg-[#E8EDF2] text-[#B0BEC5]'
+                }`}>
+                  {BADGE_SVGS[badge.key]}
+                </div>
                 <div>
                   <p className={`text-xs font-semibold ${unlocked ? 'text-[#1A2A3A]' : 'text-[#8896A5]'}`}>
                     {badge.label}
