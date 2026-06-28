@@ -203,14 +203,6 @@ function CartaTab({ profile }) {
     await supabaseCamaut.from('products').delete().eq('id', id)
     setProducts(prev => prev.filter(p => p.id !== id))
   }
-    await supabaseCamaut.from('products').update({ is_available: !product.is_available }).eq('id', product.id)
-    setProducts(prev => prev.map(p => p.id === product.id ? { ...p, is_available: !p.is_available } : p))
-  }
-
-  async function deleteProduct(id) {
-    await supabaseCamaut.from('products').delete().eq('id', id)
-    setProducts(prev => prev.filter(p => p.id !== id))
-  }
 
   if (loading) return <p className="text-[#8896A5] text-sm text-center py-10">Cargando carta...</p>
 
