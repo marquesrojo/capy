@@ -5,8 +5,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { formatPrice, STATUS_LABELS, STATUS_COLORS } from '../../lib/utils'
 import WaiterOrderPage from './WaiterOrderPage'
 
-const BOARD_COLUMNS = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'entregado']
-const COCINA_STATUSES = ['en_preparacion', 'listo'] // Para la query
+const BOARD_COLUMNS = ['recibido', 'en_preparacion', 'entregado']
 const PROOF_BUCKET = 'payment-proofs'
 const ORDER_SELECT = '*, order_items(*, products(category_id)), customers(full_name, whatsapp), assigned_staff:staff_names!orders_assigned_staff_id_fkey(id, full_name)'
 
@@ -127,7 +126,7 @@ function AdminDashboardInner() {
           .from('orders')
           .select(ORDER_SELECT)
           .eq('venue_id', ACTIVE_VENUE_ID)
-          .in('status', [...BOARD_COLUMNS, 'listo'])
+          .in('status', [...BOARD_COLUMNS, 'listo', 'pendiente_aprobacion'])
           .order('created_at', { ascending: true }),
         supabaseStaff
           .from('orders')
@@ -414,76 +413,21 @@ function AdminDashboardInner() {
             <Column
               key={status}
               status={status}
-              orders={status === 'en_preparacion'
-                ? orders.filter(o => o.status === 'en_preparacion' || o.status === 'listo')
-                : orders.filter(o => o.status === status)
+              orders={status === 'recibido'
+                ? orders.filter(o => o.status === 'recibido' || o.status === 'pendiente_aprobacion')
+                : status === 'en_preparacion'
+                  ? orders.filter(o => o.status === 'en_preparacion' || o.status === 'listo')
+                  : orders.filter(o => o.status === status)
               }
               onUpdateStatus={updateStatus}
               onDismissCall={dismissWaiterCall}
               waiters={waiters}
               onAssignWaiter={assignWaiter}
+              pendingInPersonOrders={status === 'entregado' ? pendingInPersonOrders : []}
+              paidOrders={status === 'entregado' ? paidOrders : []}
+              onConfirmPayment={status === 'entregado' ? confirmPayment : null}
             />
           ))}
-
-          {/* Columna Cobros: Por cobrar + Pagado hoy */}
-          <div className="flex-shrink-0 w-72">
-            <div className="px-3 py-2 rounded-lg border border-carbon-600 text-sm font-semibold mb-3 text-smoke-300 bg-carbon-800">
-              Cobros · {pendingInPersonOrders.length + paidOrders.length}
-            </div>
-
-            {/* Por cobrar */}
-            {pendingInPersonOrders.length > 0 && (
-              <div className="mb-3">
-                <p className="text-blue-700 text-[10px] font-semibold uppercase tracking-wide mb-2 px-1">
-                  Por cobrar · {pendingInPersonOrders.length}
-                </p>
-                <div className="space-y-2">
-                  {pendingInPersonOrders.map(order => (
-                    <InPersonCard
-                      key={order.id}
-                      order={order}
-                      waiters={waiters}
-                      onConfirm={() => confirmPayment(order)}
-                      onAssignWaiter={assignWaiter}
-                      compact
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Pagado hoy */}
-            {(pendingInPersonOrders.length > 0 && paidOrders.length > 0) && (
-              <div className="border-t border-carbon-700 mt-2 pt-2 mb-2" />
-            )}
-            {paidOrders.length > 0 && (
-              <div>
-                <p className="text-emerald-700 text-[10px] font-semibold uppercase tracking-wide mb-2 px-1">
-                  Pagado hoy · {paidOrders.length}
-                </p>
-                <div className="space-y-2">
-                  {paidOrders.map(order => (
-                    <div key={order.id} className="bg-carbon-900 border border-emerald-500/20 rounded-xl px-3 py-2.5 opacity-75">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-mono text-ember-500 font-bold text-sm">
-                          #{order.daily_number || order.id.slice(0, 6)}
-                        </span>
-                        <span className="text-emerald-700 text-xs font-medium">
-                          {(order.payment_method || '').toLowerCase().includes('mercado') ? 'Mercado Pago' : order.payment_method}
-                        </span>
-                      </div>
-                      <p className="text-smoke-400 text-xs">📍 {order.location_label}</p>
-                      <p className="font-mono text-smoke-300 text-sm mt-1">{formatPrice(order.total)}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {pendingInPersonOrders.length === 0 && paidOrders.length === 0 && (
-              <p className="text-smoke-600 text-xs text-center py-4">Sin cobros pendientes</p>
-            )}
-          </div>
         </div>
       )}
     </div>
@@ -1006,25 +950,24 @@ function InPersonCard({ order, waiters, onConfirm, onAssignWaiter, compact }) {
   )
 }
 
-function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssignWaiter }) {
+function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssignWaiter, pendingInPersonOrders = [], paidOrders = [], onConfirmPayment }) {
   const nextStatus = {
-    pendiente_aprobacion: 'recibido',
     recibido: 'en_preparacion',
     en_preparacion: 'entregado',
   }[status]
 
   const prevStatus = {
-    recibido: 'pendiente_aprobacion',
     en_preparacion: 'recibido',
     entregado: 'en_preparacion'
   }[status]
 
-  const columnLabel = status === 'en_preparacion' ? 'Preparación / Listo' : STATUS_LABELS[status]
+  const columnLabel = status === 'en_preparacion' ? 'Preparación' : STATUS_LABELS[status]
+  const totalCount = orders.length + pendingInPersonOrders.length + paidOrders.length
 
   return (
-    <div className="flex-shrink-0 w-72">
+    <div className="flex-shrink-0 w-80">
       <div className={`px-3 py-2 rounded-lg border text-sm font-semibold mb-3 ${STATUS_COLORS[status]}`}>
-        {columnLabel} · {orders.length}
+        {columnLabel} · {totalCount}
       </div>
       <div className="space-y-3">
         {orders.map(order => (
@@ -1039,6 +982,56 @@ function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssi
             onAssignWaiter={onAssignWaiter}
           />
         ))}
+
+        {/* Cobros dentro de Entregado */}
+        {pendingInPersonOrders.length > 0 && (
+          <div>
+            <p className="text-blue-700 text-[10px] font-semibold uppercase tracking-wide mb-2 px-1">
+              Por cobrar · {pendingInPersonOrders.length}
+            </p>
+            <div className="space-y-2">
+              {pendingInPersonOrders.map(order => (
+                <InPersonCard
+                  key={order.id}
+                  order={order}
+                  waiters={waiters}
+                  onConfirm={() => onConfirmPayment(order)}
+                  onAssignWaiter={onAssignWaiter}
+                  compact
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {pendingInPersonOrders.length > 0 && paidOrders.length > 0 && (
+          <div className="border-t border-carbon-700 mt-2 pt-2" />
+        )}
+
+        {paidOrders.length > 0 && (
+          <div>
+            <p className="text-emerald-700 text-[10px] font-semibold uppercase tracking-wide mb-2 px-1">
+              Pagado hoy · {paidOrders.length}
+            </p>
+            <div className="space-y-2">
+              {paidOrders.map(order => (
+                <div key={order.id} className="bg-carbon-900 border border-emerald-500/20 rounded-xl px-3 py-2.5 opacity-75">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-mono text-ember-500 font-bold text-sm">
+                      #{order.daily_number || order.id.slice(0, 6)}
+                    </span>
+                    <span className="text-emerald-700 text-xs font-medium">
+                      {(order.payment_method || '').toLowerCase().includes('mercado') ? 'Mercado Pago' : order.payment_method}
+                    </span>
+                  </div>
+                  <p className="text-smoke-400 text-xs">📍 {order.location_label}</p>
+                  <p className="font-mono text-smoke-300 text-sm mt-1">{formatPrice(order.total)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
       </div>
     </div>
   )
@@ -1073,6 +1066,11 @@ function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCal
       {order.status === 'listo' && (
         <div className="flex items-center gap-1.5 mb-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-2.5 py-1.5">
           <span className="text-emerald-500 text-xs font-semibold">✓ Listo para entregar</span>
+        </div>
+      )}
+      {order.status === 'pendiente_aprobacion' && (
+        <div className="flex items-center gap-1.5 mb-2 bg-amber-500/10 border border-amber-500/30 rounded-lg px-2.5 py-1.5">
+          <span className="text-amber-500 text-xs font-semibold">⏳ Pendiente de aprobar</span>
         </div>
       )}
       <div className="flex items-center justify-between mb-2">
@@ -1165,16 +1163,20 @@ function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCal
               ↺
             </button>
           )}
-          {nextStatus && (
+          {order.status === 'pendiente_aprobacion' && (
+            <button
+              onClick={() => onUpdateStatus(order.id, 'recibido')}
+              className="text-white text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700"
+            >
+              Aprobar ✓
+            </button>
+          )}
+          {order.status !== 'pendiente_aprobacion' && nextStatus && (
             <button
               onClick={() => onUpdateStatus(order.id, nextStatus)}
-              className={`text-white text-xs font-semibold px-3 py-1.5 rounded-full ${
-                order.status === 'pendiente_aprobacion'
-                  ? 'bg-emerald-600 hover:bg-emerald-700'
-                  : 'bg-ember-500 hover:bg-ember-600'
-              }`}
+              className="text-white text-xs font-semibold px-3 py-1.5 rounded-full bg-ember-500 hover:bg-ember-600"
             >
-              {order.status === 'pendiente_aprobacion' ? 'Aprobar ✓' : `${STATUS_LABELS[nextStatus]} →`}
+              {STATUS_LABELS[nextStatus]} →
             </button>
           )}
         </div>
