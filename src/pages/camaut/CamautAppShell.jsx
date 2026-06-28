@@ -9,6 +9,7 @@ import MiCarrera from '../admin/MiCarrera'
 import RankingMozos from '../admin/RankingMozos'
 import CamautConfigPage from './CamautConfigPage'
 import PerfilProPage from './PerfilProPage'
+import CamautKanban from './CamautKanban'
 
 const TABS = [
   {
@@ -31,7 +32,7 @@ const TABS = [
 
 const MICAPY_TABS = ['perfil', 'perfil_pro', 'carta', 'vincular', 'carrera', 'ranking']
 
-export default function CamautAppShell({ venueId, staffName: initialName, staffXP: initialXP, linkedVenues = [] }) {
+export default function CamautAppShell({ venueId, staffName: initialName, staffXP: initialXP, linkedVenues = [], staffId }) {
   const navigate = useNavigate()
   const [tab, setTab] = useState('tomar')
   const [micapyTab, setMicapyTab] = useState('perfil')
@@ -101,7 +102,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
 
       {/* Contenido */}
       {tab === 'tomar' && <WaiterOrderCamaut venueId={venueId} linkedVenues={linkedVenues} />}
-      {tab === 'pedidos' && <WaiterTrackingPage venueId={venueId} />}
+      {tab === 'pedidos' && <CamautKanban venueId={venueId} linkedVenues={linkedVenues} staffId={staffId} />}
       {tab === 'turno' && <ShiftSummaryPage embedded venueId={venueId} />}
 
       {tab === 'micapy' && (
