@@ -62,7 +62,7 @@ export default function WaiterOrderCamaut({ venueId }) {
     setSubmitting(true)
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/camaut-order`, {
+      const res = await fetch(`https://ycgptakgpsvmstoftkdk.supabase.co/functions/v1/camaut-order`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
