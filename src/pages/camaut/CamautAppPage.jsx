@@ -8,6 +8,7 @@ export default function CamautAppPage() {
   const [checking, setChecking] = useState(true)
   const [authorized, setAuthorized] = useState(false)
   const [venueId, setVenueId] = useState(null)
+  const [staffName, setStaffName] = useState(null)
 
   useEffect(() => {
     checkAuth()
@@ -33,7 +34,19 @@ export default function CamautAppPage() {
       .eq('id', session.user.id)
       .single()
 
-    setVenueId(profile?.venue_id || null)
+    const vId = profile?.venue_id || null
+    setVenueId(vId)
+
+    // Leer nombre del staff_names del venue personal
+    if (vId) {
+      const { data: staffData } = await supabaseStaff
+        .from('staff_names')
+        .select('full_name')
+        .eq('venue_id', vId)
+        .single()
+      setStaffName(staffData?.full_name || null)
+    }
+
     setAuthorized(true)
     setChecking(false)
   }
@@ -48,5 +61,5 @@ export default function CamautAppPage() {
 
   if (!authorized) return null
 
-  return <WaiterModePage venueId={venueId} />
+  return <WaiterModePage venueId={venueId} staffName={staffName} />
 }
