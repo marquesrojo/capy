@@ -1,16 +1,23 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
-import { formatPrice } from '../../lib/utils'
+import { useAuth } from '../../hooks/useAuth'
 
 const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-user`
 
 export default function WaitersPage() {
-  const [tab, setTab] = useState('vinculados')
+  const { profile } = useAuth()
+  const [tab, setTab] = useState('camareros')
   const [vinculados, setVinculados] = useState([])
-  const [staffNames, setStaffNames] = useState([])
-  const [users, setUsers] = useState([])
+  const [admins, setAdmins] = useState([])
   const [loading, setLoading] = useState(true)
+
+  // Crear admin
+  const [newEmail, setNewEmail] = useState('')
+  const [newName, setNewName] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState('')
 
   useEffect(() => {
     loadAll()
@@ -18,29 +25,20 @@ export default function WaitersPage() {
 
   async function loadAll() {
     setLoading(true)
-    const [vinculadosRes, staffRes, usersRes] = await Promise.all([
-      // Camareros camaut vinculados
+    const [vinculadosRes, adminsRes] = await Promise.all([
       supabaseStaff
         .from('venue_staff')
-        .select('id, status, joined_at, profile:profiles(id, full_name, venue_id)')
+        .select('id, status, joined_at, profile:profiles(id, full_name)')
         .eq('venue_id', ACTIVE_VENUE_ID)
         .eq('status', 'active'),
-      // Staff names (para asignar a pedidos)
-      supabaseStaff
-        .from('staff_names')
-        .select('id, full_name, is_active, created_at')
-        .eq('venue_id', ACTIVE_VENUE_ID)
-        .order('full_name'),
-      // Usuarios con login directo
       supabaseStaff
         .from('profiles')
         .select('id, full_name, role, created_at')
-        .in('role', ['admin', 'camarero'])
-        .order('role')
+        .eq('role', 'admin')
+        .order('full_name')
     ])
     setVinculados(vinculadosRes.data || [])
-    setStaffNames(staffRes.data || [])
-    setUsers(usersRes.data || [])
+    setAdmins(adminsRes.data || [])
     setLoading(false)
   }
 
@@ -53,9 +51,21 @@ export default function WaitersPage() {
     setVinculados(prev => prev.filter(v => v.id !== id))
   }
 
-  async function toggleStaff(id, isActive) {
-    await supabaseStaff.from('staff_names').update({ is_active: !isActive }).eq('id', id)
-    setStaffNames(prev => prev.map(s => s.id === id ? { ...s, is_active: !isActive } : s))
+  async function createAdmin(e) {
+    e.preventDefault()
+    if (!newEmail || !newName || !newPassword) { setCreateError('Completá todos los campos'); return }
+    setCreating(true)
+    setCreateError('')
+    const res = await fetch(EDGE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY },
+      body: JSON.stringify({ action: 'create', email: newEmail, full_name: newName, role: 'admin', password: newPassword })
+    })
+    const data = await res.json()
+    if (data.error) { setCreateError(data.error); setCreating(false); return }
+    setNewEmail(''); setNewName(''); setNewPassword('')
+    loadAll()
+    setCreating(false)
   }
 
   return (
@@ -63,14 +73,12 @@ export default function WaitersPage() {
       <div className="flex items-center gap-3 mb-6">
         <Link to="/admin/configuracion" className="text-smoke-500 text-sm">← Volver</Link>
       </div>
-      <h1 className="font-display text-3xl text-ember-500 tracking-wide mb-6">CAMAREROS</h1>
+      <h1 className="font-display text-3xl text-ember-500 tracking-wide mb-6">USUARIOS</h1>
 
-      {/* Tabs */}
       <div className="flex gap-2 mb-6">
         {[
-          { id: 'vinculados', label: 'Capy Camarero' },
-          { id: 'staff', label: 'Nombres' },
-          { id: 'usuarios', label: 'Usuarios' },
+          { id: 'camareros', label: 'Capy Camarero' },
+          { id: 'admins', label: 'Admins' },
         ].map(t => (
           <button
             key={t.id}
@@ -89,11 +97,11 @@ export default function WaitersPage() {
       ) : (
         <>
           {/* Capy Camarero vinculados */}
-          {tab === 'vinculados' && (
+          {tab === 'camareros' && (
             <div className="space-y-3">
               <p className="text-smoke-500 text-xs mb-4">
-                Camareros autónomos vinculados via código de invitación. Para invitar nuevos, compartí el código desde{' '}
-                <Link to="/admin/configuracion/qr" className="text-ember-500 underline">Config → QR</Link>.
+                Camareros vinculados via código de invitación desde{' '}
+                <Link to="/admin/qr" className="text-ember-500 underline">Config → Códigos QR</Link>.
               </p>
               {vinculados.length === 0 ? (
                 <p className="text-smoke-600 text-sm text-center py-8">No hay camareros vinculados todavía.</p>
@@ -103,13 +111,10 @@ export default function WaitersPage() {
                     <div>
                       <p className="text-smoke-200 font-semibold text-sm">{v.profile?.full_name || 'Sin nombre'}</p>
                       <p className="text-smoke-500 text-xs">
-                        Vinculado desde {new Date(v.joined_at).toLocaleDateString('es-AR')}
+                        Desde {new Date(v.joined_at).toLocaleDateString('es-AR')}
                       </p>
                     </div>
-                    <button
-                      onClick={() => desvincular(v.id)}
-                      className="text-red-400 text-xs underline"
-                    >
+                    <button onClick={() => desvincular(v.id)} className="text-red-400 text-xs underline">
                       Desvincular
                     </button>
                   </div>
@@ -118,52 +123,41 @@ export default function WaitersPage() {
             </div>
           )}
 
-          {/* Staff names */}
-          {tab === 'staff' && (
-            <div className="space-y-3">
-              <p className="text-smoke-500 text-xs mb-4">
-                Nombres que aparecen en el selector de pedidos del kanban.
-              </p>
-              {staffNames.map(s => (
-                <div key={s.id} className="bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-3 flex items-center justify-between">
-                  <div>
-                    <p className={`font-semibold text-sm ${s.is_active ? 'text-smoke-200' : 'text-smoke-600 line-through'}`}>
-                      {s.full_name}
-                    </p>
-                    <p className="text-smoke-500 text-xs">{s.is_active ? 'Activo' : 'Inactivo'}</p>
-                  </div>
-                  <button
-                    onClick={() => toggleStaff(s.id, s.is_active)}
-                    className={`text-xs underline ${s.is_active ? 'text-red-400' : 'text-emerald-500'}`}
-                  >
-                    {s.is_active ? 'Desactivar' : 'Activar'}
-                  </button>
-                </div>
-              ))}
-              {staffNames.length === 0 && (
-                <p className="text-smoke-600 text-sm text-center py-8">No hay nombres registrados.</p>
-              )}
-            </div>
-          )}
-
-          {/* Usuarios con login */}
-          {tab === 'usuarios' && (
-            <div className="space-y-3">
-              <p className="text-smoke-500 text-xs mb-4">
-                Cuentas con acceso directo al panel. Usá esto solo para admins.
-              </p>
-              {users.map(u => (
-                <div key={u.id} className="bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-3 flex items-center justify-between">
-                  <div>
+          {/* Admins */}
+          {tab === 'admins' && profile?.role === 'admin' && (
+            <div className="space-y-4">
+              {/* Lista de admins */}
+              <div className="space-y-2">
+                {admins.map(u => (
+                  <div key={u.id} className="bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-3">
                     <p className="text-smoke-200 font-semibold text-sm">{u.full_name}</p>
                     <p className="text-smoke-500 text-xs capitalize">{u.role}</p>
                   </div>
-                </div>
-              ))}
-              {users.length === 0 && (
-                <p className="text-smoke-600 text-sm text-center py-8">No hay usuarios.</p>
-              )}
+                ))}
+              </div>
+
+              {/* Crear admin */}
+              <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4 mt-4">
+                <p className="text-smoke-300 font-semibold text-sm mb-3">Crear nuevo admin</p>
+                <form onSubmit={createAdmin} className="space-y-2">
+                  <input type="text" value={newName} onChange={e => setNewName(e.target.value)}
+                    placeholder="Nombre completo" className="input w-full" />
+                  <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)}
+                    placeholder="Email" className="input w-full" />
+                  <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
+                    placeholder="Contraseña" className="input w-full" />
+                  {createError && <p className="text-red-500 text-xs">{createError}</p>}
+                  <button type="submit" disabled={creating}
+                    className="w-full bg-ember-500 disabled:opacity-50 text-white font-semibold py-3 rounded-xl text-sm">
+                    {creating ? 'Creando...' : 'Crear admin'}
+                  </button>
+                </form>
+              </div>
             </div>
+          )}
+
+          {tab === 'admins' && profile?.role !== 'admin' && (
+            <p className="text-smoke-600 text-sm text-center py-8">Solo los admins pueden gestionar usuarios.</p>
           )}
         </>
       )}
