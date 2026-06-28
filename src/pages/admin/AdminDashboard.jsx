@@ -5,7 +5,8 @@ import { useAuth } from '../../hooks/useAuth'
 import { formatPrice, STATUS_LABELS, STATUS_COLORS } from '../../lib/utils'
 import WaiterOrderPage from './WaiterOrderPage'
 
-const BOARD_COLUMNS = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo', 'entregado']
+const BOARD_COLUMNS = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'entregado']
+const COCINA_STATUSES = ['en_preparacion', 'listo'] // Para la query
 const PROOF_BUCKET = 'payment-proofs'
 const ORDER_SELECT = '*, order_items(*, products(category_id)), customers(full_name, whatsapp), assigned_staff:staff_names!orders_assigned_staff_id_fkey(id, full_name)'
 
@@ -126,7 +127,7 @@ function AdminDashboardInner() {
           .from('orders')
           .select(ORDER_SELECT)
           .eq('venue_id', ACTIVE_VENUE_ID)
-          .in('status', BOARD_COLUMNS)
+          .in('status', [...BOARD_COLUMNS, 'listo'])
           .order('created_at', { ascending: true }),
         supabaseStaff
           .from('orders')
@@ -413,7 +414,10 @@ function AdminDashboardInner() {
             <Column
               key={status}
               status={status}
-              orders={orders.filter(o => o.status === status)}
+              orders={status === 'en_preparacion'
+                ? orders.filter(o => o.status === 'en_preparacion' || o.status === 'listo')
+                : orders.filter(o => o.status === status)
+              }
               onUpdateStatus={updateStatus}
               onDismissCall={dismissWaiterCall}
               waiters={waiters}
@@ -1006,21 +1010,21 @@ function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssi
   const nextStatus = {
     pendiente_aprobacion: 'recibido',
     recibido: 'en_preparacion',
-    en_preparacion: 'listo',
-    listo: 'entregado'
+    en_preparacion: 'entregado',
   }[status]
 
   const prevStatus = {
     recibido: 'pendiente_aprobacion',
     en_preparacion: 'recibido',
-    listo: 'en_preparacion',
-    entregado: 'listo'
+    entregado: 'en_preparacion'
   }[status]
+
+  const columnLabel = status === 'en_preparacion' ? 'Preparación / Listo' : STATUS_LABELS[status]
 
   return (
     <div className="flex-shrink-0 w-72">
       <div className={`px-3 py-2 rounded-lg border text-sm font-semibold mb-3 ${STATUS_COLORS[status]}`}>
-        {STATUS_LABELS[status]} · {orders.length}
+        {columnLabel} · {orders.length}
       </div>
       <div className="space-y-3">
         {orders.map(order => (
@@ -1054,23 +1058,27 @@ function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCal
         ? 'text-amber-600 font-semibold'
         : 'text-emerald-700'
 
-  const borderColor = order.status === 'entregado'
-    ? 'border-carbon-700'
-    : elapsedMin > 30
-      ? 'border-red-500/50'
-      : elapsedMin > 15
-        ? 'border-amber-500/40'
-        : 'border-carbon-700'
+  const borderColor = order.status === 'listo'
+    ? 'border-emerald-500/50'
+    : order.status === 'entregado'
+      ? 'border-carbon-700'
+      : elapsedMin > 30
+        ? 'border-red-500/50'
+        : elapsedMin > 15
+          ? 'border-amber-500/40'
+          : 'border-carbon-700'
 
   return (
     <div className={`bg-carbon-900 border rounded-2xl p-4 ${borderColor}`}>
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-ember-400 text-xs">{order.daily_number ? `#${order.daily_number}` : `#${order.id.slice(0, 6)}`}</span>
-          {order.daily_number && (
-            <span className="font-mono text-ember-500 font-bold text-sm">#{order.daily_number}</span>
-          )}
+      {order.status === 'listo' && (
+        <div className="flex items-center gap-1.5 mb-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-2.5 py-1.5">
+          <span className="text-emerald-500 text-xs font-semibold">✓ Listo para entregar</span>
         </div>
+      )}
+      <div className="flex items-center justify-between mb-2">
+        <span className="font-mono text-ember-500 font-bold text-sm">
+          {order.daily_number ? `#${order.daily_number}` : `#${order.id.slice(0, 6)}`}
+        </span>
         <span className={`text-xs ${trafficColor}`}>
           {elapsedMin} min
         </span>
