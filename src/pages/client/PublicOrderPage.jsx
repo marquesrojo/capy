@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { supabaseCustomer } from '../../lib/supabase'
+import { createClient } from '@supabase/supabase-js'
 import { formatPrice } from '../../lib/utils'
+
+const supabasePublic = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY,
+  { auth: { persistSession: false } }
+)
 
 const STATUS_INFO = {
   pendiente_aprobacion: { label: 'Esperando confirmación', color: 'text-amber-500', icon: '⏳' },
@@ -23,7 +29,7 @@ export default function PublicOrderPage() {
   }, [id])
 
   async function loadOrder() {
-    const { data: orderData } = await supabaseCustomer
+    const { data: orderData } = await supabaseStaff
       .from('orders')
       .select('id, status, location_label, total, daily_number, created_at')
       .eq('id', id)
@@ -31,7 +37,7 @@ export default function PublicOrderPage() {
 
     if (!orderData) { setNotFound(true); setLoading(false); return }
 
-    const { data: itemsData } = await supabaseCustomer
+    const { data: itemsData } = await supabaseStaff
       .from('order_items')
       .select('product_name, quantity, unit_price')
       .eq('order_id', id)
@@ -42,7 +48,7 @@ export default function PublicOrderPage() {
 
     // Polling cada 10 segundos
     const interval = setInterval(async () => {
-      const { data } = await supabaseCustomer
+      const { data } = await supabaseStaff
         .from('orders')
         .select('status')
         .eq('id', id)
