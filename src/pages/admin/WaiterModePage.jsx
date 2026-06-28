@@ -1,4 +1,5 @@
 import { Component, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { supabaseCamaut } from '../../lib/supabase'
 import WaiterOrderPage from './WaiterOrderPage'
@@ -54,12 +55,16 @@ const CONFIG_TAB = {
 
 export default function WaiterModePage({ venueId }) {
   const { profile, signOut } = useAuth()
+  const navigate = useNavigate()
   const [tab, setTab] = useState('tomar')
   const TABS = profile?.is_autonomous ? [...BASE_TABS, CONFIG_TAB] : BASE_TABS
 
   async function handleSignOut() {
     await supabaseCamaut.auth.signOut()
     await signOut()
+    if (profile?.is_autonomous) {
+      navigate('/camaut/login')
+    }
   }
 
   return (
