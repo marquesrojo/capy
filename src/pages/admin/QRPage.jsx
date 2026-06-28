@@ -1,83 +1,148 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import QRCode from 'qrcode'
-
-const QR_ITEMS = [
-  {
-    id: 'cliente',
-    label: 'QR Clientes',
-    description: 'El cliente escanea este QR para ver la carta y hacer su pedido',
-    url: 'https://capyapp.co',
-    color: '#E8772A'
-  },
-  {
-    id: 'admin',
-    label: 'QR Camareros / Admin',
-    description: 'El camarero escanea este QR para acceder al panel de pedidos',
-    url: 'https://capyapp.co/admin',
-    color: '#4A90D9'
-  }
-]
+import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
 
 export default function QRPage() {
+  const [inviteCode, setInviteCode] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadInviteCode()
+  }, [])
+
+  async function loadInviteCode() {
+    const { data } = await supabaseStaff
+      .from('venues')
+      .select('invite_code')
+      .eq('id', ACTIVE_VENUE_ID)
+      .single()
+    setInviteCode(data?.invite_code || null)
+    setLoading(false)
+  }
+
+  async function regenerateCode() {
+    const newCode = Math.random().toString(36).substring(2, 10).toUpperCase()
+    await supabaseStaff
+      .from('venues')
+      .update({ invite_code: newCode })
+      .eq('id', ACTIVE_VENUE_ID)
+    setInviteCode(newCode)
+  }
+
   return (
     <div className="min-h-screen bg-carbon-950 px-5 py-8">
       <div className="flex items-center gap-3 mb-6">
         <Link to="/admin/configuracion" className="text-smoke-500 text-sm">← Volver</Link>
       </div>
       <h1 className="font-display text-3xl text-ember-500 tracking-wide mb-6">CÓDIGOS QR</h1>
+
       <div className="space-y-6">
-        {QR_ITEMS.map(item => (
-          <QRCard key={item.id} item={item} />
-        ))}
+        {/* QR Clientes */}
+        <QRCard
+          label="QR Clientes"
+          description="El cliente escanea este QR para ver la carta y hacer su pedido"
+          url="https://capyapp.co"
+          showTemplate
+        />
+
+        {/* Código de invitación para camareros */}
+        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
+          <p className="text-smoke-200 font-semibold mb-1">Invitar Camareros</p>
+          <p className="text-smoke-500 text-xs mb-4">
+            El camarero ingresa este código en Capy Camarero para vincularse a este restaurante
+          </p>
+
+          {loading ? (
+            <p className="text-smoke-500 text-sm text-center py-4">Cargando...</p>
+          ) : (
+            <>
+              {/* Código grande */}
+              <div className="bg-carbon-800 border border-carbon-700 rounded-2xl p-6 text-center mb-4">
+                <p className="text-smoke-500 text-xs mb-2 uppercase tracking-wide">Código de invitación</p>
+                <p className="font-mono text-ember-500 text-4xl font-bold tracking-widest">{inviteCode}</p>
+              </div>
+
+              {/* QR del código */}
+              {inviteCode && (
+                <InviteQRCode code={inviteCode} />
+              )}
+
+              <button
+                onClick={regenerateCode}
+                className="w-full mt-3 border border-carbon-700 text-smoke-400 text-sm py-3 rounded-xl"
+              >
+                Regenerar código
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   )
 }
 
-function QRCard({ item }) {
+function InviteQRCode({ code }) {
+  const canvasRef = useRef(null)
+  const [ready, setReady] = useState(false)
+  const url = `https://capyapp.co/camaut/vincular?code=${code}`
+
+  useEffect(() => {
+    if (!canvasRef.current) return
+    setReady(false)
+    QRCode.toCanvas(canvasRef.current, url, {
+      width: 240,
+      margin: 2,
+      color: { dark: '#1A1A1A', light: '#F5F0EB' }
+    }, (err) => { if (!err) setReady(true) })
+  }, [code])
+
+  return (
+    <div className="flex justify-center">
+      <div className="bg-[#F5F0EB] p-4 rounded-2xl">
+        <canvas ref={canvasRef} style={{ display: ready ? 'block' : 'none' }} />
+        {!ready && <div className="w-[240px] h-[240px] bg-carbon-800 rounded-xl" />}
+      </div>
+    </div>
+  )
+}
+
+function QRCard({ label, description, url, showTemplate }) {
   const canvasRef = useRef(null)
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
     if (!canvasRef.current) return
-    QRCode.toCanvas(canvasRef.current, item.url, {
+    QRCode.toCanvas(canvasRef.current, url, {
       width: 280,
       margin: 2,
-      color: {
-        dark: '#1A1A1A',
-        light: '#F5F0EB'
-      }
-    }, (err) => {
-      if (!err) setReady(true)
-    })
-  }, [item.url])
+      color: { dark: '#1A1A1A', light: '#F5F0EB' }
+    }, (err) => { if (!err) setReady(true) })
+  }, [url])
 
   function handleDownload() {
     const canvas = canvasRef.current
     if (!canvas) return
     const link = document.createElement('a')
-    link.download = `capy-qr-${item.id}.png`
+    link.download = `capy-qr-cliente.png`
     link.href = canvas.toDataURL('image/png')
     link.click()
   }
 
   return (
     <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
-      <p className="text-smoke-200 font-semibold mb-1">{item.label}</p>
-      <p className="text-smoke-500 text-xs mb-4">{item.description}</p>
-      <p className="text-smoke-600 text-xs font-mono mb-4">{item.url}</p>
-
+      <p className="text-smoke-200 font-semibold mb-1">{label}</p>
+      <p className="text-smoke-500 text-xs mb-4">{description}</p>
+      <p className="text-smoke-600 text-xs font-mono mb-4">{url}</p>
       <div className="flex justify-center mb-4">
         <div className="bg-[#F5F0EB] p-4 rounded-2xl">
           <canvas ref={canvasRef} />
         </div>
       </div>
-
       {ready && (
         <button
           onClick={handleDownload}
-          className="w-full flex items-center justify-center gap-2 border border-ember-500 text-ember-500 font-semibold py-3 rounded-xl"
+          className="w-full flex items-center justify-center gap-2 border border-ember-500 text-ember-500 font-semibold py-3 rounded-xl mb-2"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -87,18 +152,13 @@ function QRCard({ item }) {
           Descargar PNG
         </button>
       )}
-      {item.id === 'cliente' && (
+      {showTemplate && (
         <a
           href="/qr-template.html"
           target="_blank"
           rel="noreferrer"
-          className="w-full mt-2 flex items-center justify-center gap-2 border border-carbon-700 text-smoke-400 text-sm py-3 rounded-xl"
+          className="w-full flex items-center justify-center gap-2 border border-carbon-700 text-smoke-400 text-sm py-3 rounded-xl"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <path d="M14 2v6h6"/>
-            <path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>
-          </svg>
           Template para imprimir
         </a>
       )}
