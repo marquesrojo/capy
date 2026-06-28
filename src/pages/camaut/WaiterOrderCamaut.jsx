@@ -83,7 +83,6 @@ export default function WaiterOrderCamaut({ venueId }) {
       })
 
       const result = await res.json()
-      alert(JSON.stringify(result))
 
       if (result.success) {
         if (staffId) await awardXP(staffId, 'send_order')
