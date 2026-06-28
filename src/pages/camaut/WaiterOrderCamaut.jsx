@@ -28,6 +28,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
   const [staffId, setStaffId] = useState(null)
 
   useEffect(() => {
+    activeVenueIdRef.current = activeVenueId
     if (activeVenueId) loadCarta()
   }, [activeVenueId])
 
@@ -75,7 +76,6 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
     setSubmitting(true)
 
     try {
-      alert('Enviando a venue: ' + activeVenueIdRef.current)
       const res = await fetch(`https://ycgptakgpsvmstoftkdk.supabase.co/functions/v1/camaut-order`, {
         method: 'POST',
         headers: {
