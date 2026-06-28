@@ -74,6 +74,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
   async function handleSubmit() {
     if (!cartItems.length || !locationLabel) return
     setSubmitting(true)
+    const currentVenueId = activeVenueIdRef.current
 
     try {
       const res = await fetch(`https://ycgptakgpsvmstoftkdk.supabase.co/functions/v1/camaut-order`, {
@@ -83,7 +84,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
         },
         body: JSON.stringify({
-          venueId: activeVenueIdRef.current,
+          venueId: currentVenueId,
           locationLabel,
           staffId: staffId || null,
           total,
