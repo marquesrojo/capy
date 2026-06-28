@@ -43,11 +43,10 @@ export default function CamautAppPage() {
     if (vId) {
       const { data: staffData } = await supabaseStaff
         .from('staff_names')
-        .select('full_name, xp')
+        .select('full_name')
         .eq('venue_id', vId)
         .single()
-      setStaffName(fullNameFromMeta || staffData?.full_name || null)
-      setStaffXP(staffData?.xp || 0)
+      setStaffName(staffData?.full_name || fullNameFromMeta || null)
     } else {
       setStaffName(fullNameFromMeta)
     }
