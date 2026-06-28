@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabaseStaff } from '../../lib/supabase'
 import { formatPrice } from '../../lib/utils'
 import { useAuth } from '../../hooks/useAuth'
@@ -16,6 +16,12 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
   const [notes, setNotes] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
   const [activeVenueId, setActiveVenueId] = useState(venueId)
+  const activeVenueIdRef = useRef(venueId)
+
+  function updateActiveVenue(id) {
+    setActiveVenueId(id)
+    activeVenueIdRef.current = id
+  }
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [lastOrder, setLastOrder] = useState(null)
@@ -69,6 +75,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
     setSubmitting(true)
 
     try {
+      alert('Enviando a venue: ' + activeVenueIdRef.current)
       const res = await fetch(`https://ycgptakgpsvmstoftkdk.supabase.co/functions/v1/camaut-order`, {
         method: 'POST',
         headers: {
@@ -76,7 +83,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
         },
         body: JSON.stringify({
-          venueId: activeVenueId,
+          venueId: activeVenueIdRef.current,
           locationLabel,
           staffId: staffId || null,
           total,
@@ -187,7 +194,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
           <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-2">Carta</p>
           <div className="flex gap-2 flex-wrap">
             <button
-              onClick={() => { setActiveVenueId(venueId); setCart({}); setSelectedZone(null) }}
+              onClick={() => { updateActiveVenue(venueId); setCart({}); setSelectedZone(null) }}
               className={`px-4 py-2 rounded-xl text-sm font-semibold border ${
                 activeVenueId === venueId
                   ? 'bg-[#008080] text-white border-[#008080]'
@@ -199,7 +206,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
             {linkedVenues.map(v => (
               <button
                 key={v.id}
-                onClick={() => { setActiveVenueId(v.id); setCart({}); setSelectedZone(null) }}
+                onClick={() => { updateActiveVenue(v.id); setCart({}); setSelectedZone(null) }}
                 className={`px-4 py-2 rounded-xl text-sm font-semibold border ${
                   activeVenueId === v.id
                     ? 'bg-[#008080] text-white border-[#008080]'
