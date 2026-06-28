@@ -16,7 +16,7 @@ export default function CamautConfigPage() {
           <button onClick={signOut} className="text-[#8896A5] text-xs underline">Salir</button>
         </div>
         <div className="flex gap-4 border-b border-transparent">
-          {['perfil', 'carta', 'whatsapp'].map(t => (
+          {['perfil', 'carta', 'ubicaciones', 'whatsapp'].map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -33,6 +33,7 @@ export default function CamautConfigPage() {
       <div className="px-5 py-5">
         {tab === 'perfil' && <PerfilTab profile={profile} />}
         {tab === 'carta' && <CartaTab profile={profile} />}
+        {tab === 'ubicaciones' && <UbicacionesTab profile={profile} />}
         {tab === 'whatsapp' && <WhatsappTab profile={profile} />}
       </div>
     </div>
@@ -368,5 +369,96 @@ function WhatsappTab({ profile }) {
         {saving ? 'Guardando...' : 'Guardar'}
       </button>
     </form>
+  )
+}
+
+function UbicacionesTab({ profile }) {
+  const [venueId, setVenueId] = useState(null)
+  const [zones, setZones] = useState([])
+  const [newZone, setNewZone] = useState('')
+  const [adding, setAdding] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadZones()
+  }, [profile])
+
+  async function loadZones() {
+    if (!profile) return
+    const { data: profileData } = await supabaseCamaut
+      .from('profiles').select('venue_id').eq('id', profile.id).single()
+    if (!profileData?.venue_id) return
+    setVenueId(profileData.venue_id)
+    const { data } = await supabaseCamaut
+      .from('venue_zones')
+      .select('*')
+      .eq('venue_id', profileData.venue_id)
+      .eq('is_active', true)
+      .order('sort_order')
+    setZones(data || [])
+    setLoading(false)
+  }
+
+  async function addZone() {
+    if (!newZone.trim() || !venueId) return
+    setAdding(true)
+    const { data } = await supabaseCamaut
+      .from('venue_zones')
+      .insert({
+        venue_id: venueId,
+        name: newZone.trim(),
+        type: 'mesa',
+        is_active: true,
+        sort_order: zones.length
+      })
+      .select().single()
+    if (data) setZones(prev => [...prev, data])
+    setNewZone('')
+    setAdding(false)
+  }
+
+  async function deleteZone(id) {
+    await supabaseCamaut.from('venue_zones').update({ is_active: false }).eq('id', id)
+    setZones(prev => prev.filter(z => z.id !== id))
+  }
+
+  if (loading) return <p className="text-[#8896A5] text-sm text-center py-10">Cargando...</p>
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
+        <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">Nueva ubicación</p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newZone}
+            onChange={e => setNewZone(e.target.value)}
+            placeholder="Ej: Mesa 1, Barra, Terraza..."
+            className="flex-1 border border-black/10 rounded-xl px-3 py-2.5 text-sm bg-[#F8FAFC] text-[#1A2A3A]"
+          />
+          <button onClick={addZone} disabled={adding || !newZone.trim()}
+            className="bg-[#4DD0E1] disabled:opacity-50 text-white font-semibold px-4 rounded-xl text-sm">
+            + Agregar
+          </button>
+        </div>
+      </div>
+
+      {zones.length === 0 ? (
+        <p className="text-[#8896A5] text-sm text-center py-6">No hay ubicaciones todavía</p>
+      ) : (
+        <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
+          <div className="divide-y divide-black/5">
+            {zones.map(zone => (
+              <div key={zone.id} className="flex items-center justify-between px-4 py-3">
+                <p className="text-sm font-medium text-[#1A2A3A]">{zone.name}</p>
+                <button onClick={() => deleteZone(zone.id)} className="text-red-400 text-xs underline">
+                  Borrar
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
