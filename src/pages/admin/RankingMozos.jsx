@@ -3,9 +3,9 @@ import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { getLevel } from '../../lib/xpUtils'
 
-export default function RankingMozos() {
+export default function RankingMozos({ venueId, globalOnly }) {
   const { profile } = useAuth()
-  const [tab, setTab] = useState('venue')
+  const [tab, setTab] = useState(globalOnly ? 'global' : 'venue')
   const [ranking, setRanking] = useState([])
   const [myStaffId, setMyStaffId] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -60,24 +60,26 @@ export default function RankingMozos() {
 
       {/* Tabs */}
       <div className="px-5 pt-4 pb-2">
-        <div className="flex gap-2 bg-black/5 rounded-xl p-1">
-          <button
-            onClick={() => setTab('venue')}
-            className={`flex-1 py-2 rounded-lg text-xs font-semibold ${
-              tab === 'venue' ? 'bg-white text-[#008080] shadow-sm' : 'text-[#8896A5]'
-            }`}
-          >
-            Mi Local
-          </button>
-          <button
-            onClick={() => setTab('global')}
-            className={`flex-1 py-2 rounded-lg text-xs font-semibold ${
-              tab === 'global' ? 'bg-white text-[#008080] shadow-sm' : 'text-[#8896A5]'
-            }`}
-          >
-            Global
-          </button>
-        </div>
+        {!globalOnly && (
+          <div className="flex gap-2 bg-black/5 rounded-xl p-1 mb-0">
+            <button
+              onClick={() => setTab('venue')}
+              className={`flex-1 py-2 rounded-lg text-xs font-semibold ${
+                tab === 'venue' ? 'bg-white text-[#008080] shadow-sm' : 'text-[#8896A5]'
+              }`}
+            >
+              Mi Local
+            </button>
+            <button
+              onClick={() => setTab('global')}
+              className={`flex-1 py-2 rounded-lg text-xs font-semibold ${
+                tab === 'global' ? 'bg-white text-[#008080] shadow-sm' : 'text-[#8896A5]'
+              }`}
+            >
+              Global
+            </button>
+          </div>
+        )}
       </div>
 
       {loading ? (
