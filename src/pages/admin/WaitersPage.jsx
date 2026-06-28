@@ -126,13 +126,9 @@ export default function WaitersPage() {
           {/* Admins */}
           {tab === 'admins' && profile?.role === 'admin' && (
             <div className="space-y-4">
-              {/* Lista de admins */}
               <div className="space-y-2">
                 {admins.map(u => (
-                  <div key={u.id} className="bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-3">
-                    <p className="text-smoke-200 font-semibold text-sm">{u.full_name}</p>
-                    <p className="text-smoke-500 text-xs capitalize">{u.role}</p>
-                  </div>
+                  <AdminCard key={u.id} user={u} onUpdated={loadAll} />
                 ))}
               </div>
 
@@ -160,6 +156,62 @@ export default function WaitersPage() {
             <p className="text-smoke-600 text-sm text-center py-8">Solo los admins pueden gestionar usuarios.</p>
           )}
         </>
+      )}
+    </div>
+  )
+}
+
+function AdminCard({ user, onUpdated }) {
+  const [editing, setEditing] = useState(false)
+  const [fullName, setFullName] = useState(user.full_name)
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave() {
+    setSaving(true)
+    await supabaseStaff.from('profiles').update({ full_name: fullName.trim() }).eq('id', user.id)
+    setSaving(false)
+    setEditing(false)
+    onUpdated()
+  }
+
+  async function handleSuspend() {
+    if (!confirm(`¿Suspender a ${user.full_name}?`)) return
+    await supabaseStaff.from('profiles').update({ role: 'suspendido' }).eq('id', user.id)
+    onUpdated()
+  }
+
+  return (
+    <div className="bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-3">
+      {editing ? (
+        <div className="space-y-2">
+          <input
+            type="text"
+            value={fullName}
+            onChange={e => setFullName(e.target.value)}
+            className="input w-full text-sm"
+          />
+          <div className="flex gap-2">
+            <button onClick={handleSave} disabled={saving}
+              className="flex-1 bg-ember-500 disabled:opacity-50 text-white text-xs font-semibold py-2 rounded-xl">
+              {saving ? 'Guardando...' : 'Guardar'}
+            </button>
+            <button onClick={() => setEditing(false)}
+              className="flex-1 border border-carbon-700 text-smoke-400 text-xs py-2 rounded-xl">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-smoke-200 font-semibold text-sm">{user.full_name}</p>
+            <p className="text-smoke-500 text-xs capitalize">{user.role}</p>
+          </div>
+          <div className="flex gap-3">
+            <button onClick={() => setEditing(true)} className="text-ember-500 text-xs underline">Editar</button>
+            <button onClick={handleSuspend} className="text-red-400 text-xs underline">Suspender</button>
+          </div>
+        </div>
       )}
     </div>
   )
