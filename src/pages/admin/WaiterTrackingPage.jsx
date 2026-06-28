@@ -98,6 +98,7 @@ export default function WaiterTrackingPage({ venueId: propVenueId }) {
     return (
       <EditOrderPage
         order={editingOrder}
+        venueId={activeVenueId}
         onClose={async () => {
           await loadOrders()
           setEditingOrder(null)
@@ -266,7 +267,8 @@ export default function WaiterTrackingPage({ venueId: propVenueId }) {
   )
 }
 
-function EditOrderPage({ order, onClose }) {
+function EditOrderPage({ order, onClose, venueId: propVenueId }) {
+  const activeVenueId = propVenueId || ACTIVE_VENUE_ID
   const [items, setItems] = useState(order.order_items.map(i => ({ ...i })))
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
