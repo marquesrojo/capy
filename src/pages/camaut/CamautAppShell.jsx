@@ -124,7 +124,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
             {micapyTab === 'carrera' && <MiCarrera venueId={venueId} />}
             {micapyTab === 'ranking' && <RankingMozos />}
             {['perfil', 'carta', 'ubicaciones', 'whatsapp'].includes(micapyTab) && (
-              <CamautConfigPage embedded initialTab={micapyTab} />
+              <CamautConfigPage key={micapyTab} embedded initialTab={micapyTab} />
             )}
           </div>
         </div>
