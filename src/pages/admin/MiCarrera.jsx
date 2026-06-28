@@ -3,6 +3,13 @@ import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { LEVELS, BADGES, getLevel, getNextLevel, getXPProgress } from '../../lib/xpUtils'
 
+const LEVEL_SVGS = {
+  'Camarero Activo': <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+  'Mozo Veloz': <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>,
+  'Mozo Experto': <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
+  'Leyenda del Salón': <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg>,
+}
+
 const BADGE_SVGS = {
   first_order: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
   streak_7: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>,
@@ -103,9 +110,10 @@ export default function MiCarrera({ venueId: propVenueId }) {
                 + Elegir alias público
               </button>
             )}
-            <p className="text-[#8896A5] text-xs mt-0.5">
-              {currentLevel.icon} {currentLevel.name}
-            </p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <div className="text-[#008080]">{LEVEL_SVGS[currentLevel.name]}</div>
+              <p className="text-[#008080] text-sm font-medium">{currentLevel.name}</p>
+            </div>
           </div>
         </div>
 
@@ -215,7 +223,11 @@ export default function MiCarrera({ venueId: propVenueId }) {
                   isCurrent ? 'bg-[#008080]/10 border border-[#008080]/20' : ''
                 }`}
               >
-                <span className="text-xl">{level.icon}</span>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                  reached ? 'bg-[#008080]/10 text-[#008080]' : 'bg-[#E8EDF2] text-[#B0BEC5]'
+                }`}>
+                  {LEVEL_SVGS[level.name]}
+                </div>
                 <div className="flex-1">
                   <p className={`text-sm font-semibold ${reached ? 'text-[#1A2A3A]' : 'text-[#B0BEC5]'}`}>
                     {level.name}
