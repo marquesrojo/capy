@@ -57,6 +57,7 @@ function PerfilTab({ profile }) {
   const [alias, setAlias] = useState('')
   const [linkedin, setLinkedin] = useState('')
   const [docNumber, setDocNumber] = useState('')
+  const [aliasBancario, setAliasBancario] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -83,6 +84,7 @@ function PerfilTab({ profile }) {
       setAlias(data.alias || '')
       setLinkedin(data.linkedin_url || '')
       setDocNumber(data.document_number || '')
+      setAliasBancario(data.alias_bancario || '')
     }
   }
 
@@ -96,7 +98,8 @@ function PerfilTab({ profile }) {
         full_name: fullName.trim(),
         alias: alias.trim() || null,
         linkedin_url: linkedin.trim() || null,
-        document_number: docNumber.trim() || null
+        document_number: docNumber.trim() || null,
+        alias_bancario: aliasBancario.trim() || null
       })
       .eq('id', staffData.id)
 
@@ -139,6 +142,13 @@ function PerfilTab({ profile }) {
           <input type="url" value={linkedin} onChange={e => setLinkedin(e.target.value)}
             placeholder="https://linkedin.com/in/tu-perfil"
             className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-[#F8FAFC] text-[#1A2A3A]" />
+        </label>
+        <label className="block">
+          <span className="text-[#8896A5] text-xs block mb-1.5">Alias bancario (para propinas)</span>
+          <input type="text" value={aliasBancario} onChange={e => setAliasBancario(e.target.value)}
+            placeholder="Ej: matias.borges.mp"
+            className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-[#F8FAFC] text-[#1A2A3A]" />
+          <p className="text-[#B0BEC5] text-[10px] mt-1">Aparece en el QR del pedido para que el cliente te deje propina</p>
         </label>
       </div>
 
