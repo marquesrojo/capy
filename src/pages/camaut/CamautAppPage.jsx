@@ -9,6 +9,7 @@ export default function CamautAppPage() {
   const [authorized, setAuthorized] = useState(false)
   const [venueId, setVenueId] = useState(null)
   const [staffName, setStaffName] = useState(null)
+  const [staffXP, setStaffXP] = useState(0)
 
   useEffect(() => {
     checkAuth()
@@ -45,6 +46,7 @@ export default function CamautAppPage() {
         .eq('venue_id', vId)
         .single()
       setStaffName(staffData?.full_name || null)
+      setStaffXP(staffData?.xp || 0)
     }
 
     setAuthorized(true)
@@ -61,5 +63,5 @@ export default function CamautAppPage() {
 
   if (!authorized) return null
 
-  return <WaiterModePage venueId={venueId} staffName={staffName} />
+  return <WaiterModePage venueId={venueId} staffName={staffName} staffXP={staffXP} />
 }
