@@ -11,7 +11,8 @@ import { formatPrice } from '../../lib/utils'
 // El pedido se crea en estado "recibido" (bypass de pendiente_aprobacion)
 // con assigned_staff_id ya seteado.
 
-export default function WaiterOrderPage() {
+export default function WaiterOrderPage({ venueId: propVenueId }) {
+  const activeVenueId = propVenueId || ACTIVE_VENUE_ID
   const { profile } = useAuth()
   const [step, setStep] = useState('loading') // loading | choose_waiter | menu | confirm | done
   const [staffList, setStaffList] = useState([])
@@ -34,12 +35,12 @@ export default function WaiterOrderPage() {
     if (!profile) return // esperar a que cargue el profile
     async function init() {
       const [staffRes, zoneRes, catRes, prodRes, venueRes, notesRes] = await Promise.all([
-        supabaseStaff.from('staff_names').select('*').eq('venue_id', ACTIVE_VENUE_ID).eq('is_active', true).order('full_name'),
-        supabaseStaff.from('venue_zones').select('*').eq('venue_id', ACTIVE_VENUE_ID).eq('is_active', true).order('sort_order'),
-        supabaseStaff.from('categories').select('*').eq('venue_id', ACTIVE_VENUE_ID).eq('is_active', true).order('sort_order'),
-        supabaseStaff.from('products').select('*').eq('venue_id', ACTIVE_VENUE_ID).eq('is_available', true).order('sort_order'),
-        supabaseStaff.from('venues').select('whatsapp_number').eq('id', ACTIVE_VENUE_ID).single(),
-        supabaseStaff.from('quick_notes').select('*').eq('venue_id', ACTIVE_VENUE_ID).eq('is_active', true).order('sort_order')
+        supabaseStaff.from('staff_names').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('full_name'),
+        supabaseStaff.from('venue_zones').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order'),
+        supabaseStaff.from('categories').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order'),
+        supabaseStaff.from('products').select('*').eq('venue_id', activeVenueId).eq('is_available', true).order('sort_order'),
+        supabaseStaff.from('venues').select('whatsapp_number').eq('id', activeVenueId).single(),
+        supabaseStaff.from('quick_notes').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order')
       ])
       setStaffList(staffRes.data || [])
       setZones(zoneRes.data || [])
@@ -62,7 +63,7 @@ export default function WaiterOrderPage() {
           // Crear entrada en staff_names si no existe
           const { data: created } = await supabaseStaff
             .from('staff_names')
-            .insert({ venue_id: ACTIVE_VENUE_ID, full_name: profile?.full_name || 'Camarero' })
+            .insert({ venue_id: activeVenueId, full_name: profile?.full_name || 'Camarero' })
             .select().single()
           if (created) setSelectedStaff(created)
         }
@@ -105,7 +106,7 @@ export default function WaiterOrderPage() {
       const { data: order, error: orderError } = await supabaseStaff
         .from('orders')
         .insert({
-          venue_id: ACTIVE_VENUE_ID,
+          venue_id: activeVenueId,
           customer_id: null,
           status: 'recibido',
           location_type: selectedZone.type,
@@ -413,7 +414,7 @@ function OrderQR({ orderId }) {
 
   useEffect(() => {
     if (!canvasRef.current || !orderId) return
-    const url = `https://capyapp.co/pedido/${orderId}`
+    const url = `https://capyapp.co/ver-pedido/${orderId}`
     import('qrcode').then(QRCode => {
       QRCode.toCanvas(canvasRef.current, url, {
         width: 180,
