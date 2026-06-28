@@ -58,6 +58,7 @@ export default function PerfilProPage({ venueId }) {
 
   async function handleSave(e) {
     e.preventDefault()
+    alert('staffId: ' + staffId + ' title: ' + form.title)
     if (!form.title.trim() || !staffId) return
     setSaving(true)
 
