@@ -29,7 +29,7 @@ import QuickNotesPage from './pages/admin/QuickNotesPage'
 import QRPage from './pages/admin/QRPage'
 import ShiftSummaryPage from './pages/admin/ShiftSummaryPage'
 import MercadoPagoReturnPage from './pages/client/MercadoPagoReturnPage'
-import AuthCallbackPage from './pages/AuthCallbackPage'
+import CamautVincularPage from './pages/camaut/CamautVincularPage'
 import PublicOrderPage from './pages/client/PublicOrderPage'
 import CamautLandingPage from './pages/camaut/CamautLandingPage'
 import CamautRegisterPage from './pages/camaut/CamautRegisterPage'
@@ -212,6 +212,7 @@ export default function App() {
               <Route path="/camaut" element={<CamautLandingPage />} />
               <Route path="/camaut/registro" element={<CamautRegisterPage />} />
               <Route path="/camaut/login" element={<CamautLoginPage />} />
+              <Route path="/camaut/vincular" element={<CamautVincularPage />} />
               <Route path="/camaut/app" element={<CamautAppPage />} />
               <Route path="*" element={<Navigate to="/carta" replace />} />
             </Routes>
