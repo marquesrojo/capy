@@ -1,578 +1,218 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
-import { formatPrice, STATUS_LABELS } from '../../lib/utils'
+import { useAuth } from '../../hooks/useAuth'
 
-const ACTIVE_STATUSES = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo']
-const EDITABLE_STATUSES = ['recibido', 'en_preparacion']
+const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-user`
 
-const STATUS_EMOJI = {
-  pendiente_aprobacion: '⏳',
-  recibido: '📥',
-  en_preparacion: '👨‍🍳',
-  listo: '✅'
-}
-
-export default function WaiterTrackingPage({ venueId: propVenueId, linkedVenues = [], staffId: propStaffId, isCamaut = false }) {
-  const activeVenueId = propVenueId || ACTIVE_VENUE_ID
-  const [orders, setOrders] = useState([])
-  const [linkedOrders, setLinkedOrders] = useState([])
+export default function WaitersPage() {
+  const { profile } = useAuth()
+  const [tab, setTab] = useState('camareros')
+  const [vinculados, setVinculados] = useState([])
+  const [admins, setAdmins] = useState([])
   const [loading, setLoading] = useState(true)
-  const [approving, setApproving] = useState(null)
-  const [editingOrder, setEditingOrder] = useState(null)
-  const [staffList, setStaffList] = useState([])
-  const [assigningOrder, setAssigningOrder] = useState(null)
-  const [qrOrder, setQrOrder] = useState(null)
+
+  // Crear admin
+  const [newEmail, setNewEmail] = useState('')
+  const [newName, setNewName] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState('')
 
   useEffect(() => {
-    loadOrders()
-    loadStaff()
-    if (!isCamaut) {
-      const channel = supabaseStaff
-        .channel('waiter-tracking')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `venue_id=eq.${activeVenueId}` }, () => loadOrders())
-        .subscribe()
-      return () => supabaseStaff.removeChannel(channel)
-    }
+    loadAll()
   }, [])
 
-  async function loadOrders() {
-    if (isCamaut) {
-      // Usar Edge Function para camaut
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/camaut-orders`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-        },
-        body: JSON.stringify({
-          venueId: activeVenueId,
-          linkedVenueIds: linkedVenues.map(v => v.id),
-          staffId: propStaffId
-        })
-      })
-      const result = await res.json()
-      if (result.success) {
-        setOrders(result.ownOrders || [])
-        setLinkedOrders(result.linkedOrders || [])
-      }
-      setLoading(false)
-      return
-    }
-
-  async function loadOrders() {
-    const { data: ordersData } = await supabaseStaff
-      .from('orders')
-      .select('id, status, location_label, total, created_at, waiter_called_at, daily_number, assigned_staff:staff_names!orders_assigned_staff_id_fkey(full_name)')
-      .eq('venue_id', activeVenueId)
-      .in('status', ACTIVE_STATUSES)
-      .order('created_at', { ascending: true })
-
-    if (!ordersData?.length) { setOrders([]); setLoading(false); return }
-
-    const orderIds = ordersData.map(o => o.id)
-    const { data: itemsData } = await supabaseStaff
-      .from('order_items')
-      .select('id, order_id, product_id, product_name, quantity, unit_price, item_notes')
-      .in('order_id', orderIds)
-
-    const itemsByOrder = (itemsData || []).reduce((acc, item) => {
-      if (!acc[item.order_id]) acc[item.order_id] = []
-      acc[item.order_id].push(item)
-      return acc
-    }, {})
-
-    const combined = ordersData.map(o => ({
-      ...o,
-      order_items: itemsByOrder[o.id] || []
-    }))
-
-    setOrders(combined)
+  async function loadAll() {
+    setLoading(true)
+    const [vinculadosRes, adminsRes] = await Promise.all([
+      supabaseStaff
+        .from('venue_staff')
+        .select('id, status, joined_at, profile:profiles(id, full_name)')
+        .eq('venue_id', ACTIVE_VENUE_ID)
+        .eq('status', 'active'),
+      supabaseStaff
+        .from('profiles')
+        .select('id, full_name, role, created_at')
+        .eq('role', 'admin')
+        .order('full_name')
+    ])
+    setVinculados(vinculadosRes.data || [])
+    setAdmins(adminsRes.data || [])
     setLoading(false)
   }
 
-  async function loadStaff() {
-    const { data } = await supabaseStaff
-      .from('staff_names')
-      .select('id, full_name')
-      .eq('venue_id', activeVenueId)
-      .eq('is_active', true)
-      .order('full_name')
-    setStaffList(data || [])
-  }
-
-  async function assignStaff(orderId, staffId) {
+  async function desvincular(id) {
+    if (!confirm('¿Desvincular este camarero?')) return
     await supabaseStaff
-      .from('orders')
-      .update({ assigned_staff_id: staffId })
-      .eq('id', orderId)
-    setAssigningOrder(null)
-    loadOrders()
+      .from('venue_staff')
+      .update({ status: 'inactive', left_at: new Date().toISOString() })
+      .eq('id', id)
+    setVinculados(prev => prev.filter(v => v.id !== id))
   }
 
-  async function approveOrder(orderId) {
-    setApproving(orderId)
-    await supabaseStaff.from('orders').update({ status: 'recibido' }).eq('id', orderId)
-    setApproving(null)
-    loadOrders()
+  async function createAdmin(e) {
+    e.preventDefault()
+    if (!newEmail || !newName || !newPassword) { setCreateError('Completá todos los campos'); return }
+    setCreating(true)
+    setCreateError('')
+    const res = await fetch(EDGE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY },
+      body: JSON.stringify({ action: 'create', email: newEmail, full_name: newName, role: 'admin', password: newPassword })
+    })
+    const data = await res.json()
+    if (data.error) { setCreateError(data.error); setCreating(false); return }
+    setNewEmail(''); setNewName(''); setNewPassword('')
+    loadAll()
+    setCreating(false)
   }
-
-  async function dismissCall(orderId) {
-    await supabaseStaff.from('orders').update({ waiter_called_at: null }).eq('id', orderId)
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, waiter_called_at: null } : o))
-  }
-
-  if (editingOrder) {
-    return (
-      <EditOrderPage
-        order={editingOrder}
-        venueId={activeVenueId}
-        onClose={async () => {
-          await loadOrders()
-          setEditingOrder(null)
-        }}
-      />
-    )
-  }
-
-  if (loading) return (
-    <div className="flex items-center justify-center py-20">
-      <p className="text-[#8896A5] text-sm">Cargando...</p>
-    </div>
-  )
-
-  if (orders.length === 0 && linkedOrders.length === 0) return (
-    <div className="flex items-center justify-center py-20">
-      <p className="text-[#8896A5] text-sm">No hay pedidos activos.</p>
-    </div>
-  )
-
-  const grouped = ACTIVE_STATUSES.reduce((acc, status) => {
-    const items = orders.filter(o => o.status === status)
-    if (items.length > 0) acc[status] = items
-    return acc
-  }, {})
 
   return (
-    <div className="px-4 py-4 space-y-4">
-      {/* Modal QR */}
-      {qrOrder && (
-        <div
-          className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-6"
-          onClick={() => setQrOrder(null)}
-        >
-          <div
-            className="bg-white rounded-3xl p-6 text-center max-w-xs w-full"
-            onClick={e => e.stopPropagation()}
+    <div className="min-h-screen bg-carbon-950 px-5 py-8">
+      <div className="flex items-center gap-3 mb-6">
+        <Link to="/admin/configuracion" className="text-smoke-500 text-sm">← Volver</Link>
+      </div>
+      <h1 className="font-display text-3xl text-ember-500 tracking-wide mb-6">USUARIOS</h1>
+
+      <div className="flex gap-2 mb-6">
+        {[
+          { id: 'camareros', label: 'Capy Camarero' },
+          { id: 'admins', label: 'Admins' },
+        ].map(t => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`px-4 py-2 rounded-full text-xs font-semibold border ${
+              tab === t.id ? 'bg-ember-500 text-white border-ember-500' : 'border-carbon-700 text-smoke-400'
+            }`}
           >
-            <p className="font-bold text-[#1A2A3A] text-lg mb-1">
-              #{qrOrder.daily_number || qrOrder.id.slice(0, 6)}
-            </p>
-            <p className="text-[#8896A5] text-xs mb-4">📍 {qrOrder.location_label}</p>
-            <OrderQRCode orderId={qrOrder.id} />
-            <p className="text-[#8896A5] text-xs mt-3">El cliente escanea y sigue su pedido</p>
-            <button
-              onClick={() => setQrOrder(null)}
-              className="mt-4 w-full border border-black/10 text-[#8896A5] py-2.5 rounded-xl text-sm"
-            >
-              Cerrar
-            </button>
-          </div>
-        </div>
-      )}
-      {Object.entries(grouped).map(([status, items]) => (
-        <div key={status}>
-          <div className="flex items-center gap-2 mb-2">
-            <span>{STATUS_EMOJI[status]}</span>
-            <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide">
-              {STATUS_LABELS[status]} · {items.length}
-            </p>
-          </div>
-          <div className="space-y-2">
-            {items.map(order => {
-              const elapsedMin = Math.round((Date.now() - new Date(order.created_at).getTime()) / 60000)
-              const canEdit = EDITABLE_STATUSES.includes(order.status)
-              return (
-                <div key={order.id} className={`bg-white border rounded-xl px-3 py-3 ${order.waiter_called_at ? 'border-[#008080]/30' : 'border-black/10'}`}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-[#008080] font-bold text-sm">
-                        #{order.daily_number || order.id.slice(0, 6)}
-                      </span>
-                      <span className="text-[#8896A5] text-xs">📍 {order.location_label}</span>
-                    </div>
-                    <span className={`text-xs ${elapsedMin > 15 ? 'text-red-600' : 'text-[#8896A5]'}`}>
-                      {elapsedMin} min
-                    </span>
-                  </div>
+            {t.label}
+          </button>
+        ))}
+      </div>
 
-                  {order.waiter_called_at && (
-                    <div className="flex items-center justify-between mb-1.5 bg-[#008080]/10 rounded-lg px-2 py-1">
-                      <span className="text-[#008080] text-xs font-semibold">🔔 Te están llamando</span>
-                      <button onClick={() => dismissCall(order.id)} className="text-[#8896A5] text-[10px] underline">
-                        Atendido
-                      </button>
-                    </div>
-                  )}
-
-                  <div className="text-[#8896A5] text-xs space-y-0.5 mb-2">
-                    {(order.order_items || []).map((item, i) => (
-                      <p key={i}>{item.quantity}× {item.product_name}
-                        {item.item_notes && <span className="text-[#008080]"> — {item.item_notes}</span>}
+      {loading ? (
+        <p className="text-smoke-500 text-sm">Cargando...</p>
+      ) : (
+        <>
+          {/* Capy Camarero vinculados */}
+          {tab === 'camareros' && (
+            <div className="space-y-3">
+              <p className="text-smoke-500 text-xs mb-4">
+                Camareros vinculados via código de invitación desde{' '}
+                <Link to="/admin/qr" className="text-ember-500 underline">Config → Códigos QR</Link>.
+              </p>
+              {vinculados.length === 0 ? (
+                <p className="text-smoke-600 text-sm text-center py-8">No hay camareros vinculados todavía.</p>
+              ) : (
+                vinculados.map(v => (
+                  <div key={v.id} className="bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-3 flex items-center justify-between">
+                    <div>
+                      <p className="text-smoke-200 font-semibold text-sm">{v.profile?.full_name || 'Sin nombre'}</p>
+                      <p className="text-smoke-500 text-xs">
+                        Desde {new Date(v.joined_at).toLocaleDateString('es-AR')}
                       </p>
-                    ))}
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-[#1A2A3A] text-sm font-semibold">{formatPrice(order.total)}</span>
-                    <div className="flex items-center gap-2">
-                      {order.assigned_staff?.full_name ? (
-                        <span className="text-[#8896A5] text-[10px]">🧑‍🍳 {order.assigned_staff.full_name}</span>
-                      ) : (
-                        <button
-                          onClick={() => setAssigningOrder(order.id)}
-                          className="border border-[#008080]/50 text-[#008080] text-xs font-semibold px-3 py-1 rounded-full"
-                        >
-                          + Asignarme
-                        </button>
-                      )}
-                      {canEdit && (
-                        <button
-                          onClick={() => setEditingOrder(order)}
-                          className="border border-[#008080] text-[#008080] text-xs font-semibold px-3 py-1 rounded-full"
-                        >
-                          Editar
-                        </button>
-                      )}
-                      <button
-                        onClick={() => setQrOrder(order)}
-                        className="border border-black/10 text-[#8896A5] text-xs font-semibold px-3 py-1 rounded-full"
-                      >
-                        QR
-                      </button>
-                      {order.status === 'pendiente_aprobacion' && (
-                        <button
-                          onClick={() => approveOrder(order.id)}
-                          disabled={approving === order.id}
-                          className="bg-[#4DD0E1] disabled:opacity-50 text-white text-xs font-semibold px-3 py-1 rounded-full"
-                        >
-                          {approving === order.id ? '...' : 'Aprobar ✓'}
-                        </button>
-                      )}
                     </div>
-                  </div>
-
-                  {/* Selector de camarero */}
-                  {assigningOrder === order.id && (
-                    <div className="mt-2 bg-[#F8FAFC] border border-black/10 rounded-xl p-2">
-                      <p className="text-[10px] text-[#8896A5] mb-2">¿Quién sos?</p>
-                      <div className="space-y-1">
-                        {staffList.map(s => (
-                          <button
-                            key={s.id}
-                            onClick={() => assignStaff(order.id, s.id)}
-                            className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-[#1A2A3A] hover:bg-[#008080]/10"
-                          >
-                            {s.full_name}
-                          </button>
-                        ))}
-                      </div>
-                      <button
-                        onClick={() => setAssigningOrder(null)}
-                        className="w-full text-center text-[#8896A5] text-xs underline mt-2"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      ))}
-
-      {/* Pedidos de restaurantes vinculados */}
-      {linkedOrders.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide">
-              🏪 Restaurantes vinculados · {linkedOrders.length}
-            </p>
-          </div>
-          <div className="space-y-2">
-            {linkedOrders.map(order => {
-              const elapsedMin = Math.round((Date.now() - new Date(order.created_at).getTime()) / 60000)
-              return (
-                <div key={order.id} className="bg-white border border-[#008080]/20 rounded-xl px-3 py-3">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-[#008080] font-bold text-sm">
-                        #{order.daily_number || order.id.slice(0, 6)}
-                      </span>
-                      <span className="text-[#8896A5] text-xs">📍 {order.location_label}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs ${elapsedMin > 15 ? 'text-red-600' : 'text-[#8896A5]'}`}>
-                        {elapsedMin} min
-                      </span>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
-                        order.status === 'listo' ? 'bg-emerald-100 text-emerald-600' :
-                        order.status === 'en_preparacion' ? 'bg-[#008080]/10 text-[#008080]' :
-                        'bg-[#F0F4F8] text-[#8896A5]'
-                      }`}>
-                        {order.status === 'listo' ? '✓ Listo' :
-                         order.status === 'en_preparacion' ? 'En prep.' :
-                         order.status === 'recibido' ? 'Recibido' : order.status}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-[#8896A5] text-xs space-y-0.5">
-                    {(order.order_items || []).map((item, i) => (
-                      <p key={i}>{item.quantity}× {item.product_name}</p>
-                    ))}
-                  </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="font-mono text-[#1A2A3A] text-sm font-semibold">{formatPrice(order.total)}</span>
-                    <button
-                      onClick={() => setQrOrder(order)}
-                      className="border border-black/10 text-[#8896A5] text-xs font-semibold px-3 py-1 rounded-full"
-                    >
-                      QR
+                    <button onClick={() => desvincular(v.id)} className="text-red-400 text-xs underline">
+                      Desvincular
                     </button>
                   </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* Admins */}
+          {tab === 'admins' && profile?.role === 'admin' && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                {admins.map(u => (
+                  <AdminCard key={u.id} user={u} onUpdated={loadAll} />
+                ))}
+              </div>
+
+              {/* Crear admin */}
+              <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4 mt-4">
+                <p className="text-smoke-300 font-semibold text-sm mb-3">Crear nuevo admin</p>
+                <form onSubmit={createAdmin} className="space-y-2">
+                  <input type="text" value={newName} onChange={e => setNewName(e.target.value)}
+                    placeholder="Nombre completo" className="input w-full" />
+                  <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)}
+                    placeholder="Email" className="input w-full" />
+                  <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
+                    placeholder="Contraseña" className="input w-full" />
+                  {createError && <p className="text-red-500 text-xs">{createError}</p>}
+                  <button type="submit" disabled={creating}
+                    className="w-full bg-ember-500 disabled:opacity-50 text-white font-semibold py-3 rounded-xl text-sm">
+                    {creating ? 'Creando...' : 'Crear admin'}
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {tab === 'admins' && profile?.role !== 'admin' && (
+            <p className="text-smoke-600 text-sm text-center py-8">Solo los admins pueden gestionar usuarios.</p>
+          )}
+        </>
       )}
     </div>
   )
 }
 
-function EditOrderPage({ order, onClose, venueId: propVenueId }) {
-  const activeVenueId = propVenueId || ACTIVE_VENUE_ID
-  const [items, setItems] = useState(order.order_items.map(i => ({ ...i })))
-  const [categories, setCategories] = useState([])
-  const [products, setProducts] = useState([])
-  const [activeCategory, setActiveCategory] = useState(null)
+function AdminCard({ user, onUpdated }) {
+  const [editing, setEditing] = useState(false)
+  const [fullName, setFullName] = useState(user.full_name)
   const [saving, setSaving] = useState(false)
-  const [showCarta, setShowCarta] = useState(false)
-
-  useEffect(() => {
-    loadCarta()
-  }, [])
-
-  async function loadCarta() {
-    const [catRes, prodRes] = await Promise.all([
-      supabaseStaff.from('categories').select('id, name').eq('venue_id', activeVenueId).order('sort_order'),
-      supabaseStaff.from('products').select('id, name, price, category_id').eq('venue_id', activeVenueId).eq('is_available', true)
-    ])
-    setCategories(catRes.data || [])
-    setProducts(prodRes.data || [])
-    if (catRes.data?.length) setActiveCategory(catRes.data[0].id)
-  }
-
-  function changeQty(itemId, delta) {
-    setItems(prev => prev.map(i => {
-      if (i.id !== itemId) return i
-      const newQty = i.quantity + delta
-      if (newQty <= 0) return null
-      return { ...i, quantity: newQty }
-    }).filter(Boolean))
-  }
-
-  function addProduct(product) {
-    const existing = items.find(i => i.product_id === product.id)
-    if (existing) {
-      setItems(prev => prev.map(i => i.product_id === product.id ? { ...i, quantity: i.quantity + 1 } : i))
-    } else {
-      setItems(prev => [...prev, {
-        id: `new-${product.id}`,
-        product_id: product.id,
-        product_name: product.name,
-        quantity: 1,
-        unit_price: product.price,
-        item_notes: null
-      }])
-    }
-  }
-
-  const newTotal = items.reduce((sum, i) => sum + (i.unit_price * i.quantity), 0)
 
   async function handleSave() {
     setSaving(true)
-
-    const originalIds = order.order_items.map(i => i.id)
-    const editedIds = items.filter(i => !i.id.startsWith('new-')).map(i => i.id)
-
-    // 1. Borrar ítems que se quitaron
-    const deletedIds = originalIds.filter(id => !editedIds.includes(id))
-    if (deletedIds.length > 0) {
-      await supabaseStaff.from('order_items').delete().in('id', deletedIds)
-    }
-
-    // 2. Actualizar cantidades de los existentes
-    for (const item of items.filter(i => !i.id.startsWith('new-'))) {
-      await supabaseStaff
-        .from('order_items')
-        .update({ quantity: item.quantity })
-        .eq('id', item.id)
-    }
-
-    // 3. Insertar los nuevos
-    const newItems = items.filter(i => i.id.startsWith('new-')).map(i => ({
-      order_id: order.id,
-      product_id: i.product_id,
-      product_name: i.product_name,
-      quantity: i.quantity,
-      unit_price: i.unit_price,
-      line_total: i.unit_price * i.quantity,
-      item_notes: i.item_notes || null
-    }))
-    if (newItems.length > 0) {
-      await supabaseStaff.from('order_items').insert(newItems)
-    }
-
-    // 4. Actualizar total
-    await supabaseStaff.from('orders').update({ total: newTotal }).eq('id', order.id)
-
+    await supabaseStaff.from('profiles').update({ full_name: fullName.trim() }).eq('id', user.id)
     setSaving(false)
-    await new Promise(r => setTimeout(r, 500))
-    onClose()
+    setEditing(false)
+    onUpdated()
   }
 
-  const visibleProducts = products.filter(p => p.category_id === activeCategory)
+  async function handleSuspend() {
+    if (!confirm(`¿Suspender a ${user.full_name}?`)) return
+    await supabaseStaff.from('profiles').update({ role: 'suspendido' }).eq('id', user.id)
+    onUpdated()
+  }
 
   return (
-    <div className="bg-[#F0F4F8] min-h-screen pb-32">
-      {/* Header */}
-      <div className="bg-white border-b border-black/10 px-4 py-3 flex items-center justify-between">
-        <button onClick={onClose} className="text-[#8896A5] text-sm">← Volver</button>
-        <p className="font-bold text-[#1A2A3A] text-sm">
-          Editando #{order.daily_number || order.id.slice(0, 6)}
-        </p>
-        <p className="text-[#8896A5] text-xs">📍 {order.location_label}</p>
-      </div>
-
-      <div className="px-4 py-4 space-y-3">
-        {/* Ítems actuales */}
-        <div>
-          <p className="text-[11px] font-semibold text-[#8896A5] uppercase tracking-wide mb-2">Ítems del pedido</p>
-          {items.length === 0 ? (
-            <p className="text-[#8896A5] text-sm text-center py-4">No hay ítems — agregá algo desde la carta</p>
-          ) : (
-            <div className="space-y-2">
-              {items.map(item => (
-                <div key={item.id} className="bg-white rounded-xl px-4 py-3 border border-black/8 flex items-center gap-3">
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-[#1A2A3A]">{item.product_name}</p>
-                    <p className="text-xs text-[#008080]">{formatPrice(item.unit_price)} c/u</p>
-                    {item.item_notes && <p className="text-xs text-[#8896A5] italic">{item.item_notes}</p>}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => changeQty(item.id, -1)}
-                      className="w-7 h-7 rounded-lg border border-black/10 bg-[#F8FAFC] text-[#3A4A5A] font-bold text-sm flex items-center justify-center"
-                    >−</button>
-                    <span className="font-bold text-[#1A2A3A] text-sm w-5 text-center">{item.quantity}</span>
-                    <button
-                      onClick={() => changeQty(item.id, 1)}
-                      className="w-7 h-7 rounded-lg bg-[#4DD0E1] text-white font-bold text-sm flex items-center justify-center"
-                    >+</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Agregar desde carta */}
-        <button
-          onClick={() => setShowCarta(v => !v)}
-          className="w-full border-2 border-dashed border-[#008080]/30 text-[#008080] text-sm font-semibold py-3 rounded-xl"
-        >
-          {showCarta ? '− Cerrar carta' : '+ Agregar ítem de la carta'}
-        </button>
-
-        {showCarta && (
-          <div className="bg-white rounded-xl border border-black/8 overflow-hidden">
-            {/* Categorías */}
-            <div className="flex gap-2 overflow-x-auto px-3 py-2 border-b border-black/8">
-              {categories.map(cat => (
-                <button
-                  key={cat.id}
-                  onClick={() => setActiveCategory(cat.id)}
-                  className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold ${
-                    activeCategory === cat.id ? 'bg-[#008080] text-white' : 'text-[#8896A5]'
-                  }`}
-                >
-                  {cat.name}
-                </button>
-              ))}
-            </div>
-            {/* Productos */}
-            <div className="divide-y divide-black/5">
-              {visibleProducts.map(product => (
-                <div key={product.id} className="flex items-center justify-between px-4 py-3">
-                  <div>
-                    <p className="text-sm font-medium text-[#1A2A3A]">{product.name}</p>
-                    <p className="text-xs text-[#008080]">{formatPrice(product.price)}</p>
-                  </div>
-                  <button
-                    onClick={() => addProduct(product)}
-                    className="w-7 h-7 rounded-lg bg-[#4DD0E1] text-white font-bold text-sm flex items-center justify-center"
-                  >+</button>
-                </div>
-              ))}
-            </div>
+    <div className="bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-3">
+      {editing ? (
+        <div className="space-y-2">
+          <input
+            type="text"
+            value={fullName}
+            onChange={e => setFullName(e.target.value)}
+            className="input w-full text-sm"
+          />
+          <div className="flex gap-2">
+            <button onClick={handleSave} disabled={saving}
+              className="flex-1 bg-ember-500 disabled:opacity-50 text-white text-xs font-semibold py-2 rounded-xl">
+              {saving ? 'Guardando...' : 'Guardar'}
+            </button>
+            <button onClick={() => setEditing(false)}
+              className="flex-1 border border-carbon-700 text-smoke-400 text-xs py-2 rounded-xl">
+              Cancelar
+            </button>
           </div>
-        )}
-      </div>
-
-      {/* Footer con total y guardar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-black/10 px-4 py-4">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-[#8896A5] text-sm">Nuevo total</span>
-          <span className="font-mono font-bold text-[#008080] text-lg">{formatPrice(newTotal)}</span>
         </div>
-        <button
-          onClick={handleSave}
-          disabled={saving || items.length === 0}
-          className="w-full bg-[#008080] disabled:opacity-50 text-white font-bold py-3.5 rounded-xl text-sm"
-        >
-          {saving ? 'Guardando...' : 'Confirmar cambios →'}
-        </button>
-      </div>
-    </div>
-  )
-}
-function OrderQRCode({ orderId }) {
-  const canvasRef = useRef(null)
-  const [ready, setReady] = useState(false)
-
-  useEffect(() => {
-    if (!canvasRef.current || !orderId) return
-    const url = `https://capyapp.co/ver-pedido/${orderId}`
-    import('qrcode').then(QRCode => {
-      QRCode.toCanvas(canvasRef.current, url, {
-        width: 200,
-        margin: 2,
-        color: { dark: '#1A2A3A', light: '#FFFFFF' }
-      }, (err) => { if (!err) setReady(true) })
-    })
-  }, [orderId])
-
-  return (
-    <div className="flex justify-center">
-      <div className="bg-white border border-black/8 rounded-2xl p-3 inline-block">
-        <canvas ref={canvasRef} style={{ display: ready ? 'block' : 'none' }} />
-        {!ready && (
-          <div className="w-[200px] h-[200px] bg-[#F0F4F8] rounded-xl flex items-center justify-center">
-            <p className="text-[#8896A5] text-xs">Generando QR...</p>
+      ) : (
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-smoke-200 font-semibold text-sm">{user.full_name}</p>
+            <p className="text-smoke-500 text-xs capitalize">{user.role}</p>
           </div>
-        )}
-      </div>
+          <div className="flex gap-3">
+            <button onClick={() => setEditing(true)} className="text-ember-500 text-xs underline">Editar</button>
+            <button onClick={handleSuspend} className="text-red-400 text-xs underline">Suspender</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
