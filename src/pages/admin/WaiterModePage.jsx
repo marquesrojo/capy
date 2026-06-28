@@ -1,5 +1,6 @@
 import { Component, useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
+import { supabaseCamaut } from '../../lib/supabase'
 import WaiterOrderPage from './WaiterOrderPage'
 import WaiterTrackingPage from './WaiterTrackingPage'
 import ShiftSummaryPage from './ShiftSummaryPage'
@@ -56,6 +57,11 @@ export default function WaiterModePage({ venueId }) {
   const [tab, setTab] = useState('tomar')
   const TABS = profile?.is_autonomous ? [...BASE_TABS, CONFIG_TAB] : BASE_TABS
 
+  async function handleSignOut() {
+    await supabaseCamaut.auth.signOut()
+    await signOut()
+  }
+
   return (
     <div className="min-h-screen bg-[#F0F4F8]">
       {/* Header */}
@@ -70,7 +76,7 @@ export default function WaiterModePage({ venueId }) {
               <p className="text-[#008080] text-[10px] font-semibold uppercase tracking-wide">Camarero</p>
             </div>
           </div>
-          <button onClick={signOut} className="text-[#8896A5] text-xs underline">Salir</button>
+          <button onClick={handleSignOut} className="text-[#8896A5] text-xs underline">Salir</button>
         </div>
 
         {/* Nav tabs */}
