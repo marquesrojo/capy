@@ -61,36 +61,38 @@ export default function WaiterOrderCamaut({ venueId }) {
     if (!cartItems.length || !location.trim()) return
     setSubmitting(true)
 
-    const { data: { session } } = await supabaseStaff.auth.getSession()
-
-    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/camaut-order`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`
-      },
-      body: JSON.stringify({
-        venueId,
-        locationLabel: location.trim(),
-        staffId: staffId || null,
-        total,
-        items: cartItems.map(i => ({
-          product_id: i.product.id,
-          product_name: i.product.name,
-          quantity: i.qty,
-          unit_price: i.product.price
-        }))
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/camaut-order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
+          venueId,
+          locationLabel: location.trim(),
+          staffId: staffId || null,
+          total,
+          items: cartItems.map(i => ({
+            product_id: i.product.id,
+            product_name: i.product.name,
+            quantity: i.qty,
+            unit_price: i.product.price
+          }))
+        })
       })
-    })
 
-    const result = await res.json()
+      const result = await res.json()
 
-    if (result.success) {
-      if (staffId) await awardXP(staffId, 'send_order')
-      setLastOrder({ order: result.order, items: cartItems, location: location.trim(), total })
-      setCart({})
-      setLocation('')
-      setNotes('')
+      if (result.success) {
+        if (staffId) await awardXP(staffId, 'send_order')
+        setLastOrder({ order: result.order, items: cartItems, location: location.trim(), total })
+        setCart({})
+        setLocation('')
+        setNotes('')
+      }
+    } catch (err) {
+      console.error('Error al confirmar pedido:', err)
     }
 
     setSubmitting(false)
