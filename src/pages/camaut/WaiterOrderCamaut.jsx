@@ -1,33 +1,30 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabaseStaff } from '../../lib/supabase'
 import { formatPrice } from '../../lib/utils'
-import { useAuth } from '../../hooks/useAuth'
 import { awardXP } from '../../lib/xpUtils'
 
 export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
-  const { profile } = useAuth()
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
   const [zones, setZones] = useState([])
-  const [noteOpenMap, setNoteOpenMap] = useState({})
   const [quickNotes, setQuickNotes] = useState([])
   const [activeCategory, setActiveCategory] = useState(null)
-  const [cart, setCart] = useState({})
+  const [cart, setCart] = useState({}) // { productId: { product, qty, notes } }
   const [selectedZone, setSelectedZone] = useState(null)
   const [location, setLocation] = useState('')
-  const [notes, setNotes] = useState('')
-  const [whatsapp, setWhatsapp] = useState('')
+  const [generalNotes, setGeneralNotes] = useState('')
   const [activeVenueId, setActiveVenueId] = useState(venueId)
   const activeVenueIdRef = useRef(venueId)
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [lastOrder, setLastOrder] = useState(null)
+  const [staffId, setStaffId] = useState(null)
+  const [step, setStep] = useState('carta') // 'carta' | 'confirmar'
 
   function updateActiveVenue(id) {
     setActiveVenueId(id)
     activeVenueIdRef.current = id
   }
-  const [loading, setLoading] = useState(true)
-  const [submitting, setSubmitting] = useState(false)
-  const [lastOrder, setLastOrder] = useState(null)
-  const [staffId, setStaffId] = useState(null)
 
   useEffect(() => {
     activeVenueIdRef.current = activeVenueId
@@ -46,7 +43,6 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
     ])
     setCategories(catRes.data || [])
     setProducts(prodRes.data || [])
-    setWhatsapp(venueRes.data?.whatsapp_number || '')
     setStaffId(staffRes.data?.id || null)
     setZones(zoneRes.data || [])
     setQuickNotes(notesRes.data || [])
@@ -55,30 +51,28 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
   }
 
   function changeQty(productId, delta) {
+    const product = products.find(p => p.id === productId)
     setCart(prev => {
       const current = prev[productId]
-      const currentQty = typeof current === 'object' ? current.qty : (current || 0)
+      const currentQty = current?.qty || 0
       const next = currentQty + delta
       if (next <= 0) {
         const { [productId]: _, ...rest } = prev
         return rest
       }
-      if (typeof current === 'object') {
-        return { ...prev, [productId]: { ...current, qty: next } }
-      }
-      return { ...prev, [productId]: next }
+      return { ...prev, [productId]: { product, qty: next, notes: current?.notes || '' } }
     })
   }
 
-  const cartItems = Object.entries(cart).map(([productId, val]) => {
-    const product = products.find(p => p.id === productId)
-    const qty = typeof val === 'object' ? val.qty : val
-    const notes = typeof val === 'object' ? val.notes : ''
-    return { product, qty, notes }
-  }).filter(i => i.product)
+  function setItemNote(productId, note) {
+    setCart(prev => ({
+      ...prev,
+      [productId]: { ...prev[productId], notes: note }
+    }))
+  }
 
+  const cartItems = Object.values(cart).filter(i => i.product && i.qty > 0)
   const total = cartItems.reduce((sum, i) => sum + i.product.price * i.qty, 0)
-
   const locationLabel = (selectedZone && selectedZone.id !== 'otra') ? selectedZone.name : location.trim()
 
   async function handleSubmit() {
@@ -87,7 +81,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
     const currentVenueId = activeVenueIdRef.current
 
     try {
-      const res = await fetch(`https://ycgptakgpsvmstoftkdk.supabase.co/functions/v1/camaut-order`, {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/camaut-order`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -98,6 +92,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
           locationLabel,
           staffId: staffId || null,
           total,
+          notes: generalNotes.trim() || null,
           items: cartItems.map(i => ({
             product_id: i.product.id,
             product_name: i.product.name,
@@ -109,71 +104,39 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
       })
 
       const result = await res.json()
-
       if (result.success) {
         if (staffId) await awardXP(staffId, 'send_order')
         setLastOrder({ order: result.order, items: cartItems, location: locationLabel, total })
         setCart({})
         setLocation('')
-        setNotes('')
+        setSelectedZone(null)
+        setGeneralNotes('')
+        setStep('carta')
       }
     } catch (err) {
-      console.error('Error al confirmar pedido:', err)
+      console.error(err)
     }
-
     setSubmitting(false)
   }
 
-  function sendWhatsApp() {
-    if (!whatsapp || !lastOrder) return
-    const lines = [
-      `🧾 COMANDA`,
-      `📍 ${lastOrder.location}`,
-      ...lastOrder.items.map(i => `• ${i.qty}x ${i.product.name}`),
-      `💰 Total: ${formatPrice(lastOrder.total)}`
-    ]
-    if (notes.trim()) lines.push(`📝 ${notes}`)
-    const msg = encodeURIComponent(lines.join('\n'))
-    const phone = whatsapp.replace(/\D/g, '')
-    window.open(`https://wa.me/${phone}?text=${msg}`, '_blank')
-  }
+  const visibleProducts = products.filter(p => p.category_id === activeCategory)
 
-  // Pantalla de confirmación
+  // Pantalla de confirmación exitosa
   if (lastOrder) {
     return (
-      <div className="bg-[#F0F4F8] min-h-screen px-5 py-8 flex flex-col items-center text-center">
-        <div className="w-14 h-14 rounded-full bg-[#008080]/10 flex items-center justify-center mb-4">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#008080" strokeWidth="2">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-            <polyline points="22 4 12 14.01 9 11.01"/>
-          </svg>
-        </div>
-        <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-1">Pedido registrado</p>
-        <p className="font-mono text-[#008080] text-5xl font-bold mb-1">
-          #{lastOrder.order.daily_number}
+      <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
+        <div className="text-5xl mb-4">✅</div>
+        <p className="font-bold text-[#1A2A3A] text-xl mb-1">¡Pedido enviado!</p>
+        <p className="text-[#8896A5] text-sm mb-1">
+          #{lastOrder.order?.daily_number} · 📍 {lastOrder.location}
         </p>
-        <p className="text-[#8896A5] text-sm mb-1">📍 {lastOrder.location}</p>
-        <p className="font-mono text-[#1A2A3A] font-bold text-lg mb-6">{formatPrice(lastOrder.total)}</p>
-
-        <div className="w-full space-y-3">
-          {whatsapp && (
-            <button
-              onClick={sendWhatsApp}
-              className="w-full bg-[#4DD0E1] text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-              Enviar a cocina por WhatsApp
-            </button>
-          )}
-          <button
-            onClick={() => setLastOrder(null)}
-            className="w-full bg-[#008080] text-white font-bold py-3.5 rounded-2xl"
-          >
-            Tomar otro pedido
-          </button>
-        </div>
+        <p className="font-mono font-bold text-[#008080] text-lg mb-6">{formatPrice(lastOrder.total)}</p>
+        <button
+          onClick={() => setLastOrder(null)}
+          className="bg-[#008080] text-white font-bold px-8 py-3 rounded-2xl text-sm"
+        >
+          Nuevo pedido
+        </button>
       </div>
     )
   }
@@ -184,22 +147,115 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
     </div>
   )
 
-  // Carta vacía
-  if (categories.length === 0) return (
-    <div className="flex flex-col items-center justify-center py-20 px-8 text-center">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#B0BEC5" strokeWidth="1.5" className="mb-4">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-        <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
-      </svg>
-      <p className="text-[#1A2A3A] font-semibold text-base mb-2">Tu carta está vacía</p>
-      <p className="text-[#8896A5] text-sm">Agregá productos desde <strong>Config → Carta</strong> para empezar a tomar pedidos.</p>
-    </div>
-  )
+  // PASO 2 — Confirmación con notas y edición
+  if (step === 'confirmar') {
+    return (
+      <div className="bg-[#F0F4F8] min-h-screen pb-32">
+        {/* Header */}
+        <div className="px-4 pt-4 pb-2 flex items-center gap-3">
+          <button onClick={() => setStep('carta')} className="text-[#8896A5] text-sm">← Volver</button>
+          <p className="font-bold text-[#1A2A3A] text-base">Confirmar pedido</p>
+        </div>
 
-  const visibleProducts = products.filter(p => p.category_id === activeCategory)
+        <div className="px-4 space-y-3">
+          {/* Ítems editables */}
+          {cartItems.map(item => (
+            <div key={item.product.id} className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-[#1A2A3A]">{item.product.name}</p>
+                  <p className="text-xs text-[#8896A5]">{formatPrice(item.product.price)} c/u</p>
+                </div>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <button
+                    onClick={() => changeQty(item.product.id, -1)}
+                    className="w-9 h-9 rounded-full bg-[#F0F4F8] text-[#3A4A5A] flex items-center justify-center text-lg font-bold"
+                  >−</button>
+                  <span className="text-[#1A2A3A] font-semibold w-5 text-center">{item.qty}</span>
+                  <button
+                    onClick={() => changeQty(item.product.id, 1)}
+                    className="w-9 h-9 rounded-full bg-[#008080] text-white flex items-center justify-center text-lg font-bold"
+                  >+</button>
+                </div>
+                <span className="font-mono text-[#008080] font-semibold text-sm flex-shrink-0">
+                  {formatPrice(item.product.price * item.qty)}
+                </span>
+              </div>
 
+              {/* Notas por ítem */}
+              {quickNotes.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {quickNotes.map(qn => {
+                    const active = (item.notes || '').includes(qn.label)
+                    return (
+                      <button
+                        key={qn.id}
+                        onClick={() => {
+                          const current = item.notes || ''
+                          const next = active
+                            ? current.replace(qn.label, '').replace(/,\s*,/g, ',').replace(/^,\s*|,\s*$/g, '').trim()
+                            : current ? `${current}, ${qn.label}` : qn.label
+                          setItemNote(item.product.id, next)
+                        }}
+                        className={`text-xs px-2.5 py-1 rounded-full border ${
+                          active ? 'bg-[#008080] text-white border-[#008080]' : 'border-black/10 text-[#8896A5]'
+                        }`}
+                      >
+                        {qn.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+              <input
+                type="text"
+                value={item.notes || ''}
+                onChange={e => setItemNote(item.product.id, e.target.value)}
+                placeholder="Nota libre para este ítem..."
+                className="w-full border border-black/10 rounded-xl px-3 py-2 text-xs text-[#1A2A3A] bg-[#F8FAFC]"
+              />
+            </div>
+          ))}
+
+          {/* Nota general */}
+          <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
+            <p className="text-[#8896A5] text-xs font-semibold mb-2">Nota general del pedido</p>
+            <textarea
+              value={generalNotes}
+              onChange={e => setGeneralNotes(e.target.value)}
+              placeholder="Ej: alergia a mariscos, pedir rápido..."
+              className="w-full border border-black/10 rounded-xl px-3 py-2 text-xs text-[#1A2A3A] bg-[#F8FAFC] resize-none"
+              rows={2}
+            />
+          </div>
+
+          {/* Resumen */}
+          <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
+            <div className="flex justify-between text-sm">
+              <span className="text-[#8896A5]">📍 {locationLabel}</span>
+              <span className="font-mono font-bold text-[#008080]">{formatPrice(total)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Botón confirmar fijo */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-black/10 px-4 py-4">
+          <button
+            onClick={handleSubmit}
+            disabled={submitting || cartItems.length === 0}
+            className="w-full bg-[#008080] disabled:opacity-50 text-white font-bold py-4 rounded-2xl text-base"
+          >
+            {submitting ? 'Enviando...' : `Confirmar pedido · ${formatPrice(total)}`}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // PASO 1 — Carta
   return (
     <div className="bg-[#F0F4F8] pb-32">
+
       {/* Selector de carta si hay venues vinculados */}
       {linkedVenues.length > 0 && (
         <div className="px-4 pt-4 pb-2">
@@ -225,12 +281,13 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
                     : 'bg-white border-black/10 text-[#3A4A5A]'
                 }`}
               >
-                {v.name}
+                {v.name.replace(' — Capy', '')}
               </button>
             ))}
           </div>
         </div>
       )}
+
       {/* Ubicación */}
       <div className="px-4 pt-4 pb-2">
         <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-2">Ubicación</p>
@@ -254,15 +311,15 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
       </div>
 
       {/* Categorías */}
-      <div className="flex gap-2 overflow-x-auto px-4 py-2">
+      <div className="px-4 pt-3 pb-2 flex gap-2 overflow-x-auto">
         {categories.map(cat => (
           <button
             key={cat.id}
             onClick={() => setActiveCategory(cat.id)}
-            className={`whitespace-nowrap px-4 py-2 rounded-full text-xs font-semibold ${
+            className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border ${
               activeCategory === cat.id
-                ? 'bg-[#008080] text-white'
-                : 'bg-white border border-black/10 text-[#8896A5]'
+                ? 'bg-[#008080] text-white border-[#008080]'
+                : 'bg-white border-black/10 text-[#3A4A5A]'
             }`}
           >
             {cat.name}
@@ -273,83 +330,31 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
       {/* Productos */}
       <div className="px-4 space-y-2 mt-1">
         {visibleProducts.map(product => {
-          const qty = cart[product.id]?.qty || cart[product.id] || 0
-          const itemNotes = cart[product.id]?.notes || ''
-          const noteOpen = noteOpenMap[product.id] || false
+          const item = cart[product.id]
+          const qty = item?.qty || 0
           return (
-            <div key={product.id} className="bg-white rounded-xl px-4 py-3 border border-black/5 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-[#1A2A3A]">{product.name}</p>
-                  <p className="text-xs text-[#008080] font-semibold">{formatPrice(product.price)}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {qty > 0 && (
-                    <button
-                      onClick={() => setNoteOpenMap(prev => ({ ...prev, [product.id]: !prev[product.id] }))}
-                      className={`text-[10px] px-2 py-1 rounded-lg border ${
-                        itemNotes ? 'border-[#008080] text-[#008080]' : 'border-black/10 text-[#8896A5]'
-                      }`}
-                    >
-                      {itemNotes ? '📝' : '+ nota'}
-                    </button>
-                  )}
-                  <button
-                    onClick={() => changeQty(product.id, -1)}
-                    className="w-7 h-7 rounded-lg border border-black/10 bg-[#F8FAFC] text-[#3A4A5A] font-bold text-sm flex items-center justify-center"
-                  >−</button>
-                  <span className="font-bold text-[#1A2A3A] text-sm w-5 text-center">{qty}</span>
-                  <button
-                    onClick={() => changeQty(product.id, 1)}
-                    className="w-7 h-7 rounded-lg bg-[#4DD0E1] text-white font-bold text-sm flex items-center justify-center"
-                  >+</button>
-                </div>
+            <div key={product.id} className="bg-white rounded-xl px-4 py-3 flex items-center justify-between border border-black/5 shadow-sm">
+              <div>
+                <p className="text-sm font-semibold text-[#1A2A3A]">{product.name}</p>
+                <p className="text-xs text-[#008080] font-semibold">{formatPrice(product.price)}</p>
               </div>
-              {noteOpen && qty > 0 && quickNotes.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {quickNotes.map(qn => {
-                    const active = itemNotes.includes(qn.label)
-                    return (
-                      <button
-                        key={qn.id}
-                        onClick={() => {
-                          setCart(prev => {
-                            const current = prev[product.id] || { qty: 1 }
-                            const currentNotes = current.notes || ''
-                            const newNotes = active
-                              ? currentNotes.replace(qn.label, '').replace(/,\s*,/g, ',').replace(/^,\s*|,\s*$/g, '').trim()
-                              : currentNotes ? `${currentNotes}, ${qn.label}` : qn.label
-                            return { ...prev, [product.id]: { ...current, product, notes: newNotes } }
-                          })
-                        }}
-                        className={`text-xs px-2.5 py-1 rounded-full border ${
-                          active ? 'bg-[#008080] text-white border-[#008080]' : 'border-black/10 text-[#8896A5]'
-                        }`}
-                      >
-                        {qn.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-              {noteOpen && qty > 0 && (
-                <input
-                  type="text"
-                  value={itemNotes}
-                  onChange={e => setCart(prev => ({
-                    ...prev,
-                    [product.id]: { ...(prev[product.id] || { qty: 1 }), product, notes: e.target.value }
-                  }))}
-                  placeholder="Nota libre..."
-                  className="mt-2 w-full border border-black/10 rounded-lg px-3 py-1.5 text-xs text-[#1A2A3A] bg-[#F8FAFC]"
-                />
-              )}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => changeQty(product.id, -1)}
+                  className="w-7 h-7 rounded-lg border border-black/10 bg-[#F8FAFC] text-[#3A4A5A] font-bold text-sm flex items-center justify-center"
+                >−</button>
+                <span className="font-bold text-[#1A2A3A] text-sm w-5 text-center">{qty}</span>
+                <button
+                  onClick={() => changeQty(product.id, 1)}
+                  className="w-7 h-7 rounded-lg bg-[#4DD0E1] text-white font-bold text-sm flex items-center justify-center"
+                >+</button>
+              </div>
             </div>
           )
         })}
       </div>
 
-      {/* Footer con total */}
+      {/* Footer con botón ir a confirmar */}
       {cartItems.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-black/10 px-4 py-4">
           <div className="flex items-center justify-between mb-3">
@@ -358,11 +363,11 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
               <p className="font-mono font-bold text-[#008080] text-lg">{formatPrice(total)}</p>
             </div>
             <button
-              onClick={handleSubmit}
-              disabled={submitting || !locationLabel}
+              onClick={() => setStep('confirmar')}
+              disabled={!locationLabel}
               className="bg-[#008080] disabled:opacity-50 text-white font-bold px-6 py-3 rounded-xl text-sm"
             >
-              {submitting ? 'Enviando...' : 'Confirmar →'}
+              Revisar →
             </button>
           </div>
         </div>
