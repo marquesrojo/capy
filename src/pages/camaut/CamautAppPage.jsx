@@ -21,19 +21,24 @@ export default function CamautAppPage() {
 
     await new Promise(r => setTimeout(r, 300))
 
+    // Sincronizar sesión con supabaseStaff
     await supabaseStaff.auth.setSession({
       access_token: session.access_token,
       refresh_token: session.refresh_token
     })
 
-    const { data: profile } = await supabaseStaff
+    // Leer profile con supabaseCamaut (sesión del camarero)
+    const { data: profile } = await supabaseCamaut
       .from('profiles')
-      .select('venue_id, is_autonomous')
+      .select('venue_id, is_autonomous, full_name')
       .eq('id', session.user.id)
       .single()
 
     const vId = profile?.venue_id || null
     setVenueId(vId)
+
+    // Nombre desde metadata del usuario como fallback
+    const fullNameFromMeta = session.user?.user_metadata?.full_name || null
 
     if (vId) {
       const { data: staffData } = await supabaseStaff
@@ -41,8 +46,10 @@ export default function CamautAppPage() {
         .select('full_name, xp')
         .eq('venue_id', vId)
         .single()
-      setStaffName(staffData?.full_name || null)
+      setStaffName(staffData?.full_name || fullNameFromMeta)
       setStaffXP(staffData?.xp || 0)
+    } else {
+      setStaffName(fullNameFromMeta)
     }
 
     setAuthorized(true)
