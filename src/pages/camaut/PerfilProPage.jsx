@@ -1,10 +1,7 @@
 import { useEffect, useState } from 'react'
-import { supabaseStaff } from '../../lib/supabase'
-import { useAuth } from '../../hooks/useAuth'
-import { formatPrice } from '../../lib/utils'
+import { supabaseCamaut, supabaseStaff } from '../../lib/supabase'
 
 export default function PerfilProPage({ venueId }) {
-  const { profile } = useAuth()
   const [staffId, setStaffId] = useState(null)
   const [experience, setExperience] = useState([])
   const [reviews, setReviews] = useState([])
@@ -60,6 +57,15 @@ export default function PerfilProPage({ venueId }) {
     e.preventDefault()
     if (!form.title.trim() || !staffId) return
     setSaving(true)
+
+    // Sincronizar sesión de camaut con supabaseStaff
+    const { data: { session } } = await supabaseCamaut.auth.getSession()
+    if (session) {
+      await supabaseStaff.auth.setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token
+      })
+    }
 
     await supabaseStaff.from('staff_experience').insert({
       staff_id: staffId,
