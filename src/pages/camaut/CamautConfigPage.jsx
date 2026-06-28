@@ -4,9 +4,20 @@ import { supabaseCamaut, supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supaba
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice } from '../../lib/utils'
 
-export default function CamautConfigPage() {
+export default function CamautConfigPage({ initialTab, embedded }) {
   const { profile, signOut } = useAuth()
-  const [tab, setTab] = useState('perfil')
+  const [tab, setTab] = useState(initialTab || 'perfil')
+
+  if (embedded) {
+    return (
+      <div>
+        {tab === 'perfil' && <PerfilTab profile={profile} />}
+        {tab === 'carta' && <CartaTab profile={profile} />}
+        {tab === 'ubicaciones' && <UbicacionesTab profile={profile} />}
+        {tab === 'whatsapp' && <WhatsappTab profile={profile} />}
+      </div>
+    )
+  }
 
   return (
     <div className="bg-[#F0F4F8] min-h-screen">
