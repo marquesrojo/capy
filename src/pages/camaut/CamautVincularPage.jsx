@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabaseCamaut, supabaseStaff } from '../../lib/supabase'
 
@@ -10,12 +10,60 @@ export default function CamautVincularPage() {
   const [error, setError] = useState('')
   const [venue, setVenue] = useState(null)
   const [confirming, setConfirming] = useState(false)
+  const [scanning, setScanning] = useState(false)
+  const videoRef = useRef(null)
+  const streamRef = useRef(null)
 
   useEffect(() => {
     if (searchParams.get('code')) {
       handleSearch(searchParams.get('code'))
     }
+    return () => stopScan()
   }, [])
+
+  async function startScan() {
+    setScanning(true)
+    setError('')
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      streamRef.current = stream
+      if (videoRef.current) videoRef.current.srcObject = stream
+
+      if ('BarcodeDetector' in window) {
+        const detector = new window.BarcodeDetector({ formats: ['qr_code'] })
+        const interval = setInterval(async () => {
+          if (!videoRef.current) { clearInterval(interval); return }
+          try {
+            const barcodes = await detector.detect(videoRef.current)
+            if (barcodes.length > 0) {
+              clearInterval(interval)
+              const raw = barcodes[0].rawValue
+              // Extraer código del URL o usar directamente
+              const match = raw.match(/code=([A-Z0-9]{8})/i)
+              const extracted = match ? match[1].toUpperCase() : raw.toUpperCase().slice(0, 8)
+              stopScan()
+              setCode(extracted)
+              handleSearch(extracted)
+            }
+          } catch {}
+        }, 500)
+      } else {
+        setError('Tu navegador no soporta escaneo. Ingresá el código manualmente.')
+        stopScan()
+      }
+    } catch {
+      setError('No se pudo acceder a la cámara.')
+      setScanning(false)
+    }
+  }
+
+  function stopScan() {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop())
+      streamRef.current = null
+    }
+    setScanning(false)
+  }
 
   async function handleSearch(searchCode) {
     const c = (searchCode || code).trim().toUpperCase()
@@ -107,6 +155,38 @@ export default function CamautVincularPage() {
 
       {!venue ? (
         <div className="space-y-4">
+          {/* Escáner QR */}
+          {scanning ? (
+            <div className="relative">
+              <video ref={videoRef} autoPlay playsInline className="w-full rounded-2xl" />
+              <div className="absolute inset-0 border-4 border-ember-500/50 rounded-2xl pointer-events-none" />
+              <button
+                onClick={stopScan}
+                className="absolute top-3 right-3 bg-black/50 text-white text-xs px-3 py-1.5 rounded-full"
+              >
+                Cancelar
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={startScan}
+              className="w-full border-2 border-dashed border-carbon-700 text-smoke-400 py-4 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="5" height="5"/><rect x="16" y="3" width="5" height="5"/>
+                <rect x="3" y="16" width="5" height="5"/>
+                <path d="M21 16h-3a2 2 0 0 0-2 2v3M21 21v.01M12 7v3a2 2 0 0 1-2 2H7M3 12h.01M12 3h.01M7 17H4a1 1 0 0 1-1-1v-3"/>
+              </svg>
+              Escanear QR del local
+            </button>
+          )}
+
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-carbon-700" />
+            <span className="text-smoke-600 text-xs">o ingresá el código</span>
+            <div className="flex-1 h-px bg-carbon-700" />
+          </div>
+
           <input
             type="text"
             value={code}
@@ -121,7 +201,7 @@ export default function CamautVincularPage() {
             disabled={loading || !code.trim()}
             className="w-full bg-ember-500 disabled:opacity-50 text-white font-bold py-4 rounded-2xl text-base"
           >
-            {loading ? 'Buscando...' : 'Buscar restaurante →'}
+            {loading ? 'Buscando...' : 'Buscar local →'}
           </button>
         </div>
       ) : (
