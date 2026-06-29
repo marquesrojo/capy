@@ -30,7 +30,7 @@ const TABS = [
   },
 ]
 
-const MICAPY_TABS = ['perfil', 'perfil_pro', 'carta', 'vincular', 'carrera', 'ranking']
+const MICAPY_TABS = ['perfil', 'perfil_pro', 'carta', 'notas', 'vincular', 'carrera', 'ranking']
 
 export default function CamautAppShell({ venueId, staffName: initialName, staffXP: initialXP, linkedVenues = [], staffId }) {
   const navigate = useNavigate()
@@ -117,7 +117,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                     micapyTab === t ? 'border-[#008080] text-[#008080]' : 'border-transparent text-[#8896A5]'
                   }`}
                 >
-                  {t === 'micapy' ? 'Mi Capy' : t === 'perfil_pro' ? 'Perfil Pro' : t === 'vincular' ? 'Vincular' : t === 'carta' ? 'Mi Carta' : t === 'whatsapp' ? 'WhatsApp' : t.charAt(0).toUpperCase() + t.slice(1)}
+                  {t === 'micapy' ? 'Mi Capy' : t === 'perfil_pro' ? 'Perfil Pro' : t === 'vincular' ? 'Vincular' : t === 'carta' ? 'Mi Carta' : t === 'notas' ? 'Notas' : t === 'whatsapp' ? 'WhatsApp' : t.charAt(0).toUpperCase() + t.slice(1)}
                 </button>
               ))}
             </div>
@@ -135,6 +135,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                 </div>
               </>
             )}
+            {micapyTab === 'notas' && <CamautConfigPage key="notas" embedded initialTab="notas" />}
             {micapyTab === 'perfil' && (
               <CamautConfigPage key="perfil" embedded initialTab="perfil" />
             )}
