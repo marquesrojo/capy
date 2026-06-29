@@ -99,6 +99,12 @@ export default function CamautVincularPage() {
       refresh_token: session.refresh_token
     })
 
+    // Sincronizar sesión con supabaseStaff
+    await supabaseStaff.auth.setSession({
+      access_token: session.access_token,
+      refresh_token: session.refresh_token
+    })
+
     // Verificar si ya está vinculado
     const { data: existing } = await supabaseStaff
       .from('venue_staff')
