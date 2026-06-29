@@ -15,6 +15,7 @@ export default function CamautConfigPage({ initialTab, embedded }) {
         {tab === 'carta' && <CartaTab profile={profile} />}
         {tab === 'ubicaciones' && <UbicacionesTab profile={profile} />}
         {tab === 'whatsapp' && <WhatsappTab profile={profile} />}
+        {tab === 'notas' && <NotasTab profile={profile} />}
       </div>
     )
   }
@@ -26,16 +27,16 @@ export default function CamautConfigPage({ initialTab, embedded }) {
           <h1 className="font-bold text-[#1A2A3A] text-lg">Configuración</h1>
           <button onClick={signOut} className="text-[#8896A5] text-xs underline">Salir</button>
         </div>
-        <div className="flex gap-4 border-b border-transparent">
-          {['perfil', 'carta', 'ubicaciones', 'whatsapp'].map(t => (
+        <div className="flex gap-4 border-b border-transparent overflow-x-auto">
+          {['perfil', 'carta', 'ubicaciones', 'whatsapp', 'notas'].map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`pb-2.5 text-xs font-semibold capitalize border-b-2 ${
+              className={`pb-2.5 text-xs font-semibold capitalize border-b-2 whitespace-nowrap ${
                 tab === t ? 'border-[#008080] text-[#008080]' : 'border-transparent text-[#8896A5]'
               }`}
             >
-              {t === 'whatsapp' ? 'WhatsApp' : t.charAt(0).toUpperCase() + t.slice(1)}
+              {t === 'whatsapp' ? 'WhatsApp' : t === 'notas' ? 'Notas rápidas' : t.charAt(0).toUpperCase() + t.slice(1)}
             </button>
           ))}
         </div>
@@ -46,6 +47,7 @@ export default function CamautConfigPage({ initialTab, embedded }) {
         {tab === 'carta' && <CartaTab profile={profile} />}
         {tab === 'ubicaciones' && <UbicacionesTab profile={profile} />}
         {tab === 'whatsapp' && <WhatsappTab profile={profile} />}
+        {tab === 'notas' && <NotasTab profile={profile} />}
       </div>
     </div>
   )
@@ -495,6 +497,135 @@ function UbicacionesTab({ profile }) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function NotasTab({ profile }) {
+  const [notas, setNotas] = useState([])
+  const [pucNotas, setPucNotas] = useState([])
+  const [newLabel, setNewLabel] = useState('')
+  const [venueId, setVenueId] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [copying, setCopying] = useState(false)
+
+  useEffect(() => {
+    if (profile?.venue_id) {
+      setVenueId(profile.venue_id)
+      loadNotas(profile.venue_id)
+    }
+  }, [profile])
+
+  async function loadNotas(vId) {
+    const [ownRes, pucRes] = await Promise.all([
+      supabaseStaff.from('quick_notes').select('id, label, is_active, sort_order').eq('venue_id', vId).order('sort_order'),
+      supabaseStaff.from('quick_notes').select('id, label').eq('venue_id', ACTIVE_VENUE_ID).eq('is_active', true).order('sort_order')
+    ])
+    setNotas(ownRes.data || [])
+    setPucNotas(pucRes.data || [])
+    setLoading(false)
+  }
+
+  async function copyFromPucara() {
+    if (!venueId || !pucNotas.length) return
+    setCopying(true)
+    const toInsert = pucNotas
+      .filter(pn => !notas.some(n => n.label === pn.label))
+      .map((pn, i) => ({ venue_id: venueId, label: pn.label, is_active: true, sort_order: notas.length + i }))
+    if (toInsert.length) {
+      const { data } = await supabaseStaff.from('quick_notes').insert(toInsert).select()
+      if (data) setNotas(prev => [...prev, ...data])
+    }
+    setCopying(false)
+  }
+
+  async function addNota(e) {
+    e.preventDefault()
+    if (!newLabel.trim() || !venueId) return
+    setSaving(true)
+    const { data } = await supabaseStaff
+      .from('quick_notes')
+      .insert({ venue_id: venueId, label: newLabel.trim(), is_active: true, sort_order: notas.length })
+      .select()
+      .single()
+    if (data) setNotas(prev => [...prev, data])
+    setNewLabel('')
+    setSaving(false)
+  }
+
+  async function toggleNota(id, isActive) {
+    await supabaseStaff.from('quick_notes').update({ is_active: !isActive }).eq('id', id)
+    setNotas(prev => prev.map(n => n.id === id ? { ...n, is_active: !isActive } : n))
+  }
+
+  async function deleteNota(id) {
+    await supabaseStaff.from('quick_notes').delete().eq('id', id)
+    setNotas(prev => prev.filter(n => n.id !== id))
+  }
+
+  if (loading) return <p className="text-[#8896A5] text-sm text-center py-6">Cargando...</p>
+
+  return (
+    <div className="space-y-4">
+      <p className="text-[#8896A5] text-xs">
+        Chips de aclaración que aparecen al confirmar un pedido. Ej: Sin sal, Bien cocido, Sin TACC.
+      </p>
+
+      {/* Copiar de Pucará */}
+      {pucNotas.length > 0 && (
+        <button
+          onClick={copyFromPucara}
+          disabled={copying}
+          className="w-full border border-dashed border-[#008080]/40 text-[#008080] text-sm font-semibold py-2.5 rounded-xl"
+        >
+          {copying ? 'Copiando...' : '⬇ Copiar notas de Pucará como base'}
+        </button>
+      )}
+
+      {/* Lista */}
+      <div className="bg-white rounded-2xl overflow-hidden border border-black/5">
+        {notas.length === 0 ? (
+          <p className="text-[#8896A5] text-sm text-center py-6">No hay notas rápidas todavía.</p>
+        ) : (
+          <div className="divide-y divide-black/5">
+            {notas.map(n => (
+              <div key={n.id} className="flex items-center justify-between px-4 py-3">
+                <p className={`text-sm font-medium ${n.is_active ? 'text-[#1A2A3A]' : 'text-[#B0BEC5] line-through'}`}>
+                  {n.label}
+                </p>
+                <div className="flex gap-3">
+                  <button onClick={() => toggleNota(n.id, n.is_active)} className={`text-xs underline ${n.is_active ? 'text-[#8896A5]' : 'text-emerald-500'}`}>
+                    {n.is_active ? 'Desactivar' : 'Activar'}
+                  </button>
+                  <button onClick={() => deleteNota(n.id)} className="text-red-400 text-xs underline">
+                    Borrar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Agregar nueva */}
+      <form onSubmit={addNota} className="flex gap-2">
+        <input
+          type="text"
+          value={newLabel}
+          onChange={e => setNewLabel(e.target.value)}
+          placeholder="Ej: Sin sal"
+          className="flex-1 border border-black/10 rounded-xl px-4 py-3 text-sm bg-white text-[#1A2A3A]"
+          maxLength={40}
+        />
+        <button
+          type="submit"
+          disabled={saving || !newLabel.trim()}
+          className="bg-[#008080] disabled:opacity-50 text-white font-semibold px-4 py-3 rounded-xl text-sm"
+        >
+          {saving ? '...' : 'Agregar'}
+        </button>
+      </form>
     </div>
   )
 }
