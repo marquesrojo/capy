@@ -291,7 +291,7 @@ function CartaTab({ profile }) {
         </button>
       </div>
 
-      {subTab === 'ubicaciones' && <UbicacionesTab profile={profile} />}
+      {subTab === 'ubicaciones' && <UbicacionesTab profile={profile} menuId={activeMenuId} />}
 
       {subTab === 'carta' && <>
 
@@ -490,16 +490,14 @@ function WhatsappTab({ profile }) {
   )
 }
 
-function UbicacionesTab({ profile }) {
+function UbicacionesTab({ profile, menuId }) {
   const [venueId, setVenueId] = useState(null)
   const [zones, setZones] = useState([])
   const [newZone, setNewZone] = useState('')
   const [adding, setAdding] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    loadZones()
-  }, [profile])
+  useEffect(() => { loadZones() }, [profile, menuId])
 
   async function loadZones() {
     if (!profile) return
@@ -507,12 +505,16 @@ function UbicacionesTab({ profile }) {
       .from('profiles').select('venue_id').eq('id', profile.id).single()
     if (!profileData?.venue_id) return
     setVenueId(profileData.venue_id)
-    const { data } = await supabaseCamaut
+    let query = supabaseCamaut
       .from('venue_zones')
       .select('*')
       .eq('venue_id', profileData.venue_id)
       .eq('is_active', true)
       .order('sort_order')
+    if (menuId !== undefined) {
+      query = menuId ? query.eq('menu_id', menuId) : query.is('menu_id', null)
+    }
+    const { data } = await query
     setZones(data || [])
     setLoading(false)
   }
@@ -527,7 +529,8 @@ function UbicacionesTab({ profile }) {
         name: newZone.trim(),
         type: 'mesa',
         is_active: true,
-        sort_order: zones.length
+        sort_order: zones.length,
+        menu_id: menuId || null
       })
       .select().single()
     if (data) setZones(prev => [...prev, data])
@@ -545,7 +548,9 @@ function UbicacionesTab({ profile }) {
   return (
     <div className="space-y-4">
       <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
-        <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">Nueva ubicación</p>
+        <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">
+          Nueva ubicación {menuId !== undefined ? `— ${menuId ? '' : 'General'}` : ''}
+        </p>
         <div className="flex gap-2">
           <input
             type="text"
