@@ -61,6 +61,43 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
     navigate('/camaut/login')
   }
 
+  // Onboarding — camarero nuevo sin venue ni vinculación
+  if (!venueId && linkedVenues.length === 0) {
+    return (
+      <div className="min-h-screen bg-carbon-950 flex flex-col px-6 py-12">
+        <div className="text-center mb-10">
+          <img
+            src="https://ycgptakgpsvmstoftkdk.supabase.co/storage/v1/object/public/icons/icon-512.png"
+            alt="Capy" className="w-20 h-20 mx-auto mb-4 rounded-2xl"
+          />
+          <p className="font-display text-3xl text-ember-500 tracking-wide mb-2">CAPY</p>
+          <p className="text-smoke-300 font-bold text-xl mb-2">
+            ¡Bienvenido{staffName ? `, ${staffName.split(' ')[0]}` : ''}!
+          </p>
+          <p className="text-smoke-500 text-sm leading-relaxed">
+            Para empezar, creá tu carta propia o vincularte a un restaurante que ya usa Capy.
+          </p>
+        </div>
+        <div className="space-y-4">
+          <button
+            onClick={() => navigate('/camaut/vincular')}
+            className="w-full bg-carbon-900 border border-carbon-700 text-smoke-200 font-bold py-4 rounded-2xl text-base flex items-center justify-center gap-3"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            Vincularme a un restaurante
+          </button>
+          <p className="text-smoke-600 text-xs text-center">
+            También podés crear tu propia carta desde Mi Capy luego de entrar.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-[#F0F4F8]">
       {/* Header */}
