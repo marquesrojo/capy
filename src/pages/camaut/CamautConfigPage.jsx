@@ -282,6 +282,8 @@ function CartaTab({ profile }) {
       {/* Tabs internos — solo Carta */}
       {false && <div />} {/* placeholder para futura expansión */}
 
+      <>
+
         {/* Selector de menús */}
         <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
           <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">
