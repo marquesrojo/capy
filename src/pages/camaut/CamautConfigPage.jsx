@@ -822,7 +822,7 @@ function ImportarConIA({ venueId, onImported }) {
   if (step === 'idle' || step === 'analyzing') {
     return (
       <div>
-        <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
         <button
           onClick={() => fileRef.current?.click()}
           disabled={step === 'analyzing'}
