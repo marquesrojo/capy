@@ -729,7 +729,7 @@ function ImportarConIA({ venueId, onImported }) {
       setPreview(ev.target.result)
       try {
         const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -740,16 +740,23 @@ function ImportarConIA({ venueId, onImported }) {
                     inline_data: { mime_type: file.type, data: base64 }
                   },
                   {
-                    text: `Analizá esta imagen de un menú de restaurante o bar. Extraé todos los productos con su nombre, precio (solo número, sin símbolo) y categoría sugerida (ej: Entradas, Bebidas, Platos principales, Postres, etc). Respondé SOLO con un JSON array sin texto adicional ni backticks. Formato: [{"name":"Nombre","price":1200,"category":"Categoría"}]. Si no hay precio claro, usá 0. Solo en español.`
+                    text: `Esta es una foto de un menú de restaurante o bar. Tu tarea es extraer TODOS los items del menú que puedas ver. Para cada item incluí: nombre del producto, precio numérico (sin símbolo de moneda, solo el número), y categoría (Entradas, Bebidas, Platos principales, Postres, etc). Si no podés leer el precio exacto, ponés 0. Respondé ÚNICAMENTE con un JSON array válido, sin texto antes ni después, sin backticks, sin markdown. Ejemplo: [{"name":"Milanesa napolitana","price":2500,"category":"Platos principales"},{"name":"Coca Cola","price":800,"category":"Bebidas"}]`
                   }
                 ]
-              }]
+              }],
+              generationConfig: {
+                temperature: 0.1,
+                topK: 1,
+                topP: 0.1
+              }
             })
           }
         )
         const data = await res.json()
         const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]'
-        const clean = text.replace(/```json|```/g, '').trim()
+        // Extraer JSON del texto aunque venga con texto adicional
+        const jsonMatch = text.match(/\[[\s\S]*\]/)
+        const clean = jsonMatch ? jsonMatch[0] : '[]'
         const items = JSON.parse(clean)
         setDetected(items.map(i => ({ ...i, selected: true })))
         setStep('review')
