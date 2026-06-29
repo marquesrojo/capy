@@ -321,28 +321,14 @@ function CartaTab({ profile }) {
             ) : (
               <div className="divide-y divide-black/5">
                 {catProducts.map(product => (
-                  <div key={product.id} className="flex items-center justify-between px-4 py-3">
-                    <div className="flex-1">
-                      <p className={`text-sm font-medium ${product.is_available ? 'text-[#1A2A3A]' : 'text-[#B0BEC5] line-through'}`}>
-                        {product.name}
-                      </p>
-                      <p className="text-xs text-[#008080]">{formatPrice(product.price)}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => toggleProduct(product)}
-                        className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border ${
-                          product.is_available
-                            ? 'border-emerald-400 text-emerald-600 bg-emerald-50'
-                            : 'border-black/10 text-[#8896A5]'
-                        }`}>
-                        {product.is_available ? 'Activo' : 'Inactivo'}
-                      </button>
-                      <button onClick={() => deleteProduct(product.id)}
-                        className="text-red-400 text-xs underline">
-                        Borrar
-                      </button>
-                    </div>
-                  </div>
+                  <ProductRow
+                    key={product.id}
+                    product={product}
+                    categories={categories}
+                    onToggle={() => toggleProduct(product)}
+                    onDelete={() => deleteProduct(product.id)}
+                    onUpdate={(updated) => setProducts(prev => prev.map(p => p.id === product.id ? { ...p, ...updated } : p))}
+                  />
                 ))}
               </div>
             )}
@@ -626,6 +612,94 @@ function NotasTab({ profile }) {
           {saving ? '...' : 'Agregar'}
         </button>
       </form>
+    </div>
+  )
+}
+
+function ProductRow({ product, categories, onToggle, onDelete, onUpdate }) {
+  const [editing, setEditing] = useState(false)
+  const [name, setName] = useState(product.name)
+  const [price, setPrice] = useState(String(product.price))
+  const [categoryId, setCategoryId] = useState(product.category_id)
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave() {
+    setSaving(true)
+    await supabaseStaff
+      .from('products')
+      .update({ name: name.trim(), price: parseFloat(price), category_id: categoryId })
+      .eq('id', product.id)
+    onUpdate({ name: name.trim(), price: parseFloat(price), category_id: categoryId })
+    setSaving(false)
+    setEditing(false)
+  }
+
+  if (editing) {
+    return (
+      <div className="px-4 py-3 space-y-2">
+        <input
+          type="text"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm text-[#1A2A3A]"
+          placeholder="Nombre"
+        />
+        <div className="flex gap-2">
+          <input
+            type="number"
+            value={price}
+            onChange={e => setPrice(e.target.value)}
+            className="w-28 border border-black/10 rounded-lg px-3 py-2 text-sm text-[#1A2A3A]"
+            placeholder="Precio"
+          />
+          <select
+            value={categoryId}
+            onChange={e => setCategoryId(e.target.value)}
+            className="flex-1 border border-black/10 rounded-lg px-3 py-2 text-sm text-[#1A2A3A] bg-white"
+          >
+            {categories.map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={handleSave} disabled={saving}
+            className="flex-1 bg-[#008080] disabled:opacity-50 text-white text-xs font-semibold py-2 rounded-lg">
+            {saving ? 'Guardando...' : 'Guardar'}
+          </button>
+          <button onClick={() => setEditing(false)}
+            className="flex-1 border border-black/10 text-[#8896A5] text-xs py-2 rounded-lg">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex items-center justify-between px-4 py-3">
+      <div className="flex-1">
+        <p className={`text-sm font-medium ${product.is_available ? 'text-[#1A2A3A]' : 'text-[#B0BEC5] line-through'}`}>
+          {product.name}
+        </p>
+        <p className="text-xs text-[#008080]">{formatPrice(product.price)}</p>
+      </div>
+      <div className="flex items-center gap-2">
+        <button onClick={() => setEditing(true)} className="text-ember-500 text-xs underline">
+          Editar
+        </button>
+        <button onClick={onToggle}
+          className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border ${
+            product.is_available
+              ? 'border-emerald-400 text-emerald-600 bg-emerald-50'
+              : 'border-black/10 text-[#8896A5]'
+          }`}>
+          {product.is_available ? 'Activo' : 'Inactivo'}
+        </button>
+        <button onClick={onDelete} className="text-red-400 text-xs underline">
+          Borrar
+        </button>
+      </div>
     </div>
   )
 }
