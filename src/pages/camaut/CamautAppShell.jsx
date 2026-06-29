@@ -141,12 +141,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
             {micapyTab === 'vincular' && <VincularTab />}
             {micapyTab === 'perfil_pro' && <PerfilProPage venueId={venueId} />}
             {micapyTab === 'carta' && (
-              <>
-                <CamautConfigPage key="carta" embedded initialTab="carta" />
-                <div className="mt-4">
-                  <CamautConfigPage key="ubicaciones" embedded initialTab="ubicaciones" />
-                </div>
-              </>
+              <CamautConfigPage key="carta" embedded initialTab="carta" />
             )}
             {micapyTab === 'notas' && <CamautConfigPage key="notas" embedded initialTab="notas" />}
             {micapyTab === 'perfil' && (
