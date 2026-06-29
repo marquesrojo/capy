@@ -45,35 +45,7 @@ export default function CamautRegisterPage() {
       })
       if (authError) throw authError
 
-      const userId = authData.user?.id
-      if (!userId) throw new Error('No se pudo crear el usuario')
-
-      // Usar Edge Function para crear venue y staff_names (bypasea RLS)
-      const { data: { session } } = await supabaseCamaut.auth.getSession()
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/register-camaut`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`
-        },
-        body: JSON.stringify({
-          userId,
-          fullName: fullName.trim(),
-          alias: alias.trim() || null,
-          linkedin: linkedin.trim() || null,
-          docNumber: docNumber.trim() || null
-        })
-      })
-
-      const result = await res.json()
-      if (result.error === 'alias_taken') {
-        setError('Ese alias ya está en uso. Elegí otro.')
-        setLoading(false)
-        return
-      }
-      if (result.error) throw new Error(result.error)
-
-      // Registro exitoso — mostrar mensaje de confirmación
+      // Registro exitoso — el venue se crea en el onboarding
       setStep(3)
     } catch (err) {
       setError(err.message || 'Error al crear la cuenta. Intentá de nuevo.')
