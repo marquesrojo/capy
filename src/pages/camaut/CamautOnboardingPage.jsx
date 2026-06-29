@@ -103,21 +103,24 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
             <h1 className="font-bold text-smoke-200 text-2xl mb-2">¿Cómo te llamás?</h1>
             <p className="text-smoke-500 text-sm">Tu nombre aparece en el ranking, el certificado y en los pedidos.</p>
           </div>
-          <input
-            type="text"
-            value={fullName}
-            onChange={e => setFullName(e.target.value)}
-            placeholder="Tu nombre completo"
-            className="w-full bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-4 text-smoke-200 text-base mb-4"
-            autoFocus
-          />
-          <button
-            onClick={saveNombre}
-            disabled={saving || !fullName.trim()}
-            className="w-full bg-ember-500 disabled:opacity-50 text-white font-bold py-4 rounded-2xl text-base mt-auto"
-          >
-            {saving ? 'Guardando...' : 'Continuar →'}
-          </button>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={fullName}
+              onChange={e => setFullName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !saving && fullName.trim() && saveNombre()}
+              placeholder="Tu nombre completo"
+              className="flex-1 bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-4 text-smoke-200 text-base"
+              autoFocus
+            />
+            <button
+              onClick={saveNombre}
+              disabled={saving || !fullName.trim()}
+              className="bg-ember-500 disabled:opacity-50 text-white font-bold px-5 rounded-2xl text-sm flex-shrink-0"
+            >
+              →
+            </button>
+          </div>
         </div>
       )}
 
@@ -157,7 +160,7 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
                   <circle cx="9" cy="7" r="4"/>
                   <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
-                <span className="text-sm leading-tight text-center">Vincularme a un restaurante</span>
+                <span className="text-sm leading-tight text-center">Vincularme a un Local</span>
               </button>
             </div>
 
@@ -193,9 +196,16 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
               <button
                 onClick={searchVenue}
                 disabled={searching || !inviteCode.trim()}
-                className="w-full bg-carbon-800 border border-carbon-600 disabled:opacity-50 text-smoke-300 font-semibold py-3.5 rounded-2xl text-sm mb-4"
+                className="w-full bg-ember-500 disabled:opacity-50 text-white font-bold py-3.5 rounded-2xl text-sm mb-3"
               >
-                {searching ? 'Buscando...' : 'Buscar restaurante'}
+                {searching ? 'Buscando...' : 'Vincularse →'}
+              </button>
+              <button
+                onClick={finishOnboarding}
+                disabled={saving}
+                className="w-full bg-carbon-900 border border-carbon-700 text-smoke-400 font-semibold py-3.5 rounded-2xl text-sm"
+              >
+                Empezar sin local
               </button>
             </>
           ) : (
@@ -216,13 +226,6 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
             </div>
           )}
 
-          <button
-            onClick={finishOnboarding}
-            disabled={saving}
-            className="text-smoke-500 text-sm text-center underline mt-auto"
-          >
-            Saltear, empezar sin restaurante
-          </button>
         </div>
       )}
     </div>
