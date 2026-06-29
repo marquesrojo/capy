@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabaseCamaut, supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
@@ -271,6 +271,10 @@ function CartaTab({ profile }) {
       {subTab === 'ubicaciones' && <UbicacionesTab profile={profile} />}
 
       {subTab === 'carta' && <>
+
+      {/* Importar con IA */}
+      <ImportarConIA venueId={venueId} onImported={loadCarta} />
+
       {/* Agregar categoría */}
       <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
         <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">Nueva categoría</p>
@@ -702,6 +706,214 @@ function ProductRow({ product, categories, onToggle, onDelete, onUpdate }) {
           Borrar
         </button>
       </div>
+    </div>
+  )
+}
+
+function ImportarConIA({ venueId, onImported }) {
+  const [step, setStep] = useState('idle') // idle | analyzing | review | saving
+  const [preview, setPreview] = useState(null)
+  const [detected, setDetected] = useState([]) // [{ name, price, category, selected }]
+  const [error, setError] = useState('')
+  const fileRef = useRef(null)
+
+  async function handleFile(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setError('')
+    setStep('analyzing')
+
+    const reader = new FileReader()
+    reader.onload = async (ev) => {
+      const base64 = ev.target.result.split(',')[1]
+      setPreview(ev.target.result)
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  {
+                    inline_data: { mime_type: file.type, data: base64 }
+                  },
+                  {
+                    text: `Analizá esta imagen de un menú de restaurante o bar. Extraé todos los productos con su nombre, precio (solo número, sin símbolo) y categoría sugerida (ej: Entradas, Bebidas, Platos principales, Postres, etc). Respondé SOLO con un JSON array sin texto adicional ni backticks. Formato: [{"name":"Nombre","price":1200,"category":"Categoría"}]. Si no hay precio claro, usá 0. Solo en español.`
+                  }
+                ]
+              }]
+            })
+          }
+        )
+        const data = await res.json()
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]'
+        const clean = text.replace(/```json|```/g, '').trim()
+        const items = JSON.parse(clean)
+        setDetected(items.map(i => ({ ...i, selected: true })))
+        setStep('review')
+      } catch (err) {
+        setError('No se pudo analizar la imagen. Intentá con otra foto más clara.')
+        setStep('idle')
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
+  async function handleSave() {
+    if (!venueId) return
+    setStep('saving')
+    const toImport = detected.filter(i => i.selected && i.name.trim())
+
+    // Crear categorías únicas
+    const cats = [...new Set(toImport.map(i => i.category || 'General'))]
+    const catMap = {}
+    for (const catName of cats) {
+      const { data: existing } = await supabaseStaff
+        .from('categories')
+        .select('id')
+        .eq('venue_id', venueId)
+        .eq('name', catName)
+        .maybeSingle()
+      if (existing) {
+        catMap[catName] = existing.id
+      } else {
+        const { data: newCat } = await supabaseStaff
+          .from('categories')
+          .insert({ venue_id: venueId, name: catName, sort_order: 0 })
+          .select('id')
+          .single()
+        catMap[catName] = newCat?.id
+      }
+    }
+
+    // Crear productos
+    const products = toImport.map(i => ({
+      venue_id: venueId,
+      name: i.name.trim(),
+      price: parseFloat(i.price) || 0,
+      category_id: catMap[i.category || 'General'],
+      is_available: true
+    }))
+    await supabaseStaff.from('products').insert(products)
+
+    onImported()
+    setStep('idle')
+    setDetected([])
+    setPreview(null)
+  }
+
+  function toggleItem(i) {
+    setDetected(prev => prev.map((item, idx) => idx === i ? { ...item, selected: !item.selected } : item))
+  }
+
+  function updateItem(i, field, value) {
+    setDetected(prev => prev.map((item, idx) => idx === i ? { ...item, [field]: value } : item))
+  }
+
+  if (step === 'idle' || step === 'analyzing') {
+    return (
+      <div>
+        <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
+        <button
+          onClick={() => fileRef.current?.click()}
+          disabled={step === 'analyzing'}
+          className="w-full bg-white border border-black/10 rounded-2xl p-4 flex items-center gap-3 shadow-sm"
+        >
+          {step === 'analyzing' ? (
+            <>
+              <div className="w-9 h-9 rounded-xl bg-[#008080]/10 flex items-center justify-center flex-shrink-0">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#008080" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                </svg>
+              </div>
+              <div className="text-left">
+                <p className="font-semibold text-[#1A2A3A] text-sm">Analizando imagen...</p>
+                <p className="text-[#8896A5] text-xs">Gemini está leyendo tu menú</p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="w-9 h-9 rounded-xl bg-[#008080]/10 flex items-center justify-center flex-shrink-0">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#008080" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 0 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                </svg>
+              </div>
+              <div className="text-left">
+                <p className="font-semibold text-[#1A2A3A] text-sm">Importar carta con IA</p>
+                <p className="text-[#8896A5] text-xs">Sacá una foto de tu menú y Gemini lo carga automático</p>
+              </div>
+            </>
+          )}
+        </button>
+        {error && <p className="text-red-500 text-xs mt-2 text-center">{error}</p>}
+      </div>
+    )
+  }
+
+  if (step === 'review') {
+    return (
+      <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
+        {preview && <img src={preview} alt="Menú" className="w-full h-32 object-cover opacity-60" />}
+        <div className="p-4">
+          <p className="font-semibold text-[#1A2A3A] text-sm mb-1">
+            {detected.filter(i => i.selected).length} productos detectados
+          </p>
+          <p className="text-[#8896A5] text-xs mb-3">Revisá y editá antes de importar</p>
+
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {detected.map((item, i) => (
+              <div key={i} className={`flex items-center gap-2 p-2 rounded-xl border ${item.selected ? 'border-[#008080]/20 bg-[#F0FDF8]' : 'border-black/5 opacity-50'}`}>
+                <input type="checkbox" checked={item.selected} onChange={() => toggleItem(i)} className="flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <input
+                    type="text"
+                    value={item.name}
+                    onChange={e => updateItem(i, 'name', e.target.value)}
+                    className="w-full text-xs font-semibold text-[#1A2A3A] bg-transparent border-none outline-none"
+                  />
+                  <input
+                    type="text"
+                    value={item.category}
+                    onChange={e => updateItem(i, 'category', e.target.value)}
+                    className="w-full text-[10px] text-[#8896A5] bg-transparent border-none outline-none"
+                  />
+                </div>
+                <input
+                  type="number"
+                  value={item.price}
+                  onChange={e => updateItem(i, 'price', e.target.value)}
+                  className="w-20 text-xs text-[#008080] font-semibold bg-transparent border border-black/10 rounded-lg px-2 py-1 text-right"
+                />
+              </div>
+            ))}
+          </div>
+
+          <div className="flex gap-2 mt-4">
+            <button
+              onClick={() => { setStep('idle'); setDetected([]); setPreview(null) }}
+              className="flex-1 border border-black/10 text-[#8896A5] text-sm py-2.5 rounded-xl"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={!detected.some(i => i.selected)}
+              className="flex-1 bg-[#008080] disabled:opacity-50 text-white font-semibold text-sm py-2.5 rounded-xl"
+            >
+              Importar {detected.filter(i => i.selected).length} productos
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-white rounded-2xl p-4 border border-black/5 text-center">
+      <p className="text-[#008080] text-sm font-semibold">Guardando productos...</p>
     </div>
   )
 }
