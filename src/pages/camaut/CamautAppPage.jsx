@@ -12,6 +12,7 @@ export default function CamautAppPage() {
   const [staffXP, setStaffXP] = useState(0)
   const [linkedVenues, setLinkedVenues] = useState([])
   const [staffId, setStaffId] = useState(null)
+  const [onboardingCompleted, setOnboardingCompleted] = useState(true)
 
   useEffect(() => {
     checkAuth()
@@ -23,23 +24,21 @@ export default function CamautAppPage() {
 
     await new Promise(r => setTimeout(r, 300))
 
-    // Sincronizar sesión con supabaseStaff
     await supabaseStaff.auth.setSession({
       access_token: session.access_token,
       refresh_token: session.refresh_token
     })
 
-    // Leer profile con supabaseCamaut (sesión del camarero)
     const { data: profile } = await supabaseCamaut
       .from('profiles')
-      .select('venue_id, is_autonomous, full_name')
+      .select('venue_id, is_autonomous, full_name, onboarding_completed')
       .eq('id', session.user.id)
       .single()
 
     const vId = profile?.venue_id || null
     setVenueId(vId)
+    setOnboardingCompleted(profile?.onboarding_completed ?? true)
 
-    // Nombre desde metadata del usuario como fallback
     const fullNameFromMeta = session.user?.user_metadata?.full_name || profile?.full_name || null
 
     if (vId) {
@@ -54,7 +53,6 @@ export default function CamautAppPage() {
       setStaffName(fullNameFromMeta)
     }
 
-    // Cargar venues vinculados
     const { data: linked } = await supabaseStaff
       .from('venue_staff')
       .select('venue:venues(id, name)')
@@ -76,5 +74,13 @@ export default function CamautAppPage() {
 
   if (!authorized) return null
 
-  return <CamautAppShell venueId={venueId} staffName={staffName} staffXP={staffXP} linkedVenues={linkedVenues} staffId={staffId} />
+  return <CamautAppShell
+    venueId={venueId}
+    staffName={staffName}
+    staffXP={staffXP}
+    linkedVenues={linkedVenues}
+    staffId={staffId}
+    onboardingCompleted={onboardingCompleted}
+    onOnboardingComplete={() => setOnboardingCompleted(true)}
+  />
 }
