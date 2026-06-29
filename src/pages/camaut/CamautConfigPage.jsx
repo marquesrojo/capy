@@ -540,6 +540,7 @@ function NotasTab({ profile }) {
     // Cargar notas de locales vinculados
     const { data: { session } } = await supabaseCamaut.auth.getSession()
     if (session) {
+      await supabaseStaff.auth.setSession({ access_token: session.access_token, refresh_token: session.refresh_token })
       const { data: linked } = await supabaseStaff
         .from('venue_staff')
         .select('venue:venues(id, name)')
