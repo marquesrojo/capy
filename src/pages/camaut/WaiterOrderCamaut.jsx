@@ -8,6 +8,8 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
   const [products, setProducts] = useState([])
   const [zones, setZones] = useState([])
   const [quickNotes, setQuickNotes] = useState([])
+  const [menus, setMenus] = useState([])
+  const [activeMenuId, setActiveMenuId] = useState('all') // 'all' o menu_id
   const [activeCategory, setActiveCategory] = useState(null)
   const [cart, setCart] = useState({}) // { productId: { product, qty, notes } }
   const [selectedZone, setSelectedZone] = useState(null)
@@ -33,19 +35,21 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
 
   async function loadCarta() {
     setLoading(true)
-    const [catRes, prodRes, venueRes, staffRes, zoneRes, notesRes] = await Promise.all([
-      supabaseStaff.from('categories').select('id, name').eq('venue_id', activeVenueId).order('sort_order'),
+    const [catRes, prodRes, venueRes, staffRes, zoneRes, notesRes, menuRes] = await Promise.all([
+      supabaseStaff.from('categories').select('id, name, menu_id').eq('venue_id', activeVenueId).order('sort_order'),
       supabaseStaff.from('products').select('id, name, price, category_id').eq('venue_id', activeVenueId).eq('is_available', true),
       supabaseStaff.from('venues').select('whatsapp_number').eq('id', activeVenueId).single(),
       supabaseStaff.from('staff_names').select('id').eq('venue_id', venueId).single(),
       supabaseStaff.from('venue_zones').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order'),
-      supabaseStaff.from('quick_notes').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order')
+      supabaseStaff.from('quick_notes').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order'),
+      supabaseStaff.from('staff_menus').select('*').eq('venue_id', activeVenueId).order('created_at')
     ])
     setCategories(catRes.data || [])
     setProducts(prodRes.data || [])
     setStaffId(staffRes.data?.id || null)
     setZones(zoneRes.data || [])
     setQuickNotes(notesRes.data || [])
+    setMenus(menuRes.data || [])
     if (catRes.data?.length) setActiveCategory(catRes.data[0].id)
     setLoading(false)
   }
@@ -118,6 +122,10 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
     }
     setSubmitting(false)
   }
+
+  const filteredCategories = activeVenueId === venueId && activeMenuId !== 'all'
+    ? categories.filter(c => c.menu_id === activeMenuId)
+    : categories
 
   const visibleProducts = products.filter(p => p.category_id === activeCategory)
 
@@ -328,9 +336,55 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
         )}
       </div>
 
+      {/* Selector de menú — solo en Mi Carta con múltiples menús */}
+      {activeVenueId === venueId && menus.length > 0 && (
+        <div className="px-4 pt-3 pb-1">
+          <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-2">Menú</p>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            <button
+              onClick={() => { setActiveMenuId('all'); setActiveCategory(categories[0]?.id || null) }}
+              className={`whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold border ${
+                activeMenuId === 'all' ? 'bg-[#008080] text-white border-[#008080]' : 'bg-white border-black/10 text-[#3A4A5A]'
+              }`}
+            >
+              Todos
+            </button>
+            {categories.filter(c => !c.menu_id).length > 0 && (
+              <button
+                onClick={() => {
+                  setActiveMenuId(null)
+                  const first = categories.find(c => !c.menu_id)
+                  setActiveCategory(first?.id || null)
+                }}
+                className={`whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold border ${
+                  activeMenuId === null ? 'bg-[#008080] text-white border-[#008080]' : 'bg-white border-black/10 text-[#3A4A5A]'
+                }`}
+              >
+                General
+              </button>
+            )}
+            {menus.map(m => (
+              <button
+                key={m.id}
+                onClick={() => {
+                  setActiveMenuId(m.id)
+                  const first = categories.find(c => c.menu_id === m.id)
+                  setActiveCategory(first?.id || null)
+                }}
+                className={`whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold border ${
+                  activeMenuId === m.id ? 'bg-[#008080] text-white border-[#008080]' : 'bg-white border-black/10 text-[#3A4A5A]'
+                }`}
+              >
+                {m.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Categorías */}
       <div className="px-4 pt-3 pb-2 flex gap-2 overflow-x-auto">
-        {categories.map(cat => (
+        {filteredCategories.map(cat => (
           <button
             key={cat.id}
             onClick={() => setActiveCategory(cat.id)}
