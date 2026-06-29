@@ -134,30 +134,32 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
             </p>
           </div>
 
-          <div className="space-y-3 mt-auto">
-            <button
-              onClick={finishOnboarding}
-              disabled={saving}
-              className="w-full bg-ember-500 disabled:opacity-50 text-white font-bold py-4 rounded-2xl text-base flex items-center justify-center gap-3"
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-              </svg>
-              Tomar mi primer pedido
-            </button>
+          <div className="mt-6 space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={finishOnboarding}
+                disabled={saving}
+                className="flex flex-col items-center justify-center gap-3 bg-ember-500 disabled:opacity-50 text-white font-bold py-8 rounded-2xl"
+              >
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+                <span className="text-sm leading-tight text-center">Tomar mi primer pedido</span>
+              </button>
 
-            <button
-              onClick={() => setShowVincular(true)}
-              className="w-full bg-carbon-900 border border-carbon-700 text-smoke-300 font-bold py-4 rounded-2xl text-base flex items-center justify-center gap-3"
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
-              Vincularme a un restaurante
-            </button>
+              <button
+                onClick={() => setShowVincular(true)}
+                className="flex flex-col items-center justify-center gap-3 bg-carbon-900 border border-carbon-700 text-smoke-300 font-bold py-8 rounded-2xl"
+              >
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                <span className="text-sm leading-tight text-center">Vincularme a un restaurante</span>
+              </button>
+            </div>
 
             <p className="text-smoke-600 text-xs text-center">
               Podés vincular un restaurante y completar tu perfil después desde <span className="text-ember-500">Mi Capy</span>.
