@@ -82,10 +82,10 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
 
   async function finishOnboarding() {
     setSaving(true)
-    // Si no tiene venue, crear uno via register-camaut
-    if (!venueId) {
-      const { data: { session } } = await supabaseCamaut.auth.getSession()
-      if (session) {
+    const { data: { session } } = await supabaseCamaut.auth.getSession()
+    if (session) {
+      // Crear venue si no tiene
+      if (!venueId) {
         await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/register-camaut`, {
           method: 'POST',
           headers: {
@@ -94,12 +94,23 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
           },
           body: JSON.stringify({
             userId: session.user.id,
-            email: session.user.email,
             fullName: fullName.trim() || session.user.user_metadata?.full_name || 'Camarero',
             aliasBancario: aliasBancario.trim() || null
           })
         })
+      } else if (aliasBancario.trim()) {
+        // Solo actualizar alias
+        await supabaseStaff
+          .from('staff_names')
+          .update({ alias_bancario: aliasBancario.trim() })
+          .eq('venue_id', venueId)
       }
+
+      // Marcar onboarding como completado
+      await supabaseStaff
+        .from('profiles')
+        .update({ onboarding_completed: true })
+        .eq('id', session.user.id)
     }
     setSaving(false)
     onComplete()
