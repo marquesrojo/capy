@@ -11,11 +11,26 @@ const supabasePublic = createClient(
 )
 
 const STATUS_INFO = {
-  pendiente_aprobacion: { label: 'Esperando confirmación', color: 'text-amber-500', icon: '⏳' },
-  recibido: { label: 'Recibido', color: 'text-blue-500', icon: '📥' },
-  en_preparacion: { label: 'En preparación', color: 'text-[#008080]', icon: '👨‍🍳' },
-  listo: { label: '¡Listo para retirar!', color: 'text-emerald-500', icon: '✅' },
-  entregado: { label: 'Entregado', color: 'text-smoke-400', icon: '🎉' },
+  pendiente_aprobacion: {
+    label: 'Esperando confirmación', color: 'text-amber-500',
+    icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+  },
+  recibido: {
+    label: 'Recibido', color: 'text-blue-500',
+    icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+  },
+  en_preparacion: {
+    label: 'En preparación', color: 'text-[#008080]',
+    icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[#008080]"><path d="M12 2a10 10 0 0 1 10 10"/><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="10"/></svg>
+  },
+  listo: {
+    label: '¡Listo para retirar!', color: 'text-emerald-500',
+    icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+  },
+  entregado: {
+    label: 'Entregado', color: 'text-smoke-400',
+    icon: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-smoke-400"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+  },
 }
 
 export default function PublicOrderPage() {
@@ -153,7 +168,7 @@ export default function PublicOrderPage() {
 
       {/* Estado */}
       <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5 text-center mb-4">
-        <p className="text-3xl mb-2">{statusInfo.icon}</p>
+        <div className="flex justify-center mb-2">{statusInfo.icon}</div>
         <p className={`font-bold text-lg ${statusInfo.color}`}>{statusInfo.label}</p>
         <p className="text-smoke-500 text-xs mt-1">
           Pedido #{order.daily_number} · 📍 {order.location_label}
