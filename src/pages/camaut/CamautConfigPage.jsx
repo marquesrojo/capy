@@ -575,6 +575,9 @@ function NotasTab({ profile }) {
     e.preventDefault()
     if (!newLabel.trim() || !venueId) return
     setSaving(true)
+    // Sincronizar sesión
+    const { data: { session } } = await supabaseCamaut.auth.getSession()
+    if (session) await supabaseStaff.auth.setSession({ access_token: session.access_token, refresh_token: session.refresh_token })
     const { data } = await supabaseStaff
       .from('quick_notes')
       .insert({ venue_id: venueId, label: newLabel.trim(), is_active: true, sort_order: notas.length })
