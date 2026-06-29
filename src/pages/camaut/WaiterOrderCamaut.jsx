@@ -236,6 +236,14 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
               <span className="font-mono font-bold text-[#008080]">{formatPrice(total)}</span>
             </div>
           </div>
+
+          {/* Agregar más */}
+          <button
+            onClick={() => setStep('carta')}
+            className="w-full border-2 border-dashed border-[#008080]/30 text-[#008080] text-sm font-semibold py-3 rounded-2xl"
+          >
+            + Agregar más ítems
+          </button>
         </div>
 
         {/* Botón confirmar fijo */}
