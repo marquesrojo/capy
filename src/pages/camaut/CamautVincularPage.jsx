@@ -99,11 +99,13 @@ export default function CamautVincularPage() {
       refresh_token: session.refresh_token
     })
 
-    // Sincronizar sesión con supabaseStaff
-    await supabaseStaff.auth.setSession({
-      access_token: session.access_token,
-      refresh_token: session.refresh_token
-    })
+    // Leer venue personal del camarero
+    const { data: profileData } = await supabaseStaff
+      .from('profiles')
+      .select('venue_id')
+      .eq('id', session.user.id)
+      .single()
+    const venuePersonal = profileData?.venue_id || null
 
     // Verificar si ya está vinculado
     const { data: existing } = await supabaseStaff
@@ -136,6 +138,26 @@ export default function CamautVincularPage() {
         setError('Error al vincular: ' + insertError.message)
         setConfirming(false)
         return
+      }
+    }
+
+    // Copiar notas del local automáticamente al venue personal
+    if (venuePersonal) {
+      const { data: localNotas } = await supabaseStaff
+        .from('quick_notes')
+        .select('label')
+        .eq('venue_id', venue.id)
+        .eq('is_active', true)
+      if (localNotas?.length) {
+        const existing_labels = await supabaseStaff
+          .from('quick_notes')
+          .select('label')
+          .eq('venue_id', venuePersonal)
+        const existingLabels = new Set(existing_labels.data?.map(n => n.label) || [])
+        const toInsert = localNotas
+          .filter(n => !existingLabels.has(n.label))
+          .map((n, i) => ({ venue_id: venuePersonal, label: n.label, is_active: true, sort_order: i }))
+        if (toInsert.length) await supabaseStaff.from('quick_notes').insert(toInsert)
       }
     }
 
