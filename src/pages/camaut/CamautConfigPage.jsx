@@ -165,6 +165,8 @@ function PerfilTab({ profile }) {
 
 function CartaTab({ profile }) {
   const [subTab, setSubTab] = useState('carta')
+  const [menus, setMenus] = useState([])
+  const [activeMenuId, setActiveMenuId] = useState(null) // null = sin filtro (menú General)
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
   const [venueId, setVenueId] = useState(null)
@@ -172,7 +174,254 @@ function CartaTab({ profile }) {
   const [newProd, setNewProd] = useState({ name: '', price: '', category_id: '' })
   const [addingCat, setAddingCat] = useState(false)
   const [addingProd, setAddingProd] = useState(false)
+  const [newMenuName, setNewMenuName] = useState('')
+  const [addingMenu, setAddingMenu] = useState(false)
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => { loadAll() }, [profile])
+
+  async function loadAll() {
+    if (!profile) return
+    const { data: profileData } = await supabaseCamaut
+      .from('profiles').select('venue_id').eq('id', profile.id).single()
+    if (!profileData?.venue_id) return
+    setVenueId(profileData.venue_id)
+
+    const [menuRes, catRes, prodRes] = await Promise.all([
+      supabaseStaff.from('staff_menus').select('*').eq('venue_id', profileData.venue_id).order('created_at'),
+      supabaseCamaut.from('categories').select('*').eq('venue_id', profileData.venue_id).order('sort_order'),
+      supabaseCamaut.from('products').select('*').eq('venue_id', profileData.venue_id).order('name')
+    ])
+    setMenus(menuRes.data || [])
+    setCategories(catRes.data || [])
+    setProducts(prodRes.data || [])
+    setLoading(false)
+  }
+
+  async function addMenu() {
+    if (!newMenuName.trim() || !venueId || menus.length >= 5) return
+    setAddingMenu(true)
+    const { data: { session } } = await supabaseCamaut.auth.getSession()
+    if (session) await supabaseStaff.auth.setSession({ access_token: session.access_token, refresh_token: session.refresh_token })
+    const { data } = await supabaseStaff
+      .from('staff_menus')
+      .insert({ venue_id: venueId, name: newMenuName.trim() })
+      .select().single()
+    if (data) {
+      setMenus(prev => [...prev, data])
+      setActiveMenuId(data.id)
+    }
+    setNewMenuName('')
+    setAddingMenu(false)
+  }
+
+  async function deleteMenu(menuId) {
+    if (!confirm('¿Borrar este menú y todos sus productos?')) return
+    // Borrar productos de las categorías de este menú
+    const menuCats = categories.filter(c => c.menu_id === menuId).map(c => c.id)
+    if (menuCats.length) {
+      await supabaseStaff.from('products').delete().in('category_id', menuCats)
+      await supabaseStaff.from('categories').delete().in('id', menuCats)
+    }
+    await supabaseStaff.from('staff_menus').delete().eq('id', menuId)
+    setMenus(prev => prev.filter(m => m.id !== menuId))
+    setCategories(prev => prev.filter(c => c.menu_id !== menuId))
+    setProducts(prev => prev.filter(p => !menuCats.includes(p.category_id)))
+    if (activeMenuId === menuId) setActiveMenuId(null)
+  }
+
+  async function addCategory() {
+    if (!newCatName.trim() || !venueId) return
+    setAddingCat(true)
+    const { data } = await supabaseCamaut.from('categories')
+      .insert({ venue_id: venueId, name: newCatName.trim(), sort_order: categories.length, menu_id: activeMenuId })
+      .select().single()
+    if (data) setCategories(prev => [...prev, data])
+    setNewCatName('')
+    setAddingCat(false)
+  }
+
+  async function deleteCategory(id) {
+    await supabaseCamaut.from('products').delete().eq('category_id', id)
+    await supabaseCamaut.from('categories').delete().eq('id', id)
+    setCategories(prev => prev.filter(c => c.id !== id))
+    setProducts(prev => prev.filter(p => p.category_id !== id))
+  }
+
+  async function addProduct() {
+    if (!newProd.name.trim() || !newProd.price || !newProd.category_id) return
+    setAddingProd(true)
+    const { data } = await supabaseCamaut.from('products')
+      .insert({ venue_id: venueId, name: newProd.name.trim(), price: parseFloat(newProd.price), category_id: newProd.category_id, is_available: true })
+      .select().single()
+    if (data) setProducts(prev => [...prev, data])
+    setNewProd({ name: '', price: '', category_id: newProd.category_id })
+    setAddingProd(false)
+  }
+
+  async function toggleProduct(product) {
+    await supabaseCamaut.from('products').update({ is_available: !product.is_available }).eq('id', product.id)
+    setProducts(prev => prev.map(p => p.id === product.id ? { ...p, is_available: !product.is_available } : p))
+  }
+
+  async function deleteProduct(id) {
+    await supabaseCamaut.from('products').delete().eq('id', id)
+    setProducts(prev => prev.filter(p => p.id !== id))
+  }
+
+  // Filtrar por menú activo
+  const filteredCats = categories.filter(c => c.menu_id === activeMenuId)
+  const activeMenuName = activeMenuId
+    ? menus.find(m => m.id === activeMenuId)?.name || 'Menú'
+    : 'General'
+
+  if (loading) return <p className="text-[#8896A5] text-sm text-center py-10">Cargando carta...</p>
+
+  return (
+    <div className="space-y-4">
+      {/* Tabs internos */}
+      <div className="flex gap-2 bg-black/5 rounded-xl p-1">
+        <button onClick={() => setSubTab('carta')}
+          className={`flex-1 py-2 rounded-lg text-xs font-semibold ${subTab === 'carta' ? 'bg-white text-[#008080] shadow-sm' : 'text-[#8896A5]'}`}>
+          Carta
+        </button>
+        <button onClick={() => setSubTab('ubicaciones')}
+          className={`flex-1 py-2 rounded-lg text-xs font-semibold ${subTab === 'ubicaciones' ? 'bg-white text-[#008080] shadow-sm' : 'text-[#8896A5]'}`}>
+          Ubicaciones
+        </button>
+      </div>
+
+      {subTab === 'ubicaciones' && <UbicacionesTab profile={profile} />}
+
+      {subTab === 'carta' && <>
+
+        {/* Selector de menús */}
+        <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
+          <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">
+            Mis menús <span className="text-[#B0BEC5]">({menus.length}/5)</span>
+          </p>
+          <div className="flex flex-wrap gap-2 mb-3">
+            <button
+              onClick={() => setActiveMenuId(null)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold border ${
+                activeMenuId === null ? 'bg-[#008080] text-white border-[#008080]' : 'border-black/10 text-[#3A4A5A]'
+              }`}
+            >
+              General
+            </button>
+            {menus.map(m => (
+              <div key={m.id} className="flex items-center gap-1">
+                <button
+                  onClick={() => setActiveMenuId(m.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold border ${
+                    activeMenuId === m.id ? 'bg-[#008080] text-white border-[#008080]' : 'border-black/10 text-[#3A4A5A]'
+                  }`}
+                >
+                  {m.name}
+                </button>
+                <button onClick={() => deleteMenu(m.id)} className="text-red-400 text-[10px]">×</button>
+              </div>
+            ))}
+          </div>
+          {menus.length < 5 && (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newMenuName}
+                onChange={e => setNewMenuName(e.target.value)}
+                placeholder="Nombre del menú (ej: La Trattoria)"
+                className="flex-1 border border-black/10 rounded-xl px-3 py-2 text-xs text-[#1A2A3A]"
+                onKeyDown={e => e.key === 'Enter' && addMenu()}
+              />
+              <button onClick={addMenu} disabled={addingMenu || !newMenuName.trim()}
+                className="bg-[#008080] disabled:opacity-50 text-white text-xs font-semibold px-3 py-2 rounded-xl">
+                + Crear
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Importar con IA */}
+        <ImportarConIA venueId={venueId} menuId={activeMenuId} onImported={loadAll} />
+
+        {/* Agregar categoría */}
+        <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
+          <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">
+            Nueva categoría en <span className="text-[#008080]">{activeMenuName}</span>
+          </p>
+          <div className="flex gap-2">
+            <input type="text" value={newCatName} onChange={e => setNewCatName(e.target.value)}
+              placeholder="Ej: Entradas, Bebidas..."
+              className="flex-1 border border-black/10 rounded-xl px-3 py-2.5 text-sm bg-[#F8FAFC] text-[#1A2A3A]" />
+            <button onClick={addCategory} disabled={addingCat || !newCatName.trim()}
+              className="bg-[#4DD0E1] disabled:opacity-50 text-white font-semibold px-4 rounded-xl text-sm">
+              + Agregar
+            </button>
+          </div>
+        </div>
+
+        {/* Agregar producto */}
+        {filteredCats.length > 0 && (
+          <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
+            <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">Nuevo producto</p>
+            <div className="space-y-2">
+              <select value={newProd.category_id} onChange={e => setNewProd(p => ({ ...p, category_id: e.target.value }))}
+                className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm bg-[#F8FAFC] text-[#1A2A3A]">
+                <option value="">Seleccioná categoría</option>
+                {filteredCats.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <div className="flex gap-2">
+                <input type="text" value={newProd.name} onChange={e => setNewProd(p => ({ ...p, name: e.target.value }))}
+                  placeholder="Nombre del producto"
+                  className="flex-1 border border-black/10 rounded-xl px-3 py-2.5 text-sm bg-[#F8FAFC] text-[#1A2A3A]" />
+                <input type="number" value={newProd.price} onChange={e => setNewProd(p => ({ ...p, price: e.target.value }))}
+                  placeholder="Precio"
+                  className="w-24 border border-black/10 rounded-xl px-3 py-2.5 text-sm bg-[#F8FAFC] text-[#1A2A3A]" />
+              </div>
+              <button onClick={addProduct} disabled={addingProd || !newProd.name.trim() || !newProd.price || !newProd.category_id}
+                className="w-full bg-[#008080] disabled:opacity-50 text-white font-semibold py-2.5 rounded-xl text-sm">
+                Agregar producto
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Lista de categorías y productos */}
+        {filteredCats.map(cat => {
+          const catProducts = products.filter(p => p.category_id === cat.id)
+          return (
+            <div key={cat.id} className="bg-white rounded-2xl overflow-hidden border border-black/5 shadow-sm">
+              <div className="flex items-center justify-between px-4 py-3 bg-[#F8FAFC] border-b border-black/5">
+                <p className="font-semibold text-[#1A2A3A] text-sm">{cat.name}</p>
+                <button onClick={() => deleteCategory(cat.id)} className="text-red-400 text-xs underline">Borrar</button>
+              </div>
+              {catProducts.length > 0 && (
+                <div className="divide-y divide-black/5">
+                  {catProducts.map(product => (
+                    <ProductRow
+                      key={product.id}
+                      product={product}
+                      categories={filteredCats}
+                      onToggle={() => toggleProduct(product)}
+                      onDelete={() => deleteProduct(product.id)}
+                      onUpdate={(updated) => setProducts(prev => prev.map(p => p.id === product.id ? { ...p, ...updated } : p))}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })}
+
+        {filteredCats.length === 0 && (
+          <p className="text-[#8896A5] text-sm text-center py-8">
+            Agregá una categoría para el menú <span className="text-[#008080]">{activeMenuName}</span>
+          </p>
+        )}
+      </>}
+    </div>
+  )
+}
 
   useEffect(() => {
     loadCarta()
@@ -710,7 +959,7 @@ function ProductRow({ product, categories, onToggle, onDelete, onUpdate }) {
   )
 }
 
-function ImportarConIA({ venueId, onImported }) {
+function ImportarConIA({ venueId, menuId, onImported }) {
   const [step, setStep] = useState('idle') // idle | analyzing | review | saving
   const [preview, setPreview] = useState(null)
   const [detected, setDetected] = useState([]) // [{ name, price, category, selected }]
@@ -802,7 +1051,7 @@ function ImportarConIA({ venueId, onImported }) {
       } else {
         const { data: newCat } = await supabaseStaff
           .from('categories')
-          .insert({ venue_id: venueId, name: catName, sort_order: 0 })
+          .insert({ venue_id: venueId, name: catName, sort_order: 0, menu_id: menuId || null })
           .select('id')
           .single()
         catMap[catName] = newCat?.id
