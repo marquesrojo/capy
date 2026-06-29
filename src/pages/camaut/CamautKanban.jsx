@@ -21,11 +21,50 @@ const PREV_STATUS = {
   entregado: 'en_preparacion',
 }
 
+function PrepTimer({ order }) {
+  const [progress, setProgress] = useState(null)
+
+  useEffect(() => {
+    if (!order.prep_started_at || !order.prep_time_minutes) { setProgress(null); return }
+    function calc() {
+      const start = new Date(order.prep_started_at).getTime()
+      const total = order.prep_time_minutes * 60 * 1000
+      const elapsed = Date.now() - start
+      const remaining = Math.max(0, total - elapsed)
+      const percent = Math.min(100, (elapsed / total) * 100)
+      const mins = Math.floor(remaining / 60000)
+      const secs = Math.floor((remaining % 60000) / 1000)
+      setProgress({ percent, mins, secs, done: remaining === 0 })
+    }
+    calc()
+    const t = setInterval(calc, 1000)
+    return () => clearInterval(t)
+  }, [order.prep_started_at, order.prep_time_minutes])
+
+  if (!progress) return null
+
+  return (
+    <div className="mt-2">
+      <div className="w-full bg-[#F0F4F8] rounded-full h-1.5 mb-1">
+        <div
+          className={`h-1.5 rounded-full transition-all ${progress.done ? 'bg-emerald-500' : 'bg-ember-500'}`}
+          style={{ width: `${progress.percent}%` }}
+        />
+      </div>
+      <p className={`text-[10px] font-semibold text-center ${progress.done ? 'text-emerald-600' : 'text-[#8896A5]'}`}>
+        {progress.done ? '✓ Listo' : `${progress.mins}:${String(progress.secs).padStart(2, '0')} restantes`}
+      </p>
+    </div>
+  )
+}
+
 export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
   const [ownOrders, setOwnOrders] = useState([])
   const [linkedOrders, setLinkedOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('propio')
+  const [timerModal, setTimerModal] = useState(null) // { orderId }
+  const [timerMins, setTimerMins] = useState('15')
 
   useEffect(() => {
     if (venueId) loadOrders()
@@ -59,6 +98,20 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
     setOwnOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o))
   }
 
+  async function startTimer(orderId, mins) {
+    const minutes = parseInt(mins)
+    if (!minutes || minutes < 1) return
+    await supabaseStaff.from('orders').update({
+      prep_started_at: new Date().toISOString(),
+      prep_time_minutes: minutes
+    }).eq('id', orderId)
+    setOwnOrders(prev => prev.map(o => o.id === orderId
+      ? { ...o, prep_started_at: new Date().toISOString(), prep_time_minutes: minutes }
+      : o
+    ))
+    setTimerModal(null)
+  }
+
   if (loading) return (
     <div className="flex items-center justify-center py-20">
       <p className="text-[#8896A5] text-sm">Cargando...</p>
@@ -67,6 +120,49 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
 
   return (
     <div className="bg-[#F0F4F8] min-h-screen">
+      {/* Modal timer */}
+      {timerModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
+          <div className="bg-white w-full rounded-t-3xl p-6 space-y-4">
+            <p className="font-bold text-[#1A2A3A] text-base text-center">⏱ Tiempo de preparación</p>
+            <div className="flex gap-2 justify-center">
+              {['5', '10', '15', '20', '30'].map(m => (
+                <button
+                  key={m}
+                  onClick={() => setTimerMins(m)}
+                  className={`w-12 h-12 rounded-xl text-sm font-bold border ${
+                    timerMins === m ? 'bg-[#008080] text-white border-[#008080]' : 'border-black/10 text-[#3A4A5A]'
+                  }`}
+                >
+                  {m}m
+                </button>
+              ))}
+            </div>
+            <input
+              type="number"
+              value={timerMins}
+              onChange={e => setTimerMins(e.target.value)}
+              className="w-full border border-black/10 rounded-xl px-4 py-3 text-center text-sm text-[#1A2A3A]"
+              placeholder="Minutos"
+              min="1"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => setTimerModal(null)}
+                className="flex-1 border border-black/10 text-[#8896A5] py-3 rounded-xl text-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => startTimer(timerModal, timerMins)}
+                className="flex-1 bg-[#008080] text-white font-bold py-3 rounded-xl text-sm"
+              >
+                Iniciar timer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Tabs propio / restaurante */}
       {linkedVenues.length > 0 && (
         <div className="px-4 pt-4 pb-2">
@@ -147,6 +243,14 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
                                 ↺
                               </button>
                             )}
+                            {col.id === 'en_preparacion' && (
+                              <button
+                                onClick={() => { setTimerModal(order.id); setTimerMins('15') }}
+                                className="border border-[#008080]/30 text-[#008080] text-[10px] px-2 py-1 rounded-lg"
+                              >
+                                ⏱
+                              </button>
+                            )}
                             {NEXT_STATUS[order.status] && (
                               <button
                                 onClick={() => updateStatus(order.id, NEXT_STATUS[order.status])}
@@ -158,6 +262,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
                             )}
                           </div>
                         )}
+                        <PrepTimer order={order} />
                       </div>
                     ))}
                     {colOrders.length === 0 && (
