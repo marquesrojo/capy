@@ -164,6 +164,7 @@ function PerfilTab({ profile }) {
 }
 
 function CartaTab({ profile }) {
+  const [subTab, setSubTab] = useState('carta')
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
   const [venueId, setVenueId] = useState(null)
@@ -247,6 +248,29 @@ function CartaTab({ profile }) {
 
   return (
     <div className="space-y-4">
+      {/* Tabs internos */}
+      <div className="flex gap-2 bg-black/5 rounded-xl p-1">
+        <button
+          onClick={() => setSubTab('carta')}
+          className={`flex-1 py-2 rounded-lg text-xs font-semibold ${
+            subTab === 'carta' ? 'bg-white text-[#008080] shadow-sm' : 'text-[#8896A5]'
+          }`}
+        >
+          Carta
+        </button>
+        <button
+          onClick={() => setSubTab('ubicaciones')}
+          className={`flex-1 py-2 rounded-lg text-xs font-semibold ${
+            subTab === 'ubicaciones' ? 'bg-white text-[#008080] shadow-sm' : 'text-[#8896A5]'
+          }`}
+        >
+          Ubicaciones
+        </button>
+      </div>
+
+      {subTab === 'ubicaciones' && <UbicacionesTab profile={profile} />}
+
+      {subTab === 'carta' && <>
       {/* Agregar categoría */}
       <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
         <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">Nueva categoría</p>
@@ -339,6 +363,7 @@ function CartaTab({ profile }) {
       {categories.length === 0 && (
         <p className="text-[#8896A5] text-sm text-center py-8">Agregá una categoría para empezar</p>
       )}
+      </>}
     </div>
   )
 }
@@ -504,12 +529,32 @@ function NotasTab({ profile }) {
   }, [profile])
 
   async function loadNotas(vId) {
-    const [ownRes, pucRes] = await Promise.all([
-      supabaseStaff.from('quick_notes').select('id, label, is_active, sort_order').eq('venue_id', vId).order('sort_order'),
-      supabaseStaff.from('quick_notes').select('id, label').eq('venue_id', ACTIVE_VENUE_ID).eq('is_active', true).order('sort_order')
-    ])
-    setNotas(ownRes.data || [])
-    setPucNotas(pucRes.data || [])
+    // Cargar notas propias
+    const { data: ownData } = await supabaseStaff
+      .from('quick_notes')
+      .select('id, label, is_active, sort_order')
+      .eq('venue_id', vId)
+      .order('sort_order')
+    setNotas(ownData || [])
+
+    // Cargar notas de locales vinculados
+    const { data: { session } } = await supabaseCamaut.auth.getSession()
+    if (session) {
+      const { data: linked } = await supabaseStaff
+        .from('venue_staff')
+        .select('venue:venues(id, name)')
+        .eq('staff_profile_id', session.user.id)
+        .eq('status', 'active')
+      const linkedVenues = linked?.map(l => l.venue).filter(Boolean) || []
+      if (linkedVenues.length > 0) {
+        const { data: linkedNotes } = await supabaseStaff
+          .from('quick_notes')
+          .select('id, label')
+          .in('venue_id', linkedVenues.map(v => v.id))
+          .eq('is_active', true)
+        setPucNotas(linkedNotes || [])
+      }
+    }
     setLoading(false)
   }
 
@@ -558,14 +603,14 @@ function NotasTab({ profile }) {
         Chips de aclaración que aparecen al confirmar un pedido. Ej: Sin sal, Bien cocido, Sin TACC.
       </p>
 
-      {/* Copiar de Pucará */}
+      {/* Copiar de local vinculado */}
       {pucNotas.length > 0 && (
         <button
           onClick={copyFromPucara}
           disabled={copying}
           className="w-full border border-dashed border-[#008080]/40 text-[#008080] text-sm font-semibold py-2.5 rounded-xl"
         >
-          {copying ? 'Copiando...' : '⬇ Copiar notas de Pucará como base'}
+          {copying ? 'Copiando...' : '⬇ Copiar notas del local vinculado'}
         </button>
       )}
 
