@@ -11,21 +11,21 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
   const [linkedVenue, setLinkedVenue] = useState(null)
   const [searching, setSearching] = useState(false)
   const [searchError, setSearchError] = useState('')
-  const [aliasBancario, setAliasBancario] = useState('')
+  const [showVincular, setShowVincular] = useState(false)
 
   async function saveNombre() {
     if (!fullName.trim()) return
     setSaving(true)
-    const { data: { user } } = await supabaseCamaut.auth.getUser()
-    if (user && venueId) {
-      await supabaseStaff
-        .from('staff_names')
-        .update({ full_name: fullName.trim() })
-        .eq('venue_id', venueId)
-      await supabaseStaff
-        .from('profiles')
-        .update({ full_name: fullName.trim() })
-        .eq('id', user.id)
+    const { data: { session } } = await supabaseCamaut.auth.getSession()
+    if (session) {
+      await supabaseStaff.auth.setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token
+      })
+      if (venueId) {
+        await supabaseStaff.from('staff_names').update({ full_name: fullName.trim() }).eq('venue_id', venueId)
+        await supabaseStaff.from('profiles').update({ full_name: fullName.trim() }).eq('id', session.user.id)
+      }
     }
     setSaving(false)
     setStep(2)
@@ -65,48 +65,17 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
       })
     }
     setSaving(false)
-    setStep(3)
-  }
-
-  async function saveAlias() {
-    setSaving(true)
-    if (venueId && aliasBancario.trim()) {
-      await supabaseStaff
-        .from('staff_names')
-        .update({ alias_bancario: aliasBancario.trim() })
-        .eq('venue_id', venueId)
-    }
-    setSaving(false)
-    setStep(4)
+    await finishOnboarding()
   }
 
   async function finishOnboarding() {
     setSaving(true)
     const { data: { session } } = await supabaseCamaut.auth.getSession()
     if (session) {
-      // Crear venue si no tiene
-      if (!venueId) {
-        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/register-camaut`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-          },
-          body: JSON.stringify({
-            userId: session.user.id,
-            fullName: fullName.trim() || session.user.user_metadata?.full_name || 'Camarero',
-            aliasBancario: aliasBancario.trim() || null
-          })
-        })
-      } else if (aliasBancario.trim()) {
-        // Solo actualizar alias
-        await supabaseStaff
-          .from('staff_names')
-          .update({ alias_bancario: aliasBancario.trim() })
-          .eq('venue_id', venueId)
-      }
-
-      // Marcar onboarding como completado
+      await supabaseStaff.auth.setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token
+      })
       await supabaseStaff
         .from('profiles')
         .update({ onboarding_completed: true })
@@ -116,15 +85,13 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
     onComplete()
   }
 
-  const TOTAL_STEPS = 4
-
   return (
     <div className="min-h-screen bg-carbon-950 flex flex-col px-6 py-10">
 
       {/* Progress */}
       <div className="flex gap-1.5 mb-8">
-        {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-          <div key={i} className={`flex-1 h-1 rounded-full ${i < step ? 'bg-ember-500' : 'bg-carbon-700'}`} />
+        {[1, 2].map(i => (
+          <div key={i} className={`flex-1 h-1 rounded-full ${i <= step ? 'bg-ember-500' : 'bg-carbon-700'}`} />
         ))}
       </div>
 
@@ -132,7 +99,7 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
       {step === 1 && (
         <div className="flex-1 flex flex-col">
           <div className="mb-8">
-            <p className="text-smoke-500 text-sm mb-1">Paso 1 de {TOTAL_STEPS}</p>
+            <p className="text-smoke-500 text-sm mb-1">Paso 1 de 2</p>
             <h1 className="font-bold text-smoke-200 text-2xl mb-2">¿Cómo te llamás?</h1>
             <p className="text-smoke-500 text-sm">Tu nombre aparece en el ranking, el certificado y en los pedidos.</p>
           </div>
@@ -154,12 +121,59 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
         </div>
       )}
 
-      {/* PASO 2 — Vincular restaurante */}
-      {step === 2 && (
+      {/* PASO 2 — Acción */}
+      {step === 2 && !showVincular && (
         <div className="flex-1 flex flex-col">
           <div className="mb-8">
-            <p className="text-smoke-500 text-sm mb-1">Paso 2 de {TOTAL_STEPS}</p>
-            <h1 className="font-bold text-smoke-200 text-2xl mb-2">¿Trabajás en un restaurante que usa Capy?</h1>
+            <p className="text-smoke-500 text-sm mb-1">Paso 2 de 2</p>
+            <h1 className="font-bold text-smoke-200 text-2xl mb-2">
+              ¡Listo, {fullName.split(' ')[0]}!
+            </h1>
+            <p className="text-smoke-500 text-sm leading-relaxed">
+              Podés tomar pedidos ahora mismo. Cuando confirmes un pedido, los productos y ubicaciones que ingreses a mano quedan guardados en <span className="text-ember-500">Mi Carta</span> para la próxima vez.
+            </p>
+          </div>
+
+          <div className="space-y-3 mt-auto">
+            <button
+              onClick={finishOnboarding}
+              disabled={saving}
+              className="w-full bg-ember-500 disabled:opacity-50 text-white font-bold py-4 rounded-2xl text-base flex items-center justify-center gap-3"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+              Tomar mi primer pedido
+            </button>
+
+            <button
+              onClick={() => setShowVincular(true)}
+              className="w-full bg-carbon-900 border border-carbon-700 text-smoke-300 font-bold py-4 rounded-2xl text-base flex items-center justify-center gap-3"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              Vincularme a un restaurante
+            </button>
+
+            <p className="text-smoke-600 text-xs text-center">
+              Podés vincular un restaurante y completar tu perfil después desde <span className="text-ember-500">Mi Capy</span>.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* PASO 2b — Vincular restaurante */}
+      {step === 2 && showVincular && (
+        <div className="flex-1 flex flex-col">
+          <button onClick={() => { setShowVincular(false); setLinkedVenue(null); setInviteCode('') }}
+            className="text-smoke-500 text-sm mb-6">← Volver</button>
+
+          <div className="mb-6">
+            <h1 className="font-bold text-smoke-200 text-2xl mb-2">Vincularme a un restaurante</h1>
             <p className="text-smoke-500 text-sm">Pedile al encargado el código de invitación.</p>
           </div>
 
@@ -185,89 +199,28 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
           ) : (
             <div className="bg-carbon-900 border border-ember-500/30 rounded-2xl p-5 mb-4 text-center">
               <p className="text-smoke-500 text-xs mb-1">Restaurante encontrado</p>
-              <p className="text-smoke-200 font-bold text-lg">{linkedVenue.name}</p>
+              <p className="text-smoke-200 font-bold text-lg mb-4">{linkedVenue.name}</p>
               <button
                 onClick={vincular}
                 disabled={saving}
-                className="w-full bg-ember-500 disabled:opacity-50 text-white font-bold py-3.5 rounded-2xl text-sm mt-4"
+                className="w-full bg-ember-500 disabled:opacity-50 text-white font-bold py-3.5 rounded-2xl text-sm"
               >
                 {saving ? 'Vinculando...' : `Vincularme a ${linkedVenue.name} →`}
               </button>
-              <button onClick={() => { setLinkedVenue(null); setInviteCode('') }} className="text-smoke-500 text-xs mt-2 underline">
+              <button onClick={() => { setLinkedVenue(null); setInviteCode('') }}
+                className="text-smoke-500 text-xs mt-2 underline block">
                 Usar otro código
               </button>
             </div>
           )}
 
           <button
-            onClick={() => setStep(3)}
+            onClick={finishOnboarding}
+            disabled={saving}
             className="text-smoke-500 text-sm text-center underline mt-auto"
           >
-            No tengo código, saltear
+            Saltear, empezar sin restaurante
           </button>
-        </div>
-      )}
-
-      {/* PASO 3 — Alias bancario */}
-      {step === 3 && (
-        <div className="flex-1 flex flex-col">
-          <div className="mb-8">
-            <p className="text-smoke-500 text-sm mb-1">Paso 3 de {TOTAL_STEPS}</p>
-            <h1 className="font-bold text-smoke-200 text-2xl mb-2">¿Tu alias para propinas?</h1>
-            <p className="text-smoke-500 text-sm">Aparece en el QR del pedido para que el cliente te pueda transferir la propina.</p>
-          </div>
-          <input
-            type="text"
-            value={aliasBancario}
-            onChange={e => setAliasBancario(e.target.value)}
-            placeholder="Ej: nombre.apellido.mp"
-            className="w-full bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-4 text-smoke-200 text-base mb-4"
-          />
-          <button
-            onClick={saveAlias}
-            disabled={saving}
-            className="w-full bg-ember-500 disabled:opacity-50 text-white font-bold py-4 rounded-2xl text-base"
-          >
-            {saving ? 'Guardando...' : 'Continuar →'}
-          </button>
-          <button onClick={() => setStep(4)} className="text-smoke-500 text-sm text-center underline mt-3">
-            Saltear por ahora
-          </button>
-        </div>
-      )}
-
-      {/* PASO 4 — ¡Listo! */}
-      {step === 4 && (
-        <div className="flex-1 flex flex-col items-center justify-center text-center">
-          <div className="w-20 h-20 rounded-full bg-ember-500/10 border border-ember-500/30 flex items-center justify-center mx-auto mb-6">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#E8772A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-              <polyline points="22 4 12 14.01 9 11.01"/>
-            </svg>
-          </div>
-          <h1 className="font-bold text-smoke-200 text-2xl mb-2">¡Todo listo, {fullName.split(' ')[0]}!</h1>
-          <p className="text-smoke-500 text-sm mb-2 leading-relaxed">
-            Ya podés empezar a tomar pedidos. Cuando confirmes un pedido, los productos y ubicaciones que ingreses a mano quedan guardados en tu carta.
-          </p>
-          <p className="text-smoke-600 text-xs mb-8">
-            Podés completar tu perfil, carta y más desde <span className="text-ember-500">Mi Capy</span>.
-          </p>
-
-          <div className="w-full space-y-3">
-            <button
-              onClick={finishOnboarding}
-              disabled={saving}
-              className="w-full bg-ember-500 disabled:opacity-50 text-white font-bold py-4 rounded-2xl text-base"
-            >
-              {saving ? 'Preparando tu cuenta...' : 'Empezar a tomar pedidos'}
-            </button>
-            <button
-              onClick={() => { onComplete(); setTimeout(() => {}, 100) }}
-              className="w-full bg-carbon-900 border border-carbon-700 text-smoke-300 font-semibold py-3.5 rounded-2xl text-sm"
-            >
-              Ir a Mi Capy
-            </button>
-          </div>
         </div>
       )}
     </div>
