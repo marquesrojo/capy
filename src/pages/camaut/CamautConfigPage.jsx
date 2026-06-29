@@ -613,14 +613,6 @@ function CartaTab({ profile }) {
         )
       })}
 
-      {categories.length === 0 && (
-        <p className="text-[#8896A5] text-sm text-center py-8">Agregá una categoría para empezar</p>
-      )}
-      </>}
-    </div>
-  )
-}
-
 function WhatsappTab({ profile }) {
   const [venueId, setVenueId] = useState(null)
   const [whatsapp, setWhatsapp] = useState('')
