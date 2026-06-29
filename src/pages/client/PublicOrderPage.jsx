@@ -41,7 +41,7 @@ export default function PublicOrderPage() {
   async function loadOrder() {
     const { data: orderData } = await supabasePublic
       .from('orders')
-      .select('id, status, location_label, total, daily_number, created_at, prep_time_minutes, prep_started_at, waiter_called_at, assigned_staff_id, payment_status')
+      .select('id, status, location_label, total, daily_number, created_at, prep_time_minutes, prep_started_at, waiter_called_at, assigned_staff_id, payment_status, notes')
       .eq('id', id)
       .single()
 
@@ -49,7 +49,7 @@ export default function PublicOrderPage() {
 
     const { data: itemsData } = await supabasePublic
       .from('order_items')
-      .select('product_name, quantity, unit_price')
+      .select('product_name, quantity, unit_price, item_notes')
       .eq('order_id', id)
 
     setOrder(orderData)
@@ -185,15 +185,25 @@ export default function PublicOrderPage() {
         </div>
         <div className="divide-y divide-carbon-700">
           {items.map((item, i) => (
-            <div key={i} className="flex items-center justify-between px-4 py-3">
-              <div className="flex items-center gap-2">
-                <span className="text-ember-500 font-bold text-sm">{item.quantity}×</span>
-                <span className="text-smoke-300 text-sm">{item.product_name}</span>
+            <div key={i} className="px-4 py-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-ember-500 font-bold text-sm">{item.quantity}×</span>
+                  <span className="text-smoke-300 text-sm">{item.product_name}</span>
+                </div>
+                <span className="text-smoke-400 text-sm font-mono">{formatPrice(item.unit_price * item.quantity)}</span>
               </div>
-              <span className="text-smoke-400 text-sm font-mono">{formatPrice(item.unit_price * item.quantity)}</span>
+              {item.item_notes && (
+                <p className="text-smoke-500 text-xs mt-0.5 ml-6 italic">{item.item_notes}</p>
+              )}
             </div>
           ))}
         </div>
+        {order.notes && (
+          <div className="px-4 py-3 border-t border-carbon-700">
+            <p className="text-smoke-500 text-xs italic">📝 {order.notes}</p>
+          </div>
+        )}
         <div className="px-4 py-3 border-t border-carbon-700 flex justify-between">
           <span className="text-smoke-400 text-sm">Total</span>
           <span className="font-mono font-bold text-smoke-200">{formatPrice(order.total)}</span>
