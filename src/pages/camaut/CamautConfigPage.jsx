@@ -728,40 +728,49 @@ function ImportarConIA({ venueId, onImported }) {
       const base64 = ev.target.result.split(',')[1]
       setPreview(ev.target.result)
       try {
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{
-                parts: [
-                  {
-                    inline_data: { mime_type: file.type, data: base64 }
-                  },
-                  {
-                    text: `Esta es una foto de un menú de restaurante o bar. Tu tarea es extraer TODOS los items del menú que puedas ver. Para cada item incluí: nombre del producto, precio numérico (sin símbolo de moneda, solo el número), y categoría (Entradas, Bebidas, Platos principales, Postres, etc). Si no podés leer el precio exacto, ponés 0. Respondé ÚNICAMENTE con un JSON array válido, sin texto antes ni después, sin backticks, sin markdown. Ejemplo: [{"name":"Milanesa napolitana","price":2500,"category":"Platos principales"},{"name":"Coca Cola","price":800,"category":"Bebidas"}]`
-                  }
-                ]
-              }],
-              generationConfig: {
-                temperature: 0.1,
-                topK: 1,
-                topP: 0.1
-              }
-            })
-          }
-        )
-        const data = await res.json()
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]'
-        // Extraer JSON del texto aunque venga con texto adicional
-        const jsonMatch = text.match(/\[[\s\S]*\]/)
+        const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
+        const BASE_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${API_KEY}`
+
+        // PASO 1: Transcribir el texto de la imagen
+        const transcriptRes = await fetch(BASE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { inline_data: { mime_type: file.type, data: base64 } },
+                { text: 'Transcribí exactamente todo el texto que ves en esta imagen. Incluí nombres, precios y categorías tal como aparecen. No agregues nada extra.' }
+              ]
+            }]
+          })
+        })
+        const transcriptData = await transcriptRes.json()
+        const transcriptText = transcriptData.candidates?.[0]?.content?.parts?.[0]?.text || ''
+
+        if (!transcriptText) throw new Error('No se pudo leer el texto de la imagen')
+
+        // PASO 2: Convertir el texto a JSON de productos
+        const parseRes = await fetch(BASE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: `Este es el texto de un menú de restaurante:\n\n${transcriptText}\n\nConvertí esto a un JSON array de productos. Para cada producto incluí: name (nombre), price (precio como número sin símbolo), category (categoría en español). Respondé ÚNICAMENTE con el JSON array, sin texto adicional, sin backticks. Ejemplo: [{"name":"Milanesa","price":2500,"category":"Platos principales"}]`
+              }]
+            }]
+          })
+        })
+        const parseData = await parseRes.json()
+        const parseText = parseData.candidates?.[0]?.content?.parts?.[0]?.text || '[]'
+        const jsonMatch = parseText.match(/\[[\s\S]*\]/)
         const clean = jsonMatch ? jsonMatch[0] : '[]'
         const items = JSON.parse(clean)
         setDetected(items.map(i => ({ ...i, selected: true })))
         setStep('review')
       } catch (err) {
-        setError('No se pudo analizar la imagen. Intentá con otra foto más clara.')
+        console.error(err)
+        setError('No se pudo analizar la imagen: ' + err.message)
         setStep('idle')
       }
     }
