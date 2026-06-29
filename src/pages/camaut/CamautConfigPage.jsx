@@ -514,12 +514,10 @@ function UbicacionesTab({ profile }) {
 
 function NotasTab({ profile }) {
   const [notas, setNotas] = useState([])
-  const [pucNotas, setPucNotas] = useState([])
   const [newLabel, setNewLabel] = useState('')
   const [venueId, setVenueId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [copying, setCopying] = useState(false)
 
   useEffect(() => {
     if (profile?.venue_id) {
@@ -529,47 +527,13 @@ function NotasTab({ profile }) {
   }, [profile])
 
   async function loadNotas(vId) {
-    // Cargar notas propias
     const { data: ownData } = await supabaseStaff
       .from('quick_notes')
       .select('id, label, is_active, sort_order')
       .eq('venue_id', vId)
       .order('sort_order')
     setNotas(ownData || [])
-
-    // Cargar notas de locales vinculados
-    const { data: { session } } = await supabaseCamaut.auth.getSession()
-    if (session) {
-      await supabaseStaff.auth.setSession({ access_token: session.access_token, refresh_token: session.refresh_token })
-      const { data: linked } = await supabaseStaff
-        .from('venue_staff')
-        .select('venue:venues(id, name)')
-        .eq('staff_profile_id', session.user.id)
-        .eq('status', 'active')
-      const linkedVenues = linked?.map(l => l.venue).filter(Boolean) || []
-      if (linkedVenues.length > 0) {
-        const { data: linkedNotes } = await supabaseStaff
-          .from('quick_notes')
-          .select('id, label')
-          .in('venue_id', linkedVenues.map(v => v.id))
-          .eq('is_active', true)
-        setPucNotas(linkedNotes || [])
-      }
-    }
     setLoading(false)
-  }
-
-  async function copyFromPucara() {
-    if (!venueId || !pucNotas.length) return
-    setCopying(true)
-    const toInsert = pucNotas
-      .filter(pn => !notas.some(n => n.label === pn.label))
-      .map((pn, i) => ({ venue_id: venueId, label: pn.label, is_active: true, sort_order: notas.length + i }))
-    if (toInsert.length) {
-      const { data } = await supabaseStaff.from('quick_notes').insert(toInsert).select()
-      if (data) setNotas(prev => [...prev, ...data])
-    }
-    setCopying(false)
   }
 
   async function addNota(e) {
@@ -606,17 +570,6 @@ function NotasTab({ profile }) {
       <p className="text-[#8896A5] text-xs">
         Chips de aclaración que aparecen al confirmar un pedido. Ej: Sin sal, Bien cocido, Sin TACC.
       </p>
-
-      {/* Copiar de local vinculado */}
-      {pucNotas.length > 0 && (
-        <button
-          onClick={copyFromPucara}
-          disabled={copying}
-          className="w-full border border-dashed border-[#008080]/40 text-[#008080] text-sm font-semibold py-2.5 rounded-xl"
-        >
-          {copying ? 'Copiando...' : '⬇ Copiar notas del local vinculado'}
-        </button>
-      )}
 
       {/* Lista */}
       <div className="bg-white rounded-2xl overflow-hidden border border-black/5">
