@@ -79,6 +79,29 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
     setSaving(false)
     setStep(4)
   }
+    setSaving(true)
+    // Si no tiene venue, crear uno via register-camaut
+    if (!venueId) {
+      const { data: { session } } = await supabaseCamaut.auth.getSession()
+      if (session) {
+        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/register-camaut`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+          },
+          body: JSON.stringify({
+            userId: session.user.id,
+            email: session.user.email,
+            fullName: fullName.trim() || session.user.user_metadata?.full_name || 'Camarero',
+            aliasBancario: aliasBancario.trim() || null
+          })
+        })
+      }
+    }
+    setSaving(false)
+    onComplete()
+  }
 
   const TOTAL_STEPS = 4
 
@@ -219,10 +242,11 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
 
           <div className="w-full space-y-3">
             <button
-              onClick={onComplete}
-              className="w-full bg-ember-500 text-white font-bold py-4 rounded-2xl text-base"
+              onClick={finishOnboarding}
+              disabled={saving}
+              className="w-full bg-ember-500 disabled:opacity-50 text-white font-bold py-4 rounded-2xl text-base"
             >
-              Empezar a tomar pedidos
+              {saving ? 'Preparando tu cuenta...' : 'Empezar a tomar pedidos'}
             </button>
             <button
               onClick={() => { onComplete(); setTimeout(() => {}, 100) }}
