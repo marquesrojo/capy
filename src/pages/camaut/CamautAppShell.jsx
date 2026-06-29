@@ -33,7 +33,7 @@ const TABS = [
 
 const MICAPY_TABS = ['perfil', 'perfil_pro', 'carta', 'notas', 'vincular', 'carrera', 'ranking']
 
-export default function CamautAppShell({ venueId, staffName: initialName, staffXP: initialXP, linkedVenues = [], staffId }) {
+export default function CamautAppShell({ venueId, staffName: initialName, staffXP: initialXP, linkedVenues = [], staffId, onboardingCompleted = true, onOnboardingComplete }) {
   const navigate = useNavigate()
   const [tab, setTab] = useState('tomar')
   const [micapyTab, setMicapyTab] = useState('perfil')
@@ -62,13 +62,16 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
     navigate('/camaut/login')
   }
 
-  // Onboarding — camarero nuevo sin venue ni vinculación
-  if (!venueId && linkedVenues.length === 0) {
+  // Onboarding — camarero nuevo
+  if (!onboardingCompleted) {
     return (
       <CamautOnboardingPage
         staffName={staffName}
         venueId={venueId}
-        onComplete={() => window.location.reload()}
+        onComplete={() => {
+          if (onOnboardingComplete) onOnboardingComplete()
+          window.location.reload()
+        }}
       />
     )
   }
