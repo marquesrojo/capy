@@ -125,7 +125,12 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
   if (lastOrder) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
-        <div className="text-5xl mb-4">✅</div>
+        <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </div>
         <p className="font-bold text-[#1A2A3A] text-xl mb-1">¡Pedido enviado!</p>
         <p className="text-[#8896A5] text-sm mb-1">
           #{lastOrder.order?.daily_number} · 📍 {lastOrder.location}
