@@ -1,233 +1,631 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { supabaseCamaut, supabaseStaff } from '../../lib/supabase'
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { supabaseCamaut, supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
+import { useAuth } from '../../hooks/useAuth'
+import { formatPrice } from '../../lib/utils'
 
-export default function CamautOnboardingPage({ staffName: initialName, venueId, onComplete }) {
-  const navigate = useNavigate()
-  const [step, setStep] = useState(1)
-  const [fullName, setFullName] = useState(initialName || '')
-  const [saving, setSaving] = useState(false)
-  const [inviteCode, setInviteCode] = useState('')
-  const [linkedVenue, setLinkedVenue] = useState(null)
-  const [searching, setSearching] = useState(false)
-  const [searchError, setSearchError] = useState('')
-  const [showVincular, setShowVincular] = useState(false)
+export default function CamautConfigPage({ initialTab, embedded }) {
+  const { profile, signOut } = useAuth()
+  const [tab, setTab] = useState(initialTab || 'perfil')
 
-  async function saveNombre() {
-    if (!fullName.trim()) return
-    setSaving(true)
-    const { data: { session } } = await supabaseCamaut.auth.getSession()
-    if (session) {
-      await supabaseStaff.auth.setSession({
-        access_token: session.access_token,
-        refresh_token: session.refresh_token
-      })
-      if (venueId) {
-        await supabaseStaff.from('staff_names').update({ full_name: fullName.trim() }).eq('venue_id', venueId)
-        await supabaseStaff.from('profiles').update({ full_name: fullName.trim() }).eq('id', session.user.id)
-      }
-    }
-    setSaving(false)
-    setStep(2)
-  }
-
-  async function searchVenue() {
-    const code = inviteCode.trim().toUpperCase()
-    if (!code) return
-    setSearching(true)
-    setSearchError('')
-    const { data } = await supabaseStaff
-      .from('venues')
-      .select('id, name')
-      .eq('invite_code', code)
-      .single()
-    if (!data) {
-      setSearchError('Código incorrecto')
-    } else {
-      setLinkedVenue(data)
-    }
-    setSearching(false)
-  }
-
-  async function vincular() {
-    if (!linkedVenue) return
-    setSaving(true)
-    const { data: { session } } = await supabaseCamaut.auth.getSession()
-    if (session) {
-      await supabaseStaff.auth.setSession({
-        access_token: session.access_token,
-        refresh_token: session.refresh_token
-      })
-      await supabaseStaff.from('venue_staff').insert({
-        venue_id: linkedVenue.id,
-        staff_profile_id: session.user.id,
-        status: 'active'
-      })
-    }
-    setSaving(false)
-    await finishOnboarding()
-  }
-
-  async function finishOnboarding() {
-    setSaving(true)
-    const { data: { session } } = await supabaseCamaut.auth.getSession()
-    if (session) {
-      await supabaseStaff.auth.setSession({
-        access_token: session.access_token,
-        refresh_token: session.refresh_token
-      })
-      await supabaseStaff
-        .from('profiles')
-        .update({ onboarding_completed: true })
-        .eq('id', session.user.id)
-    }
-    setSaving(false)
-    onComplete()
+  if (embedded) {
+    return (
+      <div>
+        {tab === 'perfil' && <PerfilTab profile={profile} />}
+        {tab === 'carta' && <CartaTab profile={profile} />}
+        {tab === 'ubicaciones' && <UbicacionesTab profile={profile} />}
+        {tab === 'whatsapp' && <WhatsappTab profile={profile} />}
+        {tab === 'notas' && <NotasTab profile={profile} />}
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-carbon-950 flex flex-col px-6 py-10">
-
-      {/* Progress */}
-      <div className="flex gap-1.5 mb-8">
-        {[1, 2].map(i => (
-          <div key={i} className={`flex-1 h-1 rounded-full ${i <= step ? 'bg-ember-500' : 'bg-carbon-700'}`} />
-        ))}
+    <div className="bg-[#F0F4F8] min-h-screen">
+      <div className="bg-white border-b border-black/8 px-5 pt-4 pb-0">
+        <div className="flex items-center justify-between mb-3">
+          <h1 className="font-bold text-[#1A2A3A] text-lg">Configuración</h1>
+          <button onClick={signOut} className="text-[#8896A5] text-xs underline">Salir</button>
+        </div>
+        <div className="flex gap-4 border-b border-transparent overflow-x-auto">
+          {['perfil', 'carta', 'ubicaciones', 'whatsapp', 'notas'].map(t => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`pb-2.5 text-xs font-semibold capitalize border-b-2 whitespace-nowrap ${
+                tab === t ? 'border-[#008080] text-[#008080]' : 'border-transparent text-[#8896A5]'
+              }`}
+            >
+              {t === 'whatsapp' ? 'WhatsApp' : t === 'notas' ? 'Notas rápidas' : t.charAt(0).toUpperCase() + t.slice(1)}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* PASO 1 — Nombre */}
-      {step === 1 && (
-        <div className="flex-1 flex flex-col">
-          <div className="mb-8">
-            <p className="text-smoke-500 text-sm mb-1">Paso 1 de 2</p>
-            <h1 className="font-bold text-smoke-200 text-2xl mb-2">¿Cómo te llamás?</h1>
-            <p className="text-smoke-500 text-sm">Tu nombre aparece en el ranking, el certificado y en los pedidos.</p>
-          </div>
-          <div className="flex gap-2">
+      <div className="px-5 py-5">
+        {tab === 'perfil' && <PerfilTab profile={profile} />}
+        {tab === 'carta' && <CartaTab profile={profile} />}
+        {tab === 'ubicaciones' && <UbicacionesTab profile={profile} />}
+        {tab === 'whatsapp' && <WhatsappTab profile={profile} />}
+        {tab === 'notas' && <NotasTab profile={profile} />}
+      </div>
+    </div>
+  )
+}
+
+function PerfilTab({ profile }) {
+  const [staffData, setStaffData] = useState(null)
+  const [fullName, setFullName] = useState('')
+  const [alias, setAlias] = useState('')
+  const [linkedin, setLinkedin] = useState('')
+  const [docNumber, setDocNumber] = useState('')
+  const [aliasBancario, setAliasBancario] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    loadStaff()
+  }, [profile])
+
+  async function loadStaff() {
+    if (!profile) return
+    const { data: profileData } = await supabaseStaff
+      .from('profiles')
+      .select('venue_id')
+      .eq('id', profile.id)
+      .single()
+    if (!profileData?.venue_id) return
+    const { data } = await supabaseStaff
+      .from('staff_names')
+      .select('*')
+      .eq('venue_id', profileData.venue_id)
+      .single()
+    if (data) {
+      setStaffData(data)
+      setFullName(data.full_name || '')
+      setAlias(data.alias || '')
+      setLinkedin(data.linkedin_url || '')
+      setDocNumber(data.document_number || '')
+      setAliasBancario(data.alias_bancario || '')
+    }
+  }
+
+  async function handleSave(e) {
+    e.preventDefault()
+    if (!staffData) return
+    setSaving(true)
+    await supabaseStaff
+      .from('staff_names')
+      .update({
+        full_name: fullName.trim(),
+        alias: alias.trim() || null,
+        linkedin_url: linkedin.trim() || null,
+        document_number: docNumber.trim() || null,
+        alias_bancario: aliasBancario.trim() || null
+      })
+      .eq('id', staffData.id)
+
+    // Sincronizar nombre en profiles usando auth.uid()
+    const { data: { user } } = await supabaseStaff.auth.getUser()
+    if (user) {
+      await supabaseStaff
+        .from('profiles')
+        .update({ full_name: fullName.trim() })
+        .eq('id', user.id)
+    }
+    setSaving(false)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
+  return (
+    <form onSubmit={handleSave} className="space-y-4">
+      <div className="bg-white rounded-2xl p-5 border border-black/5 shadow-sm space-y-4">
+        <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide">Datos personales</p>
+        <label className="block">
+          <span className="text-[#8896A5] text-xs block mb-1.5">Nombre completo</span>
+          <input type="text" value={fullName} onChange={e => setFullName(e.target.value)}
+            className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-[#F8FAFC] text-[#1A2A3A]" />
+        </label>
+        <label className="block">
+          <span className="text-[#8896A5] text-xs block mb-1.5">Alias público (ranking)</span>
+          <input type="text" value={alias} onChange={e => setAlias(e.target.value)}
+            placeholder="Ej: mozo_veloz"
+            className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-[#F8FAFC] text-[#1A2A3A]" />
+        </label>
+        <label className="block">
+          <span className="text-[#8896A5] text-xs block mb-1.5">DNI / Documento</span>
+          <input type="text" value={docNumber} onChange={e => setDocNumber(e.target.value)}
+            placeholder="Para tu certificado verificado"
+            className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-[#F8FAFC] text-[#1A2A3A]" />
+        </label>
+        <label className="block">
+          <span className="text-[#8896A5] text-xs block mb-1.5">LinkedIn (opcional)</span>
+          <input type="url" value={linkedin} onChange={e => setLinkedin(e.target.value)}
+            placeholder="https://linkedin.com/in/tu-perfil"
+            className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-[#F8FAFC] text-[#1A2A3A]" />
+        </label>
+        <label className="block">
+          <span className="text-[#8896A5] text-xs block mb-1.5">Alias bancario (para propinas)</span>
+          <input type="text" value={aliasBancario} onChange={e => setAliasBancario(e.target.value)}
+            placeholder="Ej: matias.borges.mp"
+            className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-[#F8FAFC] text-[#1A2A3A]" />
+          <p className="text-[#B0BEC5] text-[10px] mt-1">Aparece en el QR del pedido para que el cliente te deje propina</p>
+        </label>
+      </div>
+
+      {saved && <p className="text-emerald-600 text-xs text-center">¡Guardado!</p>}
+      <button type="submit" disabled={saving}
+        className="w-full bg-[#008080] disabled:opacity-50 text-white font-bold py-3.5 rounded-2xl">
+        {saving ? 'Guardando...' : 'Guardar cambios'}
+      </button>
+    </form>
+  )
+}
+
+function CartaTab({ profile }) {
+  const [categories, setCategories] = useState([])
+  const [products, setProducts] = useState([])
+  const [venueId, setVenueId] = useState(null)
+  const [newCatName, setNewCatName] = useState('')
+  const [newProd, setNewProd] = useState({ name: '', price: '', category_id: '' })
+  const [addingCat, setAddingCat] = useState(false)
+  const [addingProd, setAddingProd] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadCarta()
+  }, [profile])
+
+  async function loadCarta() {
+    if (!profile) return
+    const { data: profileData } = await supabaseCamaut
+      .from('profiles')
+      .select('venue_id')
+      .eq('id', profile.id)
+      .single()
+
+    if (!profileData?.venue_id) return
+    setVenueId(profileData.venue_id)
+
+    const [catRes, prodRes] = await Promise.all([
+      supabaseCamaut.from('categories').select('*').eq('venue_id', profileData.venue_id).order('sort_order'),
+      supabaseCamaut.from('products').select('*').eq('venue_id', profileData.venue_id).order('name')
+    ])
+    setCategories(catRes.data || [])
+    setProducts(prodRes.data || [])
+    setLoading(false)
+  }
+
+  async function addCategory() {
+    if (!newCatName.trim() || !venueId) return
+    setAddingCat(true)
+    const { data } = await supabaseCamaut
+      .from('categories')
+      .insert({ venue_id: venueId, name: newCatName.trim(), kind: 'comida', sort_order: categories.length })
+      .select().single()
+    if (data) setCategories(prev => [...prev, data])
+    setNewCatName('')
+    setAddingCat(false)
+  }
+
+  async function deleteCategory(id) {
+    await supabaseCamaut.from('categories').delete().eq('id', id)
+    setCategories(prev => prev.filter(c => c.id !== id))
+    setProducts(prev => prev.filter(p => p.category_id !== id))
+  }
+
+  async function addProduct() {
+    if (!newProd.name.trim() || !newProd.price || !newProd.category_id || !venueId) return
+    setAddingProd(true)
+    const { data } = await supabaseCamaut
+      .from('products')
+      .insert({
+        venue_id: venueId,
+        name: newProd.name.trim(),
+        price: Number(newProd.price),
+        category_id: newProd.category_id,
+        is_available: true
+      })
+      .select().single()
+    if (data) setProducts(prev => [...prev, data])
+    setNewProd({ name: '', price: '', category_id: newProd.category_id })
+    setAddingProd(false)
+  }
+
+  async function toggleProduct(product) {
+    await supabaseCamaut.from('products').update({ is_available: !product.is_available }).eq('id', product.id)
+    setProducts(prev => prev.map(p => p.id === product.id ? { ...p, is_available: !p.is_available } : p))
+  }
+
+  async function deleteProduct(id) {
+    await supabaseCamaut.from('products').delete().eq('id', id)
+    setProducts(prev => prev.filter(p => p.id !== id))
+  }
+
+  if (loading) return <p className="text-[#8896A5] text-sm text-center py-10">Cargando carta...</p>
+
+  return (
+    <div className="space-y-4">
+      {/* Agregar categoría */}
+      <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
+        <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">Nueva categoría</p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newCatName}
+            onChange={e => setNewCatName(e.target.value)}
+            placeholder="Ej: Entradas, Bebidas..."
+            className="flex-1 border border-black/10 rounded-xl px-3 py-2.5 text-sm bg-[#F8FAFC] text-[#1A2A3A]"
+          />
+          <button onClick={addCategory} disabled={addingCat || !newCatName.trim()}
+            className="bg-[#4DD0E1] disabled:opacity-50 text-white font-semibold px-4 rounded-xl text-sm">
+            + Agregar
+          </button>
+        </div>
+      </div>
+
+      {/* Agregar producto */}
+      {categories.length > 0 && (
+        <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
+          <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">Nuevo producto</p>
+          <div className="space-y-2">
+            <select
+              value={newProd.category_id}
+              onChange={e => setNewProd(p => ({ ...p, category_id: e.target.value }))}
+              className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm bg-[#F8FAFC] text-[#1A2A3A]"
+            >
+              <option value="">Categoría...</option>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
             <input
               type="text"
-              value={fullName}
-              onChange={e => setFullName(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && !saving && fullName.trim() && saveNombre()}
-              placeholder="Tu nombre completo"
-              className="flex-1 bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-4 text-smoke-200 text-base"
-              autoFocus
+              value={newProd.name}
+              onChange={e => setNewProd(p => ({ ...p, name: e.target.value }))}
+              placeholder="Nombre del producto"
+              className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm bg-[#F8FAFC] text-[#1A2A3A]"
             />
-            <button
-              onClick={saveNombre}
-              disabled={saving || !fullName.trim()}
-              className="bg-ember-500 disabled:opacity-50 text-white font-bold px-5 rounded-2xl text-sm flex-shrink-0"
-            >
-              →
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* PASO 2 — Acción */}
-      {step === 2 && !showVincular && (
-        <div className="flex-1 flex flex-col">
-          <div className="mb-8">
-            <p className="text-smoke-500 text-sm mb-1">Paso 2 de 2</p>
-            <h1 className="font-bold text-smoke-200 text-2xl mb-2">
-              ¡Listo, {fullName.split(' ')[0]}!
-            </h1>
-            <p className="text-smoke-500 text-sm leading-relaxed">
-              Podés tomar pedidos ahora mismo. Cuando confirmes un pedido, los productos y ubicaciones que ingreses a mano quedan guardados en <span className="text-ember-500">Mi Carta</span> para la próxima vez.
-            </p>
-          </div>
-
-          <div className="mt-6 space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={finishOnboarding}
-                disabled={saving}
-                className="flex flex-col items-center justify-center gap-3 bg-ember-500 disabled:opacity-50 text-white font-bold py-8 rounded-2xl"
-              >
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                </svg>
-                <span className="text-sm leading-tight text-center">Tomar mi primer pedido</span>
-              </button>
-
-              <button
-                onClick={() => setShowVincular(true)}
-                className="flex flex-col items-center justify-center gap-3 bg-carbon-900 border border-carbon-700 text-smoke-300 font-bold py-8 rounded-2xl"
-              >
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                  <circle cx="9" cy="7" r="4"/>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-                </svg>
-                <span className="text-sm leading-tight text-center">Vincularme a un Local</span>
-              </button>
-            </div>
-
-            <p className="text-smoke-600 text-xs text-center">
-              Podés vincular un restaurante y completar tu perfil después desde <span className="text-ember-500">Mi Capy</span>.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* PASO 2b — Vincular restaurante */}
-      {step === 2 && showVincular && (
-        <div className="flex-1 flex flex-col">
-          <button onClick={() => { setShowVincular(false); setLinkedVenue(null); setInviteCode('') }}
-            className="text-smoke-500 text-sm mb-6">← Volver</button>
-
-          <div className="mb-6">
-            <h1 className="font-bold text-smoke-200 text-2xl mb-2">Vincularme a un restaurante</h1>
-            <p className="text-smoke-500 text-sm">Pedile al encargado el código de invitación.</p>
-          </div>
-
-          {!linkedVenue ? (
-            <>
+            <div className="flex gap-2">
               <input
-                type="text"
-                value={inviteCode}
-                onChange={e => setInviteCode(e.target.value.toUpperCase())}
-                placeholder="Código de invitación"
-                className="w-full bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-4 text-smoke-200 text-base font-mono tracking-widest mb-2"
-                maxLength={8}
+                type="number"
+                value={newProd.price}
+                onChange={e => setNewProd(p => ({ ...p, price: e.target.value }))}
+                placeholder="Precio"
+                className="flex-1 border border-black/10 rounded-xl px-3 py-2.5 text-sm bg-[#F8FAFC] text-[#1A2A3A]"
               />
-              {searchError && <p className="text-red-400 text-xs mb-2">{searchError}</p>}
-              <button
-                onClick={searchVenue}
-                disabled={searching || !inviteCode.trim()}
-                className="w-full bg-ember-500 disabled:opacity-50 text-white font-bold py-3.5 rounded-2xl text-sm mb-3"
-              >
-                {searching ? 'Buscando...' : 'Vincularse →'}
-              </button>
-              <button
-                onClick={finishOnboarding}
-                disabled={saving}
-                className="w-full bg-carbon-900 border border-carbon-700 text-smoke-400 font-semibold py-3.5 rounded-2xl text-sm"
-              >
-                Empezar sin local
-              </button>
-            </>
-          ) : (
-            <div className="bg-carbon-900 border border-ember-500/30 rounded-2xl p-5 mb-4 text-center">
-              <p className="text-smoke-500 text-xs mb-1">Restaurante encontrado</p>
-              <p className="text-smoke-200 font-bold text-lg mb-4">{linkedVenue.name}</p>
-              <button
-                onClick={vincular}
-                disabled={saving}
-                className="w-full bg-ember-500 disabled:opacity-50 text-white font-bold py-3.5 rounded-2xl text-sm"
-              >
-                {saving ? 'Vinculando...' : `Vincularme a ${linkedVenue.name} →`}
-              </button>
-              <button onClick={() => { setLinkedVenue(null); setInviteCode('') }}
-                className="text-smoke-500 text-xs mt-2 underline block">
-                Usar otro código
+              <button onClick={addProduct} disabled={addingProd || !newProd.name || !newProd.price || !newProd.category_id}
+                className="bg-[#4DD0E1] disabled:opacity-50 text-white font-semibold px-4 rounded-xl text-sm">
+                + Agregar
               </button>
             </div>
-          )}
-
+          </div>
         </div>
       )}
+
+      {/* Lista de productos por categoría */}
+      {categories.map(cat => {
+        const catProducts = products.filter(p => p.category_id === cat.id)
+        return (
+          <div key={cat.id} className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-black/5 bg-[#F8FAFC] flex items-center justify-between">
+              <p className="font-semibold text-[#1A2A3A] text-sm">{cat.name}</p>
+              <button
+                onClick={() => deleteCategory(cat.id)}
+                className="text-red-400 text-xs underline"
+              >
+                Borrar
+              </button>
+            </div>
+            {catProducts.length === 0 ? (
+              <p className="text-[#B0BEC5] text-xs px-4 py-3">Sin productos todavía</p>
+            ) : (
+              <div className="divide-y divide-black/5">
+                {catProducts.map(product => (
+                  <div key={product.id} className="flex items-center justify-between px-4 py-3">
+                    <div className="flex-1">
+                      <p className={`text-sm font-medium ${product.is_available ? 'text-[#1A2A3A]' : 'text-[#B0BEC5] line-through'}`}>
+                        {product.name}
+                      </p>
+                      <p className="text-xs text-[#008080]">{formatPrice(product.price)}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => toggleProduct(product)}
+                        className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border ${
+                          product.is_available
+                            ? 'border-emerald-400 text-emerald-600 bg-emerald-50'
+                            : 'border-black/10 text-[#8896A5]'
+                        }`}>
+                        {product.is_available ? 'Activo' : 'Inactivo'}
+                      </button>
+                      <button onClick={() => deleteProduct(product.id)}
+                        className="text-red-400 text-xs underline">
+                        Borrar
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      })}
+
+      {categories.length === 0 && (
+        <p className="text-[#8896A5] text-sm text-center py-8">Agregá una categoría para empezar</p>
+      )}
+    </div>
+  )
+}
+
+function WhatsappTab({ profile }) {
+  const [venueId, setVenueId] = useState(null)
+  const [whatsapp, setWhatsapp] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    loadVenue()
+  }, [profile])
+
+  async function loadVenue() {
+    if (!profile) return
+    const { data: profileData } = await supabaseCamaut
+      .from('profiles').select('venue_id').eq('id', profile.id).single()
+    if (!profileData?.venue_id) return
+    setVenueId(profileData.venue_id)
+    const { data } = await supabaseCamaut
+      .from('venues').select('whatsapp_number').eq('id', profileData.venue_id).single()
+    if (data) setWhatsapp(data.whatsapp_number || '')
+  }
+
+  async function handleSave(e) {
+    e.preventDefault()
+    if (!venueId) return
+    setSaving(true)
+    await supabaseCamaut.from('venues').update({ whatsapp_number: whatsapp.trim() }).eq('id', venueId)
+    setSaving(false)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
+  return (
+    <form onSubmit={handleSave} className="space-y-4">
+      <div className="bg-white rounded-2xl p-5 border border-black/5 shadow-sm">
+        <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-1">WhatsApp de cocina</p>
+        <p className="text-[#B0BEC5] text-xs mb-4">Las comandas se envían a este número</p>
+        <input
+          type="tel"
+          value={whatsapp}
+          onChange={e => setWhatsapp(e.target.value)}
+          placeholder="+54 9 11 1234 5678"
+          className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-[#F8FAFC] text-[#1A2A3A]"
+        />
+      </div>
+      {saved && <p className="text-emerald-600 text-xs text-center">¡Guardado!</p>}
+      <button type="submit" disabled={saving}
+        className="w-full bg-[#008080] disabled:opacity-50 text-white font-bold py-3.5 rounded-2xl">
+        {saving ? 'Guardando...' : 'Guardar'}
+      </button>
+    </form>
+  )
+}
+
+function UbicacionesTab({ profile }) {
+  const [venueId, setVenueId] = useState(null)
+  const [zones, setZones] = useState([])
+  const [newZone, setNewZone] = useState('')
+  const [adding, setAdding] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadZones()
+  }, [profile])
+
+  async function loadZones() {
+    if (!profile) return
+    const { data: profileData } = await supabaseCamaut
+      .from('profiles').select('venue_id').eq('id', profile.id).single()
+    if (!profileData?.venue_id) return
+    setVenueId(profileData.venue_id)
+    const { data } = await supabaseCamaut
+      .from('venue_zones')
+      .select('*')
+      .eq('venue_id', profileData.venue_id)
+      .eq('is_active', true)
+      .order('sort_order')
+    setZones(data || [])
+    setLoading(false)
+  }
+
+  async function addZone() {
+    if (!newZone.trim() || !venueId) return
+    setAdding(true)
+    const { data } = await supabaseCamaut
+      .from('venue_zones')
+      .insert({
+        venue_id: venueId,
+        name: newZone.trim(),
+        type: 'mesa',
+        is_active: true,
+        sort_order: zones.length
+      })
+      .select().single()
+    if (data) setZones(prev => [...prev, data])
+    setNewZone('')
+    setAdding(false)
+  }
+
+  async function deleteZone(id) {
+    await supabaseCamaut.from('venue_zones').update({ is_active: false }).eq('id', id)
+    setZones(prev => prev.filter(z => z.id !== id))
+  }
+
+  if (loading) return <p className="text-[#8896A5] text-sm text-center py-10">Cargando...</p>
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
+        <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">Nueva ubicación</p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newZone}
+            onChange={e => setNewZone(e.target.value)}
+            placeholder="Ej: Mesa 1, Barra, Terraza..."
+            className="flex-1 border border-black/10 rounded-xl px-3 py-2.5 text-sm bg-[#F8FAFC] text-[#1A2A3A]"
+          />
+          <button onClick={addZone} disabled={adding || !newZone.trim()}
+            className="bg-[#4DD0E1] disabled:opacity-50 text-white font-semibold px-4 rounded-xl text-sm">
+            + Agregar
+          </button>
+        </div>
+      </div>
+
+      {zones.length === 0 ? (
+        <p className="text-[#8896A5] text-sm text-center py-6">No hay ubicaciones todavía</p>
+      ) : (
+        <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
+          <div className="divide-y divide-black/5">
+            {zones.map(zone => (
+              <div key={zone.id} className="flex items-center justify-between px-4 py-3">
+                <p className="text-sm font-medium text-[#1A2A3A]">{zone.name}</p>
+                <button onClick={() => deleteZone(zone.id)} className="text-red-400 text-xs underline">
+                  Borrar
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function NotasTab({ profile }) {
+  const [notas, setNotas] = useState([])
+  const [pucNotas, setPucNotas] = useState([])
+  const [newLabel, setNewLabel] = useState('')
+  const [venueId, setVenueId] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [copying, setCopying] = useState(false)
+
+  useEffect(() => {
+    if (profile?.venue_id) {
+      setVenueId(profile.venue_id)
+      loadNotas(profile.venue_id)
+    }
+  }, [profile])
+
+  async function loadNotas(vId) {
+    const [ownRes, pucRes] = await Promise.all([
+      supabaseStaff.from('quick_notes').select('id, label, is_active, sort_order').eq('venue_id', vId).order('sort_order'),
+      supabaseStaff.from('quick_notes').select('id, label').eq('venue_id', ACTIVE_VENUE_ID).eq('is_active', true).order('sort_order')
+    ])
+    setNotas(ownRes.data || [])
+    setPucNotas(pucRes.data || [])
+    setLoading(false)
+  }
+
+  async function copyFromPucara() {
+    if (!venueId || !pucNotas.length) return
+    setCopying(true)
+    const toInsert = pucNotas
+      .filter(pn => !notas.some(n => n.label === pn.label))
+      .map((pn, i) => ({ venue_id: venueId, label: pn.label, is_active: true, sort_order: notas.length + i }))
+    if (toInsert.length) {
+      const { data } = await supabaseStaff.from('quick_notes').insert(toInsert).select()
+      if (data) setNotas(prev => [...prev, ...data])
+    }
+    setCopying(false)
+  }
+
+  async function addNota(e) {
+    e.preventDefault()
+    if (!newLabel.trim() || !venueId) return
+    setSaving(true)
+    const { data } = await supabaseStaff
+      .from('quick_notes')
+      .insert({ venue_id: venueId, label: newLabel.trim(), is_active: true, sort_order: notas.length })
+      .select()
+      .single()
+    if (data) setNotas(prev => [...prev, data])
+    setNewLabel('')
+    setSaving(false)
+  }
+
+  async function toggleNota(id, isActive) {
+    await supabaseStaff.from('quick_notes').update({ is_active: !isActive }).eq('id', id)
+    setNotas(prev => prev.map(n => n.id === id ? { ...n, is_active: !isActive } : n))
+  }
+
+  async function deleteNota(id) {
+    await supabaseStaff.from('quick_notes').delete().eq('id', id)
+    setNotas(prev => prev.filter(n => n.id !== id))
+  }
+
+  if (loading) return <p className="text-[#8896A5] text-sm text-center py-6">Cargando...</p>
+
+  return (
+    <div className="space-y-4">
+      <p className="text-[#8896A5] text-xs">
+        Chips de aclaración que aparecen al confirmar un pedido. Ej: Sin sal, Bien cocido, Sin TACC.
+      </p>
+
+      {/* Copiar de Pucará */}
+      {pucNotas.length > 0 && (
+        <button
+          onClick={copyFromPucara}
+          disabled={copying}
+          className="w-full border border-dashed border-[#008080]/40 text-[#008080] text-sm font-semibold py-2.5 rounded-xl"
+        >
+          {copying ? 'Copiando...' : '⬇ Copiar notas de Pucará como base'}
+        </button>
+      )}
+
+      {/* Lista */}
+      <div className="bg-white rounded-2xl overflow-hidden border border-black/5">
+        {notas.length === 0 ? (
+          <p className="text-[#8896A5] text-sm text-center py-6">No hay notas rápidas todavía.</p>
+        ) : (
+          <div className="divide-y divide-black/5">
+            {notas.map(n => (
+              <div key={n.id} className="flex items-center justify-between px-4 py-3">
+                <p className={`text-sm font-medium ${n.is_active ? 'text-[#1A2A3A]' : 'text-[#B0BEC5] line-through'}`}>
+                  {n.label}
+                </p>
+                <div className="flex gap-3">
+                  <button onClick={() => toggleNota(n.id, n.is_active)} className={`text-xs underline ${n.is_active ? 'text-[#8896A5]' : 'text-emerald-500'}`}>
+                    {n.is_active ? 'Desactivar' : 'Activar'}
+                  </button>
+                  <button onClick={() => deleteNota(n.id)} className="text-red-400 text-xs underline">
+                    Borrar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Agregar nueva */}
+      <form onSubmit={addNota} className="flex gap-2">
+        <input
+          type="text"
+          value={newLabel}
+          onChange={e => setNewLabel(e.target.value)}
+          placeholder="Ej: Sin sal"
+          className="flex-1 border border-black/10 rounded-xl px-4 py-3 text-sm bg-white text-[#1A2A3A]"
+          maxLength={40}
+        />
+        <button
+          type="submit"
+          disabled={saving || !newLabel.trim()}
+          className="bg-[#008080] disabled:opacity-50 text-white font-semibold px-4 py-3 rounded-xl text-sm"
+        >
+          {saving ? '...' : 'Agregar'}
+        </button>
+      </form>
     </div>
   )
 }
