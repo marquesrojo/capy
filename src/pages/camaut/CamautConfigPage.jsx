@@ -159,6 +159,18 @@ function PerfilTab({ profile }) {
         className="w-full bg-[#008080] disabled:opacity-50 text-white font-bold py-3.5 rounded-2xl">
         {saving ? 'Guardando...' : 'Guardar cambios'}
       </button>
+
+      {/* Solo para testing — resetear onboarding */}
+      <button
+        type="button"
+        onClick={async () => {
+          await supabaseStaff.from('profiles').update({ onboarding_completed: false }).eq('id', profile.id)
+          window.location.reload()
+        }}
+        className="w-full text-[#B0BEC5] text-[10px] text-center mt-1 underline"
+      >
+        Resetear onboarding (testing)
+      </button>
     </form>
   )
 }
