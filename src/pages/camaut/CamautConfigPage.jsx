@@ -729,6 +729,8 @@ function ImportarConIA({ venueId, onImported }) {
       setPreview(ev.target.result)
       try {
         const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
+        if (!API_KEY) throw new Error('API key no configurada')
+        
         const BASE_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${API_KEY}`
 
         // PASO 1: Transcribir el texto de la imagen
@@ -745,9 +747,12 @@ function ImportarConIA({ venueId, onImported }) {
           })
         })
         const transcriptData = await transcriptRes.json()
+        
+        // Mostrar error real si hay
+        if (transcriptData.error) throw new Error(transcriptData.error.message)
+        
         const transcriptText = transcriptData.candidates?.[0]?.content?.parts?.[0]?.text || ''
-
-        if (!transcriptText) throw new Error('No se pudo leer el texto de la imagen')
+        if (!transcriptText) throw new Error('Gemini no devolvió texto. Respuesta: ' + JSON.stringify(transcriptData).slice(0, 200))
 
         // PASO 2: Convertir el texto a JSON de productos
         const parseRes = await fetch(BASE_URL, {
