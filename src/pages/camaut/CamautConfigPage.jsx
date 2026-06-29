@@ -303,11 +303,24 @@ function CartaTab({ profile }) {
           <div className="flex flex-wrap gap-2 mb-3">
             <button
               onClick={() => setActiveMenuId(null)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold border ${
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold border ${
                 activeMenuId === null ? 'bg-[#008080] text-white border-[#008080]' : 'border-black/10 text-[#3A4A5A]'
               }`}
             >
               General
+              {activeMenuId !== null && (
+                <span onClick={async (e) => {
+                  e.stopPropagation()
+                  if (!confirm('¿Borrar el menú General y todos sus productos?')) return
+                  const genCats = categories.filter(c => !c.menu_id).map(c => c.id)
+                  if (genCats.length) {
+                    await supabaseStaff.from('products').delete().in('category_id', genCats)
+                    await supabaseStaff.from('categories').delete().in('id', genCats)
+                    setCategories(prev => prev.filter(c => c.menu_id !== null))
+                    setProducts(prev => prev.filter(p => !genCats.includes(p.category_id)))
+                  }
+                }} className="text-red-400 ml-1">×</span>
+              )}
             </button>
             {menus.map(m => (
               <div key={m.id} className="flex items-center gap-1">
