@@ -65,6 +65,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
   const [activeTab, setActiveTab] = useState('propio')
   const [timerModal, setTimerModal] = useState(null) // { orderId }
   const [timerMins, setTimerMins] = useState('15')
+  const [qrModal, setQrModal] = useState(null)
 
   useEffect(() => {
     if (venueId) loadOrders()
@@ -163,7 +164,37 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
           </div>
         </div>
       )}
-      {/* Tabs propio / restaurante */}
+      {/* Modal QR */}
+      {qrModal && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-6" onClick={() => setQrModal(null)}>
+          <div className="bg-white rounded-3xl p-6 w-full max-w-xs text-center" onClick={e => e.stopPropagation()}>
+            <p className="font-bold text-[#1A2A3A] text-base mb-4">QR del pedido</p>
+            <div className="bg-[#F8FAFC] rounded-2xl p-4 mb-4">
+              <p className="font-mono text-[#008080] text-xs break-all mb-2">
+                capyapp.co/ver-pedido/{qrModal}
+              </p>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(`https://capyapp.co/ver-pedido/${qrModal}`)
+                  alert('Link copiado')
+                }}
+                className="w-full bg-[#008080] text-white font-semibold py-2.5 rounded-xl text-sm mb-2"
+              >
+                Copiar link
+              </button>
+              {navigator.share && (
+                <button
+                  onClick={() => navigator.share({ url: `https://capyapp.co/ver-pedido/${qrModal}` })}
+                  className="w-full border border-[#008080] text-[#008080] font-semibold py-2.5 rounded-xl text-sm"
+                >
+                  Compartir
+                </button>
+              )}
+            </div>
+            <button onClick={() => setQrModal(null)} className="text-[#8896A5] text-sm">Cerrar</button>
+          </div>
+        </div>
+      )}
       {linkedVenues.length > 0 && (
         <div className="px-4 pt-4 pb-2">
           <div className="flex gap-2 bg-black/5 rounded-xl p-1">
@@ -230,9 +261,17 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
                             <p>+{order.order_items.length - 3} más</p>
                           )}
                         </div>
-                        <p className="font-mono text-[#1A2A3A] text-xs font-semibold mb-2">
-                          {formatPrice(order.total)}
-                        </p>
+                        <div className="flex items-center justify-between mt-2">
+                          <p className="font-mono text-[#1A2A3A] text-xs font-semibold">
+                            {formatPrice(order.total)}
+                          </p>
+                          <button
+                            onClick={() => setQrModal(order.id)}
+                            className="border border-black/10 text-[#8896A5] text-[10px] px-2 py-1 rounded-lg"
+                          >
+                            QR
+                          </button>
+                        </div>
                         {col.id !== 'entregado' && (
                           <div className="flex gap-1">
                             {PREV_STATUS[order.status] && (
@@ -314,9 +353,17 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
                             <p key={i}>{item.quantity}× {item.product_name}</p>
                           ))}
                         </div>
-                        <p className="font-mono text-[#1A2A3A] text-xs font-semibold">
-                          {formatPrice(order.total)}
-                        </p>
+                        <div className="flex items-center justify-between mt-1">
+                          <p className="font-mono text-[#1A2A3A] text-xs font-semibold">
+                            {formatPrice(order.total)}
+                          </p>
+                          <button
+                            onClick={() => setQrModal(order.id)}
+                            className="border border-black/10 text-[#8896A5] text-[10px] px-2 py-1 rounded-lg"
+                          >
+                            QR
+                          </button>
+                        </div>
                         {order.status === 'listo' && (
                           <p className="text-emerald-600 text-[10px] font-semibold mt-1">✓ Listo para entregar</p>
                         )}
