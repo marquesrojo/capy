@@ -18,49 +18,53 @@ export default function CamautAppPage() {
   }, [])
 
   async function checkAuth() {
-    const { data: { session } } = await supabaseCamaut.auth.getSession()
-    if (!session) { navigate('/camaut/login'); return }
+    try {
+      const { data: { session } } = await supabaseCamaut.auth.getSession()
+      if (!session) { navigate('/camaut/login'); return }
 
-    await new Promise(r => setTimeout(r, 300))
+      await new Promise(r => setTimeout(r, 500))
 
-    await supabaseStaff.auth.setSession({
-      access_token: session.access_token,
-      refresh_token: session.refresh_token
-    })
+      await supabaseStaff.auth.setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token
+      })
 
-    const { data: profile } = await supabaseCamaut
-      .from('profiles')
-      .select('venue_id, is_autonomous, full_name')
-      .eq('id', session.user.id)
-      .single()
+      const { data: profile } = await supabaseCamaut
+        .from('profiles')
+        .select('venue_id, is_autonomous, full_name')
+        .eq('id', session.user.id)
+        .maybeSingle()
 
-    const vId = profile?.venue_id || null
-    setVenueId(vId)
-    setOnboardingCompleted(profile?.onboarding_completed ?? true)
+      const vId = profile?.venue_id || null
+      setVenueId(vId)
 
-    const fullNameFromMeta = session.user?.user_metadata?.full_name || profile?.full_name || null
+      const fullNameFromMeta = session.user?.user_metadata?.full_name || profile?.full_name || null
 
-    if (vId) {
-      const { data: staffData } = await supabaseStaff
-        .from('staff_names')
-        .select('id, full_name')
-        .eq('venue_id', vId)
-        .single()
-      setStaffName(staffData?.full_name || fullNameFromMeta || null)
-      setStaffId(staffData?.id || null)
-    } else {
-      setStaffName(fullNameFromMeta)
+      if (vId) {
+        const { data: staffData } = await supabaseStaff
+          .from('staff_names')
+          .select('id, full_name')
+          .eq('venue_id', vId)
+          .single()
+        setStaffName(staffData?.full_name || fullNameFromMeta || null)
+        setStaffId(staffData?.id || null)
+      } else {
+        setStaffName(fullNameFromMeta)
+      }
+
+      const { data: linked } = await supabaseStaff
+        .from('venue_staff')
+        .select('venue:venues(id, name)')
+        .eq('staff_profile_id', session.user.id)
+        .eq('status', 'active')
+      setLinkedVenues(linked?.map(l => l.venue).filter(Boolean) || [])
+
+      setAuthorized(true)
+    } catch (err) {
+      console.error('checkAuth error:', err)
+    } finally {
+      setChecking(false)
     }
-
-    const { data: linked } = await supabaseStaff
-      .from('venue_staff')
-      .select('venue:venues(id, name)')
-      .eq('staff_profile_id', session.user.id)
-      .eq('status', 'active')
-    setLinkedVenues(linked?.map(l => l.venue).filter(Boolean) || [])
-
-    setAuthorized(true)
-    setChecking(false)
   }
 
   if (checking) {
