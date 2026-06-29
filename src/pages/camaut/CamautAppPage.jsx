@@ -12,7 +12,6 @@ export default function CamautAppPage() {
   const [staffXP, setStaffXP] = useState(0)
   const [linkedVenues, setLinkedVenues] = useState([])
   const [staffId, setStaffId] = useState(null)
-  const [onboardingCompleted, setOnboardingCompleted] = useState(true)
 
   useEffect(() => {
     checkAuth()
@@ -31,7 +30,7 @@ export default function CamautAppPage() {
 
     const { data: profile } = await supabaseCamaut
       .from('profiles')
-      .select('venue_id, is_autonomous, full_name, onboarding_completed')
+      .select('venue_id, is_autonomous, full_name')
       .eq('id', session.user.id)
       .single()
 
@@ -80,7 +79,5 @@ export default function CamautAppPage() {
     staffXP={staffXP}
     linkedVenues={linkedVenues}
     staffId={staffId}
-    onboardingCompleted={onboardingCompleted}
-    onOnboardingComplete={() => setOnboardingCompleted(true)}
   />
 }
