@@ -731,7 +731,7 @@ function ImportarConIA({ venueId, onImported }) {
         const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
         if (!API_KEY) throw new Error('API key no configurada')
         
-        const BASE_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${API_KEY}`
+        const BASE_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`
 
         // PASO 1: Transcribir el texto de la imagen
         const transcriptRes = await fetch(BASE_URL, {
