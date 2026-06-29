@@ -279,21 +279,8 @@ function CartaTab({ profile }) {
 
   return (
     <div className="space-y-4">
-      {/* Tabs internos */}
-      <div className="flex gap-2 bg-black/5 rounded-xl p-1">
-        <button onClick={() => setSubTab('carta')}
-          className={`flex-1 py-2 rounded-lg text-xs font-semibold ${subTab === 'carta' ? 'bg-white text-[#008080] shadow-sm' : 'text-[#8896A5]'}`}>
-          Carta
-        </button>
-        <button onClick={() => setSubTab('ubicaciones')}
-          className={`flex-1 py-2 rounded-lg text-xs font-semibold ${subTab === 'ubicaciones' ? 'bg-white text-[#008080] shadow-sm' : 'text-[#8896A5]'}`}>
-          Ubicaciones
-        </button>
-      </div>
-
-      {subTab === 'ubicaciones' && <UbicacionesTab profile={profile} menuId={activeMenuId} />}
-
-      {subTab === 'carta' && <>
+      {/* Tabs internos — solo Carta */}
+      {false && <div />} {/* placeholder para futura expansión */}
 
         {/* Selector de menús */}
         <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
@@ -431,6 +418,14 @@ function CartaTab({ profile }) {
             Agregá una categoría para el menú <span className="text-[#008080]">{activeMenuName}</span>
           </p>
         )}
+
+        {/* Ubicaciones del menú activo */}
+        <div className="border-t border-black/5 pt-4 mt-2">
+          <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">
+            Ubicaciones — {activeMenuName}
+          </p>
+          <UbicacionesTab profile={profile} menuId={activeMenuId} />
+        </div>
       </>}
     </div>
   )
