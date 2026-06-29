@@ -79,6 +79,8 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
     setSaving(false)
     setStep(4)
   }
+
+  async function finishOnboarding() {
     setSaving(true)
     // Si no tiene venue, crear uno via register-camaut
     if (!venueId) {
