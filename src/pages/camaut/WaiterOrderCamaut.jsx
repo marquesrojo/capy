@@ -370,6 +370,9 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
             </div>
           )
         })}
+
+        {/* Agregar producto nuevo */}
+        <NuevoProductoInline venueId={activeVenueId} categoryId={categories[0]?.id} onAdded={loadCarta} />
       </div>
 
       {/* Footer con botón ir a confirmar */}
@@ -664,6 +667,85 @@ function CartaVacia({ venueId, onProductsCreated }) {
           className="w-full bg-[#008080] disabled:opacity-50 text-white font-bold py-4 rounded-2xl text-base"
         >
           {submitting ? 'Enviando...' : `Confirmar pedido · ${formatPrice(total)}`}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function NuevoProductoInline({ venueId, categoryId, onAdded }) {
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState('')
+  const [price, setPrice] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  async function handleAdd() {
+    if (!name.trim() || !parseFloat(price)) return
+    setSaving(true)
+
+    let catId = categoryId
+    if (!catId) {
+      const { data: newCat } = await supabaseStaff
+        .from('categories')
+        .insert({ venue_id: venueId, name: 'General', sort_order: 0 })
+        .select('id')
+        .single()
+      catId = newCat?.id
+    }
+
+    await supabaseStaff
+      .from('products')
+      .insert({ venue_id: venueId, name: name.trim(), price: parseFloat(price), category_id: catId, is_available: true })
+
+    setName('')
+    setPrice('')
+    setOpen(false)
+    setSaving(false)
+    onAdded()
+  }
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="w-full border-2 border-dashed border-[#008080]/30 text-[#008080] text-sm font-semibold py-3 rounded-2xl"
+      >
+        + Agregar producto nuevo
+      </button>
+    )
+  }
+
+  return (
+    <div className="bg-white rounded-xl p-3 border border-[#008080]/20 shadow-sm space-y-2">
+      <input
+        type="text"
+        value={name}
+        onChange={e => setName(e.target.value)}
+        placeholder="Nombre del producto"
+        className="w-full border border-black/10 rounded-lg px-3 py-2 text-sm text-[#1A2A3A]"
+        autoFocus
+      />
+      <div className="flex gap-2">
+        <input
+          type="number"
+          value={price}
+          onChange={e => setPrice(e.target.value)}
+          placeholder="Precio"
+          className="flex-1 border border-black/10 rounded-lg px-3 py-2 text-sm text-[#1A2A3A]"
+          min="0"
+        />
+        <button
+          onClick={handleAdd}
+          disabled={saving || !name.trim() || !parseFloat(price)}
+          className="bg-[#008080] disabled:opacity-50 text-white font-semibold px-4 py-2 rounded-lg text-sm"
+        >
+          {saving ? '...' : 'Agregar'}
+        </button>
+        <button
+          onClick={() => { setOpen(false); setName(''); setPrice('') }}
+          className="border border-black/10 text-[#8896A5] px-3 py-2 rounded-lg text-sm"
+        >
+          ×
         </button>
       </div>
     </div>
