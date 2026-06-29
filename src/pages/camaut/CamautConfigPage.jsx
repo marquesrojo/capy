@@ -613,6 +613,16 @@ function CartaTab({ profile }) {
         )
       })}
 
+      {filteredCats.length === 0 && (
+        <p className="text-[#8896A5] text-sm text-center py-8">
+          Agregá una categoría para el menú <span className="text-[#008080]">{activeMenuName}</span>
+        </p>
+      )}
+      </>}
+    </div>
+  )
+}
+
 function WhatsappTab({ profile }) {
   const [venueId, setVenueId] = useState(null)
   const [whatsapp, setWhatsapp] = useState('')
