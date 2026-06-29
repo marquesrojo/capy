@@ -320,6 +320,17 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
                         {order.status === 'listo' && (
                           <p className="text-emerald-600 text-[10px] font-semibold mt-1">✓ Listo para entregar</p>
                         )}
+                        {(order.status === 'en_preparacion' || order.status === 'listo') && (
+                          <div className="mt-2 flex justify-end">
+                            <button
+                              onClick={() => { setTimerModal(order.id); setTimerMins('15') }}
+                              className="border border-[#008080]/30 text-[#008080] text-[10px] px-2 py-1 rounded-lg"
+                            >
+                              ⏱ Timer
+                            </button>
+                          </div>
+                        )}
+                        <PrepTimer order={order} />
                       </div>
                     ))}
                     {colOrders.length === 0 && (
