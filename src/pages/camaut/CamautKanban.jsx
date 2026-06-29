@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import QRCode from 'qrcode'
 import { formatPrice } from '../../lib/utils'
 import { supabaseStaff } from '../../lib/supabase'
 
@@ -169,29 +170,27 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-6" onClick={() => setQrModal(null)}>
           <div className="bg-white rounded-3xl p-6 w-full max-w-xs text-center" onClick={e => e.stopPropagation()}>
             <p className="font-bold text-[#1A2A3A] text-base mb-4">QR del pedido</p>
-            <div className="bg-[#F8FAFC] rounded-2xl p-4 mb-4">
-              <p className="font-mono text-[#008080] text-xs break-all mb-2">
-                capyapp.co/ver-pedido/{qrModal}
-              </p>
+            <QRCanvas orderId={qrModal} />
+            <div className="flex gap-2 mt-4">
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(`https://capyapp.co/ver-pedido/${qrModal}`)
                   alert('Link copiado')
                 }}
-                className="w-full bg-[#008080] text-white font-semibold py-2.5 rounded-xl text-sm mb-2"
+                className="flex-1 border border-[#008080] text-[#008080] font-semibold py-2.5 rounded-xl text-sm"
               >
                 Copiar link
               </button>
               {navigator.share && (
                 <button
                   onClick={() => navigator.share({ url: `https://capyapp.co/ver-pedido/${qrModal}` })}
-                  className="w-full border border-[#008080] text-[#008080] font-semibold py-2.5 rounded-xl text-sm"
+                  className="flex-1 bg-[#008080] text-white font-semibold py-2.5 rounded-xl text-sm"
                 >
                   Compartir
                 </button>
               )}
             </div>
-            <button onClick={() => setQrModal(null)} className="text-[#8896A5] text-sm">Cerrar</button>
+            <button onClick={() => setQrModal(null)} className="text-[#8896A5] text-sm mt-3">Cerrar</button>
           </div>
         </div>
       )}
@@ -390,6 +389,27 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
           </div>
         </div>
       ))}
+    </div>
+  )
+}
+
+function QRCanvas({ orderId }) {
+  const canvasRef = useRef(null)
+
+  useEffect(() => {
+    if (!canvasRef.current || !orderId) return
+    QRCode.toCanvas(canvasRef.current, `https://capyapp.co/ver-pedido/${orderId}`, {
+      width: 220,
+      margin: 2,
+      color: { dark: '#1A2A3A', light: '#FFFFFF' }
+    })
+  }, [orderId])
+
+  return (
+    <div className="flex justify-center">
+      <div className="bg-white p-3 rounded-2xl border border-black/5">
+        <canvas ref={canvasRef} />
+      </div>
     </div>
   )
 }
