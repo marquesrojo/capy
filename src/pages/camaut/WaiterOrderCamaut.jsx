@@ -480,6 +480,22 @@ function CartaVacia({ venueId, onProductsCreated }) {
     if (!validItems.length || !location.trim()) return
     setSubmitting(true)
 
+    // Crear zona si no existe
+    if (location.trim()) {
+      const { data: existingZone } = await supabaseStaff
+        .from('venue_zones')
+        .select('id')
+        .eq('venue_id', venueId)
+        .eq('name', location.trim())
+        .maybeSingle()
+
+      if (!existingZone) {
+        await supabaseStaff
+          .from('venue_zones')
+          .insert({ venue_id: venueId, name: location.trim(), is_active: true, sort_order: 0 })
+      }
+    }
+
     // Crear categoría "General" si no existe
     let categoryId = null
     const { data: existingCat } = await supabaseStaff
