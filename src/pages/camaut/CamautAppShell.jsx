@@ -43,11 +43,12 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
     if (!venueId) return
     supabaseStaff
       .from('staff_names')
-      .select('full_name')
+      .select('full_name, xp')
       .eq('venue_id', venueId)
       .single()
       .then(({ data }) => {
         if (data?.full_name) setStaffName(data.full_name)
+        if (data?.xp !== undefined) setStaffXP(data.xp)
       })
   }, [venueId])
 
