@@ -70,19 +70,39 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
 
   async function finishOnboarding() {
     setSaving(true)
-    const { data: { session } } = await supabaseCamaut.auth.getSession()
-    if (session) {
-      await supabaseStaff.auth.setSession({
-        access_token: session.access_token,
-        refresh_token: session.refresh_token
-      })
-      await supabaseStaff
-        .from('profiles')
-        .update({ onboarding_completed: true })
-        .eq('id', session.user.id)
+    try {
+      const { data: { session } } = await supabaseCamaut.auth.getSession()
+      if (session) {
+        await supabaseStaff.auth.setSession({
+          access_token: session.access_token,
+          refresh_token: session.refresh_token
+        })
+
+        if (!venueId) {
+          const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/register-camaut`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+            },
+            body: JSON.stringify({
+              userId: session.user.id,
+              fullName: fullName.trim() || session.user.user_metadata?.full_name || 'Camarero',
+            })
+          })
+          const result = await res.json()
+          if (!result.success) {
+            alert('Error: ' + (result.error || 'No se pudo crear tu cuenta'))
+            setSaving(false)
+            return
+          }
+        }
+      }
+      onComplete()
+    } catch (err) {
+      alert('Error: ' + err.message)
     }
     setSaving(false)
-    onComplete()
   }
 
   return (
