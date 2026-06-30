@@ -77,6 +77,18 @@ export default function LocationsPage() {
     }
   }
 
+  async function reassignZone(zone, parentZoneId) {
+    const { data } = await supabaseStaff
+      .from('venue_zones')
+      .update({ parent_zone_id: parentZoneId || null })
+      .eq('id', zone.id)
+      .select()
+      .single()
+    if (data) {
+      setZones(prev => prev.map(z => (z.id === zone.id ? data : z)))
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-carbon-950 flex items-center justify-center">
@@ -86,6 +98,7 @@ export default function LocationsPage() {
   }
 
   const filtered = zones.filter(z => z.type === activeTab)
+  const parentZonas = zones.filter(z => z.type === 'zona' && z.is_active)
 
   return (
     <div className="min-h-screen bg-carbon-950 pb-10">
@@ -133,7 +146,7 @@ export default function LocationsPage() {
 
       <main className="px-5 mt-4">
         {viewMode === 'mapa' ? (
-          <FloorPlanEditor zones={filtered} onSaved={load} />
+          <FloorPlanEditor zones={filtered} parentZones={parentZonas} onSaved={load} />
         ) : (
           <>
             <div className="flex gap-2 mb-4">
@@ -160,7 +173,14 @@ export default function LocationsPage() {
             ) : (
               <div className="space-y-2">
                 {filtered.map(zone => (
-                  <ZoneRow key={zone.id} zone={zone} onToggle={() => toggleActive(zone)} onRename={renameZone} />
+                  <ZoneRow
+                    key={zone.id}
+                    zone={zone}
+                    onToggle={() => toggleActive(zone)}
+                    onRename={renameZone}
+                    parentZones={activeTab === 'mesa' ? parentZonas : []}
+                    onReassign={reassignZone}
+                  />
                 ))}
               </div>
             )}
@@ -171,7 +191,7 @@ export default function LocationsPage() {
   )
 }
 
-function ZoneRow({ zone, onToggle, onRename }) {
+function ZoneRow({ zone, onToggle, onRename, parentZones = [], onReassign }) {
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(zone.name)
 
@@ -182,7 +202,7 @@ function ZoneRow({ zone, onToggle, onRename }) {
 
   return (
     <div
-      className={`flex items-center justify-between bg-carbon-900 border rounded-xl px-4 py-3 ${
+      className={`flex items-center justify-between bg-carbon-900 border rounded-xl px-4 py-3 gap-2 ${
         zone.is_active ? 'border-carbon-700' : 'border-carbon-700 opacity-50'
       }`}
     >
@@ -194,16 +214,28 @@ function ZoneRow({ zone, onToggle, onRename }) {
           onBlur={handleBlur}
           onKeyDown={e => e.key === 'Enter' && handleBlur()}
           autoFocus
-          className="input flex-1 mr-3"
+          className="input flex-1"
         />
       ) : (
-        <button onClick={() => setEditing(true)} className="text-smoke-300 text-sm text-left flex-1">
-          {zone.name}
-        </button>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <button onClick={() => setEditing(true)} className="text-smoke-300 text-sm text-left truncate">
+            {zone.name}
+          </button>
+          {parentZones.length > 0 && (
+            <select
+              value={zone.parent_zone_id || ''}
+              onChange={e => onReassign(zone, e.target.value || null)}
+              className="text-[10px] text-smoke-400 bg-carbon-800 border border-carbon-700 rounded-lg px-1.5 py-0.5 flex-shrink-0"
+            >
+              <option value="">Sin zona</option>
+              {parentZones.map(z => <option key={z.id} value={z.id}>{z.name}</option>)}
+            </select>
+          )}
+        </div>
       )}
       <button
         onClick={onToggle}
-        className={`text-xs font-medium px-2.5 py-1 rounded-full border ${
+        className={`text-xs font-medium px-2.5 py-1 rounded-full border flex-shrink-0 ${
           zone.is_active
             ? 'border-emerald-500/40 text-emerald-700'
             : 'border-smoke-500/40 text-smoke-500'

@@ -23,10 +23,13 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
   const [lastOrder, setLastOrder] = useState(null)
   const [staffId, setStaffId] = useState(null)
   const [step, setStep] = useState('carta') // 'carta' | 'confirmar'
+  const [showMap, setShowMap] = useState(false)
 
   function updateActiveVenue(id) {
     setActiveVenueId(id)
     activeVenueIdRef.current = id
+    setShowMap(false)
+    setSelectedZone(null)
   }
 
   useEffect(() => {
@@ -127,9 +130,15 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
     ? categories.filter(c => c.menu_id === activeMenuId)
     : categories
 
+  const mesaZones = zones.filter(z => z.type === 'mesa')
+  const activeMenu = menus.find(m => m.id === activeMenuId)
+  const menuZoneId = activeMenu?.zone_id ?? null
+
   const filteredZones = activeVenueId === venueId && activeMenuId !== 'all'
-    ? zones.filter(z => z.menu_id === activeMenuId)
-    : zones
+    ? (menuZoneId
+        ? mesaZones.filter(z => z.parent_zone_id === menuZoneId)
+        : mesaZones.filter(z => z.menu_id === activeMenuId))
+    : mesaZones
 
   const visibleProducts = products.filter(p => p.category_id === activeCategory)
 
@@ -370,22 +379,28 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
         {activeVenueId !== venueId ? (
           zones.some(z => z.pos_x != null) ? (
             <div>
-              <FloorPlanViewer
-                zones={zones}
-                venueId={activeVenueId}
-                selectedZone={selectedZone}
-                onSelect={zone => { setSelectedZone(zone); setLocation('') }}
-                supabaseClient={supabaseStaff}
-              />
-              {selectedZone && (
-                <p className="text-[#008080] text-xs font-semibold mt-2 px-1">
-                  Mesa seleccionada: {selectedZone.name}
-                </p>
+              <button
+                onClick={() => setShowMap(p => !p)}
+                className="w-full flex items-center justify-between bg-white border border-black/10 rounded-xl px-4 py-3 text-sm mb-2"
+              >
+                <span className={`font-semibold ${selectedZone ? 'text-[#008080]' : 'text-[#3A4A5A]'}`}>
+                  {selectedZone ? `📍 ${selectedZone.name}` : 'Seleccionar mesa'}
+                </span>
+                <span className="text-[#8896A5] text-xs">{showMap ? 'Ocultar ↑' : 'Ver mapa ↓'}</span>
+              </button>
+              {showMap && (
+                <FloorPlanViewer
+                  zones={zones}
+                  venueId={activeVenueId}
+                  selectedZone={selectedZone}
+                  onSelect={zone => { setSelectedZone(zone); setLocation(''); setShowMap(false) }}
+                  supabaseClient={supabaseStaff}
+                />
               )}
             </div>
-          ) : zones.length > 0 ? (
+          ) : zones.filter(z => z.type === 'mesa').length > 0 ? (
             <ZoneSelector
-              zones={zones}
+              zones={zones.filter(z => z.type === 'mesa')}
               selectedZone={selectedZone}
               onSelect={zone => { setSelectedZone(zone); setLocation('') }}
               location={location}
@@ -400,9 +415,9 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
               className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-white text-[#1A2A3A]"
             />
           )
-        ) : zones.length > 0 ? (
+        ) : mesaZones.length > 0 ? (
           <ZoneSelector
-            zones={filteredZones.length > 0 ? filteredZones : zones}
+            zones={filteredZones.length > 0 ? filteredZones : mesaZones}
             selectedZone={selectedZone}
             onSelect={zone => { setSelectedZone(zone); setLocation('') }}
             location={location}
