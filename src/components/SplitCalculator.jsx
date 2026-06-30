@@ -117,6 +117,7 @@ export default function SplitCalculator({ total, assignedStaff }) {
                   href="https://852u.adj.st/home/?adj_t=mqo65e0&adj_label=nav_mp_login&adj_campaign=nav_mp_login&adj_fallback=https%3A%2F%2Fwww.mercadolibre.com%2Fjms%2Fmla%2Flgz%2Flogin%3Fplatform_id%3DMP%26go%3Dhttps%253A%252F%252Fwww.mercadopago.com.ar%252F%26loginType%3Dexplicit&adj_redirect_macos=https%3A%2F%2Fwww.mercadolibre.com%2Fjms%2Fmla%2Flgz%2Flogin%3Fplatform_id%3DMP%26go%3Dhttps%253A%252F%252Fwww.mercadopago.com.ar%252F%26loginType%3Dexplicit"
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => navigator.clipboard.writeText(String(tipAmount))}
                   className="flex items-center justify-center gap-2 w-full bg-[#009EE3] hover:bg-[#0088C7] text-white font-semibold py-3 rounded-xl text-sm"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">

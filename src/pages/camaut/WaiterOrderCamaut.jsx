@@ -172,6 +172,39 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
         </p>
         <p className="font-mono font-bold text-[#008080] text-lg mb-5">{formatPrice(lastOrder.total)}</p>
 
+        {/* Tiempo de preparación */}
+        {orderId && (
+          <div className="w-full mb-4">
+            {lastOrder.prepMins ? (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 flex items-center justify-center gap-2">
+                <span className="text-emerald-700 text-sm font-semibold">⏱ Timer iniciado · {lastOrder.prepMins} min</span>
+              </div>
+            ) : (
+              <div className="bg-[#F0F4F8] rounded-2xl p-4 text-left">
+                <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">¿Cuánto tiempo tarda?</p>
+                <div className="flex gap-2 justify-center">
+                  {[5, 10, 15, 20, 30].map(min => (
+                    <button
+                      key={min}
+                      onClick={async () => {
+                        await supabaseStaff.from('orders').update({
+                          prep_time_minutes: min,
+                          prep_started_at: new Date().toISOString(),
+                          status: 'en_preparacion'
+                        }).eq('id', orderId)
+                        setLastOrder(prev => ({ ...prev, prepMins: min }))
+                      }}
+                      className="w-12 h-12 rounded-xl bg-white border border-black/10 text-sm font-bold text-[#3A4A5A] active:bg-[#008080] active:text-white"
+                    >
+                      {min}m
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {orderId && (
           <div className="w-full mb-5">
             <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">
