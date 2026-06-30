@@ -266,7 +266,7 @@ export default function PublicOrderPage() {
               </button>
             </div>
             <a
-              href={`https://link.mercadopago.com.ar/${staff.alias_bancario}`}
+              href="https://www.mercadopago.com.ar/"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full bg-[#009EE3] text-white font-semibold py-3 rounded-xl text-sm"
