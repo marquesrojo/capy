@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabaseCamaut, supabaseStaff } from '../../lib/supabase'
+import { formatPrice } from '../../lib/utils'
 import FloorPlanViewer from '../../components/FloorPlanViewer'
 import { getLevel, getXPProgress } from '../../lib/xpUtils'
 import WaiterOrderCamaut from './WaiterOrderCamaut'
@@ -23,7 +24,7 @@ const TABS = [
     icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
   },
   {
-    id: 'turno', label: 'Turno',
+    id: 'turno', label: 'Propinas',
     icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
   },
   {
@@ -41,6 +42,8 @@ const MICAPY_ITEMS = [
   { id: 'ubicaciones', label: 'Ubicaciones', desc: 'Mapa de salones vinculados', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> },
   { id: 'carrera', label: 'Mi Carrera', desc: 'XP y logros', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg> },
   { id: 'ranking', label: 'Ranking', desc: 'Top mozos globales', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg> },
+  { id: 'indicadores', label: 'Indicadores', desc: 'KPIs de tu turno y mes', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> },
+  { id: 'encuesta', label: 'Encuesta', desc: 'Opiniones de tus clientes', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> },
 ]
 
 export default function CamautAppShell({ venueId, staffName: initialName, staffXP: initialXP, linkedVenues = [], staffId }) {
@@ -166,6 +169,8 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                 {micapyTab === 'notas' && <CamautConfigPage key="notas" embedded initialTab="notas" />}
                 {micapyTab === 'perfil' && <CamautConfigPage key="perfil" embedded initialTab="perfil" />}
                 {micapyTab === 'ubicaciones' && <UbicacionesViewer linkedVenues={linkedVenues} />}
+                {micapyTab === 'indicadores' && <IndicadoresTab venueId={venueId} staffId={staffId} />}
+                {micapyTab === 'encuesta' && <EncuestaTab staffId={staffId} />}
               </div>
             </>
           )}
@@ -216,6 +221,142 @@ function UbicacionesViewer({ linkedVenues }) {
           </div>
         )
       })}
+    </div>
+  )
+}
+
+function IndicadoresTab({ venueId, staffId }) {
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!staffId) { setLoading(false); return }
+    loadData()
+  }, [staffId])
+
+  async function loadData() {
+    const now = new Date()
+    const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0)
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+
+    const [ordersRes, tipsRes, ratingsRes] = await Promise.all([
+      supabaseStaff.from('orders').select('total, created_at').eq('venue_id', venueId).eq('assigned_staff_id', staffId).gte('created_at', monthStart.toISOString()),
+      supabaseStaff.from('waiter_tips').select('amount, created_at').eq('staff_id', staffId).gte('created_at', monthStart.toISOString()),
+      supabaseStaff.from('order_feedback').select('rating').eq('staff_id', staffId).gte('created_at', monthStart.toISOString())
+    ])
+
+    const orders = ordersRes.data || []
+    const tips = tipsRes.data || []
+    const ratings = ratingsRes.data || []
+
+    const ordersHoy = orders.filter(o => new Date(o.created_at) >= todayStart)
+    const tipsHoy = tips.filter(t => new Date(t.created_at) >= todayStart)
+    const totalVendido = orders.reduce((s, o) => s + (o.total || 0), 0)
+
+    setData({
+      pedidosHoy: ordersHoy.length,
+      pedidosMes: orders.length,
+      propinasHoy: tipsHoy.reduce((s, t) => s + (t.amount || 0), 0),
+      propinasMes: tips.reduce((s, t) => s + (t.amount || 0), 0),
+      ticketPromedio: orders.length ? totalVendido / orders.length : 0,
+      totalVendidoMes: totalVendido,
+      calificacion: ratings.length ? (ratings.reduce((s, r) => s + r.rating, 0) / ratings.length).toFixed(1) : null,
+      calificacionCount: ratings.length
+    })
+    setLoading(false)
+  }
+
+  if (loading) return <p className="text-[#8896A5] text-sm text-center py-8">Cargando...</p>
+  if (!staffId || !data) return <p className="text-[#8896A5] text-sm text-center py-8">No se encontró tu perfil.</p>
+
+  const kpis = [
+    { label: 'Pedidos hoy', value: String(data.pedidosHoy), sub: `${data.pedidosMes} este mes`, mono: false },
+    { label: 'Propinas hoy', value: formatPrice(data.propinasHoy), sub: `${formatPrice(data.propinasMes)} este mes`, mono: true },
+    { label: 'Total vendido', value: formatPrice(data.totalVendidoMes), sub: 'este mes', mono: true },
+    { label: 'Ticket promedio', value: formatPrice(data.ticketPromedio), sub: 'este mes', mono: true },
+    { label: 'Calificación', value: data.calificacion ? `${data.calificacion}/5` : '—', sub: data.calificacion ? `${data.calificacionCount} opiniones` : 'Sin datos', mono: false },
+  ]
+
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      {kpis.map(kpi => (
+        <div key={kpi.label} className={`bg-white rounded-2xl p-4 border border-black/5 shadow-sm ${kpi.label === 'Total vendido' ? 'col-span-2' : ''}`}>
+          <p className="text-[#8896A5] text-xs mb-1">{kpi.label}</p>
+          <p className={`font-bold text-[#1A2A3A] text-xl leading-tight ${kpi.mono ? 'font-mono' : ''}`}>{kpi.value}</p>
+          <p className="text-[#B0BEC5] text-[10px] mt-0.5">{kpi.sub}</p>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function EncuestaTab({ staffId }) {
+  const [feedback, setFeedback] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  const FACE_LABELS = ['', 'Muy mala', 'Mala', 'Regular', 'Buena', 'Excelente']
+  const FACE_COLORS = ['', 'text-red-700', 'text-orange-600', 'text-amber-600', 'text-[#4DD0E1]', 'text-emerald-500']
+
+  useEffect(() => {
+    if (!staffId) { setLoading(false); return }
+    loadData()
+  }, [staffId])
+
+  async function loadData() {
+    const since = new Date()
+    since.setDate(since.getDate() - 30)
+    const { data } = await supabaseStaff
+      .from('order_feedback')
+      .select('rating, notes, created_at')
+      .eq('staff_id', staffId)
+      .gte('created_at', since.toISOString())
+      .order('created_at', { ascending: false })
+    setFeedback(data || [])
+    setLoading(false)
+  }
+
+  if (loading) return <p className="text-[#8896A5] text-sm text-center py-8">Cargando...</p>
+  if (!staffId) return <p className="text-[#8896A5] text-sm text-center py-8">No se encontró tu perfil.</p>
+  if (!feedback?.length) return <p className="text-[#8896A5] text-sm text-center py-8">Sin encuestas en los últimos 30 días.</p>
+
+  const avg = (feedback.reduce((s, f) => s + f.rating, 0) / feedback.length).toFixed(1)
+  const dist = [5, 4, 3, 2, 1].map(r => ({ rating: r, count: feedback.filter(f => f.rating === r).length }))
+  const withNotes = feedback.filter(f => f.notes)
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm text-center">
+        <p className="text-[#8896A5] text-xs mb-1">Promedio últimos 30 días</p>
+        <p className="font-mono font-bold text-[#008080] text-4xl">{avg}</p>
+        <p className="text-[#8896A5] text-xs mt-1">{feedback.length} opiniones</p>
+      </div>
+      <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm space-y-2">
+        {dist.map(({ rating, count }) => (
+          <div key={rating} className="flex items-center gap-2">
+            <span className={`text-xs font-semibold w-16 flex-shrink-0 ${FACE_COLORS[rating]}`}>{FACE_LABELS[rating]}</span>
+            <div className="flex-1 h-2 bg-[#F0F4F8] rounded-full overflow-hidden">
+              <div
+                className="h-2 bg-[#4DD0E1] rounded-full"
+                style={{ width: feedback.length ? `${(count / feedback.length) * 100}%` : '0%' }}
+              />
+            </div>
+            <span className="text-[#8896A5] text-xs w-4 text-right flex-shrink-0">{count}</span>
+          </div>
+        ))}
+      </div>
+      {withNotes.length > 0 && (
+        <div>
+          <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-2">Comentarios</p>
+          <div className="space-y-2">
+            {withNotes.map((f, i) => (
+              <div key={i} className="bg-white rounded-xl px-4 py-3 border border-black/5 shadow-sm">
+                <span className={`text-xs font-semibold ${FACE_COLORS[f.rating]}`}>{FACE_LABELS[f.rating]}</span>
+                <p className="text-[#8896A5] text-sm italic mt-1">"{f.notes}"</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -63,10 +63,22 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
   const [ownOrders, setOwnOrders] = useState([])
   const [linkedOrders, setLinkedOrders] = useState([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState(() => linkedVenues.length > 0 ? null : 'propio')
+  const [activeTab, setActiveTab] = useState(() => {
+    if (linkedVenues.length === 0) return 'propio'
+    return localStorage.getItem(`capy_kanban_${venueId}`) || null
+  })
   const [timerModal, setTimerModal] = useState(null) // { orderId }
   const [timerMins, setTimerMins] = useState('15')
   const [qrModal, setQrModal] = useState(null)
+
+  function selectTab(id) {
+    setActiveTab(id)
+    if (id === null) {
+      localStorage.removeItem(`capy_kanban_${venueId}`)
+    } else {
+      localStorage.setItem(`capy_kanban_${venueId}`, id)
+    }
+  }
 
   useEffect(() => {
     if (venueId) loadOrders()
@@ -127,7 +139,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
         <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-4 px-1">¿Qué pedidos querés ver?</p>
         <div className="space-y-3">
           <button
-            onClick={() => setActiveTab('propio')}
+            onClick={() => selectTab('propio')}
             className="w-full bg-white rounded-2xl p-4 border border-black/5 shadow-sm text-left flex items-center gap-4 active:scale-95 transition-transform"
           >
             <div className="w-12 h-12 rounded-xl bg-[#E8F5F5] flex items-center justify-center text-[#008080] flex-shrink-0">
@@ -143,7 +155,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
             return (
               <button
                 key={v.id}
-                onClick={() => setActiveTab(v.id)}
+                onClick={() => selectTab(v.id)}
                 className="w-full bg-white rounded-2xl p-4 border border-black/5 shadow-sm text-left flex items-center gap-4 active:scale-95 transition-transform"
               >
                 <div className="w-12 h-12 rounded-xl bg-[#FFF3E8] flex items-center justify-center flex-shrink-0" style={{ color: '#E07A30' }}>
@@ -244,7 +256,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
             </p>
           </div>
           <button
-            onClick={() => setActiveTab(null)}
+            onClick={() => selectTab(null)}
             className="text-[#008080] text-xs font-semibold border border-[#008080]/30 px-3 py-1.5 rounded-xl"
           >
             Cambiar
