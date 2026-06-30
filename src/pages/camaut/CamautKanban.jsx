@@ -72,6 +72,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
   const [timerModal, setTimerModal] = useState(null) // { orderId }
   const [timerMins, setTimerMins] = useState('15')
   const [qrModal, setQrModal] = useState(null)
+  const [expandedCard, setExpandedCard] = useState(null)
 
   useEffect(() => {
     if (!venueId) return
@@ -132,12 +133,15 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
   async function startTimer(orderId, mins) {
     const minutes = parseInt(mins)
     if (!minutes || minutes < 1) return
+    const order = ownOrders.find(o => o.id === orderId)
+    const toPrep = order && ['recibido', 'pendiente_aprobacion'].includes(order.status)
     await supabaseStaff.from('orders').update({
       prep_started_at: new Date().toISOString(),
-      prep_time_minutes: minutes
+      prep_time_minutes: minutes,
+      ...(toPrep ? { status: 'en_preparacion' } : {})
     }).eq('id', orderId)
     setOwnOrders(prev => prev.map(o => o.id === orderId
-      ? { ...o, prep_started_at: new Date().toISOString(), prep_time_minutes: minutes }
+      ? { ...o, prep_started_at: new Date().toISOString(), prep_time_minutes: minutes, ...(toPrep ? { status: 'en_preparacion' } : {}) }
       : o
     ))
     setTimerModal(null)
@@ -337,19 +341,50 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
                           <span className="font-mono text-[#008080] font-bold text-sm">
                             #{order.daily_number || order.id.slice(0, 4)}
                           </span>
-                          <span className="text-[#8896A5] text-[10px]">
-                            {Math.round((Date.now() - new Date(order.created_at).getTime()) / 60000)}m
-                          </span>
+                          <div className="flex items-center gap-1">
+                            <span className="text-[#8896A5] text-[10px]">
+                              {Math.round((Date.now() - new Date(order.created_at).getTime()) / 60000)}m
+                            </span>
+                            <button
+                              onClick={() => setExpandedCard(prev => prev === order.id ? null : order.id)}
+                              className="text-[#8896A5] text-[10px] border border-black/10 w-5 h-5 rounded flex items-center justify-center leading-none"
+                            >
+                              {expandedCard === order.id ? '↑' : '↓'}
+                            </button>
+                          </div>
                         </div>
                         <p className="text-[#8896A5] text-[10px] mb-1">📍 {order.location_label}</p>
+
+                        {/* Items: collapsed = primeros 3, expanded = todos con notas */}
                         <div className="text-[#8896A5] text-[10px] space-y-0.5 mb-2">
-                          {(order.order_items || []).slice(0, 3).map((item, i) => (
-                            <p key={i}>{item.quantity}× {item.product_name}</p>
-                          ))}
-                          {(order.order_items || []).length > 3 && (
-                            <p>+{order.order_items.length - 3} más</p>
+                          {expandedCard === order.id ? (
+                            <>
+                              {(order.order_items || []).map((item, i) => (
+                                <div key={i}>
+                                  <p className="text-[#3A4A5A]">{item.quantity}× {item.product_name}</p>
+                                  {item.item_notes && (
+                                    <p className="text-amber-600 italic ml-3">↳ {item.item_notes}</p>
+                                  )}
+                                </div>
+                              ))}
+                              {order.notes && (
+                                <p className="text-amber-600 italic border-l-2 border-amber-400/40 pl-2 mt-1">
+                                  📝 {order.notes}
+                                </p>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              {(order.order_items || []).slice(0, 3).map((item, i) => (
+                                <p key={i}>{item.quantity}× {item.product_name}</p>
+                              ))}
+                              {(order.order_items || []).length > 3 && (
+                                <p>+{order.order_items.length - 3} más</p>
+                              )}
+                            </>
                           )}
                         </div>
+
                         <div className="flex items-center justify-between mt-2">
                           <p className="font-mono text-[#1A2A3A] text-xs font-semibold">
                             {formatPrice(order.total)}
@@ -362,7 +397,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
                           </button>
                         </div>
                         {col.id !== 'entregado' && (
-                          <div className="flex gap-1">
+                          <div className="flex gap-1 mt-2">
                             {PREV_STATUS[order.status] && (
                               <button
                                 onClick={() => updateStatus(order.id, PREV_STATUS[order.status])}
@@ -372,6 +407,14 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
                               </button>
                             )}
                             {col.id === 'en_preparacion' && (
+                              <button
+                                onClick={() => { setTimerModal(order.id); setTimerMins('15') }}
+                                className="border border-[#008080]/30 text-[#008080] text-[10px] px-2 py-1 rounded-lg"
+                              >
+                                ⏱
+                              </button>
+                            )}
+                            {col.id === 'recibido' && (
                               <button
                                 onClick={() => { setTimerModal(order.id); setTimerMins('15') }}
                                 className="border border-[#008080]/30 text-[#008080] text-[10px] px-2 py-1 rounded-lg"
