@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
+import FloorPlanEditor from '../../components/FloorPlanEditor'
 
 const TYPE_LABELS = {
   mesa: 'Mesa',
@@ -18,6 +19,7 @@ export default function LocationsPage() {
   const [zones, setZones] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('mesa')
+  const [viewMode, setViewMode] = useState('lista') // 'lista' | 'mapa'
   const [newName, setNewName] = useState('')
 
   useEffect(() => {
@@ -94,51 +96,75 @@ export default function LocationsPage() {
             ← Volver
           </Link>
         </div>
-        <div className="flex gap-2 mt-3">
-          {TYPE_TABS.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                activeTab === tab.id
-                  ? 'bg-ember-500 text-white border-ember-500'
-                  : 'border-carbon-700 text-smoke-400'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="flex items-center justify-between mt-3">
+          <div className="flex gap-2">
+            {TYPE_TABS.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => { setActiveTab(tab.id); setViewMode('lista') }}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                  activeTab === tab.id
+                    ? 'bg-ember-500 text-white border-ember-500'
+                    : 'border-carbon-700 text-smoke-400'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          {activeTab === 'mesa' && (
+            <div className="flex gap-1 bg-carbon-900 border border-carbon-700 rounded-lg p-0.5">
+              <button
+                onClick={() => setViewMode('lista')}
+                className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${viewMode === 'lista' ? 'bg-carbon-700 text-smoke-200' : 'text-smoke-500'}`}
+              >
+                Lista
+              </button>
+              <button
+                onClick={() => setViewMode('mapa')}
+                className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${viewMode === 'mapa' ? 'bg-carbon-700 text-smoke-200' : 'text-smoke-500'}`}
+              >
+                Mapa
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
       <main className="px-5 mt-4">
-        <div className="flex gap-2 mb-4">
-          <input
-            type="text"
-            value={newName}
-            onChange={e => setNewName(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && addZone()}
-            placeholder={`Nombre de ${TYPE_LABELS[activeTab].toLowerCase()}`}
-            className="input flex-1"
-          />
-          <button
-            onClick={addZone}
-            className="bg-ember-500 hover:bg-ember-600 text-white text-sm font-semibold px-4 rounded-xl"
-          >
-            Agregar
-          </button>
-        </div>
-
-        {filtered.length === 0 ? (
-          <p className="text-smoke-500 text-sm text-center py-10">
-            Todavía no agregaste ningún {TYPE_LABELS[activeTab].toLowerCase()}.
-          </p>
+        {viewMode === 'mapa' ? (
+          <FloorPlanEditor zones={filtered} onSaved={load} />
         ) : (
-          <div className="space-y-2">
-            {filtered.map(zone => (
-              <ZoneRow key={zone.id} zone={zone} onToggle={() => toggleActive(zone)} onRename={renameZone} />
-            ))}
-          </div>
+          <>
+            <div className="flex gap-2 mb-4">
+              <input
+                type="text"
+                value={newName}
+                onChange={e => setNewName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addZone()}
+                placeholder={`Nombre de ${TYPE_LABELS[activeTab].toLowerCase()}`}
+                className="input flex-1"
+              />
+              <button
+                onClick={addZone}
+                className="bg-ember-500 hover:bg-ember-600 text-white text-sm font-semibold px-4 rounded-xl"
+              >
+                Agregar
+              </button>
+            </div>
+
+            {filtered.length === 0 ? (
+              <p className="text-smoke-500 text-sm text-center py-10">
+                Todavía no agregaste ningún {TYPE_LABELS[activeTab].toLowerCase()}.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {filtered.map(zone => (
+                  <ZoneRow key={zone.id} zone={zone} onToggle={() => toggleActive(zone)} onRename={renameZone} />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>
