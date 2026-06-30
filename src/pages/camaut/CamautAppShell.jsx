@@ -32,12 +32,21 @@ const TABS = [
   },
 ]
 
-const MICAPY_TABS = ['perfil', 'perfil_pro', 'carta', 'notas', 'vincular', 'ubicaciones', 'carrera', 'ranking']
+const MICAPY_ITEMS = [
+  { id: 'perfil', label: 'Mi Perfil', desc: 'Nombre, foto, datos', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> },
+  { id: 'perfil_pro', label: 'Perfil Pro', desc: 'CV gastronómico', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> },
+  { id: 'carta', label: 'Mis Cartas', desc: 'Menúes y cartas propias', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> },
+  { id: 'notas', label: 'Notas rápidas', desc: 'Chips para ítems', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> },
+  { id: 'vincular', label: 'Vincular', desc: 'Conectar con restaurantes', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
+  { id: 'ubicaciones', label: 'Ubicaciones', desc: 'Mapa de salones vinculados', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> },
+  { id: 'carrera', label: 'Mi Carrera', desc: 'XP y logros', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg> },
+  { id: 'ranking', label: 'Ranking', desc: 'Top mozos globales', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg> },
+]
 
 export default function CamautAppShell({ venueId, staffName: initialName, staffXP: initialXP, linkedVenues = [], staffId }) {
   const navigate = useNavigate()
   const [tab, setTab] = useState('tomar')
-  const [micapyTab, setMicapyTab] = useState('perfil')
+  const [micapyTab, setMicapyTab] = useState(null)
   const [staffName, setStaffName] = useState(initialName)
   const [staffXP, setStaffXP] = useState(initialXP || 0)
 
@@ -121,37 +130,45 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
 
       {tab === 'micapy' && (
         <div className="bg-[#F0F4F8] min-h-screen">
-          <div className="bg-white border-b border-black/8 px-5 pt-3 pb-0">
-            <div className="flex gap-4 overflow-x-auto">
-              {MICAPY_TABS.map(t => (
-                <button
-                  key={t}
-                  onClick={() => setMicapyTab(t)}
-                  className={`whitespace-nowrap pb-2.5 text-xs font-semibold capitalize border-b-2 ${
-                    micapyTab === t ? 'border-[#008080] text-[#008080]' : 'border-transparent text-[#8896A5]'
-                  }`}
-                >
-                  {t === 'micapy' ? 'Mi Capy' : t === 'perfil_pro' ? 'Perfil Pro' : t === 'vincular' ? 'Vincular' : t === 'carta' ? 'Mis Cartas' : t === 'notas' ? 'Notas' : t === 'whatsapp' ? 'WhatsApp' : t === 'ubicaciones' ? 'Ubicaciones' : t.charAt(0).toUpperCase() + t.slice(1)}
-                </button>
-              ))}
+          {!micapyTab ? (
+            <div className="px-4 pt-5 pb-8">
+              <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-4 px-1">Mi Capy</p>
+              <div className="grid grid-cols-2 gap-3">
+                {MICAPY_ITEMS.map(item => (
+                  <button
+                    key={item.id}
+                    onClick={() => setMicapyTab(item.id)}
+                    className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm text-left flex flex-col gap-2 active:scale-95 transition-transform"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-[#E8F5F5] flex items-center justify-center text-[#008080]">
+                      {item.icon}
+                    </div>
+                    <div>
+                      <p className="font-bold text-[#1A2A3A] text-sm leading-tight">{item.label}</p>
+                      <p className="text-[#8896A5] text-[11px] mt-0.5 leading-tight">{item.desc}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-          <div className="px-5 py-5">
-            {micapyTab === 'carrera' && <MiCarrera venueId={venueId} />}
-            {micapyTab === 'ranking' && <RankingMozos globalOnly />}
-            {micapyTab === 'vincular' && <VincularTab />}
-            {micapyTab === 'perfil_pro' && <PerfilProPage venueId={venueId} />}
-            {micapyTab === 'carta' && (
-              <CamautConfigPage key="carta" embedded initialTab="carta" />
-            )}
-            {micapyTab === 'notas' && <CamautConfigPage key="notas" embedded initialTab="notas" />}
-            {micapyTab === 'perfil' && (
-              <CamautConfigPage key="perfil" embedded initialTab="perfil" />
-            )}
-            {micapyTab === 'ubicaciones' && (
-              <UbicacionesViewer linkedVenues={linkedVenues} />
-            )}
-          </div>
+          ) : (
+            <>
+              <div className="bg-white border-b border-black/8 px-4 py-3 flex items-center gap-3">
+                <button onClick={() => setMicapyTab(null)} className="text-[#008080] text-sm font-semibold">← Volver</button>
+                <p className="font-bold text-[#1A2A3A] text-sm">{MICAPY_ITEMS.find(i => i.id === micapyTab)?.label}</p>
+              </div>
+              <div className="px-5 py-5">
+                {micapyTab === 'carrera' && <MiCarrera venueId={venueId} />}
+                {micapyTab === 'ranking' && <RankingMozos globalOnly />}
+                {micapyTab === 'vincular' && <VincularTab />}
+                {micapyTab === 'perfil_pro' && <PerfilProPage venueId={venueId} />}
+                {micapyTab === 'carta' && <CamautConfigPage key="carta" embedded initialTab="carta" />}
+                {micapyTab === 'notas' && <CamautConfigPage key="notas" embedded initialTab="notas" />}
+                {micapyTab === 'perfil' && <CamautConfigPage key="perfil" embedded initialTab="perfil" />}
+                {micapyTab === 'ubicaciones' && <UbicacionesViewer linkedVenues={linkedVenues} />}
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
