@@ -4,6 +4,7 @@ import { supabaseCustomer, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useCart } from '../../hooks/useCart'
 import { useCustomer } from '../../hooks/useCustomer'
 import { formatPrice } from '../../lib/utils'
+import { useClientBase } from '../../hooks/useVenue'
 
 // Forma de pago elegida aca = solo una PREFERENCIA declarada por el
 // cliente. No dispara ninguna accion de cobro todavia. El pedido entra
@@ -15,6 +16,7 @@ export default function PaymentPage() {
   const { items, subtotal, location, updateQuantity, updateItemNotes, clearCart, itemCount } = useCart()
   const { customer, registerCustomer } = useCustomer()
   const navigate = useNavigate()
+  const base = useClientBase()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [notes, setNotes] = useState('')
@@ -25,8 +27,8 @@ export default function PaymentPage() {
   const [quickNotes, setQuickNotes] = useState([])
 
   useEffect(() => {
-    if (itemCount === 0) navigate('/carta')
-    if (!location) navigate('/ubicacion')
+    if (itemCount === 0) navigate(`${base}/carta`)
+    if (!location) navigate(`${base}/ubicacion`)
   }, [itemCount, location, navigate])
 
   useEffect(() => {
@@ -124,7 +126,7 @@ export default function PaymentPage() {
       if (itemsError) throw itemsError
 
       clearCart()
-      navigate(`/pedido-enviado/${order.id}`)
+      navigate(`${base}/pedido-enviado/${order.id}`)
     } catch (err) {
       console.error(err)
       setError(`Error: ${err?.message || JSON.stringify(err)}`)
@@ -138,7 +140,7 @@ export default function PaymentPage() {
         <div className="flex items-center justify-between mb-1">
           <h1 className="font-display text-3xl text-pucara-blue-500 tracking-wide">TU PEDIDO</h1>
           <button
-            onClick={() => navigate('/carta')}
+            onClick={() => navigate(`${base}/carta`)}
             className="text-pucara-blue-500 text-xs font-medium underline"
           >
             ← Agregar más

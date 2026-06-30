@@ -2,15 +2,17 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabaseCustomer, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useCart } from '../../hooks/useCart'
+import { useClientBase } from '../../hooks/useVenue'
 
 export default function LocationPage() {
   const [zones, setZones] = useState([])
   const [loading, setLoading] = useState(true)
   const { setLocation, itemCount } = useCart()
   const navigate = useNavigate()
+  const base = useClientBase()
 
   useEffect(() => {
-    if (itemCount === 0) navigate('/carta')
+    if (itemCount === 0) navigate(`${base}/carta`)
   }, [itemCount, navigate])
 
   useEffect(() => {
@@ -33,7 +35,7 @@ export default function LocationPage() {
       zoneId: zone.id,
       label: zone.name
     })
-    navigate('/pago')
+    navigate(`${base}/pago`)
   }
 
   if (loading) {

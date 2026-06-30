@@ -42,6 +42,13 @@ export const supabaseCustomer = createClient(supabaseUrl, supabaseAnonKey, {
   }
 })
 
-// ID del venue activo. En el MVP hay un solo local;
-// si en el futuro hay multi-local, esto se resuelve por subdominio o selector.
-export const ACTIVE_VENUE_ID = import.meta.env.VITE_VENUE_ID || '00000000-0000-0000-0000-000000000001'
+// ID del venue activo. Se inicializa con la variable de entorno (para el
+// venue por defecto de Pucará) y se sobreescribe dinámicamente al cargar
+// el perfil del admin (useAuth) o al resolver el slug de la URL del cliente
+// (useVenue). Todos los archivos que importan ACTIVE_VENUE_ID obtienen el
+// valor actual en tiempo de ejecución gracias a las live bindings de ESM.
+export let ACTIVE_VENUE_ID = import.meta.env.VITE_VENUE_ID || '00000000-0000-0000-0000-000000000001'
+
+export function setActiveVenueId(id) {
+  if (id) ACTIVE_VENUE_ID = id
+}

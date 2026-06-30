@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabaseCustomer, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useCustomer } from '../../hooks/useCustomer'
+import { useClientBase } from '../../hooks/useVenue'
 
 export default function OrderConfirmedPage() {
   const { orderId } = useParams()
   const navigate = useNavigate()
+  const base = useClientBase()
   const { customer } = useCustomer()
   const [order, setOrder] = useState(null)
   const [venueWhatsapp, setVenueWhatsapp] = useState(null)
@@ -94,13 +96,13 @@ export default function OrderConfirmedPage() {
 
         <div className="space-y-3">
           <button
-            onClick={() => navigate('/pedidos')}
+            onClick={() => navigate(`${base}/pedidos`)}
             className="w-full bg-ember-500 hover:bg-ember-600 text-white font-semibold py-3.5 rounded-xl"
           >
             Ver mis pedidos
           </button>
           <button
-            onClick={() => navigate('/carta')}
+            onClick={() => navigate(`${base}/carta`)}
             className="w-full border border-carbon-700 text-smoke-300 font-medium py-3.5 rounded-xl"
           >
             Seguir pidiendo

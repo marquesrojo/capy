@@ -1,9 +1,11 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, Outlet, Link } from 'react-router-dom'
 import { AuthProvider } from './hooks/useAuth'
 import { CustomerProvider } from './hooks/useCustomer'
 import { CartProvider } from './hooks/useCart'
 import { RequireCustomer, RequireStaff, RequireAdmin } from './components/ProtectedRoute'
+import { VenueProvider, useVenue } from './hooks/useVenue'
 
+import HubPage from './pages/HubPage'
 import IdentifyPage from './pages/client/IdentifyPage'
 import MenuPage from './pages/client/MenuPage'
 import OrdersPage from './pages/client/OrdersPage'
@@ -13,6 +15,7 @@ import OrderConfirmedPage from './pages/client/OrderConfirmedPage'
 import OrderStatusPage from './pages/client/OrderStatusPage'
 
 import AdminLoginPage from './pages/admin/AdminLoginPage'
+import AdminOnboardingPage from './pages/admin/AdminOnboardingPage'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import HistoryPage from './pages/admin/HistoryPage'
 import MenuEditorPage from './pages/admin/MenuEditorPage'
@@ -39,6 +42,35 @@ import CamautAppPage from './pages/camaut/CamautAppPage'
 import PrivacidadPage from './pages/camaut/PrivacidadPage'
 import TerminosPage from './pages/camaut/TerminosPage'
 
+function VenueGuard() {
+  const { loading, notFound } = useVenue()
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-carbon-950 flex items-center justify-center">
+        <p className="text-smoke-400 text-sm">Cargando...</p>
+      </div>
+    )
+  }
+  if (notFound) {
+    return (
+      <div className="min-h-screen bg-carbon-950 flex flex-col items-center justify-center px-5 text-center">
+        <p className="text-smoke-300 font-semibold mb-2">Restaurante no encontrado</p>
+        <p className="text-smoke-500 text-sm mb-6">Este link no corresponde a ningún local activo.</p>
+        <Link to="/" className="text-ember-500 text-sm underline">Volver al inicio</Link>
+      </div>
+    )
+  }
+  return <Outlet />
+}
+
+function VenueLayout() {
+  return (
+    <VenueProvider>
+      <VenueGuard />
+    </VenueProvider>
+  )
+}
+
 export default function App() {
   return (
     <AuthProvider>
@@ -46,8 +78,10 @@ export default function App() {
         <CartProvider>
           <BrowserRouter>
             <Routes>
-              {/* Cliente: sin login, identificado por nombre + whatsapp */}
-              <Route path="/" element={<IdentifyPage />} />
+              {/* Hub de descubrimiento */}
+              <Route path="/" element={<HubPage />} />
+
+              {/* Cliente legacy: rutas planas usan VITE_VENUE_ID por defecto */}
               <Route path="/identificacion" element={<IdentifyPage />} />
               <Route
                 path="/carta"
@@ -81,13 +115,51 @@ export default function App() {
                   </RequireCustomer>
                 }
               />
-              {/* El seguimiento del pedido no requiere identificacion previa
-                  en este dispositivo (ej: si comparten el link), solo el id */}
               <Route path="/pedido-enviado/:orderId" element={<OrderConfirmedPage />} />
               <Route path="/pedido/:orderId" element={<OrderStatusPage />} />
 
+              {/* Cliente multi-venue: /r/:slug/* */}
+              <Route path="/r/:slug" element={<VenueLayout />}>
+                <Route index element={<IdentifyPage />} />
+                <Route
+                  path="carta"
+                  element={
+                    <RequireCustomer>
+                      <MenuPage />
+                    </RequireCustomer>
+                  }
+                />
+                <Route
+                  path="pedidos"
+                  element={
+                    <RequireCustomer>
+                      <OrdersPage />
+                    </RequireCustomer>
+                  }
+                />
+                <Route
+                  path="ubicacion"
+                  element={
+                    <RequireCustomer>
+                      <LocationPage />
+                    </RequireCustomer>
+                  }
+                />
+                <Route
+                  path="pago"
+                  element={
+                    <RequireCustomer>
+                      <PaymentPage />
+                    </RequireCustomer>
+                  }
+                />
+                <Route path="pedido-enviado/:orderId" element={<OrderConfirmedPage />} />
+                <Route path="pedido/:orderId" element={<OrderStatusPage />} />
+              </Route>
+
               {/* Staff: camarero y admin, con login real */}
               <Route path="/admin/login" element={<AdminLoginPage />} />
+              <Route path="/admin/onboarding" element={<AdminOnboardingPage />} />
               <Route
                 path="/admin"
                 element={
@@ -219,7 +291,7 @@ export default function App() {
               <Route path="/camaut/app" element={<CamautAppPage />} />
               <Route path="/privacidad" element={<PrivacidadPage />} />
               <Route path="/terminos" element={<TerminosPage />} />
-              <Route path="*" element={<Navigate to="/carta" replace />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </BrowserRouter>
         </CartProvider>

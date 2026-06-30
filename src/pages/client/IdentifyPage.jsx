@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabaseCustomer, ACTIVE_VENUE_ID } from '../../lib/supabase'
+import { useClientBase } from '../../hooks/useVenue'
 
 const STEPS = [
   {
@@ -22,6 +23,7 @@ const STEPS = [
 
 export default function IdentifyPage() {
   const navigate = useNavigate()
+  const base = useClientBase()
   const [orderNumber, setOrderNumber] = useState('')
   const [finding, setFinding] = useState(false)
   const [error, setError] = useState('')
@@ -94,7 +96,7 @@ export default function IdentifyPage() {
 
         {/* CTA principal */}
         <button
-          onClick={() => navigate('/carta')}
+          onClick={() => navigate(`${base}/carta`)}
           className="w-full bg-pucara-blue-500 hover:bg-pucara-blue-600 text-white font-semibold py-4 rounded-2xl text-lg shadow-pucara"
         >
           Ver la carta →
