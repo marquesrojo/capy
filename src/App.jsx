@@ -36,6 +36,8 @@ import CamautLandingPage from './pages/camaut/CamautLandingPage'
 import CamautRegisterPage from './pages/camaut/CamautRegisterPage'
 import CamautLoginPage from './pages/camaut/CamautLoginPage'
 import CamautAppPage from './pages/camaut/CamautAppPage'
+import PrivacidadPage from './pages/camaut/PrivacidadPage'
+import TerminosPage from './pages/camaut/TerminosPage'
 
 export default function App() {
   return (
@@ -215,6 +217,8 @@ export default function App() {
               <Route path="/camaut/login" element={<CamautLoginPage />} />
               <Route path="/camaut/vincular" element={<CamautVincularPage />} />
               <Route path="/camaut/app" element={<CamautAppPage />} />
+              <Route path="/privacidad" element={<PrivacidadPage />} />
+              <Route path="/terminos" element={<TerminosPage />} />
               <Route path="*" element={<Navigate to="/carta" replace />} />
             </Routes>
           </BrowserRouter>
