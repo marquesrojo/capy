@@ -42,6 +42,7 @@ export default function PublicOrderPage() {
   const [notFound, setNotFound] = useState(false)
   const [calling, setCalling] = useState(false)
   const [billRequested, setBillRequested] = useState(false)
+  const [aliasCopied, setAliasCopied] = useState(false)
   const [showSplit, setShowSplit] = useState(false)
   const [splitPeople, setSplitPeople] = useState(2)
   const [tipPercent, setTipPercent] = useState(10)
@@ -245,22 +246,36 @@ export default function PublicOrderPage() {
           Propina sugerida: <span className="font-mono font-bold text-ember-500">{formatPrice(tipAmount)}</span>
         </p>
         {staff?.alias_bancario && (
-          <div className="mt-3 bg-carbon-800 rounded-xl px-4 py-3 text-center">
-            <p className="text-smoke-500 text-xs mb-1">Alias para transferir propina</p>
-            <div className="flex items-center justify-center gap-2">
-              <p className="font-mono text-smoke-200 font-bold text-sm">{staff.alias_bancario}</p>
+          <div className="mt-3 space-y-2">
+            <div className="bg-carbon-800 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-smoke-500 text-[10px] mb-0.5">Alias para transferir propina</p>
+                <p className="font-mono text-smoke-200 font-bold text-sm">{staff.alias_bancario}</p>
+              </div>
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(staff.alias_bancario)
-                  alert('Alias copiado')
+                  setAliasCopied(true)
+                  setTimeout(() => setAliasCopied(false), 2000)
                 }}
-                className="text-ember-500"
+                className={`text-xs font-semibold px-3 py-1.5 rounded-full flex-shrink-0 transition-colors ${
+                  aliasCopied ? 'bg-emerald-600 text-white' : 'bg-ember-500 text-white'
+                }`}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                </svg>
+                {aliasCopied ? '¡Copiado! ✓' : 'Copiar'}
               </button>
             </div>
+            <a
+              href={`https://link.mercadopago.com.ar/${staff.alias_bancario}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full bg-[#009EE3] text-white font-semibold py-3 rounded-xl text-sm"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L6.26 14.4l-2.97-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.566 2.186z"/>
+              </svg>
+              Pagar {formatPrice(tipAmount)} con Mercado Pago
+            </a>
           </div>
         )}
       </div>
