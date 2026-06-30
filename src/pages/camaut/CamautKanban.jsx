@@ -63,7 +63,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
   const [ownOrders, setOwnOrders] = useState([])
   const [linkedOrders, setLinkedOrders] = useState([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('propio')
+  const [activeTab, setActiveTab] = useState(() => linkedVenues.length > 0 ? null : 'propio')
   const [timerModal, setTimerModal] = useState(null) // { orderId }
   const [timerMins, setTimerMins] = useState('15')
   const [qrModal, setQrModal] = useState(null)
@@ -119,6 +119,47 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
       <p className="text-[#8896A5] text-sm">Cargando...</p>
     </div>
   )
+
+  // Selector de venue
+  if (activeTab === null) {
+    return (
+      <div className="px-4 pt-5 pb-8 bg-[#F0F4F8] min-h-screen">
+        <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-4 px-1">¿Qué pedidos querés ver?</p>
+        <div className="space-y-3">
+          <button
+            onClick={() => setActiveTab('propio')}
+            className="w-full bg-white rounded-2xl p-4 border border-black/5 shadow-sm text-left flex items-center gap-4 active:scale-95 transition-transform"
+          >
+            <div className="w-12 h-12 rounded-xl bg-[#E8F5F5] flex items-center justify-center text-[#008080] flex-shrink-0">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            </div>
+            <div>
+              <p className="font-bold text-[#1A2A3A] text-base">Mis Cartas</p>
+              <p className="text-[#8896A5] text-sm">{ownOrders.filter(o => o.status !== 'entregado').length} pedidos activos</p>
+            </div>
+          </button>
+          {linkedVenues.map(v => {
+            const count = linkedOrders.filter(o => o.venue_id === v.id && o.status !== 'entregado').length
+            return (
+              <button
+                key={v.id}
+                onClick={() => setActiveTab(v.id)}
+                className="w-full bg-white rounded-2xl p-4 border border-black/5 shadow-sm text-left flex items-center gap-4 active:scale-95 transition-transform"
+              >
+                <div className="w-12 h-12 rounded-xl bg-[#FFF3E8] flex items-center justify-center flex-shrink-0" style={{ color: '#E07A30' }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </div>
+                <div>
+                  <p className="font-bold text-[#1A2A3A] text-base">{v.name.replace(' — Capy', '')}</p>
+                  <p className="text-[#8896A5] text-sm">{count} pedidos activos</p>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="bg-[#F0F4F8] min-h-screen">
@@ -195,28 +236,19 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
         </div>
       )}
       {linkedVenues.length > 0 && (
-        <div className="px-4 pt-4 pb-2">
-          <div className="flex gap-2 bg-black/5 rounded-xl p-1">
-            <button
-              onClick={() => setActiveTab('propio')}
-              className={`flex-1 py-2 rounded-lg text-xs font-semibold ${
-                activeTab === 'propio' ? 'bg-white text-[#008080] shadow-sm' : 'text-[#8896A5]'
-              }`}
-            >
-              Mi Carta
-            </button>
-            {linkedVenues.map(v => (
-              <button
-                key={v.id}
-                onClick={() => setActiveTab(v.id)}
-                className={`flex-1 py-2 rounded-lg text-xs font-semibold ${
-                  activeTab === v.id ? 'bg-white text-[#008080] shadow-sm' : 'text-[#8896A5]'
-                }`}
-              >
-                {v.name.replace(' — Capy', '')}
-              </button>
-            ))}
+        <div className="bg-white border-b border-black/8 px-4 py-3 flex items-center justify-between">
+          <div>
+            <p className="text-[#8896A5] text-[10px] font-semibold uppercase tracking-wide">Viendo</p>
+            <p className="font-bold text-[#1A2A3A] text-sm">
+              {activeTab === 'propio' ? 'Mis Cartas' : linkedVenues.find(v => v.id === activeTab)?.name?.replace(' — Capy', '')}
+            </p>
           </div>
+          <button
+            onClick={() => setActiveTab(null)}
+            className="text-[#008080] text-xs font-semibold border border-[#008080]/30 px-3 py-1.5 rounded-xl"
+          >
+            Cambiar
+          </button>
         </div>
       )}
 
