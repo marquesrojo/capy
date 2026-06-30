@@ -121,6 +121,9 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
       const result = await res.json()
       if (result.success) {
         if (staffId) await awardXP(staffId, 'send_order')
+        if (result.order?.id && activeVenueId === venueId && activeMenuId && activeMenuId !== 'all') {
+          await supabaseStaff.from('orders').update({ menu_id: activeMenuId }).eq('id', result.order.id)
+        }
         setLastOrder({ order: result.order, items: cartItems, location: locationLabel, total })
         setCart({})
         setLocation('')
