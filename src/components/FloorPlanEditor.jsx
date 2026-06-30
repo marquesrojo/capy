@@ -1,8 +1,11 @@
 import { useState, useRef } from 'react'
 import { supabaseStaff } from '../lib/supabase'
 
-export default function FloorPlanEditor({ zones, onSaved }) {
+export default function FloorPlanEditor({ zones, parentZones = [], onSaved }) {
   const mesas = zones.filter(z => z.is_active)
+  const hasZoneTabs = parentZones.length > 0
+
+  const [activeZoneId, setActiveZoneId] = useState(() => hasZoneTabs ? (parentZones[0]?.id ?? '__none__') : '__all__')
 
   const [positions, setPositions] = useState(() => {
     const map = {}
@@ -14,8 +17,14 @@ export default function FloorPlanEditor({ zones, onSaved }) {
   const [savedOk, setSavedOk] = useState(false)
   const canvasRef = useRef(null)
 
-  const positioned = mesas.filter(z => positions[z.id]?.x != null)
-  const unpositioned = mesas.filter(z => positions[z.id]?.x == null)
+  const zoneMesas = hasZoneTabs
+    ? (activeZoneId === '__none__'
+        ? mesas.filter(z => !z.parent_zone_id)
+        : mesas.filter(z => z.parent_zone_id === activeZoneId))
+    : mesas
+
+  const positioned = zoneMesas.filter(z => positions[z.id]?.x != null)
+  const unpositioned = zoneMesas.filter(z => positions[z.id]?.x == null)
 
   function getCoords(clientX, clientY) {
     const rect = canvasRef.current.getBoundingClientRect()
@@ -81,6 +90,32 @@ export default function FloorPlanEditor({ zones, onSaved }) {
 
   return (
     <div>
+      {hasZoneTabs && (
+        <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
+          {parentZones.map(z => (
+            <button
+              key={z.id}
+              onClick={() => setActiveZoneId(z.id)}
+              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                activeZoneId === z.id ? 'bg-ember-500 text-white border-ember-500' : 'border-carbon-700 text-smoke-400'
+              }`}
+            >
+              {z.name}
+            </button>
+          ))}
+          {mesas.some(m => !m.parent_zone_id) && (
+            <button
+              onClick={() => setActiveZoneId('__none__')}
+              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                activeZoneId === '__none__' ? 'bg-ember-500 text-white border-ember-500' : 'border-carbon-700 text-smoke-400'
+              }`}
+            >
+              Sin zona
+            </button>
+          )}
+        </div>
+      )}
+
       <div
         ref={canvasRef}
         className="relative w-full rounded-2xl overflow-hidden select-none"
@@ -115,13 +150,13 @@ export default function FloorPlanEditor({ zones, onSaved }) {
                 onMouseDown={e => startDrag(e, zone.id)}
                 onTouchStart={e => startDrag(e, zone.id)}
               >
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center cursor-grab active:cursor-grabbing
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center cursor-grab active:cursor-grabbing
                   ${active
                     ? 'bg-ember-500 border-2 border-ember-400 scale-110 shadow-lg'
                     : 'bg-carbon-800 border-2 border-carbon-600 hover:border-carbon-400'
                   }`}
                 >
-                  <span className="text-[10px] font-semibold text-smoke-200 text-center leading-tight px-1 break-words w-full text-center">
+                  <span className="text-[9px] font-semibold text-smoke-200 text-center leading-tight px-1 break-words w-full">
                     {zone.name}
                   </span>
                 </div>

@@ -5,7 +5,17 @@ const ACTIVE_STATUSES = ['pendiente_aprobacion', 'recibido', 'en_preparacion', '
 export default function FloorPlanViewer({ zones, venueId, selectedZone, onSelect, supabaseClient }) {
   const [occupiedIds, setOccupiedIds] = useState(new Set())
 
-  const mesas = zones.filter(z => z.is_active && z.pos_x != null && z.pos_y != null)
+  const mesas = zones.filter(z => z.is_active && z.pos_x != null && z.pos_y != null && z.type !== 'zona' && z.type !== 'retiro')
+  const zonas = zones.filter(z => z.type === 'zona' && z.is_active)
+  const zonaIdsWithMesas = new Set(mesas.map(m => m.parent_zone_id).filter(Boolean))
+  const relevantZonas = zonas.filter(z => zonaIdsWithMesas.has(z.id))
+  const hasZoneTabs = relevantZonas.length > 0
+
+  const [activeZoneId, setActiveZoneId] = useState(() => relevantZonas[0]?.id ?? null)
+
+  const visibleMesas = hasZoneTabs
+    ? mesas.filter(m => m.parent_zone_id === activeZoneId)
+    : mesas
 
   useEffect(() => {
     if (!venueId) return
@@ -42,6 +52,32 @@ export default function FloorPlanViewer({ zones, venueId, selectedZone, onSelect
 
   return (
     <div>
+      {hasZoneTabs && (
+        <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
+          {relevantZonas.map(z => (
+            <button
+              key={z.id}
+              onClick={() => setActiveZoneId(z.id)}
+              className={`whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors ${
+                activeZoneId === z.id ? 'bg-[#008080] text-white border-[#008080]' : 'border-black/10 text-[#8896A5] bg-white'
+              }`}
+            >
+              {z.name}
+            </button>
+          ))}
+          {mesas.some(m => !m.parent_zone_id) && (
+            <button
+              onClick={() => setActiveZoneId(null)}
+              className={`whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors ${
+                activeZoneId === null ? 'bg-[#008080] text-white border-[#008080]' : 'border-black/10 text-[#8896A5] bg-white'
+              }`}
+            >
+              General
+            </button>
+          )}
+        </div>
+      )}
+
       <div
         className="relative w-full rounded-2xl overflow-hidden select-none"
         style={{
@@ -54,7 +90,7 @@ export default function FloorPlanViewer({ zones, venueId, selectedZone, onSelect
         }}
       >
         <div className="absolute inset-0">
-          {mesas.map(zone => {
+          {visibleMesas.map(zone => {
             const occupied = occupiedIds.has(zone.id)
             const selected = selectedZone?.id === zone.id
             return (
@@ -64,7 +100,7 @@ export default function FloorPlanViewer({ zones, venueId, selectedZone, onSelect
                 style={{ left: `${zone.pos_x}%`, top: `${zone.pos_y}%`, transform: 'translate(-50%,-50%)' }}
                 onClick={() => onSelect?.(zone)}
               >
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all relative
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all relative
                   ${selected
                     ? 'bg-[#008080] border-2 border-[#00b0b0] shadow-lg scale-110'
                     : occupied
@@ -72,13 +108,13 @@ export default function FloorPlanViewer({ zones, venueId, selectedZone, onSelect
                       : 'bg-carbon-800 border-2 border-carbon-600 hover:border-[#008080]'
                   }`}
                 >
-                  <span className={`text-[10px] font-semibold text-center leading-tight px-1 break-words w-full
+                  <span className={`text-[9px] font-semibold text-center leading-tight px-1 break-words w-full
                     ${selected ? 'text-white' : occupied ? 'text-red-300' : 'text-smoke-200'}`}
                   >
                     {zone.name}
                   </span>
                   {occupied && !selected && (
-                    <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500 border border-[#0D1117]" />
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500 border border-[#0D1117]" />
                   )}
                 </div>
               </button>
@@ -87,7 +123,6 @@ export default function FloorPlanViewer({ zones, venueId, selectedZone, onSelect
         </div>
       </div>
 
-      {/* Leyenda */}
       <div className="flex items-center gap-4 mt-3 px-1">
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded bg-carbon-700 border border-carbon-500" />
