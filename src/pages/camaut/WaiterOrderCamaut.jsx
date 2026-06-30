@@ -176,9 +176,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
         {orderId && (
           <div className="w-full mb-4">
             {lastOrder.prepMins ? (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 flex items-center justify-center gap-2">
-                <span className="text-emerald-700 text-sm font-semibold">⏱ Timer iniciado · {lastOrder.prepMins} min</span>
-              </div>
+              <PrepTimerDisplay prepStartedAt={lastOrder.prepStartedAt} prepMins={lastOrder.prepMins} />
             ) : (
               <div className="bg-[#F0F4F8] rounded-2xl p-4 text-left">
                 <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">¿Cuánto tiempo tarda?</p>
@@ -187,12 +185,13 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
                     <button
                       key={min}
                       onClick={async () => {
+                        const startedAt = new Date().toISOString()
                         await supabaseStaff.from('orders').update({
                           prep_time_minutes: min,
-                          prep_started_at: new Date().toISOString(),
+                          prep_started_at: startedAt,
                           status: 'en_preparacion'
                         }).eq('id', orderId)
-                        setLastOrder(prev => ({ ...prev, prepMins: min }))
+                        setLastOrder(prev => ({ ...prev, prepMins: min, prepStartedAt: startedAt }))
                       }}
                       className="w-12 h-12 rounded-xl bg-white border border-black/10 text-sm font-bold text-[#3A4A5A] active:bg-[#008080] active:text-white"
                     >
@@ -951,6 +950,47 @@ function NuevoProductoInline({ venueId, categoryId, onAdded }) {
           ×
         </button>
       </div>
+    </div>
+  )
+}
+
+function PrepTimerDisplay({ prepStartedAt, prepMins }) {
+  const [progress, setProgress] = useState(null)
+
+  useEffect(() => {
+    if (!prepStartedAt || !prepMins) return
+    function calc() {
+      const start = new Date(prepStartedAt).getTime()
+      const total = prepMins * 60 * 1000
+      const elapsed = Date.now() - start
+      const remaining = Math.max(0, total - elapsed)
+      const percent = Math.min(100, (elapsed / total) * 100)
+      const mins = Math.floor(remaining / 60000)
+      const secs = Math.floor((remaining % 60000) / 1000)
+      setProgress({ percent, mins, secs, done: remaining === 0 })
+    }
+    calc()
+    const t = setInterval(calc, 1000)
+    return () => clearInterval(t)
+  }, [prepStartedAt, prepMins])
+
+  if (!progress) return null
+
+  return (
+    <div className={`w-full rounded-2xl p-4 border text-left ${progress.done ? 'bg-emerald-50 border-emerald-200' : 'bg-[#F0F4F8] border-black/10'}`}>
+      <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-2">⏱ En preparación</p>
+      <p className={`font-mono text-3xl font-bold mb-2 ${progress.done ? 'text-emerald-600' : 'text-[#008080]'}`}>
+        {progress.done ? '¡Listo!' : `${String(progress.mins).padStart(2, '0')}:${String(progress.secs).padStart(2, '0')}`}
+      </p>
+      <div className="w-full bg-white rounded-full h-2">
+        <div
+          className={`h-2 rounded-full transition-all duration-1000 ${progress.done ? 'bg-emerald-500' : 'bg-[#008080]'}`}
+          style={{ width: `${progress.percent}%` }}
+        />
+      </div>
+      {!progress.done && (
+        <p className="text-[#8896A5] text-[10px] mt-1 text-right">{prepMins} min estimados</p>
+      )}
     </div>
   )
 }
