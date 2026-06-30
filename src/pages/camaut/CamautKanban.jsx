@@ -385,54 +385,42 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
                           )}
                         </div>
 
-                        <div className="flex items-center justify-between mt-2">
-                          <p className="font-mono text-[#1A2A3A] text-xs font-semibold">
-                            {formatPrice(order.total)}
-                          </p>
+                        <p className="font-mono text-[#1A2A3A] text-xs font-semibold mt-2">
+                          {formatPrice(order.total)}
+                        </p>
+                        <div className="flex gap-1 mt-2">
+                          {PREV_STATUS[order.status] && col.id !== 'entregado' && (
+                            <button
+                              onClick={() => updateStatus(order.id, PREV_STATUS[order.status])}
+                              className="border border-black/10 text-[#8896A5] text-[10px] py-1.5 px-2 rounded-lg"
+                            >
+                              ↺
+                            </button>
+                          )}
+                          {(col.id === 'recibido' || col.id === 'en_preparacion') && (
+                            <button
+                              onClick={() => { setTimerModal(order.id); setTimerMins('15') }}
+                              className="border border-[#008080] bg-[#008080]/10 text-[#008080] text-[10px] px-2 py-1.5 rounded-lg font-semibold"
+                            >
+                              ⏱
+                            </button>
+                          )}
                           <button
                             onClick={() => setQrModal(order.id)}
-                            className="border border-black/10 text-[#8896A5] text-[10px] px-2 py-1 rounded-lg"
+                            className="border border-[#008080] bg-[#008080]/10 text-[#008080] text-[10px] px-2 py-1.5 rounded-lg font-semibold"
                           >
                             QR
                           </button>
+                          {NEXT_STATUS[order.status] && (
+                            <button
+                              onClick={() => updateStatus(order.id, NEXT_STATUS[order.status])}
+                              className="flex-1 bg-[#008080] text-white text-[10px] py-1.5 rounded-lg font-semibold"
+                            >
+                              {order.status === 'recibido' || order.status === 'pendiente_aprobacion' ? 'Preparar' :
+                               order.status === 'en_preparacion' ? 'Listo ✓' : 'Entregar'}
+                            </button>
+                          )}
                         </div>
-                        {col.id !== 'entregado' && (
-                          <div className="flex gap-1 mt-2">
-                            {PREV_STATUS[order.status] && (
-                              <button
-                                onClick={() => updateStatus(order.id, PREV_STATUS[order.status])}
-                                className="flex-1 border border-black/10 text-[#8896A5] text-[10px] py-1 rounded-lg"
-                              >
-                                ↺
-                              </button>
-                            )}
-                            {col.id === 'en_preparacion' && (
-                              <button
-                                onClick={() => { setTimerModal(order.id); setTimerMins('15') }}
-                                className="border border-[#008080]/30 text-[#008080] text-[10px] px-2 py-1 rounded-lg"
-                              >
-                                ⏱
-                              </button>
-                            )}
-                            {col.id === 'recibido' && (
-                              <button
-                                onClick={() => { setTimerModal(order.id); setTimerMins('15') }}
-                                className="border border-[#008080]/30 text-[#008080] text-[10px] px-2 py-1 rounded-lg"
-                              >
-                                ⏱
-                              </button>
-                            )}
-                            {NEXT_STATUS[order.status] && (
-                              <button
-                                onClick={() => updateStatus(order.id, NEXT_STATUS[order.status])}
-                                className="flex-1 bg-[#008080] text-white text-[10px] py-1 rounded-lg font-semibold"
-                              >
-                                {order.status === 'recibido' || order.status === 'pendiente_aprobacion' ? 'Preparar' :
-                                 order.status === 'en_preparacion' ? 'Listo ✓' : 'Entregar'}
-                              </button>
-                            )}
-                          </div>
-                        )}
                         <PrepTimer order={order} />
                       </div>
                     ))}
@@ -488,30 +476,28 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
                             <p key={i}>{item.quantity}× {item.product_name}</p>
                           ))}
                         </div>
-                        <div className="flex items-center justify-between mt-1">
-                          <p className="font-mono text-[#1A2A3A] text-xs font-semibold">
-                            {formatPrice(order.total)}
-                          </p>
+                        <p className="font-mono text-[#1A2A3A] text-xs font-semibold mt-1">
+                          {formatPrice(order.total)}
+                        </p>
+                        {order.status === 'listo' && (
+                          <p className="text-emerald-600 text-[10px] font-semibold mt-1">✓ Listo para entregar</p>
+                        )}
+                        <div className="flex gap-1 mt-2">
+                          {(order.status === 'en_preparacion' || order.status === 'listo') && (
+                            <button
+                              onClick={() => { setTimerModal(order.id); setTimerMins('15') }}
+                              className="border border-[#008080] bg-[#008080]/10 text-[#008080] text-[10px] px-2 py-1.5 rounded-lg font-semibold"
+                            >
+                              ⏱
+                            </button>
+                          )}
                           <button
                             onClick={() => setQrModal(order.id)}
-                            className="border border-black/10 text-[#8896A5] text-[10px] px-2 py-1 rounded-lg"
+                            className="border border-[#008080] bg-[#008080]/10 text-[#008080] text-[10px] px-2 py-1.5 rounded-lg font-semibold"
                           >
                             QR
                           </button>
                         </div>
-                        {order.status === 'listo' && (
-                          <p className="text-emerald-600 text-[10px] font-semibold mt-1">✓ Listo para entregar</p>
-                        )}
-                        {(order.status === 'en_preparacion' || order.status === 'listo') && (
-                          <div className="mt-2 flex justify-end">
-                            <button
-                              onClick={() => { setTimerModal(order.id); setTimerMins('15') }}
-                              className="border border-[#008080]/30 text-[#008080] text-[10px] px-2 py-1 rounded-lg"
-                            >
-                              ⏱ Timer
-                            </button>
-                          </div>
-                        )}
                         <PrepTimer order={order} />
                       </div>
                     ))}
