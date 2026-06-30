@@ -79,6 +79,13 @@ export default function CamautLandingPage() {
           ¿Tu restaurante ya usa Capy?{' '}
           <Link to="/admin" className="text-ember-500 underline">Entrá por acá</Link>
         </p>
+        <div className="flex items-center justify-center gap-3 mt-4">
+          <Link to="/privacidad" className="text-smoke-700 text-[11px] hover:text-smoke-500">Privacidad</Link>
+          <span className="text-smoke-800 text-[11px]">·</span>
+          <Link to="/terminos" className="text-smoke-700 text-[11px] hover:text-smoke-500">Términos</Link>
+          <span className="text-smoke-800 text-[11px]">·</span>
+          <a href="mailto:hola@capyapp.co" className="text-smoke-700 text-[11px] hover:text-smoke-500">Contacto</a>
+        </div>
       </div>
 
     </div>
