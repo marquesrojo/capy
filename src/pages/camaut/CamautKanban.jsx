@@ -108,7 +108,17 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
     })
     const result = await res.json()
     if (result.success) {
-      setOwnOrders(result.ownOrders || [])
+      const own = result.ownOrders || []
+      if (own.length > 0) {
+        const { data: menuData } = await supabaseStaff
+          .from('orders')
+          .select('id, menu_id')
+          .in('id', own.map(o => o.id))
+        const menuMap = Object.fromEntries((menuData || []).map(o => [o.id, o.menu_id]))
+        setOwnOrders(own.map(o => ({ ...o, menu_id: menuMap[o.id] || null })))
+      } else {
+        setOwnOrders([])
+      }
       setLinkedOrders(result.linkedOrders || [])
     }
     setLoading(false)
@@ -298,9 +308,14 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
             </div>
           )}
           <div className="overflow-x-auto px-4 py-4">
+          {(() => {
+            const displayOrders = activeMenuFilter === 'all'
+              ? ownOrders
+              : ownOrders.filter(o => o.menu_id === activeMenuFilter)
+            return (
           <div className="flex gap-3" style={{ minWidth: `${COLUMNS.length * 180}px` }}>
             {COLUMNS.map(col => {
-              const colOrders = ownOrders.filter(o => col.statuses.includes(o.status))
+              const colOrders = displayOrders.filter(o => col.statuses.includes(o.status))
               return (
                 <div key={col.id} className="flex-1 min-w-44">
                   <div className={`px-3 py-2 rounded-xl text-xs font-semibold mb-2 text-center ${
@@ -386,6 +401,8 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
               )
             })}
           </div>
+            )
+          })()}
           </div>
         </div>
       )}
