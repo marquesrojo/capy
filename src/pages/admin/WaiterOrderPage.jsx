@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice } from '../../lib/utils'
+import FloorPlanViewer from '../../components/FloorPlanViewer'
 
 // Pantalla de toma de pedido para camareros.
 // - Si el perfil es "cuenta compartida" (is_shared_account = true), pide
@@ -30,6 +31,7 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
   const [venueWhatsapp, setVenueWhatsapp] = useState('')
   const [quickNotes, setQuickNotes] = useState([])
   const [activeNoteProduct, setActiveNoteProduct] = useState(null)
+  const [showMap, setShowMap] = useState(false)
 
   useEffect(() => {
     if (!profile) return // esperar a que cargue el profile
@@ -248,6 +250,39 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
 
   return (
     <div>
+      {/* Modal mapa de mesas */}
+      {showMap && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex flex-col">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-carbon-700">
+            <p className="text-smoke-200 text-sm font-semibold">Seleccionar mesa</p>
+            <button onClick={() => setShowMap(false)} className="text-smoke-400 hover:text-smoke-200">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            <FloorPlanViewer
+              zones={zones}
+              venueId={activeVenueId}
+              selectedZone={selectedZone}
+              onSelect={zone => { setSelectedZone(zone); setShowMap(false) }}
+              supabaseClient={supabaseStaff}
+            />
+          </div>
+          {selectedZone && (
+            <div className="px-4 py-3 border-t border-carbon-700">
+              <p className="text-smoke-400 text-xs mb-2">Mesa seleccionada: <span className="text-smoke-200 font-medium">{selectedZone.name}</span></p>
+              <button
+                onClick={() => setShowMap(false)}
+                className="w-full bg-[#008080] hover:bg-[#006666] text-white font-semibold py-3 rounded-xl text-sm"
+              >
+                Confirmar
+              </button>
+            </div>
+          )}
+        </div>
+      )}
       {/* Header con camarero seleccionado y ubicación */}
       <div className="px-4 pt-3 pb-2 border-b border-black/10 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -262,19 +297,32 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
             </button>
           )}
         </div>
-        <select
-          value={selectedZone?.id || ''}
-          onChange={e => {
-            const z = zones.find(z => z.id === e.target.value) || null
-            setSelectedZone(z)
-          }}
-          className="input text-xs py-1 max-w-[140px]"
-        >
-          <option value="">📍 Elegir mesa...</option>
-          {zones.map(z => (
-            <option key={z.id} value={z.id}>{z.name}</option>
-          ))}
-        </select>
+        <div className="flex items-center gap-1.5">
+          <select
+            value={selectedZone?.id || ''}
+            onChange={e => {
+              const z = zones.find(z => z.id === e.target.value) || null
+              setSelectedZone(z)
+            }}
+            className="input text-xs py-1 max-w-[120px]"
+          >
+            <option value="">📍 Elegir mesa...</option>
+            {zones.map(z => (
+              <option key={z.id} value={z.id}>{z.name}</option>
+            ))}
+          </select>
+          <button
+            onClick={() => setShowMap(true)}
+            className="w-8 h-8 border border-black/10 rounded-lg flex items-center justify-center text-[#8896A5] hover:text-[#008080] hover:border-[#008080] transition-colors flex-shrink-0"
+            title="Ver mapa"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
+              <line x1="9" y1="3" x2="9" y2="18"/>
+              <line x1="15" y1="6" x2="15" y2="21"/>
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Filtro de categorías */}

@@ -1,0 +1,107 @@
+import { useEffect, useState } from 'react'
+
+const ACTIVE_STATUSES = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo']
+
+export default function FloorPlanViewer({ zones, venueId, selectedZone, onSelect, supabaseClient }) {
+  const [occupiedIds, setOccupiedIds] = useState(new Set())
+
+  const mesas = zones.filter(z => z.is_active && z.pos_x != null && z.pos_y != null)
+
+  useEffect(() => {
+    if (!venueId) return
+    loadActive()
+    const channel = supabaseClient
+      .channel(`floor-viewer-${venueId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `venue_id=eq.${venueId}` }, loadActive)
+      .subscribe()
+    return () => supabaseClient.removeChannel(channel)
+  }, [venueId])
+
+  async function loadActive() {
+    const { data } = await supabaseClient
+      .from('orders')
+      .select('zone_id')
+      .eq('venue_id', venueId)
+      .in('status', ACTIVE_STATUSES)
+      .not('zone_id', 'is', null)
+    setOccupiedIds(new Set((data || []).map(o => o.zone_id)))
+  }
+
+  if (mesas.length === 0) {
+    return (
+      <div className="py-12 text-center">
+        <svg className="mx-auto mb-3 text-smoke-600" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <path d="M3 9h18M9 21V9"/>
+        </svg>
+        <p className="text-smoke-500 text-sm">El mapa no está configurado.</p>
+        <p className="text-smoke-600 text-xs mt-1">Ir a Configuración → Ubicaciones → Mapa para posicionar las mesas.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <div
+        className="relative w-full rounded-2xl overflow-hidden select-none"
+        style={{
+          paddingTop: '60%',
+          background: '#0D1117',
+          border: '1.5px solid #2a2d33',
+          backgroundImage:
+            'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
+          backgroundSize: '10% 10%',
+        }}
+      >
+        <div className="absolute inset-0">
+          {mesas.map(zone => {
+            const occupied = occupiedIds.has(zone.id)
+            const selected = selectedZone?.id === zone.id
+            return (
+              <button
+                key={zone.id}
+                className="absolute"
+                style={{ left: `${zone.pos_x}%`, top: `${zone.pos_y}%`, transform: 'translate(-50%,-50%)' }}
+                onClick={() => onSelect?.(zone)}
+              >
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all relative
+                  ${selected
+                    ? 'bg-[#008080] border-2 border-[#00b0b0] shadow-lg scale-110'
+                    : occupied
+                      ? 'bg-red-950 border-2 border-red-700/70'
+                      : 'bg-carbon-800 border-2 border-carbon-600 hover:border-[#008080]'
+                  }`}
+                >
+                  <span className={`text-[10px] font-semibold text-center leading-tight px-1 break-words w-full
+                    ${selected ? 'text-white' : occupied ? 'text-red-300' : 'text-smoke-200'}`}
+                  >
+                    {zone.name}
+                  </span>
+                  {occupied && !selected && (
+                    <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500 border border-[#0D1117]" />
+                  )}
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Leyenda */}
+      <div className="flex items-center gap-4 mt-3 px-1">
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded bg-carbon-700 border border-carbon-500" />
+          <span className="text-smoke-500 text-[11px]">Libre</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded bg-red-950 border border-red-700/70" />
+          <span className="text-smoke-500 text-[11px]">Ocupada</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded bg-[#008080]" />
+          <span className="text-smoke-500 text-[11px]">Seleccionada</span>
+        </div>
+      </div>
+    </div>
+  )
+}
