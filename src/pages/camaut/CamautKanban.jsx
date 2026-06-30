@@ -62,6 +62,8 @@ function PrepTimer({ order }) {
 export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
   const [ownOrders, setOwnOrders] = useState([])
   const [linkedOrders, setLinkedOrders] = useState([])
+  const [menus, setMenus] = useState([])
+  const [activeMenuFilter, setActiveMenuFilter] = useState('all')
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState(() => {
     if (linkedVenues.length === 0) return 'propio'
@@ -70,6 +72,11 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
   const [timerModal, setTimerModal] = useState(null) // { orderId }
   const [timerMins, setTimerMins] = useState('15')
   const [qrModal, setQrModal] = useState(null)
+
+  useEffect(() => {
+    if (!venueId) return
+    supabaseStaff.from('staff_menus').select('*').eq('venue_id', venueId).order('created_at').then(({ data }) => setMenus(data || []))
+  }, [venueId])
 
   function selectTab(id) {
     setActiveTab(id)
@@ -266,7 +273,31 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
 
       {/* Kanban propio — editable */}
       {activeTab === 'propio' && (
-        <div className="overflow-x-auto px-4 py-4">
+        <div>
+          {menus.length > 0 && (
+            <div className="px-4 pt-3 pb-1 flex gap-2 overflow-x-auto">
+              <button
+                onClick={() => setActiveMenuFilter('all')}
+                className={`whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold border flex-shrink-0 ${
+                  activeMenuFilter === 'all' ? 'bg-[#008080] text-white border-[#008080]' : 'bg-white border-black/10 text-[#3A4A5A]'
+                }`}
+              >
+                Todos
+              </button>
+              {menus.map(m => (
+                <button
+                  key={m.id}
+                  onClick={() => setActiveMenuFilter(m.id)}
+                  className={`whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold border flex-shrink-0 ${
+                    activeMenuFilter === m.id ? 'bg-[#008080] text-white border-[#008080]' : 'bg-white border-black/10 text-[#3A4A5A]'
+                  }`}
+                >
+                  {m.name}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="overflow-x-auto px-4 py-4">
           <div className="flex gap-3" style={{ minWidth: `${COLUMNS.length * 180}px` }}>
             {COLUMNS.map(col => {
               const colOrders = ownOrders.filter(o => col.statuses.includes(o.status))
@@ -354,6 +385,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
                 </div>
               )
             })}
+          </div>
           </div>
         </div>
       )}
