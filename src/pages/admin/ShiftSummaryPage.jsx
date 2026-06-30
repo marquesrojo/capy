@@ -15,11 +15,43 @@ export default function ShiftSummaryPage({ embedded, venueId: propVenueId }) {
   const [tipAmount, setTipAmount] = useState('')
   const [tipNotes, setTipNotes] = useState('')
   const [addingTip, setAddingTip] = useState(false)
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const d = new Date()
+    d.setHours(0, 0, 0, 0)
+    return d
+  })
 
   useEffect(() => {
     if (!profile) return
     loadStaffAndSummary()
-  }, [profile])
+  }, [profile, selectedDate])
+
+  function prevDay() {
+    setSelectedDate(prev => {
+      const d = new Date(prev)
+      d.setDate(d.getDate() - 1)
+      d.setHours(0, 0, 0, 0)
+      return d
+    })
+  }
+
+  function nextDay() {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    if (selectedDate.getTime() >= today.getTime()) return
+    setSelectedDate(prev => {
+      const d = new Date(prev)
+      d.setDate(d.getDate() + 1)
+      d.setHours(0, 0, 0, 0)
+      return d
+    })
+  }
+
+  function isToday() {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return selectedDate.getTime() === today.getTime()
+  }
 
   async function loadStaffAndSummary() {
     setLoading(true)
@@ -36,31 +68,38 @@ export default function ShiftSummaryPage({ embedded, venueId: propVenueId }) {
 
     if (!sid) {
       setStats({ totalOrders: 0, totalAmount: 0, avgRating: null, ratingsCount: 0, totalTips: 0 })
+      setTips([])
+      setFeedback([])
       setLoading(false)
       return
     }
 
-    const startOfDay = new Date()
-    startOfDay.setHours(0, 0, 0, 0)
+    const start = new Date(selectedDate)
+    start.setHours(0, 0, 0, 0)
+    const end = new Date(selectedDate)
+    end.setHours(23, 59, 59, 999)
 
     const [ordersRes, ratingsRes, tipsRes] = await Promise.all([
       supabaseStaff
         .from('orders')
-        .select('id, total, status, payment_status, created_at')
+        .select('id, total, status, created_at')
         .eq('venue_id', activeVenueId)
         .eq('assigned_staff_id', sid)
-        .gte('created_at', startOfDay.toISOString()),
+        .gte('created_at', start.toISOString())
+        .lte('created_at', end.toISOString()),
       supabaseStaff
         .from('order_feedback')
         .select('rating, notes, created_at')
         .eq('staff_id', sid)
-        .gte('created_at', startOfDay.toISOString())
+        .gte('created_at', start.toISOString())
+        .lte('created_at', end.toISOString())
         .order('created_at', { ascending: false }),
       supabaseStaff
         .from('waiter_tips')
         .select('id, amount, notes, created_at')
         .eq('staff_id', sid)
-        .gte('created_at', startOfDay.toISOString())
+        .gte('created_at', start.toISOString())
+        .lte('created_at', end.toISOString())
         .order('created_at', { ascending: false })
     ])
 
@@ -116,55 +155,46 @@ export default function ShiftSummaryPage({ embedded, venueId: propVenueId }) {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F0F4F8] flex items-center justify-center">
-        <p className="text-[#8896A5] text-sm">Cargando resumen...</p>
+        <p className="text-[#8896A5] text-sm">Cargando...</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#F0F4F8] px-5 py-8">
+    <div className="min-h-screen bg-[#F0F4F8] px-5 py-6">
       {!embedded && (
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center gap-3 mb-4">
           <Link to="/admin" className="text-[#8896A5] text-sm">← Volver</Link>
         </div>
       )}
 
-      <h1 className="font-display text-3xl text-[#008080] tracking-wide mb-1">MI TURNO</h1>
-      <p className="text-[#8896A5] text-xs mb-1">{profile?.full_name}</p>
-      <p className="text-smoke-600 text-xs mb-6">
-        {new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
-      </p>
+      <h1 className="font-display text-3xl text-[#008080] tracking-wide mb-4">PROPINAS</h1>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        <div className="bg-white border border-black/10 rounded-2xl p-4">
-          <p className="text-[#8896A5] text-xs mb-1">Pedidos</p>
-          <p className="font-mono text-[#008080] font-bold text-3xl">{stats.totalOrders}</p>
-        </div>
-        <div className="bg-white border border-black/10 rounded-2xl p-4">
-          <p className="text-[#8896A5] text-xs mb-1">Total</p>
-          <p className="font-mono text-[#1A2A3A] font-bold text-lg">{formatPrice(stats.totalAmount)}</p>
-        </div>
-        <div className="bg-white border border-black/10 rounded-2xl p-4">
-          <p className="text-[#8896A5] text-xs mb-1">Calificación</p>
-          {stats.avgRating ? (
-            <div className="flex items-baseline gap-1">
-              <p className="font-mono text-[#008080] font-bold text-3xl">{stats.avgRating}</p>
-              <p className="text-[#8896A5] text-xs">/ 5</p>
-            </div>
-          ) : (
-            <p className="text-[#8896A5] text-sm">—</p>
+      {/* Navegador de fechas */}
+      <div className="flex items-center justify-between bg-white rounded-2xl px-4 py-3 border border-black/10 mb-5">
+        <button onClick={prevDay} className="text-[#008080] font-bold text-xl w-10 text-left">←</button>
+        <div className="text-center">
+          <p className="font-semibold text-[#1A2A3A] text-sm capitalize">
+            {isToday()
+              ? 'Hoy'
+              : selectedDate.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </p>
+          {!isToday() && (
+            <p className="text-[#8896A5] text-xs">{selectedDate.toLocaleDateString('es-AR')}</p>
           )}
         </div>
-        <div className="bg-white border border-black/10 rounded-2xl p-4">
-          <p className="text-[#8896A5] text-xs mb-1">Propinas</p>
-          <p className="font-mono text-[#4DD0E1] font-bold text-2xl">{formatPrice(stats.totalTips)}</p>
-        </div>
+        <button
+          onClick={nextDay}
+          disabled={isToday()}
+          className="text-[#008080] font-bold text-xl w-10 text-right disabled:opacity-20"
+        >
+          →
+        </button>
       </div>
 
-      {/* Registro de propinas */}
-      <div className="bg-white border border-black/10 rounded-2xl p-4 mb-6">
-        <p className="text-[#3A4A5A] font-medium text-sm mb-3">Registrar propina</p>
+      {/* Registro de propinas — primero */}
+      <div className="bg-white border border-black/10 rounded-2xl p-4 mb-5">
+        <p className="text-[#3A4A5A] font-semibold text-sm mb-3">Registrar propina</p>
         <div className="flex gap-2 mb-2">
           <input
             type="number"
@@ -198,24 +228,46 @@ export default function ShiftSummaryPage({ embedded, venueId: propVenueId }) {
                   <span className="font-mono text-[#4DD0E1] font-semibold text-sm">{formatPrice(tip.amount)}</span>
                   {tip.notes && <span className="text-[#8896A5] text-xs ml-2">{tip.notes}</span>}
                 </div>
-                <button
-                  onClick={() => handleDeleteTip(tip)}
-                  className="text-smoke-600 text-xs underline"
-                >
+                <button onClick={() => handleDeleteTip(tip)} className="text-smoke-600 text-xs underline">
                   Borrar
                 </button>
               </div>
             ))}
+            <div className="border-t border-black/5 pt-2 flex justify-between items-center">
+              <span className="text-[#8896A5] text-xs font-semibold">Total del día</span>
+              <span className="font-mono text-[#4DD0E1] font-bold">{formatPrice(stats?.totalTips || 0)}</span>
+            </div>
           </div>
         )}
       </div>
 
+      {/* Stats del turno */}
+      {stats && (
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          <div className="bg-white border border-black/10 rounded-2xl p-4">
+            <p className="text-[#8896A5] text-xs mb-1">Pedidos</p>
+            <p className="font-mono text-[#008080] font-bold text-3xl">{stats.totalOrders}</p>
+          </div>
+          <div className="bg-white border border-black/10 rounded-2xl p-4">
+            <p className="text-[#8896A5] text-xs mb-1">Total vendido</p>
+            <p className="font-mono text-[#1A2A3A] font-bold text-lg">{formatPrice(stats.totalAmount)}</p>
+          </div>
+          {stats.avgRating && (
+            <div className="bg-white border border-black/10 rounded-2xl p-4 col-span-2">
+              <p className="text-[#8896A5] text-xs mb-1">Calificación</p>
+              <div className="flex items-baseline gap-1">
+                <p className="font-mono text-[#008080] font-bold text-3xl">{stats.avgRating}</p>
+                <p className="text-[#8896A5] text-xs">/ 5 · {stats.ratingsCount} opiniones</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Calificaciones */}
       {feedback.length > 0 && (
         <div>
-          <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">
-            Opiniones de hoy
-          </p>
+          <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">Opiniones</p>
           <div className="space-y-2">
             {feedback.map((f, i) => (
               <div key={i} className="bg-white border border-black/10 rounded-xl px-4 py-3 flex items-start gap-3">
@@ -229,12 +281,13 @@ export default function ShiftSummaryPage({ embedded, venueId: propVenueId }) {
         </div>
       )}
 
-      {stats.totalOrders === 0 && tips.length === 0 && (
+      {stats?.totalOrders === 0 && tips.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-[#8896A5] text-sm">Todavía no tomaste pedidos hoy.</p>
+          <p className="text-[#8896A5] text-sm">
+            {isToday() ? 'Todavía no tomaste pedidos hoy.' : 'Sin actividad este día.'}
+          </p>
         </div>
       )}
     </div>
   )
 }
-

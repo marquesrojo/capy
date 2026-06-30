@@ -16,7 +16,10 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
   const [selectedZone, setSelectedZone] = useState(null)
   const [location, setLocation] = useState('')
   const [generalNotes, setGeneralNotes] = useState('')
-  const [activeVenueId, setActiveVenueId] = useState(venueId)
+  const [activeVenueId, setActiveVenueId] = useState(() => {
+    if (linkedVenues.length === 0) return venueId
+    return localStorage.getItem(`capy_ctx_${venueId}`) || venueId
+  })
   const activeVenueIdRef = useRef(venueId)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -24,13 +27,17 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
   const [staffId, setStaffId] = useState(null)
   const [step, setStep] = useState('carta') // 'carta' | 'confirmar'
   const [showMap, setShowMap] = useState(false)
-  const [contextReady, setContextReady] = useState(() => linkedVenues.length === 0)
+  const [contextReady, setContextReady] = useState(() => {
+    if (linkedVenues.length === 0) return true
+    return !!localStorage.getItem(`capy_ctx_${venueId}`)
+  })
 
   function updateActiveVenue(id) {
     setActiveVenueId(id)
     activeVenueIdRef.current = id
     setShowMap(false)
     setSelectedZone(null)
+    localStorage.setItem(`capy_ctx_${venueId}`, id)
   }
 
   useEffect(() => {
@@ -344,7 +351,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
             </p>
           </div>
           <button
-            onClick={() => { setContextReady(false); setCart({}); setSelectedZone(null); setShowMap(false) }}
+            onClick={() => { setContextReady(false); setCart({}); setSelectedZone(null); setShowMap(false); localStorage.removeItem(`capy_ctx_${venueId}`) }}
             className="text-[#008080] text-xs font-semibold border border-[#008080]/30 px-3 py-1.5 rounded-xl"
           >
             Cambiar
