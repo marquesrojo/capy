@@ -36,7 +36,7 @@ export default function CamautConfigPage({ initialTab, embedded }) {
                 tab === t ? 'border-[#008080] text-[#008080]' : 'border-transparent text-[#8896A5]'
               }`}
             >
-              {t === 'whatsapp' ? 'WhatsApp' : t === 'notas' ? 'Notas rápidas' : t.charAt(0).toUpperCase() + t.slice(1)}
+              {t === 'whatsapp' ? 'WhatsApp' : t === 'notas' ? 'Notas rápidas' : t === 'carta' ? 'Mis Cartas' : t.charAt(0).toUpperCase() + t.slice(1)}
             </button>
           ))}
         </div>

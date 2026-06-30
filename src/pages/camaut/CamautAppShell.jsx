@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabaseCamaut, supabaseStaff } from '../../lib/supabase'
+import FloorPlanViewer from '../../components/FloorPlanViewer'
 import { getLevel, getXPProgress } from '../../lib/xpUtils'
 import WaiterOrderCamaut from './WaiterOrderCamaut'
 import WaiterTrackingPage from '../admin/WaiterTrackingPage'
@@ -31,7 +32,7 @@ const TABS = [
   },
 ]
 
-const MICAPY_TABS = ['perfil', 'perfil_pro', 'carta', 'notas', 'vincular', 'carrera', 'ranking']
+const MICAPY_TABS = ['perfil', 'perfil_pro', 'carta', 'notas', 'vincular', 'ubicaciones', 'carrera', 'ranking']
 
 export default function CamautAppShell({ venueId, staffName: initialName, staffXP: initialXP, linkedVenues = [], staffId }) {
   const navigate = useNavigate()
@@ -130,7 +131,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                     micapyTab === t ? 'border-[#008080] text-[#008080]' : 'border-transparent text-[#8896A5]'
                   }`}
                 >
-                  {t === 'micapy' ? 'Mi Capy' : t === 'perfil_pro' ? 'Perfil Pro' : t === 'vincular' ? 'Vincular' : t === 'carta' ? 'Mi Carta' : t === 'notas' ? 'Notas' : t === 'whatsapp' ? 'WhatsApp' : t.charAt(0).toUpperCase() + t.slice(1)}
+                  {t === 'micapy' ? 'Mi Capy' : t === 'perfil_pro' ? 'Perfil Pro' : t === 'vincular' ? 'Vincular' : t === 'carta' ? 'Mis Cartas' : t === 'notas' ? 'Notas' : t === 'whatsapp' ? 'WhatsApp' : t === 'ubicaciones' ? 'Ubicaciones' : t.charAt(0).toUpperCase() + t.slice(1)}
                 </button>
               ))}
             </div>
@@ -147,9 +148,57 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
             {micapyTab === 'perfil' && (
               <CamautConfigPage key="perfil" embedded initialTab="perfil" />
             )}
+            {micapyTab === 'ubicaciones' && (
+              <UbicacionesViewer linkedVenues={linkedVenues} />
+            )}
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function UbicacionesViewer({ linkedVenues }) {
+  const [venueZones, setVenueZones] = useState({})
+
+  useEffect(() => {
+    if (!linkedVenues?.length) return
+    linkedVenues.forEach(async venue => {
+      const { data } = await supabaseStaff
+        .from('venue_zones')
+        .select('*')
+        .eq('venue_id', venue.id)
+        .eq('is_active', true)
+        .order('sort_order')
+      setVenueZones(prev => ({ ...prev, [venue.id]: data || [] }))
+    })
+  }, [linkedVenues])
+
+  if (!linkedVenues?.length) {
+    return (
+      <p className="text-[#8896A5] text-sm text-center py-8">
+        No estás vinculado a ningún restaurante.
+      </p>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {linkedVenues.map(venue => {
+        const zones = venueZones[venue.id] || []
+        return (
+          <div key={venue.id}>
+            <p className="font-semibold text-[#1A2A3A] text-sm mb-3">
+              {venue.name.replace(' — Capy', '')}
+            </p>
+            <FloorPlanViewer
+              zones={zones}
+              venueId={venue.id}
+              supabaseClient={supabaseStaff}
+            />
+          </div>
+        )
+      })}
     </div>
   )
 }

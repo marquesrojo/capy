@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabaseStaff } from '../../lib/supabase'
 import { formatPrice } from '../../lib/utils'
 import { awardXP } from '../../lib/xpUtils'
+import FloorPlanViewer from '../../components/FloorPlanViewer'
 
 export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
   const [categories, setCategories] = useState([])
@@ -298,7 +299,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
                   : 'bg-white border-black/10 text-[#3A4A5A]'
               }`}
             >
-              Mi Carta
+              Mis Cartas
             </button>
             {linkedVenues.map(v => (
               <button
@@ -317,32 +318,10 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
         </div>
       )}
 
-      {/* Ubicación */}
-      <div className="px-4 pt-4 pb-2">
-        <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-2">Ubicación</p>
-        {zones.length > 0 ? (
-          <ZoneSelector
-            zones={filteredZones.length > 0 ? filteredZones : zones}
-            selectedZone={selectedZone}
-            onSelect={(zone) => { setSelectedZone(zone); setLocation('') }}
-            location={location}
-            onLocationChange={setLocation}
-          />
-        ) : (
-          <input
-            type="text"
-            value={location}
-            onChange={e => setLocation(e.target.value)}
-            placeholder="Ej: Mesa 4, Barra, Terraza..."
-            className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-white text-[#1A2A3A]"
-          />
-        )}
-      </div>
-
-      {/* Selector de menú — solo en Mi Carta con múltiples menús */}
+      {/* Mis Cartas (venue propio): primero selector de carta/menú, luego ubicación */}
       {activeVenueId === venueId && menus.length > 0 && (
         <div className="px-4 pt-3 pb-1">
-          <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-2">Menú</p>
+          <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-2">Seleccioná tu carta</p>
           <div className="flex gap-2 overflow-x-auto pb-1">
             <button
               onClick={() => { setActiveMenuId('all'); setActiveCategory(categories[0]?.id || null) }}
@@ -384,6 +363,61 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
           </div>
         </div>
       )}
+
+      {/* Ubicación */}
+      <div className="px-4 pt-4 pb-2">
+        <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-2">Ubicación</p>
+        {activeVenueId !== venueId ? (
+          zones.some(z => z.pos_x != null) ? (
+            <div>
+              <FloorPlanViewer
+                zones={zones}
+                venueId={activeVenueId}
+                selectedZone={selectedZone}
+                onSelect={zone => { setSelectedZone(zone); setLocation('') }}
+                supabaseClient={supabaseStaff}
+              />
+              {selectedZone && (
+                <p className="text-[#008080] text-xs font-semibold mt-2 px-1">
+                  Mesa seleccionada: {selectedZone.name}
+                </p>
+              )}
+            </div>
+          ) : zones.length > 0 ? (
+            <ZoneSelector
+              zones={zones}
+              selectedZone={selectedZone}
+              onSelect={zone => { setSelectedZone(zone); setLocation('') }}
+              location={location}
+              onLocationChange={setLocation}
+            />
+          ) : (
+            <input
+              type="text"
+              value={location}
+              onChange={e => setLocation(e.target.value)}
+              placeholder="Ej: Mesa 4, Barra, Terraza..."
+              className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-white text-[#1A2A3A]"
+            />
+          )
+        ) : zones.length > 0 ? (
+          <ZoneSelector
+            zones={filteredZones.length > 0 ? filteredZones : zones}
+            selectedZone={selectedZone}
+            onSelect={zone => { setSelectedZone(zone); setLocation('') }}
+            location={location}
+            onLocationChange={setLocation}
+          />
+        ) : (
+          <input
+            type="text"
+            value={location}
+            onChange={e => setLocation(e.target.value)}
+            placeholder="Ej: Mesa 4, Barra, Terraza..."
+            className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-white text-[#1A2A3A]"
+          />
+        )}
+      </div>
 
       {/* Categorías */}
       <div className="px-4 pt-3 pb-2 flex gap-2 overflow-x-auto">
