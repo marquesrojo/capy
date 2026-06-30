@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import QRCode from 'qrcode'
 import { supabaseStaff } from '../../lib/supabase'
 import { formatPrice } from '../../lib/utils'
 import { awardXP } from '../../lib/xpUtils'
@@ -155,22 +156,50 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
 
   // Pantalla de confirmación exitosa
   if (lastOrder) {
+    const orderId = lastOrder.order?.id
+    const orderUrl = `https://capyapp.co/ver-pedido/${orderId}`
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
-        <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <div className="flex flex-col items-center px-6 pt-10 pb-10 text-center">
+        <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-3">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
             <polyline points="22 4 12 14.01 9 11.01"/>
           </svg>
         </div>
-        <p className="font-bold text-[#1A2A3A] text-xl mb-1">¡Pedido enviado!</p>
-        <p className="text-[#8896A5] text-sm mb-1">
+        <p className="font-bold text-[#1A2A3A] text-xl mb-0.5">¡Pedido enviado!</p>
+        <p className="text-[#8896A5] text-sm mb-0.5">
           #{lastOrder.order?.daily_number} · 📍 {lastOrder.location}
         </p>
-        <p className="font-mono font-bold text-[#008080] text-lg mb-6">{formatPrice(lastOrder.total)}</p>
+        <p className="font-mono font-bold text-[#008080] text-lg mb-5">{formatPrice(lastOrder.total)}</p>
+
+        {orderId && (
+          <div className="w-full mb-5">
+            <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">
+              Compartí el seguimiento con el cliente
+            </p>
+            <QRCanvas orderId={orderId} />
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={() => navigator.clipboard.writeText(orderUrl)}
+                className="flex-1 border border-[#008080] text-[#008080] font-semibold py-2.5 rounded-xl text-sm"
+              >
+                Copiar link
+              </button>
+              {navigator.share && (
+                <button
+                  onClick={() => navigator.share({ url: orderUrl })}
+                  className="flex-1 bg-[#008080] text-white font-semibold py-2.5 rounded-xl text-sm"
+                >
+                  Compartir
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         <button
           onClick={() => setLastOrder(null)}
-          className="bg-[#008080] text-white font-bold px-8 py-3 rounded-2xl text-sm"
+          className="w-full bg-[#1A2A3A] text-white font-bold px-8 py-3 rounded-2xl text-sm"
         >
           Nuevo pedido
         </button>
@@ -888,6 +917,27 @@ function NuevoProductoInline({ venueId, categoryId, onAdded }) {
         >
           ×
         </button>
+      </div>
+    </div>
+  )
+}
+
+function QRCanvas({ orderId }) {
+  const canvasRef = useRef(null)
+
+  useEffect(() => {
+    if (!canvasRef.current || !orderId) return
+    QRCode.toCanvas(canvasRef.current, `https://capyapp.co/ver-pedido/${orderId}`, {
+      width: 200,
+      margin: 2,
+      color: { dark: '#1A2A3A', light: '#FFFFFF' }
+    })
+  }, [orderId])
+
+  return (
+    <div className="flex justify-center">
+      <div className="bg-white p-3 rounded-2xl border border-black/5 shadow-sm">
+        <canvas ref={canvasRef} />
       </div>
     </div>
   )
