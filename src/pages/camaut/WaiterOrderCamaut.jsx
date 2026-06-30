@@ -24,6 +24,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
   const [staffId, setStaffId] = useState(null)
   const [step, setStep] = useState('carta') // 'carta' | 'confirmar'
   const [showMap, setShowMap] = useState(false)
+  const [contextReady, setContextReady] = useState(() => linkedVenues.length === 0)
 
   function updateActiveVenue(id) {
     setActiveVenueId(id)
@@ -173,6 +174,44 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
     </div>
   )
 
+  // Selector de contexto (cuando hay venues vinculados y no eligió todavía)
+  if (!contextReady) {
+    return (
+      <div className="px-4 pt-5 pb-8 bg-[#F0F4F8] min-h-screen">
+        <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-4 px-1">¿Desde qué carta trabajás hoy?</p>
+        <div className="space-y-3">
+          <button
+            onClick={() => { updateActiveVenue(venueId); setContextReady(true) }}
+            className="w-full bg-white rounded-2xl p-4 border border-black/5 shadow-sm text-left flex items-center gap-4 active:scale-95 transition-transform"
+          >
+            <div className="w-12 h-12 rounded-xl bg-[#E8F5F5] flex items-center justify-center text-[#008080] flex-shrink-0">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            </div>
+            <div>
+              <p className="font-bold text-[#1A2A3A] text-base">Mis Cartas</p>
+              <p className="text-[#8896A5] text-sm">Tus menúes personales</p>
+            </div>
+          </button>
+          {linkedVenues.map(v => (
+            <button
+              key={v.id}
+              onClick={() => { updateActiveVenue(v.id); setContextReady(true) }}
+              className="w-full bg-white rounded-2xl p-4 border border-black/5 shadow-sm text-left flex items-center gap-4 active:scale-95 transition-transform"
+            >
+              <div className="w-12 h-12 rounded-xl bg-[#FFF3E8] flex items-center justify-center flex-shrink-0" style={{ color: '#E07A30' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              </div>
+              <div>
+                <p className="font-bold text-[#1A2A3A] text-base">{v.name.replace(' — Capy', '')}</p>
+                <p className="text-[#8896A5] text-sm">Restaurante vinculado</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   // Sin carta — modo ingreso manual
   if (products.length === 0 && linkedVenues.length === 0) {
     return <CartaVacia venueId={activeVenueId} onProductsCreated={() => loadCarta()} />
@@ -295,35 +334,21 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
   return (
     <div className="bg-[#F0F4F8] pb-32">
 
-      {/* Selector de carta si hay venues vinculados */}
+      {/* Indicador de carta activa */}
       {linkedVenues.length > 0 && (
-        <div className="px-4 pt-4 pb-2">
-          <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-2">Carta</p>
-          <div className="flex gap-2 flex-wrap">
-            <button
-              onClick={() => { updateActiveVenue(venueId); setCart({}); setSelectedZone(null) }}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold border ${
-                activeVenueId === venueId
-                  ? 'bg-[#008080] text-white border-[#008080]'
-                  : 'bg-white border-black/10 text-[#3A4A5A]'
-              }`}
-            >
-              Mis Cartas
-            </button>
-            {linkedVenues.map(v => (
-              <button
-                key={v.id}
-                onClick={() => { updateActiveVenue(v.id); setCart({}); setSelectedZone(null) }}
-                className={`px-4 py-2 rounded-xl text-sm font-semibold border ${
-                  activeVenueId === v.id
-                    ? 'bg-[#008080] text-white border-[#008080]'
-                    : 'bg-white border-black/10 text-[#3A4A5A]'
-                }`}
-              >
-                {v.name.replace(' — Capy', '')}
-              </button>
-            ))}
+        <div className="px-4 pt-3 pb-3 flex items-center justify-between bg-white border-b border-black/5">
+          <div>
+            <p className="text-[#8896A5] text-[10px] font-semibold uppercase tracking-wide">Carta activa</p>
+            <p className="font-bold text-[#1A2A3A] text-sm">
+              {activeVenueId === venueId ? 'Mis Cartas' : linkedVenues.find(v => v.id === activeVenueId)?.name?.replace(' — Capy', '')}
+            </p>
           </div>
+          <button
+            onClick={() => { setContextReady(false); setCart({}); setSelectedZone(null); setShowMap(false) }}
+            className="text-[#008080] text-xs font-semibold border border-[#008080]/30 px-3 py-1.5 rounded-xl"
+          >
+            Cambiar
+          </button>
         </div>
       )}
 
