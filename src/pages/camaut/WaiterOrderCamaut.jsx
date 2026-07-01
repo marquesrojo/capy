@@ -121,6 +121,13 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
         })
       })
 
+      if (!res.ok) {
+        const text = await res.text().catch(() => '')
+        setSubmitError(`Error ${res.status}: ${text.slice(0, 120) || 'Sin detalle'}`)
+        setSubmitting(false)
+        return
+      }
+
       const result = await res.json()
       if (result.success) {
         if (staffId) await awardXP(staffId, 'send_order', activeVenueId)
@@ -138,7 +145,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
       }
     } catch (err) {
       console.error(err)
-      setSubmitError('Sin conexión. Verificá el internet e intentá de nuevo.')
+      setSubmitError(`Error de red: ${err?.message || 'desconocido'}`)
     }
     setSubmitting(false)
   }
