@@ -59,7 +59,7 @@ function PrepTimer({ order }) {
   )
 }
 
-export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
+export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNewOrderForTable }) {
   const [ownOrders, setOwnOrders] = useState([])
   const [linkedOrders, setLinkedOrders] = useState([])
   const [menus, setMenus] = useState([])
@@ -411,6 +411,14 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId }) {
                           >
                             QR
                           </button>
+                          {onNewOrderForTable && order.location_label && (
+                            <button
+                              onClick={() => onNewOrderForTable(order.location_label)}
+                              className="border border-[#008080] bg-[#008080]/10 text-[#008080] text-[10px] px-2 py-1.5 rounded-lg font-semibold"
+                            >
+                              +
+                            </button>
+                          )}
                           {NEXT_STATUS[order.status] && (
                             <button
                               onClick={() => updateStatus(order.id, NEXT_STATUS[order.status])}
