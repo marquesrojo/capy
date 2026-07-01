@@ -1071,6 +1071,11 @@ function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCal
 
   return (
     <div className={`bg-carbon-900 border rounded-2xl p-4 ${borderColor}`}>
+      {order.is_addition && (
+        <div className="flex items-center gap-1.5 mb-2 bg-violet-500/10 border border-violet-500/30 rounded-lg px-2.5 py-1.5">
+          <span className="text-violet-400 text-xs font-semibold">+ ADICIÓN · misma mesa</span>
+        </div>
+      )}
       {order.status === 'listo' && (
         <div className="flex items-center gap-1.5 mb-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-2.5 py-1.5">
           <span className="text-emerald-500 text-xs font-semibold">✓ Listo para entregar</span>
