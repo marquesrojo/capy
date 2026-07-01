@@ -333,7 +333,7 @@ export default function OrderStatusPage() {
 
       <SplitCalculator total={order.total} assignedStaff={order.assigned_staff} />
 
-      {!isCancelado && (
+      {!isCancelado && order.session_id && (
         <button
           onClick={handleAddMore}
           className="w-full mt-4 bg-pucara-blue-500 hover:bg-pucara-blue-600 text-white font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-2"
