@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
+import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice, STATUS_LABELS, STATUS_COLORS } from '../../lib/utils'
 import WaiterOrderPage from './WaiterOrderPage'
@@ -54,19 +54,20 @@ function AdminDashboardInner() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [view, setView] = useState('pedidos')
-  const { signOut, profile } = useAuth()
+  const { signOut, profile, venueId } = useAuth()
 
   useEffect(() => {
+    if (!venueId) return
     loadWaiters()
     loadCategories()
     loadVenue()
-  }, [])
+  }, [venueId])
 
   async function loadVenue() {
     const { data } = await supabaseStaff
       .from('venues')
       .select('high_demand')
-      .eq('id', ACTIVE_VENUE_ID)
+      .eq('id', venueId)
       .single()
     if (data) setHighDemand(data.high_demand)
   }
@@ -77,14 +78,14 @@ function AdminDashboardInner() {
     await supabaseStaff
       .from('venues')
       .update({ high_demand: newVal })
-      .eq('id', ACTIVE_VENUE_ID)
+      .eq('id', venueId)
   }
 
   async function loadCategories() {
     const { data } = await supabaseStaff
       .from('categories')
       .select('id, name, kind')
-      .eq('venue_id', ACTIVE_VENUE_ID)
+      .eq('venue_id', venueId)
     setCategories(data || [])
   }
 
@@ -92,7 +93,7 @@ function AdminDashboardInner() {
     const { data } = await supabaseStaff
       .from('staff_names')
       .select('id, full_name')
-      .eq('venue_id', ACTIVE_VENUE_ID)
+      .eq('venue_id', venueId)
       .eq('is_active', true)
       .order('full_name')
     setWaiters(data || [])
@@ -103,7 +104,7 @@ function AdminDashboardInner() {
     if (!trimmed) return
     const { data, error } = await supabaseStaff
       .from('staff_names')
-      .insert({ venue_id: ACTIVE_VENUE_ID, full_name: trimmed })
+      .insert({ venue_id: venueId, full_name: trimmed })
       .select('id, full_name')
       .single()
     if (!error && data) {
@@ -125,25 +126,25 @@ function AdminDashboardInner() {
         supabaseStaff
           .from('orders')
           .select(ORDER_SELECT)
-          .eq('venue_id', ACTIVE_VENUE_ID)
+          .eq('venue_id', venueId)
           .in('status', [...BOARD_COLUMNS, 'listo', 'pendiente_aprobacion'])
           .order('created_at', { ascending: true }),
         supabaseStaff
           .from('orders')
           .select(ORDER_SELECT)
-          .eq('venue_id', ACTIVE_VENUE_ID)
+          .eq('venue_id', venueId)
           .eq('payment_status', 'en_revision')
           .order('created_at', { ascending: true }),
         supabaseStaff
           .from('orders')
           .select(ORDER_SELECT)
-          .eq('venue_id', ACTIVE_VENUE_ID)
+          .eq('venue_id', venueId)
           .eq('payment_status', 'cuenta_solicitada')
           .order('bill_requested_at', { ascending: true }),
         supabaseStaff
           .from('orders')
           .select(ORDER_SELECT)
-          .eq('venue_id', ACTIVE_VENUE_ID)
+          .eq('venue_id', venueId)
           .eq('payment_status', 'aprobado')
           .gte('payment_confirmed_at', new Date(new Date().setHours(0,0,0,0)).toISOString())
           .order('payment_confirmed_at', { ascending: false })
@@ -182,6 +183,7 @@ function AdminDashboardInner() {
   }
 
   useEffect(() => {
+    if (!venueId) return
     load()
 
     // Tiempo real: nuevos pedidos y cambios de estado aparecen sin recargar.
@@ -191,7 +193,7 @@ function AdminDashboardInner() {
       .channel('admin-orders')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'orders', filter: `venue_id=eq.${ACTIVE_VENUE_ID}` },
+        { event: '*', schema: 'public', table: 'orders', filter: `venue_id=eq.${venueId}` },
         () => load({ silent: true })
       )
       .on(
@@ -202,7 +204,7 @@ function AdminDashboardInner() {
       .subscribe()
 
     return () => supabaseStaff.removeChannel(channel)
-  }, [])
+  }, [venueId])
 
   // Generar URLs firmadas para mostrar los comprobantes (el bucket es privado)
   useEffect(() => {

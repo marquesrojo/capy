@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
+import { supabaseStaff } from '../../lib/supabase'
+import { useAuth } from '../../hooks/useAuth'
 import { formatPrice } from '../../lib/utils'
 
 const KIND_LABELS = { bebida: 'Bebida', comida: 'Comida', otro: 'Otro' }
@@ -11,6 +12,7 @@ const KIND_COLORS = {
 }
 
 export default function MenuEditorPage() {
+  const { venueId } = useAuth()
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -19,8 +21,8 @@ export default function MenuEditorPage() {
 
   async function loadAll() {
     const [catRes, prodRes] = await Promise.all([
-      supabaseStaff.from('categories').select('*').eq('venue_id', ACTIVE_VENUE_ID).order('sort_order'),
-      supabaseStaff.from('products').select('*').eq('venue_id', ACTIVE_VENUE_ID).order('sort_order')
+      supabaseStaff.from('categories').select('*').eq('venue_id', venueId).order('sort_order'),
+      supabaseStaff.from('products').select('*').eq('venue_id', venueId).order('sort_order')
     ])
     setCategories(catRes.data || [])
     setProducts(prodRes.data || [])
@@ -28,8 +30,9 @@ export default function MenuEditorPage() {
   }
 
   useEffect(() => {
+    if (!venueId) return
     loadAll()
-  }, [])
+  }, [venueId])
 
   async function toggleAvailability(product) {
     setProducts(prev =>
@@ -80,10 +83,11 @@ export default function MenuEditorPage() {
           </button>
         </div>
 
-        <ImportarConIA venueId={ACTIVE_VENUE_ID} onImported={loadAll} />
+        <ImportarConIA venueId={venueId} onImported={loadAll} />
 
         {showCategoryForm && (
           <NewCategoryForm
+            venueId={venueId}
             onClose={() => setShowCategoryForm(false)}
             onCreated={() => { setShowCategoryForm(false); loadAll() }}
           />
@@ -91,6 +95,7 @@ export default function MenuEditorPage() {
 
         {showProductForm && (
           <NewProductForm
+            venueId={venueId}
             categories={categories}
             onClose={() => setShowProductForm(false)}
             onCreated={() => { setShowProductForm(false); loadAll() }}
@@ -258,7 +263,7 @@ function ProductRow({ product, categories, onToggle, onDelete, onSave }) {
   )
 }
 
-function NewCategoryForm({ onClose, onCreated }) {
+function NewCategoryForm({ venueId, onClose, onCreated }) {
   const [name, setName] = useState('')
   const [kind, setKind] = useState('comida')
   const [saving, setSaving] = useState(false)
@@ -267,7 +272,7 @@ function NewCategoryForm({ onClose, onCreated }) {
     if (!name.trim()) return
     setSaving(true)
     await supabaseStaff.from('categories').insert({
-      venue_id: ACTIVE_VENUE_ID,
+      venue_id: venueId,
       name: name.trim(),
       kind
     })
@@ -309,7 +314,7 @@ function NewCategoryForm({ onClose, onCreated }) {
   )
 }
 
-function NewProductForm({ categories, onClose, onCreated }) {
+function NewProductForm({ venueId, categories, onClose, onCreated }) {
   const [name, setName] = useState('')
   const [price, setPrice] = useState('')
   const [categoryId, setCategoryId] = useState(categories[0]?.id || '')
@@ -320,7 +325,7 @@ function NewProductForm({ categories, onClose, onCreated }) {
     e.preventDefault()
     setSaving(true)
     await supabaseStaff.from('products').insert({
-      venue_id: ACTIVE_VENUE_ID,
+      venue_id: venueId,
       category_id: categoryId,
       name,
       description,

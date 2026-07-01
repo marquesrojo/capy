@@ -1,20 +1,25 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
+import { supabaseStaff } from '../../lib/supabase'
+import { useAuth } from '../../hooks/useAuth'
 
 export default function PaymentMethodsPage() {
+  const { venueId } = useAuth()
   const [methods, setMethods] = useState([])
   const [loading, setLoading] = useState(true)
   const [newName, setNewName] = useState('')
   const [adding, setAdding] = useState(false)
 
-  useEffect(() => { loadMethods() }, [])
+  useEffect(() => {
+    if (!venueId) return
+    loadMethods()
+  }, [venueId])
 
   async function loadMethods() {
     const { data } = await supabaseStaff
       .from('payment_methods')
       .select('*')
-      .eq('venue_id', ACTIVE_VENUE_ID)
+      .eq('venue_id', venueId)
       .order('sort_order')
     setMethods(data || [])
     setLoading(false)
@@ -34,7 +39,7 @@ export default function PaymentMethodsPage() {
     const maxOrder = methods.length ? Math.max(...methods.map(m => m.sort_order)) : 0
     const { data } = await supabaseStaff
       .from('payment_methods')
-      .insert({ venue_id: ACTIVE_VENUE_ID, name: newName.trim(), sort_order: maxOrder + 1 })
+      .insert({ venue_id: venueId, name: newName.trim(), sort_order: maxOrder + 1 })
       .select()
       .single()
     if (data) setMethods(prev => [...prev, data])

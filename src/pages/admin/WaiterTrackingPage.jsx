@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
+import { supabaseStaff } from '../../lib/supabase'
+import { useAuth } from '../../hooks/useAuth'
 import { formatPrice, STATUS_LABELS } from '../../lib/utils'
 
 const ACTIVE_STATUSES = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo']
@@ -13,7 +14,8 @@ const STATUS_EMOJI = {
 }
 
 export default function WaiterTrackingPage({ venueId: propVenueId }) {
-  const activeVenueId = propVenueId || ACTIVE_VENUE_ID
+  const { venueId: authVenueId } = useAuth()
+  const activeVenueId = propVenueId || authVenueId
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [approving, setApproving] = useState(null)
@@ -268,7 +270,8 @@ export default function WaiterTrackingPage({ venueId: propVenueId }) {
 }
 
 function EditOrderPage({ order, onClose, venueId: propVenueId }) {
-  const activeVenueId = propVenueId || ACTIVE_VENUE_ID
+  const { venueId: authVenueId } = useAuth()
+  const activeVenueId = propVenueId || authVenueId
   const [items, setItems] = useState(order.order_items.map(i => ({ ...i })))
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])

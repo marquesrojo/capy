@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
+import { supabaseStaff } from '../../lib/supabase'
+import { useAuth } from '../../hooks/useAuth'
 import FloorPlanEditor from '../../components/FloorPlanEditor'
 
 const TYPE_LABELS = {
@@ -16,6 +17,7 @@ const TYPE_TABS = [
 ]
 
 export default function LocationsPage() {
+  const { venueId } = useAuth()
   const [zones, setZones] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('mesa')
@@ -23,14 +25,15 @@ export default function LocationsPage() {
   const [newName, setNewName] = useState('')
 
   useEffect(() => {
+    if (!venueId) return
     load()
-  }, [])
+  }, [venueId])
 
   async function load() {
     const { data } = await supabaseStaff
       .from('venue_zones')
       .select('*')
-      .eq('venue_id', ACTIVE_VENUE_ID)
+      .eq('venue_id', venueId)
       .order('sort_order')
       .order('name')
     setZones(data || [])
@@ -42,7 +45,7 @@ export default function LocationsPage() {
     if (!trimmed) return
     const { data, error } = await supabaseStaff
       .from('venue_zones')
-      .insert({ venue_id: ACTIVE_VENUE_ID, name: trimmed, type: activeTab })
+      .insert({ venue_id: venueId, name: trimmed, type: activeTab })
       .select()
       .single()
     if (!error && data) {
