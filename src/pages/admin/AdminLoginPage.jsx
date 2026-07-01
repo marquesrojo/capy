@@ -148,7 +148,7 @@ export default function AdminLoginPage() {
 
         {/* Card: registro nuevo restaurante */}
         <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5 space-y-3">
-          <p className="text-smoke-300 font-semibold text-sm">Registrá tu restaurante</p>
+          <p className="text-smoke-300 font-semibold text-sm">Registrá tu Local</p>
 
           {regSent ? (
             <div className="bg-ember-500/10 border border-ember-500/20 rounded-xl p-4 text-center">

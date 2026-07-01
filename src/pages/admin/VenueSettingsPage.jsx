@@ -15,7 +15,6 @@ export default function VenueSettingsPage() {
   const [logoPreview, setLogoPreview] = useState(null)
   const [headerBgColor, setHeaderBgColor] = useState('#1A1A1A')
   const [headerTextColor, setHeaderTextColor] = useState('#E8772A')
-  const [mpEnabled, setMpEnabled] = useState(false)
   const [kitchenAlias, setKitchenAlias] = useState('')
   const [activePicker, setActivePicker] = useState(null) // 'bg' | 'text' | null
   const [loading, setLoading] = useState(true)
@@ -28,7 +27,7 @@ export default function VenueSettingsPage() {
     async function load() {
       const { data } = await supabaseStaff
         .from('venues')
-        .select('name, whatsapp_number, logo_url, header_bg_color, header_text_color, mp_enabled, kitchen_alias')
+        .select('name, whatsapp_number, logo_url, header_bg_color, header_text_color, kitchen_alias')
         .eq('id', venueId)
         .single()
       setName(data?.name || '')
@@ -36,7 +35,6 @@ export default function VenueSettingsPage() {
       setLogoUrl(data?.logo_url || '')
       if (data?.header_bg_color) setHeaderBgColor(data.header_bg_color)
       if (data?.header_text_color) setHeaderTextColor(data.header_text_color)
-      if (data?.mp_enabled !== undefined) setMpEnabled(data.mp_enabled)
       if (data?.kitchen_alias) setKitchenAlias(data.kitchen_alias)
       setLoading(false)
     }
@@ -98,7 +96,6 @@ export default function VenueSettingsPage() {
           logo_url: finalLogoUrl || null,
           header_bg_color: headerBgColor,
           header_text_color: headerTextColor,
-          mp_enabled: mpEnabled,
           kitchen_alias: kitchenAlias.trim() || null
         })
         .eq('id', venueId)
@@ -253,26 +250,6 @@ export default function VenueSettingsPage() {
         </div>
 
         {error && <p className="text-red-700 text-xs px-1">{error}</p>}
-        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-smoke-300 font-medium text-sm">Mercado Pago</p>
-              <p className="text-smoke-500 text-xs mt-0.5">Los clientes pueden pagar directamente desde Capy</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setMpEnabled(v => !v)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                mpEnabled ? 'bg-blue-500' : 'bg-carbon-700'
-              }`}
-            >
-              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                mpEnabled ? 'translate-x-6' : 'translate-x-1'
-              }`} />
-            </button>
-          </div>
-        </div>
-
         <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
           <p className="text-smoke-300 font-medium text-sm mb-1">Alias de propina — Cocina</p>
           <p className="text-smoke-500 text-xs mb-3">Aparece en la encuesta cuando el cliente califica 4 o 5 estrellas</p>

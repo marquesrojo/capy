@@ -7,20 +7,22 @@ import { useAuth } from '../../hooks/useAuth'
 export default function QRPage() {
   const { venueId } = useAuth()
   const [inviteCode, setInviteCode] = useState(null)
+  const [slug, setSlug] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!venueId) return
-    loadInviteCode()
+    loadVenueData()
   }, [venueId])
 
-  async function loadInviteCode() {
+  async function loadVenueData() {
     const { data } = await supabaseStaff
       .from('venues')
-      .select('invite_code')
+      .select('invite_code, slug')
       .eq('id', venueId)
       .single()
     setInviteCode(data?.invite_code || null)
+    setSlug(data?.slug || null)
     setLoading(false)
   }
 
@@ -33,6 +35,8 @@ export default function QRPage() {
     setInviteCode(newCode)
   }
 
+  const clientUrl = slug ? `https://capyapp.co/r/${slug}` : 'https://capyapp.co'
+
   return (
     <div className="min-h-screen bg-carbon-950 px-5 py-8">
       <div className="flex items-center gap-3 mb-6">
@@ -41,35 +45,23 @@ export default function QRPage() {
       <h1 className="font-display text-3xl text-ember-500 tracking-wide mb-6">CÓDIGOS QR</h1>
 
       <div className="space-y-6">
-        {/* QR Clientes */}
-        <QRCard
-          label="QR Clientes"
-          description="El cliente escanea este QR para ver la carta y hacer su pedido"
-          url="https://capyapp.co"
-          showTemplate
-        />
-
-        {/* Código de invitación para camareros */}
+        {/* QR Camarero — primero */}
         <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
           <p className="text-smoke-200 font-semibold mb-1">Invitar Camareros</p>
           <p className="text-smoke-500 text-xs mb-4">
-            El camarero ingresa este código en Capy Camarero para vincularse a este restaurante
+            El camarero escanea este QR o ingresa el código en Capy Camarero para vincularse a este local
           </p>
 
           {loading ? (
             <p className="text-smoke-500 text-sm text-center py-4">Cargando...</p>
           ) : (
             <>
-              {/* Código grande */}
               <div className="bg-carbon-800 border border-carbon-700 rounded-2xl p-6 text-center mb-4">
                 <p className="text-smoke-500 text-xs mb-2 uppercase tracking-wide">Código de invitación</p>
                 <p className="font-mono text-ember-500 text-4xl font-bold tracking-widest">{inviteCode}</p>
               </div>
 
-              {/* QR del código */}
-              {inviteCode && (
-                <InviteQRCode code={inviteCode} />
-              )}
+              {inviteCode && <InviteQRCode code={inviteCode} />}
 
               <button
                 onClick={regenerateCode}
@@ -80,6 +72,16 @@ export default function QRPage() {
             </>
           )}
         </div>
+
+        {/* QR Clientes — segundo */}
+        {!loading && (
+          <QRCard
+            label="QR Clientes"
+            description="El cliente escanea este QR para ver la carta y hacer su pedido"
+            url={clientUrl}
+            showTemplate
+          />
+        )}
       </div>
     </div>
   )

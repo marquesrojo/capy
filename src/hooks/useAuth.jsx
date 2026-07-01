@@ -61,9 +61,6 @@ export function AuthProvider({ children }) {
       .catch(() => {
         setProfileLoading(false)
       })
-      .catch(() => {
-        setProfileLoading(false)
-      })
   }, [session])
 
   async function signInWithEmail(email, password) {

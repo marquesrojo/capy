@@ -101,7 +101,7 @@ export default function AdminOnboardingPage() {
             <img src="/icon-512.png" alt="Capy" className="w-full h-full object-contain" />
           </div>
           <h1 className="font-display text-3xl tracking-wide text-ember-500">CAPY</h1>
-          <p className="text-smoke-400 text-sm mt-1">Configurá tu restaurante</p>
+          <p className="text-smoke-400 text-sm mt-1">Configurá tu Local</p>
         </div>
 
         <form
@@ -109,7 +109,7 @@ export default function AdminOnboardingPage() {
           className="bg-carbon-900 border border-carbon-700 rounded-2xl p-6 space-y-4"
         >
           <label className="block">
-            <span className="text-smoke-400 text-xs mb-1.5 block">Nombre del restaurante</span>
+            <span className="text-smoke-400 text-xs mb-1.5 block">Nombre del Local</span>
             <input
               type="text"
               required
@@ -142,7 +142,7 @@ export default function AdminOnboardingPage() {
             disabled={submitting || !name.trim() || !slug.trim()}
             className="w-full bg-ember-500 hover:bg-ember-600 disabled:opacity-50 text-white font-semibold py-3 rounded-xl"
           >
-            {submitting ? 'Creando...' : 'Crear mi restaurante →'}
+            {submitting ? 'Creando...' : 'Crear mi Local →'}
           </button>
         </form>
       </div>
