@@ -130,7 +130,7 @@ async function checkBadges(staffId, staff, venueId) {
     if (badge.xpBonus) {
       await supabaseStaff.from('xp_transactions').insert({
         staff_id: staffId,
-        venue_id: ACTIVE_VENUE_ID,
+        venue_id: venueId,
         action: `badge_${badgeKey}`,
         xp_delta: badge.xpBonus
       })
