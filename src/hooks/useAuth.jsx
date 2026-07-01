@@ -13,11 +13,15 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     supabaseStaff.auth.getSession().then(({ data }) => {
+      // Si hay usuario, activar profileLoading en el mismo batch que loading=false
+      // para que ProtectedRoute nunca vea un render con loading=false pero sin profile
+      if (data.session?.user) setProfileLoading(true)
       setSession(data.session)
       setLoading(false)
     })
 
     const { data: listener } = supabaseStaff.auth.onAuthStateChange((_event, newSession) => {
+      if (newSession?.user) setProfileLoading(true)
       setSession(newSession)
     })
 
@@ -31,7 +35,6 @@ export function AuthProvider({ children }) {
       clearActiveVenueId()
       return
     }
-    setProfileLoading(true)
     supabaseStaff
       .from('profiles')
       .select('*')
