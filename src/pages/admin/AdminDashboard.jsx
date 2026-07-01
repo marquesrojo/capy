@@ -55,6 +55,9 @@ function AdminDashboardInner() {
   const [refreshing, setRefreshing] = useState(false)
   const [view, setView] = useState('pedidos')
   const [zones, setZones] = useState([])
+  const [hasProducts, setHasProducts] = useState(true)
+  const [hasStaff, setHasStaff] = useState(true)
+  const [hasLocations, setHasLocations] = useState(true)
   const { signOut, profile, venueId } = useAuth()
 
   useEffect(() => {
@@ -63,7 +66,19 @@ function AdminDashboardInner() {
     loadCategories()
     loadVenue()
     loadZones()
+    loadOnboardingChecks()
   }, [venueId])
+
+  async function loadOnboardingChecks() {
+    const [prodRes, staffRes, zoneRes] = await Promise.all([
+      supabaseStaff.from('products').select('id', { count: 'exact', head: true }).eq('venue_id', venueId).limit(1),
+      supabaseStaff.from('staff_names').select('id', { count: 'exact', head: true }).eq('venue_id', venueId).eq('is_active', true).limit(1),
+      supabaseStaff.from('venue_zones').select('id', { count: 'exact', head: true }).eq('venue_id', venueId).limit(1)
+    ])
+    setHasProducts((prodRes.count ?? 0) > 0)
+    setHasStaff((staffRes.count ?? 0) > 0)
+    setHasLocations((zoneRes.count ?? 0) > 0)
+  }
 
   async function loadZones() {
     const { data } = await supabaseStaff
@@ -359,6 +374,38 @@ function AdminDashboardInner() {
           }`} />
         </button>
       </div>
+
+      {profile?.role !== 'camarero' && (!hasProducts || !hasStaff || !hasLocations) && (
+        <div className="px-4 pt-4 space-y-2">
+          {!hasProducts && (
+            <OnboardingAlert
+              icon="🍽️"
+              title="Agregá productos a tu carta"
+              description="Sin productos, los clientes no pueden hacer pedidos."
+              linkTo="/admin/carta"
+              linkLabel="Crear carta →"
+            />
+          )}
+          {!hasStaff && (
+            <OnboardingAlert
+              icon="👥"
+              title="Agregá al menos un camarero"
+              description="Los camareros reciben y entregan los pedidos en mesa."
+              linkTo="/admin/camareros"
+              linkLabel="Agregar camarero →"
+            />
+          )}
+          {!hasLocations && (
+            <OnboardingAlert
+              icon="📍"
+              title="Configurá las ubicaciones del local"
+              description="Sin ubicaciones, los clientes no pueden indicar dónde están."
+              linkTo="/admin/ubicaciones"
+              linkLabel="Crear ubicaciones →"
+            />
+          )}
+        </div>
+      )}
 
       <div className="px-4 pt-3 flex gap-2">
         <button
@@ -1219,6 +1266,26 @@ function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCal
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function OnboardingAlert({ icon, title, description, linkTo, linkLabel }) {
+  return (
+    <div className="bg-amber-500/10 border border-amber-500/40 rounded-2xl p-4 flex items-center justify-between gap-3">
+      <div className="flex items-start gap-3">
+        <span className="text-xl flex-shrink-0">{icon}</span>
+        <div>
+          <p className="text-amber-700 font-semibold text-sm">{title}</p>
+          <p className="text-smoke-500 text-xs mt-0.5">{description}</p>
+        </div>
+      </div>
+      <Link
+        to={linkTo}
+        className="flex-shrink-0 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-3 py-1.5 rounded-full whitespace-nowrap"
+      >
+        {linkLabel}
+      </Link>
     </div>
   )
 }

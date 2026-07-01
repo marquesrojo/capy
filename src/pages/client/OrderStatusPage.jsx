@@ -364,7 +364,7 @@ export default function OrderStatusPage() {
           <button
             onClick={handleCallWaiter}
             disabled={calling}
-            className="w-full border border-ember-500 text-ember-500 font-medium py-3.5 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full border border-coral-500 text-coral-500 font-medium py-3.5 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -385,7 +385,9 @@ export default function OrderStatusPage() {
         </button>
       )}
 
-      {order.status === 'entregado' && <OrderFeedback orderId={order.id} staffId={order.assigned_staff_id} />}
+      {['en_preparacion', 'listo', 'entregado'].includes(order.status) && (
+        <OrderFeedback orderId={order.id} staffId={order.assigned_staff_id} />
+      )}
     </div>
   )
 }
