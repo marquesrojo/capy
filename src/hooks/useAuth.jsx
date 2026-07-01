@@ -40,11 +40,25 @@ export function AuthProvider({ children }) {
       .select('*')
       .eq('id', session.user.id)
       .single()
-      .then(({ data, error }) => {
-        if (!error) {
+      .then(async ({ data, error }) => {
+        if (!error && data) {
           setProfile(data)
           if (data?.venue_id) setActiveVenueId(data.venue_id)
+          setProfileLoading(false)
+          return
         }
+        // PGRST116 = no rows — trigger may have failed to create the profile
+        if (error?.code === 'PGRST116') {
+          const { data: created } = await supabaseStaff
+            .from('profiles')
+            .insert({ id: session.user.id, role: 'propietario' })
+            .select()
+            .single()
+          if (created) setProfile(created)
+        }
+        setProfileLoading(false)
+      })
+      .catch(() => {
         setProfileLoading(false)
       })
       .catch(() => {
