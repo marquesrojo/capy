@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { supabaseStaff, setActiveVenueId } from '../lib/supabase'
+import { supabaseStaff, setActiveVenueId, clearActiveVenueId } from '../lib/supabase'
 
 // Autenticacion del STAFF (camarero/admin). Los clientes finales no usan
 // este hook - ver useCustomer.jsx para la identidad sin login.
@@ -26,6 +26,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (!session?.user) {
       setProfile(null)
+      clearActiveVenueId()
       return
     }
     supabaseStaff
