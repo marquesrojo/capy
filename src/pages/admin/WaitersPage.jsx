@@ -12,12 +12,13 @@ export default function WaitersPage() {
   const [admins, setAdmins] = useState([])
   const [loading, setLoading] = useState(true)
 
-  // Crear admin
   const [newEmail, setNewEmail] = useState('')
   const [newName, setNewName] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState('')
+
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'propietario'
 
   useEffect(() => {
     if (!venueId) return
@@ -35,7 +36,7 @@ export default function WaitersPage() {
       supabaseStaff
         .from('profiles')
         .select('id, full_name, role, created_at')
-        .eq('role', 'admin')
+        .in('role', ['admin', 'propietario'])
         .order('full_name')
     ])
     setVinculados(vinculadosRes.data || [])
@@ -79,7 +80,7 @@ export default function WaitersPage() {
       <div className="flex gap-2 mb-6">
         {[
           { id: 'camareros', label: 'Capy Camarero' },
-          { id: 'admins', label: 'Admins' },
+          { id: 'admins', label: 'Administradores' },
         ].map(t => (
           <button
             key={t.id}
@@ -97,7 +98,6 @@ export default function WaitersPage() {
         <p className="text-smoke-500 text-sm">Cargando...</p>
       ) : (
         <>
-          {/* Capy Camarero vinculados */}
           {tab === 'camareros' && (
             <div className="space-y-3">
               <p className="text-smoke-500 text-xs mb-4">
@@ -124,18 +124,19 @@ export default function WaitersPage() {
             </div>
           )}
 
-          {/* Admins */}
-          {tab === 'admins' && profile?.role === 'admin' && (
+          {tab === 'admins' && isAdmin && (
             <div className="space-y-4">
               <div className="space-y-2">
                 {admins.map(u => (
-                  <AdminCard key={u.id} user={u} onUpdated={loadAll} />
+                  <AdminCard key={u.id} user={u} currentUserId={profile?.id} onUpdated={loadAll} />
                 ))}
+                {admins.length === 0 && (
+                  <p className="text-smoke-600 text-sm text-center py-4">No hay administradores cargados.</p>
+                )}
               </div>
 
-              {/* Crear admin */}
               <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4 mt-4">
-                <p className="text-smoke-300 font-semibold text-sm mb-3">Crear nuevo admin</p>
+                <p className="text-smoke-300 font-semibold text-sm mb-3">Crear nuevo administrador</p>
                 <form onSubmit={createAdmin} className="space-y-2">
                   <input type="text" value={newName} onChange={e => setNewName(e.target.value)}
                     placeholder="Nombre completo" className="input w-full" />
@@ -146,15 +147,15 @@ export default function WaitersPage() {
                   {createError && <p className="text-red-500 text-xs">{createError}</p>}
                   <button type="submit" disabled={creating}
                     className="w-full bg-ember-500 disabled:opacity-50 text-white font-semibold py-3 rounded-xl text-sm">
-                    {creating ? 'Creando...' : 'Crear admin'}
+                    {creating ? 'Creando...' : 'Crear administrador'}
                   </button>
                 </form>
               </div>
             </div>
           )}
 
-          {tab === 'admins' && profile?.role !== 'admin' && (
-            <p className="text-smoke-600 text-sm text-center py-8">Solo los admins pueden gestionar usuarios.</p>
+          {tab === 'admins' && !isAdmin && (
+            <p className="text-smoke-600 text-sm text-center py-8">Solo los administradores pueden gestionar usuarios.</p>
           )}
         </>
       )}
@@ -162,10 +163,11 @@ export default function WaitersPage() {
   )
 }
 
-function AdminCard({ user, onUpdated }) {
+function AdminCard({ user, currentUserId, onUpdated }) {
   const [editing, setEditing] = useState(false)
   const [fullName, setFullName] = useState(user.full_name)
   const [saving, setSaving] = useState(false)
+  const isMe = user.id === currentUserId
 
   async function handleSave() {
     setSaving(true)
@@ -180,6 +182,8 @@ function AdminCard({ user, onUpdated }) {
     await supabaseStaff.from('profiles').update({ role: 'suspendido' }).eq('id', user.id)
     onUpdated()
   }
+
+  const roleLabel = user.role === 'propietario' ? 'Propietario' : 'Admin'
 
   return (
     <div className="bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-3">
@@ -205,12 +209,17 @@ function AdminCard({ user, onUpdated }) {
       ) : (
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-smoke-200 font-semibold text-sm">{user.full_name}</p>
-            <p className="text-smoke-500 text-xs capitalize">{user.role}</p>
+            <p className="text-smoke-200 font-semibold text-sm">
+              {user.full_name || user.id.slice(0, 8)}
+              {isMe && <span className="ml-2 text-ember-500 text-xs">(vos)</span>}
+            </p>
+            <p className="text-smoke-500 text-xs">{roleLabel}</p>
           </div>
           <div className="flex gap-3">
             <button onClick={() => setEditing(true)} className="text-ember-500 text-xs underline">Editar</button>
-            <button onClick={handleSuspend} className="text-red-400 text-xs underline">Suspender</button>
+            {!isMe && (
+              <button onClick={handleSuspend} className="text-red-400 text-xs underline">Suspender</button>
+            )}
           </div>
         </div>
       )}

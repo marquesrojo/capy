@@ -9,20 +9,30 @@ export default function PaymentMethodsPage() {
   const [loading, setLoading] = useState(true)
   const [newName, setNewName] = useState('')
   const [adding, setAdding] = useState(false)
+  const [mpEnabled, setMpEnabled] = useState(false)
+  const [mpSaving, setMpSaving] = useState(false)
 
   useEffect(() => {
     if (!venueId) return
-    loadMethods()
+    loadAll()
   }, [venueId])
 
-  async function loadMethods() {
-    const { data } = await supabaseStaff
-      .from('payment_methods')
-      .select('*')
-      .eq('venue_id', venueId)
-      .order('sort_order')
-    setMethods(data || [])
+  async function loadAll() {
+    const [methodsRes, venueRes] = await Promise.all([
+      supabaseStaff.from('payment_methods').select('*').eq('venue_id', venueId).order('sort_order'),
+      supabaseStaff.from('venues').select('mp_enabled').eq('id', venueId).single()
+    ])
+    setMethods(methodsRes.data || [])
+    if (venueRes.data?.mp_enabled !== undefined) setMpEnabled(venueRes.data.mp_enabled)
     setLoading(false)
+  }
+
+  async function toggleMp() {
+    const newVal = !mpEnabled
+    setMpEnabled(newVal)
+    setMpSaving(true)
+    await supabaseStaff.from('venues').update({ mp_enabled: newVal }).eq('id', venueId)
+    setMpSaving(false)
   }
 
   async function toggleActive(method) {
@@ -71,6 +81,27 @@ export default function PaymentMethodsPage() {
       </header>
 
       <main className="px-5 mt-4 space-y-4">
+        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-smoke-300 font-medium text-sm">Mercado Pago</p>
+              <p className="text-smoke-500 text-xs mt-0.5">Los clientes pueden pagar directamente desde Capy</p>
+            </div>
+            <button
+              type="button"
+              onClick={toggleMp}
+              disabled={mpSaving}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-70 ${
+                mpEnabled ? 'bg-blue-500' : 'bg-carbon-700'
+              }`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                mpEnabled ? 'translate-x-6' : 'translate-x-1'
+              }`} />
+            </button>
+          </div>
+        </div>
+
         <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4 flex gap-3">
           <input
             type="text"

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice, STATUS_LABELS, STATUS_COLORS } from '../../lib/utils'
-import WaiterOrderPage from './WaiterOrderPage'
+import FloorPlanViewer from '../../components/FloorPlanViewer'
 
 const BOARD_COLUMNS = ['recibido', 'en_preparacion', 'entregado']
 const PROOF_BUCKET = 'payment-proofs'
@@ -54,6 +54,7 @@ function AdminDashboardInner() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [view, setView] = useState('pedidos')
+  const [zones, setZones] = useState([])
   const { signOut, profile, venueId } = useAuth()
 
   useEffect(() => {
@@ -61,7 +62,18 @@ function AdminDashboardInner() {
     loadWaiters()
     loadCategories()
     loadVenue()
+    loadZones()
   }, [venueId])
+
+  async function loadZones() {
+    const { data } = await supabaseStaff
+      .from('zones')
+      .select('*')
+      .eq('venue_id', venueId)
+      .eq('is_active', true)
+      .order('sort_order')
+    setZones(data || [])
+  }
 
   async function loadVenue() {
     const { data } = await supabaseStaff
@@ -374,14 +386,6 @@ function AdminDashboardInner() {
         >
           Cocina
         </button>
-        <button
-          onClick={() => setView('tomar')}
-          className={`px-3 py-1.5 rounded-full text-xs font-medium border ${
-            view === 'tomar' ? 'bg-ember-500 text-white border-ember-500' : 'border-carbon-700 text-smoke-400'
-          }`}
-        >
-          Tomar pedido
-        </button>
       </div>
 
       {view !== 'cocina' && pendingProofOrders.length > 0 && (
@@ -404,11 +408,9 @@ function AdminDashboardInner() {
       )}
 
       {view === 'salon' ? (
-        <SalonView orders={orders} />
+        <SalonView orders={orders} zones={zones} venueId={venueId} />
       ) : view === 'cocina' ? (
         <CocinaView orders={orders} categories={categories} onUpdateStatus={updateStatus} onRefresh={load} />
-      ) : view === 'tomar' ? (
-        <WaiterOrderPage />
       ) : (
         <div className="flex gap-4 overflow-x-auto p-4">
           {BOARD_COLUMNS.map(status => (
@@ -584,7 +586,7 @@ function CocinaView({ orders, categories, onUpdateStatus, onRefresh }) {
   )
 }
 
-function SalonView({ orders }) {
+function SalonView({ orders, zones, venueId }) {
   const [typeFilter, setTypeFilter] = useState('todos')
 
   const filtered = orders.filter(o => typeFilter === 'todos' || o.location_type === typeFilter)
@@ -599,9 +601,15 @@ function SalonView({ orders }) {
   const typesPresent = [...new Set(orders.map(o => o.location_type))]
 
   return (
-    <div className="px-4 pt-4">
+    <div className="px-4 pt-4 space-y-4">
+      <FloorPlanViewer
+        zones={zones}
+        venueId={venueId}
+        supabaseClient={supabaseStaff}
+      />
+
       {typesPresent.length > 1 && (
-        <div className="flex gap-2 mb-4 overflow-x-auto">
+        <div className="flex gap-2 overflow-x-auto pb-1">
           <button
             onClick={() => setTypeFilter('todos')}
             className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border ${
@@ -625,7 +633,7 @@ function SalonView({ orders }) {
       )}
 
       {Object.keys(grouped).length === 0 ? (
-        <p className="text-smoke-500 text-sm text-center py-10">No hay pedidos activos.</p>
+        <p className="text-smoke-500 text-sm text-center py-6">No hay pedidos activos.</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {Object.entries(grouped).map(([location, locationOrders]) => (
