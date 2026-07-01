@@ -6,17 +6,16 @@ const MAX_PROOF_SIZE_MB = 8
 
 export default function BillRequest({ order, onUpdated }) {
   const [mpEnabled, setMpEnabled] = useState(false)
+  const [paymentMethods, setPaymentMethods] = useState([])
 
   useEffect(() => {
     async function loadVenue() {
-      const { data } = await supabaseCustomer
-        .from('venues')
-        .select('mp_enabled')
-        .eq('id', ACTIVE_VENUE_ID)
-        .single()
-      if (data) {
-        setMpEnabled(data.mp_enabled || false)
-      }
+      const [venueRes, methodsRes] = await Promise.all([
+        supabaseCustomer.from('venues').select('mp_enabled').eq('id', ACTIVE_VENUE_ID).single(),
+        supabaseCustomer.from('payment_methods').select('id, name').eq('venue_id', ACTIVE_VENUE_ID).eq('is_active', true).order('sort_order')
+      ])
+      if (venueRes.data) setMpEnabled(venueRes.data.mp_enabled || false)
+      setPaymentMethods(methodsRes.data || [])
     }
     loadVenue()
   }, [])
@@ -59,6 +58,7 @@ export default function BillRequest({ order, onUpdated }) {
       order={order}
       onUpdated={onUpdated}
       mpEnabled={mpEnabled}
+      paymentMethods={paymentMethods}
     />
   )
 }
@@ -70,13 +70,25 @@ const ICON = {
   bill: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h5"/></svg>,
 }
 
-function RequestBillForm({ order, onUpdated, mpEnabled }) {
+function getMethodIcon(name) {
+  const n = (name || '').toLowerCase()
+  if (n.includes('efectivo') || n.includes('cash')) return ICON.cash
+  if (n.includes('posnet') || n.includes('tarjeta') || n.includes('débito') || n.includes('crédito') || n.includes('debito') || n.includes('credito')) return ICON.posnet
+  return ICON.mp
+}
+
+function RequestBillForm({ order, onUpdated, mpEnabled, paymentMethods }) {
   const [showOptions, setShowOptions] = useState(false)
   const [selectedMethod, setSelectedMethod] = useState(null)
   const [cashAmount, setCashAmount] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [payingWithMP, setPayingWithMP] = useState(false)
   const [error, setError] = useState('')
+
+  // Fallback if no methods configured in DB
+  const methods = paymentMethods.length > 0
+    ? paymentMethods
+    : [{ id: 'efectivo', name: 'Efectivo' }, { id: 'posnet', name: 'Posnet / Tarjeta' }]
 
   async function handleRequestBill(method) {
     setSubmitting(true)
@@ -163,51 +175,55 @@ function RequestBillForm({ order, onUpdated, mpEnabled }) {
         </button>
       )}
 
-      <button
-        onClick={() => setSelectedMethod(selectedMethod === 'efectivo' ? null : 'efectivo')}
-        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium bg-carbon-800 ${
-          selectedMethod === 'efectivo'
-            ? 'border-ember-500 text-smoke-200'
-            : 'border-carbon-700 text-smoke-300'
-        }`}
-      >
-        {ICON.cash}
-        Efectivo
-      </button>
+      {methods.map(method => {
+        const isCash = method.name.toLowerCase().includes('efectivo')
+        const isSelected = selectedMethod === method.id
+        return (
+          <div key={method.id}>
+            <button
+              onClick={() => {
+                if (isCash) {
+                  setSelectedMethod(isSelected ? null : method.id)
+                } else {
+                  handleRequestBill(method.name)
+                }
+              }}
+              disabled={submitting && !isCash}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium bg-carbon-800 disabled:opacity-50 ${
+                isSelected ? 'border-ember-500 text-smoke-200' : 'border-carbon-700 text-smoke-300'
+              }`}
+            >
+              {getMethodIcon(method.name)}
+              {method.name}
+            </button>
 
-      {selectedMethod === 'efectivo' && (
-        <div className="space-y-2 px-1">
-          <input
-            type="number"
-            inputMode="decimal"
-            value={cashAmount}
-            onChange={e => setCashAmount(e.target.value)}
-            placeholder={`Mínimo ${formatPrice(order.total)}`}
-            className="input text-sm"
-          />
-          {cashAmount && Number(cashAmount) >= order.total && (
-            <p className="text-smoke-500 text-xs">
-              Vuelto: {formatPrice(Number(cashAmount) - order.total)}
-            </p>
-          )}
-          <button
-            onClick={() => handleRequestBill('Efectivo')}
-            disabled={submitting}
-            className="w-full bg-ember-500 text-white font-semibold py-3 rounded-xl text-sm disabled:opacity-50"
-          >
-            {submitting ? 'Enviando...' : 'Confirmar — cobran en efectivo'}
-          </button>
-        </div>
-      )}
-
-      <button
-        onClick={() => handleRequestBill('Posnet')}
-        disabled={submitting}
-        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-carbon-700 text-smoke-300 text-sm font-medium disabled:opacity-50 bg-carbon-800"
-      >
-        {ICON.posnet}
-        Posnet / Tarjeta
-      </button>
+            {isCash && isSelected && (
+              <div className="space-y-2 px-1 mt-2">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={cashAmount}
+                  onChange={e => setCashAmount(e.target.value)}
+                  placeholder={`Mínimo ${formatPrice(order.total)}`}
+                  className="input text-sm"
+                />
+                {cashAmount && Number(cashAmount) >= order.total && (
+                  <p className="text-smoke-500 text-xs">
+                    Vuelto: {formatPrice(Number(cashAmount) - order.total)}
+                  </p>
+                )}
+                <button
+                  onClick={() => handleRequestBill(method.name)}
+                  disabled={submitting}
+                  className="w-full bg-ember-500 text-white font-semibold py-3 rounded-xl text-sm disabled:opacity-50"
+                >
+                  {submitting ? 'Enviando...' : `Confirmar — cobran en ${method.name.toLowerCase()}`}
+                </button>
+              </div>
+            )}
+          </div>
+        )
+      })}
 
       {error && <p className="text-red-700 text-xs">{error}</p>}
 
