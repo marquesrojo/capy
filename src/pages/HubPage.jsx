@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabaseCustomer } from '../lib/supabase'
 
 export default function HubPage() {
@@ -7,6 +7,15 @@ export default function HubPage() {
   const [search, setSearch] = useState('')
   const [results, setResults] = useState([])
   const [searching, setSearching] = useState(false)
+
+  // Supabase email confirmation cae en /# cuando la URL de redirect no está
+  // en la allowlist. Detectamos el token en el hash y reenviamos al callback.
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash && (hash.includes('access_token') || hash.includes('error'))) {
+      navigate('/auth/callback?type=admin' + hash)
+    }
+  }, [])
 
   async function handleSearch(e) {
     e.preventDefault()
