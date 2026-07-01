@@ -6,6 +6,7 @@ import { useCustomer } from '../../hooks/useCustomer'
 import { formatPrice } from '../../lib/utils'
 import { isSpeechRecognitionSupported } from '../../lib/voiceOrderParser'
 import BottomNav from '../../components/BottomNav'
+import { useClientBase } from '../../hooks/useVenue'
 
 export default function MenuPage() {
   const [categories, setCategories] = useState([])
@@ -26,6 +27,7 @@ export default function MenuPage() {
   }
   const { customer, forgetCustomer } = useCustomer()
   const navigate = useNavigate()
+  const base = useClientBase()
 
   useEffect(() => {
     async function load() {
@@ -114,7 +116,7 @@ export default function MenuPage() {
             se retome esa funcionalidad. */}
         {false && isSpeechRecognitionSupported() && (
           <button
-            onClick={() => navigate('/carta/voz')}
+            onClick={() => navigate(`${base}/carta/voz`)}
             className="flex items-center gap-1.5 text-pucara-blue-500 text-xs font-medium mb-3"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -183,7 +185,7 @@ export default function MenuPage() {
 
       {itemCount > 0 && (
         <button
-          onClick={() => navigate('/ubicacion')}
+          onClick={() => navigate(`${base}/ubicacion`)}
           className="fixed bottom-20 left-5 right-5 bg-pucara-blue-500 hover:bg-pucara-blue-600 text-white rounded-2xl py-4 px-5 flex items-center justify-between shadow-pucara font-semibold z-20"
         >
           <span>{itemCount} {itemCount === 1 ? 'item' : 'items'}</span>
