@@ -12,6 +12,7 @@ export default function MenuPage() {
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
   const [zones, setZones] = useState([])
+  const [selectedSector, setSelectedSector] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState(null)
   const [search, setSearch] = useState('')
@@ -81,8 +82,13 @@ export default function MenuPage() {
     )
   }
 
-  const mesas = zones.filter(z => z.type === 'mesa')
-  const otrasZonas = zones.filter(z => z.type !== 'mesa')
+  const mesaZones = zones.filter(z => z.type === 'mesa')
+  const parentIds = new Set(mesaZones.map(z => z.parent_zone_id).filter(Boolean))
+  const sectorZones = zones.filter(z => parentIds.has(z.id))
+  const directZones = zones.filter(z => z.type !== 'mesa' && !parentIds.has(z.id))
+  const filteredMesas = selectedSector
+    ? mesaZones.filter(z => z.parent_zone_id === selectedSector.id)
+    : mesaZones
 
   return (
     <div className="min-h-screen bg-[#F0F4F8] pb-32">
@@ -156,32 +162,47 @@ export default function MenuPage() {
       </header>
 
       {/* Location selector */}
-      <div className="px-5 pt-4 pb-1">
+      <div className="px-5 pt-4 pb-1 space-y-2">
         {location?.label ? (
           <div className="flex items-center justify-between bg-white rounded-xl px-4 py-2.5 border border-black/5 shadow-sm">
             <div className="flex items-center gap-2">
               <span>📍</span>
               <p className="text-smoke-300 font-semibold text-sm">{location.label}</p>
             </div>
-            <button onClick={() => setLocation(null)} className="text-pucara-blue-400 text-xs font-semibold">
+            <button
+              onClick={() => { setLocation(null); setSelectedSector(null) }}
+              className="text-pucara-blue-400 text-xs font-semibold"
+            >
               Cambiar
             </button>
           </div>
         ) : zones.length > 0 ? (
-          <div>
-            <p className="text-smoke-500 text-xs font-semibold uppercase tracking-wide mb-2">¿Dónde estás?</p>
-            {mesas.length > 0 && (
+          <>
+            <p className="text-smoke-500 text-xs font-semibold uppercase tracking-wide">¿Dónde estás?</p>
+
+            {/* Sector filter — only shown when mesas have parent zones */}
+            {sectorZones.length > 0 && (
               <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
-                {mesas.map(zone => (
+                {sectorZones.map(sector => (
                   <button
-                    key={zone.id}
-                    onClick={() => setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })}
-                    className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-white border-black/10 text-smoke-300 active:bg-pucara-blue-500 active:text-white active:border-pucara-blue-500"
+                    key={sector.id}
+                    onClick={() => setSelectedSector(prev => prev?.id === sector.id ? null : sector)}
+                    className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border transition-colors ${
+                      selectedSector?.id === sector.id
+                        ? 'bg-pucara-blue-500 text-white border-pucara-blue-500'
+                        : 'bg-white border-black/10 text-smoke-300'
+                    }`}
                   >
-                    {zone.name}
+                    {sector.name}
                   </button>
                 ))}
-                {otrasZonas.map(zone => (
+              </div>
+            )}
+
+            {/* Mesas — shown when sector selected (or when no sectors exist) */}
+            {(sectorZones.length === 0 || selectedSector) && filteredMesas.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
+                {filteredMesas.map(zone => (
                   <button
                     key={zone.id}
                     onClick={() => setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })}
@@ -192,7 +213,22 @@ export default function MenuPage() {
                 ))}
               </div>
             )}
-          </div>
+
+            {/* Direct zones (barra, retiro, etc. — no parent-child structure) */}
+            {directZones.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
+                {directZones.map(zone => (
+                  <button
+                    key={zone.id}
+                    onClick={() => setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })}
+                    className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-white border-black/10 text-smoke-300 active:bg-pucara-blue-500 active:text-white active:border-pucara-blue-500"
+                  >
+                    {zone.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
         ) : null}
       </div>
 
@@ -250,22 +286,16 @@ function ProductCard({ product, onAdd, onRemove, qty }) {
         <div className="mt-2.5">
           {!product.is_available ? (
             <span className="text-red-700 text-xs font-medium">Agotado</span>
-          ) : qty === 0 ? (
-            <button
-              onClick={() => onAdd(product, 1)}
-              className="text-xs font-semibold px-4 py-1.5 rounded-lg bg-pucara-blue-500 text-white active:bg-pucara-blue-600"
-            >
-              Agregar
-            </button>
           ) : (
             <div className="flex items-center gap-2">
               <button
                 onClick={() => onRemove(product)}
-                className="w-8 h-8 rounded-lg border border-black/10 bg-[#F0F4F8] text-smoke-300 flex items-center justify-center font-bold text-base active:bg-carbon-700"
+                disabled={qty === 0}
+                className="w-8 h-8 rounded-lg border border-black/10 bg-[#F0F4F8] text-smoke-300 flex items-center justify-center font-bold text-base disabled:opacity-30"
               >
                 −
               </button>
-              <span className="text-smoke-300 font-semibold w-5 text-center text-sm">{qty}</span>
+              <span className={`font-semibold w-5 text-center text-sm ${qty > 0 ? 'text-pucara-blue-500' : 'text-smoke-400'}`}>{qty}</span>
               <button
                 onClick={() => onAdd(product, 1)}
                 className="w-8 h-8 rounded-lg bg-pucara-blue-500 text-white flex items-center justify-center font-bold text-base active:bg-pucara-blue-600"
