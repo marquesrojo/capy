@@ -42,13 +42,25 @@ export const supabaseCustomer = createClient(supabaseUrl, supabaseAnonKey, {
   }
 })
 
-// ID del venue activo. Se inicializa con la variable de entorno (para el
-// venue por defecto de Pucará) y se sobreescribe dinámicamente al cargar
-// el perfil del admin (useAuth) o al resolver el slug de la URL del cliente
-// (useVenue). Todos los archivos que importan ACTIVE_VENUE_ID obtienen el
-// valor actual en tiempo de ejecución gracias a las live bindings de ESM.
-export let ACTIVE_VENUE_ID = import.meta.env.VITE_VENUE_ID || '00000000-0000-0000-0000-000000000001'
+// ID del venue activo. Se persiste en localStorage para que sobreviva refreshes.
+// Prioridad: localStorage > VITE_VENUE_ID > hardcoded Pucará.
+// Se sobreescribe al cargar el perfil del admin (useAuth) o al resolver el
+// slug del cliente (useVenue). Live bindings de ESM garantizan que todos los
+// importadores lean el valor actualizado.
+const VENUE_STORAGE_KEY = 'capy-active-venue-id'
+export let ACTIVE_VENUE_ID =
+  localStorage.getItem(VENUE_STORAGE_KEY) ||
+  import.meta.env.VITE_VENUE_ID ||
+  '00000000-0000-0000-0000-000000000001'
 
 export function setActiveVenueId(id) {
-  if (id) ACTIVE_VENUE_ID = id
+  if (id) {
+    ACTIVE_VENUE_ID = id
+    localStorage.setItem(VENUE_STORAGE_KEY, id)
+  }
+}
+
+export function clearActiveVenueId() {
+  ACTIVE_VENUE_ID = import.meta.env.VITE_VENUE_ID || '00000000-0000-0000-0000-000000000001'
+  localStorage.removeItem(VENUE_STORAGE_KEY)
 }
