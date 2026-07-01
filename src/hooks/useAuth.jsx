@@ -9,6 +9,7 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [profileLoading, setProfileLoading] = useState(false)
 
   useEffect(() => {
     supabaseStaff.auth.getSession().then(({ data }) => {
@@ -26,9 +27,11 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (!session?.user) {
       setProfile(null)
+      setProfileLoading(false)
       clearActiveVenueId()
       return
     }
+    setProfileLoading(true)
     supabaseStaff
       .from('profiles')
       .select('*')
@@ -39,6 +42,7 @@ export function AuthProvider({ children }) {
           setProfile(data)
           if (data?.venue_id) setActiveVenueId(data.venue_id)
         }
+        setProfileLoading(false)
       })
   }, [session])
 
@@ -55,6 +59,7 @@ export function AuthProvider({ children }) {
     user: session?.user || null,
     profile,
     loading,
+    profileLoading,
     venueId: profile?.venue_id || null,
     isStaff: profile?.role === 'admin' || profile?.role === 'camarero' || profile?.role === 'propietario',
     isAdmin: profile?.role === 'admin' || profile?.role === 'propietario',
