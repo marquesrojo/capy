@@ -50,6 +50,12 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
   const navigate = useNavigate()
   const [tab, setTab] = useState('tomar')
   const [micapyTab, setMicapyTab] = useState(null)
+  const [prefillLocation, setPrefillLocation] = useState(null)
+
+  function handleNewOrderForTable(locationLabel) {
+    setPrefillLocation(locationLabel)
+    setTab('tomar')
+  }
   const [staffName, setStaffName] = useState(initialName)
   const [staffXP, setStaffXP] = useState(initialXP || 0)
 
@@ -127,8 +133,8 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
       </div>
 
       {/* Contenido */}
-      {tab === 'tomar' && <WaiterOrderCamaut venueId={venueId} linkedVenues={linkedVenues} />}
-      {tab === 'pedidos' && <CamautKanban venueId={venueId} linkedVenues={linkedVenues} staffId={staffId} />}
+      {tab === 'tomar' && <WaiterOrderCamaut venueId={venueId} linkedVenues={linkedVenues} prefillLocation={prefillLocation} onPrefillUsed={() => setPrefillLocation(null)} />}
+      {tab === 'pedidos' && <CamautKanban venueId={venueId} linkedVenues={linkedVenues} staffId={staffId} onNewOrderForTable={handleNewOrderForTable} />}
       {tab === 'turno' && <ShiftSummaryPage embedded venueId={venueId} />}
 
       {tab === 'micapy' && (

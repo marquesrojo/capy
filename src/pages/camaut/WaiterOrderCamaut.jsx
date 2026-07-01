@@ -5,7 +5,7 @@ import { formatPrice } from '../../lib/utils'
 import { awardXP } from '../../lib/xpUtils'
 import FloorPlanViewer from '../../components/FloorPlanViewer'
 
-export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
+export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillLocation = null, onPrefillUsed }) {
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
   const [zones, setZones] = useState([])
@@ -46,6 +46,14 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
     activeVenueIdRef.current = activeVenueId
     if (activeVenueId) loadCarta()
   }, [activeVenueId])
+
+  useEffect(() => {
+    if (prefillLocation) {
+      setLocation(prefillLocation)
+      setSelectedZone({ id: 'otra', name: null })
+      onPrefillUsed?.()
+    }
+  }, [prefillLocation])
 
   async function loadCarta() {
     setLoading(true)
