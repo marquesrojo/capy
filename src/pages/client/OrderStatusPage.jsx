@@ -64,11 +64,11 @@ export default function OrderStatusPage() {
 
   function handleAddMore() {
     const params = new URLSearchParams({
-      session_id: order.session_id,
       zone_id: order.zone_id || '',
       location_label: order.location_label || '',
       location_type: order.location_type || 'zona'
     })
+    if (order.session_id) params.set('session_id', order.session_id)
     navigate(`${base}/carta?${params.toString()}`)
   }
 
@@ -333,7 +333,7 @@ export default function OrderStatusPage() {
 
       <SplitCalculator total={order.total} assignedStaff={order.assigned_staff} />
 
-      {!isCancelado && order.session_id && !['pendiente_aprobacion', 'cancelado'].includes(order.status) && (
+      {!isCancelado && (
         <button
           onClick={handleAddMore}
           className="w-full mt-4 bg-pucara-blue-500 hover:bg-pucara-blue-600 text-white font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-2"
