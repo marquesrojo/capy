@@ -155,8 +155,13 @@ export default function OrderStatusPage() {
 
   return (
     <div className="min-h-screen bg-carbon-950 px-5 pt-6 pb-10">
-      <Link to="/" className="text-smoke-500 text-xs underline">
-        ← Inicio
+      <Link
+        to={order.session_id
+          ? `${base}/carta?session_id=${order.session_id}&zone_id=${order.zone_id || ''}&location_label=${encodeURIComponent(order.location_label || '')}&location_type=${order.location_type || 'zona'}`
+          : '/'}
+        className="text-smoke-500 text-xs underline"
+      >
+        ← {order.session_id ? 'Carta' : 'Inicio'}
       </Link>
       <div className="flex items-center justify-between mt-2">
         <div>
