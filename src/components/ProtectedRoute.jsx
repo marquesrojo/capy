@@ -1,6 +1,8 @@
+import { useEffect } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useCustomer } from '../hooks/useCustomer'
+import { setActiveVenueId } from '../lib/supabase'
 import AdminHeader from './AdminHeader'
 
 // Para pantallas del cliente: requiere solo una sesion anonima activa
@@ -18,10 +20,20 @@ export function RequireCustomer({ children }) {
 export function RequireStaff({ children }) {
   const { user, profile, loading, profileLoading, isStaff, isAdmin, venueId } = useAuth()
   const location = useLocation()
+
+  // Mantiene ACTIVE_VENUE_ID sincronizado con el venueId del contexto de auth,
+  // como segunda linea de defensa si el efecto en useAuth llega tarde.
+  useEffect(() => {
+    if (venueId) setActiveVenueId(venueId)
+  }, [venueId])
+
   if (loading || profileLoading) return <FullScreenLoader />
   if (!user) return <Navigate to="/admin/login" replace />
-  if (profile && !isStaff) return <Navigate to="/identificacion" replace />
-  if (profile && isAdmin && !venueId) return <Navigate to="/admin/onboarding" replace />
+  // Si el usuario esta autenticado pero el perfil no cargo (trigger fallo o error de red)
+  // mostramos el loader en vez de renderizar con ACTIVE_VENUE_ID incorrecto.
+  if (!profile) return <FullScreenLoader />
+  if (!isStaff) return <Navigate to="/identificacion" replace />
+  if (isAdmin && !venueId) return <Navigate to="/admin/onboarding" replace />
   // Camareros van siempre a /admin/tomar, no al dashboard completo
   if (profile?.role === 'camarero' && (location.pathname === '/admin' || location.pathname === '/admin/')) {
     return <Navigate to="/admin/tomar" replace />
@@ -37,10 +49,16 @@ export function RequireStaff({ children }) {
 // Para pantallas exclusivas de admin: requiere rol 'admin' o 'propietario'.
 export function RequireAdmin({ children }) {
   const { user, profile, loading, profileLoading, isAdmin, venueId } = useAuth()
+
+  useEffect(() => {
+    if (venueId) setActiveVenueId(venueId)
+  }, [venueId])
+
   if (loading || profileLoading) return <FullScreenLoader />
   if (!user) return <Navigate to="/admin/login" replace />
-  if (profile && !isAdmin) return <Navigate to="/admin" replace />
-  if (profile && isAdmin && !venueId) return <Navigate to="/admin/onboarding" replace />
+  if (!profile) return <FullScreenLoader />
+  if (!isAdmin) return <Navigate to="/admin" replace />
+  if (isAdmin && !venueId) return <Navigate to="/admin/onboarding" replace />
   return (
     <>
       <AdminHeader />

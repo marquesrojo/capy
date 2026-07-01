@@ -62,10 +62,16 @@ export default function AdminOnboardingPage() {
       return
     }
 
-    await supabaseStaff
+    const { error: profileError } = await supabaseStaff
       .from('profiles')
       .update({ venue_id: venue.id, role: 'propietario' })
       .eq('id', user.id)
+
+    if (profileError) {
+      setError(`Error al vincular el local con tu perfil: ${profileError.message}`)
+      setSubmitting(false)
+      return
+    }
 
     setActiveVenueId(venue.id)
     // Reload duro para que el auth context lea el profile actualizado (role=propietario, venue_id)

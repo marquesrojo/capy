@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { supabaseStaff, ACTIVE_VENUE_ID } from '../lib/supabase'
+import { supabaseStaff } from '../lib/supabase'
+import { useAuth } from '../hooks/useAuth'
 
 // Header global con logo+nombre del local, mostrado arriba de TODAS las
 // pantallas de admin (se inyecta una sola vez desde RequireStaff).
@@ -7,17 +8,19 @@ import { supabaseStaff, ACTIVE_VENUE_ID } from '../lib/supabase'
 // del local, y se aplican via "style" inline ya que son valores dinamicos
 // que no existen como clases fijas de Tailwind.
 export default function AdminHeader() {
+  const { venueId } = useAuth()
   const [venueName, setVenueName] = useState('')
   const [venueLogo, setVenueLogo] = useState('')
   const [bgColor, setBgColor] = useState('#1A1A1A')
   const [textColor, setTextColor] = useState('#E8772A')
 
   useEffect(() => {
+    if (!venueId) return
     async function load() {
       const { data } = await supabaseStaff
         .from('venues')
         .select('name, logo_url, header_bg_color, header_text_color')
-        .eq('id', ACTIVE_VENUE_ID)
+        .eq('id', venueId)
         .single()
       if (data) {
         setVenueName(data.name || '')
@@ -27,7 +30,7 @@ export default function AdminHeader() {
       }
     }
     load()
-  }, [])
+  }, [venueId])
 
   if (!venueName && !venueLogo) return null
 
