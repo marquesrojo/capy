@@ -111,12 +111,16 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
     if (result.success) {
       const own = result.ownOrders || []
       if (own.length > 0) {
-        const { data: menuData } = await supabaseStaff
+        const { data: extraData } = await supabaseStaff
           .from('orders')
-          .select('id, menu_id')
+          .select('id, menu_id, waiter_called_at')
           .in('id', own.map(o => o.id))
-        const menuMap = Object.fromEntries((menuData || []).map(o => [o.id, o.menu_id]))
-        setOwnOrders(own.map(o => ({ ...o, menu_id: menuMap[o.id] || null })))
+        const extraMap = Object.fromEntries((extraData || []).map(o => [o.id, o]))
+        setOwnOrders(own.map(o => ({
+          ...o,
+          menu_id: extraMap[o.id]?.menu_id || null,
+          waiter_called_at: extraMap[o.id]?.waiter_called_at || null
+        })))
       } else {
         setOwnOrders([])
       }
@@ -128,6 +132,11 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
   async function updateStatus(orderId, newStatus) {
     await supabaseStaff.from('orders').update({ status: newStatus }).eq('id', orderId)
     setOwnOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o))
+  }
+
+  async function clearWaiterCall(orderId) {
+    await supabaseStaff.from('orders').update({ waiter_called_at: null }).eq('id', orderId)
+    setOwnOrders(prev => prev.map(o => o.id === orderId ? { ...o, waiter_called_at: null } : o))
   }
 
   async function startTimer(orderId, mins) {
@@ -332,9 +341,20 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
                   <div className="space-y-2">
                     {colOrders.map(order => (
                       <div key={order.id} className={`bg-white rounded-xl p-3 border shadow-sm ${
-                        order.status === 'listo' ? 'border-emerald-300' : 'border-black/5'
+                        order.waiter_called_at ? 'border-amber-400' : order.status === 'listo' ? 'border-emerald-300' : 'border-black/5'
                       }`}>
-                        {order.status === 'listo' && (
+                        {order.waiter_called_at && (
+                          <div className="flex items-center justify-between -mx-3 -mt-3 mb-2 px-3 pt-2 pb-1.5 bg-amber-50 rounded-t-xl border-b border-amber-200">
+                            <p className="text-amber-700 text-[10px] font-semibold">🔔 Te está llamando</p>
+                            <button
+                              onClick={() => clearWaiterCall(order.id)}
+                              className="text-[9px] font-bold text-amber-700 border border-amber-300 bg-white px-1.5 py-0.5 rounded-lg"
+                            >
+                              Ya voy
+                            </button>
+                          </div>
+                        )}
+                        {!order.waiter_called_at && order.status === 'listo' && (
                           <p className="text-emerald-600 text-[10px] font-semibold mb-1">✓ Listo</p>
                         )}
                         <div className="flex items-center justify-between mb-1">

@@ -51,6 +51,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
   const [tab, setTab] = useState('tomar')
   const [micapyTab, setMicapyTab] = useState(null)
   const [prefillLocation, setPrefillLocation] = useState(null)
+  const [waiterCallCount, setWaiterCallCount] = useState(0)
 
   function handleNewOrderForTable(locationLabel) {
     setPrefillLocation(locationLabel)
@@ -70,6 +71,23 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
         if (data?.full_name) setStaffName(data.full_name)
         if (data?.xp !== undefined) setStaffXP(data.xp)
       })
+  }, [venueId])
+
+  useEffect(() => {
+    if (!venueId) return
+    async function checkCalls() {
+      const { count } = await supabaseStaff
+        .from('orders')
+        .select('id', { count: 'exact', head: true })
+        .eq('venue_id', venueId)
+        .not('waiter_called_at', 'is', null)
+        .neq('status', 'entregado')
+        .neq('status', 'cancelado')
+      setWaiterCallCount(count || 0)
+    }
+    checkCalls()
+    const t = setInterval(checkCalls, 8000)
+    return () => clearInterval(t)
   }, [venueId])
 
   const xp = staffXP || 0
@@ -125,7 +143,14 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                 tab === t.id ? 'border-[#008080] text-[#008080]' : 'border-transparent text-[#8896A5]'
               }`}
             >
-              {t.icon}
+              <div className="relative">
+                {t.icon}
+                {t.id === 'pedidos' && waiterCallCount > 0 && (
+                  <span className="absolute -top-1.5 -right-2.5 bg-red-500 text-white text-[8px] font-bold rounded-full min-w-[14px] h-3.5 flex items-center justify-center px-0.5 leading-none">
+                    {waiterCallCount}
+                  </span>
+                )}
+              </div>
               {t.label}
             </button>
           ))}
