@@ -16,9 +16,9 @@ export function RequireCustomer({ children }) {
 // Para pantallas de staff: requiere sesion real de Supabase Auth con rol
 // admin o camarero.
 export function RequireStaff({ children }) {
-  const { user, profile, loading, isStaff, isAdmin, venueId } = useAuth()
+  const { user, profile, loading, profileLoading, isStaff, isAdmin, venueId } = useAuth()
   const location = useLocation()
-  if (loading) return <FullScreenLoader />
+  if (loading || profileLoading) return <FullScreenLoader />
   if (!user) return <Navigate to="/admin/login" replace />
   if (profile && !isStaff) return <Navigate to="/identificacion" replace />
   if (profile && isAdmin && !venueId) return <Navigate to="/admin/onboarding" replace />
@@ -36,8 +36,8 @@ export function RequireStaff({ children }) {
 
 // Para pantallas exclusivas de admin: requiere rol 'admin' o 'propietario'.
 export function RequireAdmin({ children }) {
-  const { user, profile, loading, isAdmin, venueId } = useAuth()
-  if (loading) return <FullScreenLoader />
+  const { user, profile, loading, profileLoading, isAdmin, venueId } = useAuth()
+  if (loading || profileLoading) return <FullScreenLoader />
   if (!user) return <Navigate to="/admin/login" replace />
   if (profile && !isAdmin) return <Navigate to="/admin" replace />
   if (profile && isAdmin && !venueId) return <Navigate to="/admin/onboarding" replace />

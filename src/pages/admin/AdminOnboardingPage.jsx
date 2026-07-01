@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { supabaseStaff, setActiveVenueId } from '../../lib/supabase'
 
+
+
 function toSlug(name) {
   return name
     .toLowerCase()
@@ -66,7 +68,8 @@ export default function AdminOnboardingPage() {
       .eq('id', user.id)
 
     setActiveVenueId(venue.id)
-    navigate('/admin')
+    // Reload duro para que el auth context lea el profile actualizado (role=propietario, venue_id)
+    window.location.href = '/admin'
   }
 
   if (authLoading) {
