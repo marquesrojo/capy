@@ -67,10 +67,9 @@ function AdminDashboardInner() {
 
   async function loadZones() {
     const { data } = await supabaseStaff
-      .from('zones')
+      .from('venue_zones')
       .select('*')
       .eq('venue_id', venueId)
-      .eq('is_active', true)
       .order('sort_order')
     setZones(data || [])
   }
