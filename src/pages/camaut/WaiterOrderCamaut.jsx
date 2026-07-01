@@ -26,6 +26,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
   const [submitting, setSubmitting] = useState(false)
   const [lastOrder, setLastOrder] = useState(null)
   const [staffId, setStaffId] = useState(null)
+  const [submitError, setSubmitError] = useState(null)
   const [step, setStep] = useState('carta') // 'carta' | 'confirmar'
   const [showMap, setShowMap] = useState(false)
   const [contextReady, setContextReady] = useState(() => {
@@ -94,6 +95,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
   async function handleSubmit() {
     if (!cartItems.length || !locationLabel) return
     setSubmitting(true)
+    setSubmitError(null)
     const currentVenueId = activeVenueIdRef.current
 
     try {
@@ -131,9 +133,12 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
         setSelectedZone(null)
         setGeneralNotes('')
         setStep('carta')
+      } else {
+        setSubmitError(result.error || 'Error al enviar el pedido. Intentá de nuevo.')
       }
     } catch (err) {
       console.error(err)
+      setSubmitError('Sin conexión. Verificá el internet e intentá de nuevo.')
     }
     setSubmitting(false)
   }
@@ -389,6 +394,9 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
 
         {/* Botón confirmar fijo */}
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-black/10 px-4 py-4">
+          {submitError && (
+            <p className="text-red-500 text-xs text-center mb-2">{submitError}</p>
+          )}
           <button
             onClick={handleSubmit}
             disabled={submitting || cartItems.length === 0}
