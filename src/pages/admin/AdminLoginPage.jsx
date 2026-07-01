@@ -28,7 +28,6 @@ export default function AdminLoginPage() {
       setError('Email o contraseña incorrectos.')
       return
     }
-    // Leer el perfil directamente para saber el rol antes de redirigir
     const userId = data?.user?.id || data?.session?.user?.id
     if (userId) {
       const { data: profile } = await supabaseStaff
@@ -45,55 +44,65 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-carbon-950 flex items-center justify-center px-5">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <img
-            src="/icon-512.png"
-            alt="Capy"
-            className="w-28 h-28 mx-auto mb-2"
-          />
+    <div className="min-h-screen bg-carbon-950 flex flex-col items-center justify-center px-5 py-10">
+      <div className="w-full max-w-sm space-y-4">
+
+        {/* Logo */}
+        <div className="text-center mb-2">
+          <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-white shadow-md p-2">
+            <img src="/icon-512.png" alt="Capy" className="w-full h-full object-contain" />
+          </div>
           <h1 className="font-display text-3xl tracking-wide text-ember-500">CAPY</h1>
-          <p className="text-smoke-400 text-xs mt-1">Acceso de camareros y administración</p>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="bg-carbon-900 border border-carbon-700 rounded-2xl p-6 space-y-4"
-        >
-          <label className="block">
-            <span className="text-smoke-400 text-xs mb-1.5 block">Email</span>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="input"
-            />
-          </label>
-          <label className="block">
-            <span className="text-smoke-400 text-xs mb-1.5 block">Contraseña</span>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="input"
-            />
-          </label>
-          {error && <p className="text-red-700 text-sm">{error}</p>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-ember-500 hover:bg-ember-600 disabled:opacity-50 text-white font-semibold py-3 rounded-xl"
-          >
-            {loading ? 'Cargando...' : 'Ingresar'}
-          </button>
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-carbon-700" />
-            <span className="text-smoke-600 text-xs">o</span>
-            <div className="flex-1 h-px bg-carbon-700" />
-          </div>
+        {/* Card: camarero / admin existente */}
+        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5 space-y-3">
+          <p className="text-smoke-300 font-semibold text-sm">Soy camarero o admin</p>
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <label className="block">
+              <span className="text-smoke-500 text-xs mb-1 block">Email</span>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                className="input"
+              />
+            </label>
+            <label className="block">
+              <span className="text-smoke-500 text-xs mb-1 block">Contraseña</span>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                className="input"
+              />
+            </label>
+            {error && <p className="text-red-700 text-xs">{error}</p>}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-ember-500 hover:bg-ember-600 disabled:opacity-50 text-white font-semibold py-3 rounded-xl text-sm"
+            >
+              {loading ? 'Cargando...' : 'Ingresar'}
+            </button>
+          </form>
+        </div>
+
+        {/* Divider */}
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-px bg-carbon-700" />
+          <span className="text-smoke-600 text-xs">¿Tenés un restaurante?</span>
+          <div className="flex-1 h-px bg-carbon-700" />
+        </div>
+
+        {/* Card: nuevo propietario */}
+        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5 space-y-3">
+          <p className="text-smoke-300 font-semibold text-sm">Registrá tu restaurante</p>
+          <p className="text-smoke-500 text-xs leading-relaxed">
+            Sumá tu local a Capy en segundos. Entrá con Google y configurás todo desde ahí.
+          </p>
           <button
             type="button"
             onClick={signInWithGoogle}
@@ -105,9 +114,10 @@ export default function AdminLoginPage() {
               <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
               <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
             </svg>
-            Entrar con Google
+            Continuar con Google
           </button>
-        </form>
+        </div>
+
       </div>
     </div>
   )
