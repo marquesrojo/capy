@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
+import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { LEVELS, BADGES, getLevel, getNextLevel, getXPProgress } from '../../lib/xpUtils'
 
@@ -19,8 +19,8 @@ const BADGE_SVGS = {
 }
 
 export default function MiCarrera({ venueId: propVenueId }) {
-  const activeVenueId = propVenueId || ACTIVE_VENUE_ID
-  const { profile } = useAuth()
+  const { profile, venueId: authVenueId } = useAuth()
+  const activeVenueId = propVenueId || authVenueId
   const [staff, setStaff] = useState(null)
   const [badges, setBadges] = useState([])
   const [loading, setLoading] = useState(true)

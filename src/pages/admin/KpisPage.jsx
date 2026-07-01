@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts'
-import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
+import { supabaseStaff } from '../../lib/supabase'
+import { useAuth } from '../../hooks/useAuth'
 import { formatPrice } from '../../lib/utils'
 
 const PERIODS = [
@@ -14,6 +15,7 @@ const PERIODS = [
 const PAYMENT_COLORS = ['#E8772A', '#5B8DEF', '#4ADE80', '#FACC15', '#A78BFA']
 
 export default function KpisPage() {
+  const { venueId } = useAuth()
   const [period, setPeriod] = useState('7d')
   const [loading, setLoading] = useState(true)
   const [orders, setOrders] = useState([])
@@ -22,9 +24,10 @@ export default function KpisPage() {
   const [feedback, setFeedback] = useState([])
 
   useEffect(() => {
+    if (!venueId) return
     loadData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period])
+  }, [period, venueId])
 
   async function loadData() {
     setLoading(true)
@@ -36,7 +39,7 @@ export default function KpisPage() {
     let orderQuery = supabaseStaff
       .from('orders')
       .select('id, status, payment_status, payment_method, total, created_at')
-      .eq('venue_id', ACTIVE_VENUE_ID)
+      .eq('venue_id', venueId)
       .eq('payment_status', 'aprobado')
     if (since) orderQuery = orderQuery.gte('created_at', since)
 

@@ -63,6 +63,6 @@ export function setActiveVenueId(id) {
 }
 
 export function clearActiveVenueId() {
-  ACTIVE_VENUE_ID = import.meta.env.VITE_VENUE_ID || '00000000-0000-0000-0000-000000000001'
+  ACTIVE_VENUE_ID = null
   localStorage.removeItem(VENUE_STORAGE_KEY)
 }

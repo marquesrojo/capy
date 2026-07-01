@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
+import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice, STATUS_LABELS, STATUS_COLORS, PAYMENT_STATUS_LABELS } from '../../lib/utils'
 
 export default function HistoryPage() {
-  const { profile } = useAuth()
+  const { profile, venueId } = useAuth()
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState(null)
@@ -15,18 +15,19 @@ export default function HistoryPage() {
   const [deletingId, setDeletingId] = useState(null)
 
   useEffect(() => {
+    if (!venueId) return
     async function load() {
       const { data } = await supabaseStaff
         .from('orders')
         .select('*, order_items(*), customers(full_name, whatsapp)')
-        .eq('venue_id', ACTIVE_VENUE_ID)
+        .eq('venue_id', venueId)
         .order('created_at', { ascending: false })
         .limit(200)
       setOrders(data || [])
       setLoading(false)
     }
     load()
-  }, [])
+  }, [venueId])
 
   async function toggleExpand(orderId) {
     if (expandedId === orderId) {

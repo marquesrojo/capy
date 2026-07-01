@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
+import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { getLevel } from '../../lib/xpUtils'
 
@@ -23,7 +23,7 @@ export default function RankingMozos({ venueId, globalOnly }) {
     const { data } = await supabaseStaff
       .from('staff_names')
       .select('id')
-      .eq('venue_id', ACTIVE_VENUE_ID)
+      .eq('venue_id', venueId)
       .ilike('full_name', profile.full_name?.trim() || '')
       .single()
     if (data) setMyStaffId(data.id)
@@ -39,7 +39,7 @@ export default function RankingMozos({ venueId, globalOnly }) {
       .limit(50)
 
     if (tab === 'venue') {
-      query = query.eq('venue_id', ACTIVE_VENUE_ID)
+      query = query.eq('venue_id', venueId)
     }
 
     const { data } = await query

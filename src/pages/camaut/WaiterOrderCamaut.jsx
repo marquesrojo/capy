@@ -121,7 +121,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [] }) {
 
       const result = await res.json()
       if (result.success) {
-        if (staffId) await awardXP(staffId, 'send_order')
+        if (staffId) await awardXP(staffId, 'send_order', activeVenueId)
         if (result.order?.id && activeVenueId === venueId && activeMenuId && activeMenuId !== 'all') {
           await supabaseStaff.from('orders').update({ menu_id: activeMenuId }).eq('id', result.order.id)
         }

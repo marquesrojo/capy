@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
+import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice } from '../../lib/utils'
 
 export default function ShiftSummaryPage({ embedded, venueId: propVenueId }) {
-  const activeVenueId = propVenueId || ACTIVE_VENUE_ID
-  const { profile } = useAuth()
+  const { profile, venueId: authVenueId } = useAuth()
+  const activeVenueId = propVenueId || authVenueId
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState(null)
   const [feedback, setFeedback] = useState([])

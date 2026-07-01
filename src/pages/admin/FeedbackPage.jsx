@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
+import { supabaseStaff } from '../../lib/supabase'
+import { useAuth } from '../../hooks/useAuth'
 
 const FACES = [
   {
@@ -33,23 +34,25 @@ const PERIODS = [
 ]
 
 export default function FeedbackPage() {
+  const { venueId } = useAuth()
   const [feedback, setFeedback] = useState([])
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('30d')
 
   useEffect(() => {
+    if (!venueId) return
     async function load() {
       // Traemos feedback junto con el pedido para poder filtrar por venue
       const { data } = await supabaseStaff
         .from('order_feedback')
         .select('*, orders!inner(venue_id)')
-        .eq('orders.venue_id', ACTIVE_VENUE_ID)
+        .eq('orders.venue_id', venueId)
         .order('created_at', { ascending: false })
       setFeedback(data || [])
       setLoading(false)
     }
     load()
-  }, [])
+  }, [venueId])
 
   const selectedPeriod = PERIODS.find(p => p.id === period)
   const filtered = feedback.filter(f => {

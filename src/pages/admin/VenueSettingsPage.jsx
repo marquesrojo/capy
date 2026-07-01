@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
+import { supabaseStaff } from '../../lib/supabase'
+import { useAuth } from '../../hooks/useAuth'
 import ColorPicker from '../../components/ColorPicker'
 
 const MAX_LOGO_SIZE_MB = 4
 
 export default function VenueSettingsPage() {
+  const { venueId } = useAuth()
   const [name, setName] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
   const [logoUrl, setLogoUrl] = useState('')
@@ -22,11 +24,12 @@ export default function VenueSettingsPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
+    if (!venueId) return
     async function load() {
       const { data } = await supabaseStaff
         .from('venues')
         .select('name, whatsapp_number, logo_url, header_bg_color, header_text_color, mp_enabled, kitchen_alias')
-        .eq('id', ACTIVE_VENUE_ID)
+        .eq('id', venueId)
         .single()
       setName(data?.name || '')
       setWhatsapp(data?.whatsapp_number || '')
@@ -38,7 +41,7 @@ export default function VenueSettingsPage() {
       setLoading(false)
     }
     load()
-  }, [])
+  }, [venueId])
 
   function handleLogoChange(e) {
     const file = e.target.files?.[0]
@@ -73,7 +76,7 @@ export default function VenueSettingsPage() {
 
       if (logoFile) {
         const ext = logoFile.name.split('.').pop()
-        const path = `${ACTIVE_VENUE_ID}/logo.${ext}`
+        const path = `${venueId}/logo.${ext}`
         const { error: uploadError } = await supabaseStaff.storage
           .from('venue-assets')
           .upload(path, logoFile, { upsert: true })
@@ -98,7 +101,7 @@ export default function VenueSettingsPage() {
           mp_enabled: mpEnabled,
           kitchen_alias: kitchenAlias.trim() || null
         })
-        .eq('id', ACTIVE_VENUE_ID)
+        .eq('id', venueId)
 
       if (updateError) throw updateError
 

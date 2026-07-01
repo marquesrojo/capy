@@ -62,13 +62,20 @@ export default function AdminOnboardingPage() {
       return
     }
 
-    const { error: profileError } = await supabaseStaff
+    const { data: updatedRows, error: profileError } = await supabaseStaff
       .from('profiles')
       .update({ venue_id: venue.id, role: 'propietario' })
       .eq('id', user.id)
+      .select('id, venue_id, role')
 
     if (profileError) {
       setError(`Error al vincular el local con tu perfil: ${profileError.message}`)
+      setSubmitting(false)
+      return
+    }
+
+    if (!updatedRows?.length) {
+      setError('No se pudo actualizar tu perfil (sin filas afectadas). Contactá a soporte.')
       setSubmitting(false)
       return
     }

@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useCustomer } from '../hooks/useCustomer'
@@ -21,11 +20,11 @@ export function RequireStaff({ children }) {
   const { user, profile, loading, profileLoading, isStaff, isAdmin, venueId } = useAuth()
   const location = useLocation()
 
-  // Mantiene ACTIVE_VENUE_ID sincronizado con el venueId del contexto de auth,
-  // como segunda linea de defensa si el efecto en useAuth llega tarde.
-  useEffect(() => {
-    if (venueId) setActiveVenueId(venueId)
-  }, [venueId])
+  // Sincronizacion SINCRONA antes de que los hijos se monten.
+  // useEffect llega tarde (corre despues de los efectos de los hijos),
+  // por eso esto va en el cuerpo del render. setActiveVenueId solo muta
+  // una variable de modulo, no llama setState, asi que es seguro aqui.
+  if (venueId) setActiveVenueId(venueId)
 
   if (loading || profileLoading) return <FullScreenLoader />
   if (!user) return <Navigate to="/admin/login" replace />
@@ -50,9 +49,7 @@ export function RequireStaff({ children }) {
 export function RequireAdmin({ children }) {
   const { user, profile, loading, profileLoading, isAdmin, venueId } = useAuth()
 
-  useEffect(() => {
-    if (venueId) setActiveVenueId(venueId)
-  }, [venueId])
+  if (venueId) setActiveVenueId(venueId)
 
   if (loading || profileLoading) return <FullScreenLoader />
   if (!user) return <Navigate to="/admin/login" replace />

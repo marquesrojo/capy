@@ -1,21 +1,24 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import QRCode from 'qrcode'
-import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
+import { supabaseStaff } from '../../lib/supabase'
+import { useAuth } from '../../hooks/useAuth'
 
 export default function QRPage() {
+  const { venueId } = useAuth()
   const [inviteCode, setInviteCode] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!venueId) return
     loadInviteCode()
-  }, [])
+  }, [venueId])
 
   async function loadInviteCode() {
     const { data } = await supabaseStaff
       .from('venues')
       .select('invite_code')
-      .eq('id', ACTIVE_VENUE_ID)
+      .eq('id', venueId)
       .single()
     setInviteCode(data?.invite_code || null)
     setLoading(false)
@@ -26,7 +29,7 @@ export default function QRPage() {
     await supabaseStaff
       .from('venues')
       .update({ invite_code: newCode })
-      .eq('id', ACTIVE_VENUE_ID)
+      .eq('id', venueId)
     setInviteCode(newCode)
   }
 

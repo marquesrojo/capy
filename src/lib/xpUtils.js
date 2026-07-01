@@ -1,4 +1,4 @@
-import { supabaseStaff, ACTIVE_VENUE_ID } from './supabase'
+import { supabaseStaff } from './supabase'
 
 // Niveles y umbrales
 export const LEVELS = [
@@ -55,7 +55,7 @@ export function getXPProgress(xp) {
 }
 
 // Función principal: otorgar XP
-export async function awardXP(staffId, actionKey) {
+export async function awardXP(staffId, actionKey, venueId) {
   const action = XP_ACTIONS[actionKey]
   if (!action) return
 
@@ -64,7 +64,7 @@ export async function awardXP(staffId, actionKey) {
     .from('xp_transactions')
     .insert({
       staff_id: staffId,
-      venue_id: ACTIVE_VENUE_ID,
+      venue_id: venueId,
       action: actionKey,
       xp_delta: action.xp
     })
@@ -101,12 +101,12 @@ export async function awardXP(staffId, actionKey) {
     .eq('id', staffId)
 
   // Chequear badges
-  await checkBadges(staffId, { ...staff, xp: newXP, total_orders: updates.total_orders || staff.total_orders })
+  await checkBadges(staffId, { ...staff, xp: newXP, total_orders: updates.total_orders || staff.total_orders }, venueId)
 
   return { newXP, newLevel }
 }
 
-async function checkBadges(staffId, staff) {
+async function checkBadges(staffId, staff, venueId) {
   // Badges ya desbloqueados
   const { data: existing } = await supabaseStaff
     .from('staff_badges')

@@ -1,20 +1,25 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
+import { supabaseStaff } from '../../lib/supabase'
+import { useAuth } from '../../hooks/useAuth'
 
 export default function QuickNotesPage() {
+  const { venueId } = useAuth()
   const [notes, setNotes] = useState([])
   const [loading, setLoading] = useState(true)
   const [label, setLabel] = useState('')
   const [adding, setAdding] = useState(false)
 
-  useEffect(() => { loadNotes() }, [])
+  useEffect(() => {
+    if (!venueId) return
+    loadNotes()
+  }, [venueId])
 
   async function loadNotes() {
     const { data } = await supabaseStaff
       .from('quick_notes')
       .select('*')
-      .eq('venue_id', ACTIVE_VENUE_ID)
+      .eq('venue_id', venueId)
       .order('sort_order')
     setNotes(data || [])
     setLoading(false)
@@ -26,7 +31,7 @@ export default function QuickNotesPage() {
     const maxOrder = notes.length ? Math.max(...notes.map(n => n.sort_order)) : 0
     const { data } = await supabaseStaff
       .from('quick_notes')
-      .insert({ venue_id: ACTIVE_VENUE_ID, label: label.trim(), sort_order: maxOrder + 1 })
+      .insert({ venue_id: venueId, label: label.trim(), sort_order: maxOrder + 1 })
       .select().single()
     if (data) setNotes(prev => [...prev, data])
     setLabel('')

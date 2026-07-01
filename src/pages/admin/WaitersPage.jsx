@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
+import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 
 const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-user`
 
 export default function WaitersPage() {
-  const { profile } = useAuth()
+  const { profile, venueId } = useAuth()
   const [tab, setTab] = useState('camareros')
   const [vinculados, setVinculados] = useState([])
   const [admins, setAdmins] = useState([])
@@ -20,8 +20,9 @@ export default function WaitersPage() {
   const [createError, setCreateError] = useState('')
 
   useEffect(() => {
+    if (!venueId) return
     loadAll()
-  }, [])
+  }, [venueId])
 
   async function loadAll() {
     setLoading(true)
@@ -29,7 +30,7 @@ export default function WaitersPage() {
       supabaseStaff
         .from('venue_staff')
         .select('id, status, joined_at, profile:profiles(id, full_name)')
-        .eq('venue_id', ACTIVE_VENUE_ID)
+        .eq('venue_id', venueId)
         .eq('status', 'active'),
       supabaseStaff
         .from('profiles')

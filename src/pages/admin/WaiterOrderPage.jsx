@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
+import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice } from '../../lib/utils'
 import FloorPlanViewer from '../../components/FloorPlanViewer'
@@ -13,8 +13,8 @@ import FloorPlanViewer from '../../components/FloorPlanViewer'
 // con assigned_staff_id ya seteado.
 
 export default function WaiterOrderPage({ venueId: propVenueId }) {
-  const activeVenueId = propVenueId || ACTIVE_VENUE_ID
-  const { profile } = useAuth()
+  const { profile, venueId: authVenueId } = useAuth()
+  const activeVenueId = propVenueId || authVenueId
   const [step, setStep] = useState('loading') // loading | choose_waiter | menu | confirm | done
   const [staffList, setStaffList] = useState([])
   const [selectedStaff, setSelectedStaff] = useState(null)
