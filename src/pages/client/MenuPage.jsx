@@ -11,6 +11,7 @@ import { useClientBase } from '../../hooks/useVenue'
 export default function MenuPage() {
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
+  const [zones, setZones] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState(null)
   const [search, setSearch] = useState('')
@@ -19,8 +20,11 @@ export default function MenuPage() {
   const [venueLogo, setVenueLogo] = useState('')
   const [headerBgColor, setHeaderBgColor] = useState('')
   const [headerTextColor, setHeaderTextColor] = useState('#E8772A')
-  const { items, addItem, updateQuantity, itemCount, subtotal, setLocation, setSessionId } = useCart()
+  const { items, addItem, updateQuantity, itemCount, subtotal, location, setLocation, setSessionId } = useCart()
   const [searchParams] = useSearchParams()
+  const { customer, forgetCustomer } = useCustomer()
+  const navigate = useNavigate()
+  const base = useClientBase()
 
   useEffect(() => {
     const sid = searchParams.get('session_id')
@@ -37,32 +41,18 @@ export default function MenuPage() {
     const index = items.findIndex(i => i.product.id === product.id)
     if (index >= 0) updateQuantity(index, items[index].quantity - 1)
   }
-  const { customer, forgetCustomer } = useCustomer()
-  const navigate = useNavigate()
-  const base = useClientBase()
 
   useEffect(() => {
     async function load() {
-      const [catRes, prodRes, venueRes] = await Promise.all([
-        supabaseCustomer
-          .from('categories')
-          .select('*')
-          .eq('venue_id', ACTIVE_VENUE_ID)
-          .eq('is_active', true)
-          .order('sort_order'),
-        supabaseCustomer
-          .from('products')
-          .select('*')
-          .eq('venue_id', ACTIVE_VENUE_ID)
-          .order('sort_order'),
-        supabaseCustomer
-          .from('venues')
-          .select('high_demand, name, logo_url, header_bg_color, header_text_color')
-          .eq('id', ACTIVE_VENUE_ID)
-          .single()
+      const [catRes, prodRes, venueRes, zoneRes] = await Promise.all([
+        supabaseCustomer.from('categories').select('*').eq('venue_id', ACTIVE_VENUE_ID).eq('is_active', true).order('sort_order'),
+        supabaseCustomer.from('products').select('*').eq('venue_id', ACTIVE_VENUE_ID).order('sort_order'),
+        supabaseCustomer.from('venues').select('high_demand, name, logo_url, header_bg_color, header_text_color').eq('id', ACTIVE_VENUE_ID).single(),
+        supabaseCustomer.from('venue_zones').select('*').eq('venue_id', ACTIVE_VENUE_ID).eq('is_active', true).order('sort_order')
       ])
       setCategories(catRes.data || [])
       setProducts(prodRes.data || [])
+      setZones(zoneRes.data || [])
       if (catRes.data?.length) setActiveCategory(catRes.data[0].id)
       if (venueRes.data) {
         setHighDemand(venueRes.data.high_demand)
@@ -84,34 +74,35 @@ export default function MenuPage() {
     : products.filter(p => p.category_id === activeCategory)
 
   if (loading) {
-    return <CenteredMessage text="Cargando carta..." />
+    return (
+      <div className="min-h-screen bg-[#F0F4F8] flex items-center justify-center">
+        <p className="text-smoke-400 text-sm">Cargando carta...</p>
+      </div>
+    )
   }
 
+  const mesas = zones.filter(z => z.type === 'mesa')
+  const otrasZonas = zones.filter(z => z.type !== 'mesa')
+
   return (
-    <div className="min-h-screen bg-carbon-950 pb-32">
+    <div className="min-h-screen bg-[#F0F4F8] pb-32">
       {highDemand && (
         <div className="bg-red-500/15 border-b border-red-500/30 px-5 py-3 text-center">
           <p className="text-red-700 text-sm font-medium">⏳ Alta demanda — puede haber demora en los pedidos. ¡Gracias por tu paciencia!</p>
         </div>
       )}
+
       <header
-        className="sticky top-0 z-10 bg-carbon-950/95 backdrop-blur border-b border-carbon-700 px-5 pt-5 pb-3"
+        className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-black/8 px-5 pt-5 pb-3"
         style={headerBgColor ? { backgroundColor: headerBgColor } : undefined}
       >
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             {venueLogo && (
-              <img
-                src={venueLogo}
-                alt={venueName}
-                className="w-10 h-10 rounded-lg object-cover border border-carbon-700 flex-shrink-0"
-              />
+              <img src={venueLogo} alt={venueName} className="w-10 h-10 rounded-xl object-cover border border-black/10 flex-shrink-0" />
             )}
             <div>
-              <h1
-                className="font-display text-3xl tracking-wide leading-none"
-                style={{ color: headerTextColor }}
-              >
+              <h1 className="font-display text-3xl tracking-wide leading-none" style={{ color: headerTextColor }}>
                 CARTA{venueName ? ` ${venueName.toUpperCase()}` : ''}
               </h1>
               {customer?.full_name && (
@@ -119,56 +110,42 @@ export default function MenuPage() {
               )}
             </div>
           </div>
-          <button onClick={async () => { await forgetCustomer(); navigate('/identificacion') }} className="text-smoke-500 text-xs underline flex-shrink-0">
+          <button
+            onClick={async () => { await forgetCustomer(); navigate('/identificacion') }}
+            className="text-smoke-500 text-xs underline flex-shrink-0"
+          >
             No soy yo
           </button>
         </div>
-        {/* Pedido por voz: pospuesto, falta subir VoiceOrderPage y su ruta.
-            Reactivar reemplazando "false &&" por la condicion real cuando
-            se retome esa funcionalidad. */}
-        {false && isSpeechRecognitionSupported() && (
-          <button
-            onClick={() => navigate(`${base}/carta/voz`)}
-            className="flex items-center gap-1.5 text-pucara-blue-500 text-xs font-medium mb-3"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-              <rect x="9" y="2" width="6" height="12" rx="3"/>
-              <path d="M5 10a7 7 0 0 0 14 0M12 19v3" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/>
-            </svg>
-            Pedir por voz
-          </button>
-        )}
+
+        {/* Search */}
         <div className="relative mb-2">
           <input
             type="search"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Buscar en la carta..."
-            className="input w-full pl-8 py-2 text-sm"
+            className="w-full border border-black/10 rounded-xl px-9 py-2.5 text-sm bg-[#F0F4F8] text-smoke-300 placeholder:text-smoke-500 outline-none focus:border-pucara-blue-500/50"
           />
-          <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 text-smoke-500" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8"/>
-            <path d="m21 21-4.35-4.35" strokeLinecap="round"/>
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-smoke-500" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35" strokeLinecap="round"/>
           </svg>
           {search && (
-            <button
-              onClick={() => setSearch('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-smoke-500 text-sm"
-            >
-              ✕
-            </button>
+            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-smoke-500 text-sm">✕</button>
           )}
         </div>
+
+        {/* Category tabs */}
         {!search && (
           <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
             {categories.map(cat => (
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id)}
-                className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+                className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border transition-colors ${
                   activeCategory === cat.id
                     ? 'bg-pucara-blue-500 text-white border-pucara-blue-500'
-                    : 'border-carbon-700 text-smoke-300'
+                    : 'bg-white border-black/10 text-smoke-300'
                 }`}
               >
                 {cat.name}
@@ -178,7 +155,49 @@ export default function MenuPage() {
         )}
       </header>
 
-      <main className="px-5 pt-4 space-y-3">
+      {/* Location selector */}
+      <div className="px-5 pt-4 pb-1">
+        {location?.label ? (
+          <div className="flex items-center justify-between bg-white rounded-xl px-4 py-2.5 border border-black/5 shadow-sm">
+            <div className="flex items-center gap-2">
+              <span>📍</span>
+              <p className="text-smoke-300 font-semibold text-sm">{location.label}</p>
+            </div>
+            <button onClick={() => setLocation(null)} className="text-pucara-blue-400 text-xs font-semibold">
+              Cambiar
+            </button>
+          </div>
+        ) : zones.length > 0 ? (
+          <div>
+            <p className="text-smoke-500 text-xs font-semibold uppercase tracking-wide mb-2">¿Dónde estás?</p>
+            {mesas.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
+                {mesas.map(zone => (
+                  <button
+                    key={zone.id}
+                    onClick={() => setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })}
+                    className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-white border-black/10 text-smoke-300 active:bg-pucara-blue-500 active:text-white active:border-pucara-blue-500"
+                  >
+                    {zone.name}
+                  </button>
+                ))}
+                {otrasZonas.map(zone => (
+                  <button
+                    key={zone.id}
+                    onClick={() => setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })}
+                    className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-white border-black/10 text-smoke-300 active:bg-pucara-blue-500 active:text-white active:border-pucara-blue-500"
+                  >
+                    {zone.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : null}
+      </div>
+
+      {/* Products */}
+      <main className="px-5 pt-3 space-y-2">
         {visibleProducts.length === 0 && (
           <p className="text-smoke-500 text-sm text-center py-10">
             {search ? `No encontramos "${search}" en la carta.` : 'No hay productos en esta categoría.'}
@@ -197,11 +216,11 @@ export default function MenuPage() {
 
       {itemCount > 0 && (
         <button
-          onClick={() => navigate(`${base}/ubicacion`)}
+          onClick={() => navigate(location ? `${base}/pago` : `${base}/ubicacion`)}
           className="fixed bottom-20 left-5 right-5 bg-pucara-blue-500 hover:bg-pucara-blue-600 text-white rounded-2xl py-4 px-5 flex items-center justify-between shadow-pucara font-semibold z-20"
         >
           <span>{itemCount} {itemCount === 1 ? 'item' : 'items'}</span>
-          <span>{formatPrice(subtotal)} · Continuar →</span>
+          <span>{formatPrice(subtotal)} · {location ? 'Confirmar →' : 'Continuar →'}</span>
         </button>
       )}
 
@@ -212,36 +231,29 @@ export default function MenuPage() {
 
 function ProductCard({ product, onAdd, onRemove, qty }) {
   return (
-    <div
-      className={`bg-carbon-900 border rounded-2xl p-4 flex gap-4 transition-colors ${
-        product.is_available ? 'border-carbon-700' : 'border-carbon-700 opacity-50'
-      }`}
-    >
+    <div className={`bg-white border rounded-xl flex gap-3 transition-colors ${
+      product.is_available ? 'border-black/5 shadow-sm' : 'border-black/5 opacity-50'
+    }`}>
       {product.image_url && (
-        <img
-          src={product.image_url}
-          alt={product.name}
-          className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
-        />
+        <img src={product.image_url} alt={product.name} className="w-20 h-20 rounded-l-xl object-cover flex-shrink-0" />
       )}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 py-3 pr-3">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-body font-semibold text-smoke-300">{product.name}</h3>
-          <span className="font-mono text-pucara-blue-400 text-sm whitespace-nowrap">
+          <h3 className="font-semibold text-smoke-300 text-sm leading-tight">{product.name}</h3>
+          <span className="font-mono text-pucara-blue-400 text-sm whitespace-nowrap flex-shrink-0">
             {formatPrice(product.price)}
           </span>
         </div>
         {product.description && (
           <p className="text-smoke-500 text-xs mt-1 line-clamp-2">{product.description}</p>
         )}
-
-        <div className="mt-3">
+        <div className="mt-2.5">
           {!product.is_available ? (
             <span className="text-red-700 text-xs font-medium">Agotado</span>
           ) : qty === 0 ? (
             <button
               onClick={() => onAdd(product, 1)}
-              className="min-w-[44px] min-h-[44px] text-xs font-semibold px-4 py-2 rounded-full bg-pucara-blue-500 text-white active:bg-pucara-blue-600"
+              className="text-xs font-semibold px-4 py-1.5 rounded-lg bg-pucara-blue-500 text-white active:bg-pucara-blue-600"
             >
               Agregar
             </button>
@@ -249,14 +261,14 @@ function ProductCard({ product, onAdd, onRemove, qty }) {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => onRemove(product)}
-                className="w-11 h-11 rounded-full bg-carbon-700 text-smoke-300 flex items-center justify-center text-lg font-bold active:bg-carbon-600"
+                className="w-8 h-8 rounded-lg border border-black/10 bg-[#F0F4F8] text-smoke-300 flex items-center justify-center font-bold text-base active:bg-carbon-700"
               >
                 −
               </button>
-              <span className="text-smoke-200 font-semibold w-6 text-center">{qty}</span>
+              <span className="text-smoke-300 font-semibold w-5 text-center text-sm">{qty}</span>
               <button
                 onClick={() => onAdd(product, 1)}
-                className="w-11 h-11 rounded-full bg-pucara-blue-500 text-white flex items-center justify-center text-lg font-bold active:bg-pucara-blue-600"
+                className="w-8 h-8 rounded-lg bg-pucara-blue-500 text-white flex items-center justify-center font-bold text-base active:bg-pucara-blue-600"
               >
                 +
               </button>
@@ -264,14 +276,6 @@ function ProductCard({ product, onAdd, onRemove, qty }) {
           )}
         </div>
       </div>
-    </div>
-  )
-}
-
-function CenteredMessage({ text }) {
-  return (
-    <div className="min-h-screen bg-carbon-950 flex items-center justify-center">
-      <p className="text-smoke-400 text-sm">{text}</p>
     </div>
   )
 }
