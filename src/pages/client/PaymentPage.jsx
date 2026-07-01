@@ -158,15 +158,7 @@ export default function PaymentPage() {
   return (
     <div className="min-h-screen bg-carbon-950 pb-40">
       <header className="px-5 pt-6 pb-4">
-        <div className="flex items-center justify-between mb-1">
-          <h1 className="font-display text-3xl text-pucara-blue-500 tracking-wide">TU PEDIDO</h1>
-          <button
-            onClick={() => navigate(`${base}/carta`)}
-            className="text-pucara-blue-500 text-xs font-medium underline"
-          >
-            ← Agregar más
-          </button>
-        </div>
+        <h1 className="font-display text-3xl text-pucara-blue-500 tracking-wide">TU PEDIDO</h1>
         <p className="text-smoke-400 text-sm">📍 {location.label}</p>
       </header>
 
@@ -209,6 +201,13 @@ export default function PaymentPage() {
             </div>
           </div>
         ))}
+
+        <button
+          onClick={() => navigate(`${base}/carta?location_label=${encodeURIComponent(location.label)}&zone_id=${location.zoneId || ''}&location_type=${location.type || 'zona'}`)}
+          className="w-full border-2 border-dashed border-pucara-blue-500/30 text-pucara-blue-500 text-sm font-semibold py-3 rounded-2xl"
+        >
+          + Agregar más ítems
+        </button>
 
         <label className="block pt-2">
           <span className="text-smoke-400 text-xs mb-1.5 block">Notas para tu pedido (opcional)</span>
