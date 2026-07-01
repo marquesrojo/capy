@@ -8,12 +8,13 @@ export default function HubPage() {
   const [results, setResults] = useState([])
   const [searching, setSearching] = useState(false)
 
-  // Supabase email confirmation cae en /# cuando la URL de redirect no está
-  // en la allowlist. Detectamos el token en el hash y reenviamos al callback.
+  // Supabase email confirmation puede caer en /# con el token en el hash.
+  // Usamos hard redirect (no navigate) para que el SDK se reinicialice en
+  // /auth/callback y procese el token correctamente.
   useEffect(() => {
     const hash = window.location.hash
     if (hash && (hash.includes('access_token') || hash.includes('error'))) {
-      navigate('/auth/callback?type=admin' + hash)
+      window.location.href = '/auth/callback?type=admin' + hash
     }
   }, [])
 
