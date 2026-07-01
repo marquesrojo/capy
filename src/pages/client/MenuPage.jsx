@@ -27,8 +27,8 @@ export default function MenuPage() {
     const zoneId = searchParams.get('zone_id')
     const locationLabel = searchParams.get('location_label')
     const locationType = searchParams.get('location_type')
-    if (sid && locationLabel) {
-      setSessionId(sid)
+    if (locationLabel) {
+      if (sid) setSessionId(sid)
       setLocation({ type: locationType || 'zona', zoneId: zoneId || null, mapX: null, mapY: null, label: locationLabel })
     }
   }, [])
