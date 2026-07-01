@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useOrderPolling } from '../../hooks/useOrderPolling'
+import { useTableSession } from '../../hooks/useTableSession'
 import { supabaseCustomer } from '../../lib/supabase'
 import { formatPrice, STATUS_LABELS, STATUS_FLOW, PAYMENT_STATUS_LABELS, PAYMENT_STATUS_COLORS } from '../../lib/utils'
 import OrderFeedback from '../../components/OrderFeedback'
 import BillRequest from '../../components/BillRequest'
 import SplitCalculator from '../../components/SplitCalculator'
+import { useClientBase } from '../../hooks/useVenue'
 
 function PrepCountdown({ prepStartedAt, prepTimeMinutes }) {
   const [remaining, setRemaining] = useState(null)
@@ -51,11 +53,24 @@ function PrepCountdown({ prepStartedAt, prepTimeMinutes }) {
 
 export default function OrderStatusPage() {
   const { orderId } = useParams()
+  const navigate = useNavigate()
+  const base = useClientBase()
   const { order, items, loading, refreshing, setOrder, refetch } = useOrderPolling(orderId)
+  const { consumedItems, activeItems, total_spent, orders: sessionOrders } = useTableSession(order?.session_id)
   const [cancelling, setCancelling] = useState(false)
   const [calling, setCalling] = useState(false)
   const [showQR, setShowQR] = useState(false)
   const prevStatusRef = useState(null)
+
+  function handleAddMore() {
+    const params = new URLSearchParams({
+      session_id: order.session_id,
+      zone_id: order.zone_id || '',
+      location_label: order.location_label || '',
+      location_type: order.location_type || 'zona'
+    })
+    navigate(`${base}/carta?${params.toString()}`)
+  }
 
   // Sonido + vibración cuando el pedido pasa a "Listo"
   useEffect(() => {
@@ -148,6 +163,9 @@ export default function OrderStatusPage() {
           <h1 className="font-display text-3xl text-pucara-blue-500 tracking-wide">TU PEDIDO</h1>
           {order.daily_number && (
             <p className="text-smoke-500 text-xs mt-0.5">Número <span className="font-mono text-ember-500 font-semibold">#{order.daily_number}</span></p>
+          )}
+          {order.is_addition && (
+            <span className="text-xs bg-amber-500/15 border border-amber-500/40 text-amber-600 px-2 py-0.5 rounded-full">Adición</span>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -262,26 +280,67 @@ export default function OrderStatusPage() {
         </div>
       )}
 
-      <div className="mt-6 space-y-2">
-        {items.map(item => (
-          <div
-            key={item.id}
-            className="bg-carbon-900 border border-carbon-700 rounded-xl p-3 flex justify-between"
-          >
-            <span className="text-smoke-300 text-sm">
-              {item.quantity}× {item.product_name}
-            </span>
-            <span className="font-mono text-pucara-blue-400 text-sm">{formatPrice(item.line_total)}</span>
-          </div>
-        ))}
-      </div>
+      {/* Vista de sesión: comandas consolidadas */}
+      {order.session_id && sessionOrders.length > 1 ? (
+        <div className="mt-6 space-y-4">
+          {consumedItems.length > 0 && (
+            <div>
+              <p className="text-smoke-500 text-xs uppercase tracking-wide font-semibold mb-2">Ya pedido · consumiendo</p>
+              <div className="space-y-1.5 opacity-60">
+                {consumedItems.map(item => (
+                  <div key={item.id} className="bg-carbon-900 border border-carbon-700 rounded-xl p-3 flex justify-between">
+                    <span className="text-smoke-400 text-sm">{item.quantity}× {item.product_name}</span>
+                    <span className="font-mono text-smoke-500 text-sm">{formatPrice(item.line_total)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-      <div className="mt-4 flex justify-between text-smoke-300 px-1">
-        <span className="font-medium">Total</span>
-        <span className="font-mono text-pucara-blue-400">{formatPrice(order.total)}</span>
-      </div>
+          {activeItems.length > 0 && (
+            <div>
+              <p className="text-smoke-500 text-xs uppercase tracking-wide font-semibold mb-2">En preparación</p>
+              <div className="space-y-1.5">
+                {activeItems.map(item => (
+                  <div key={item.id} className="bg-carbon-900 border border-carbon-700 rounded-xl p-3 flex justify-between">
+                    <span className="text-smoke-300 text-sm">{item.quantity}× {item.product_name}</span>
+                    <span className="font-mono text-pucara-blue-400 text-sm">{formatPrice(item.line_total)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-between text-smoke-300 px-1 pt-1 border-t border-carbon-700">
+            <span className="font-medium text-sm">Total de la visita</span>
+            <span className="font-mono text-pucara-blue-400">{formatPrice(total_spent)}</span>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-6 space-y-2">
+          {items.map(item => (
+            <div key={item.id} className="bg-carbon-900 border border-carbon-700 rounded-xl p-3 flex justify-between">
+              <span className="text-smoke-300 text-sm">{item.quantity}× {item.product_name}</span>
+              <span className="font-mono text-pucara-blue-400 text-sm">{formatPrice(item.line_total)}</span>
+            </div>
+          ))}
+          <div className="flex justify-between text-smoke-300 px-1 pt-1">
+            <span className="font-medium">Total</span>
+            <span className="font-mono text-pucara-blue-400">{formatPrice(order.total)}</span>
+          </div>
+        </div>
+      )}
 
       <SplitCalculator total={order.total} assignedStaff={order.assigned_staff} />
+
+      {!isCancelado && order.session_id && !['pendiente_aprobacion', 'cancelado'].includes(order.status) && (
+        <button
+          onClick={handleAddMore}
+          className="w-full mt-4 bg-pucara-blue-500 hover:bg-pucara-blue-600 text-white font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-2"
+        >
+          + Agregar más ítems
+        </button>
+      )}
 
       {!isCancelado && (
         <BillRequest order={order} onUpdated={updated => setOrder(prev => ({ ...prev, ...updated }))} />
@@ -305,7 +364,7 @@ export default function OrderStatusPage() {
           <button
             onClick={handleCallWaiter}
             disabled={calling}
-            className="w-full border border-ember-500 text-ember-500 font-medium py-3.5 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full border border-coral-500 text-coral-500 font-medium py-3.5 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -326,7 +385,9 @@ export default function OrderStatusPage() {
         </button>
       )}
 
-      {order.status === 'entregado' && <OrderFeedback orderId={order.id} staffId={order.assigned_staff_id} />}
+      {['en_preparacion', 'listo', 'entregado'].includes(order.status) && (
+        <OrderFeedback orderId={order.id} staffId={order.assigned_staff_id} />
+      )}
     </div>
   )
 }

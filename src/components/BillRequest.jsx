@@ -139,7 +139,7 @@ function RequestBillForm({ order, onUpdated, mpEnabled }) {
       <div className="mt-6">
         <button
           onClick={() => setShowOptions(true)}
-          className="w-full border border-ember-500 text-ember-500 font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2"
+          className="w-full border border-coral-500 text-coral-500 font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2"
         >
           {ICON.bill}
           La cuenta, por favor

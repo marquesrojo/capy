@@ -13,7 +13,7 @@ import { useClientBase } from '../../hooks/useVenue'
 // desde el detalle de su pedido (ver OrderStatusPage / BillRequest).
 
 export default function PaymentPage() {
-  const { items, subtotal, location, updateQuantity, updateItemNotes, clearCart, itemCount } = useCart()
+  const { items, subtotal, location, updateQuantity, updateItemNotes, clearCart, itemCount, sessionId, setSessionId } = useCart()
   const { customer, registerCustomer } = useCustomer()
   const navigate = useNavigate()
   const base = useClientBase()
@@ -91,6 +91,25 @@ export default function PaymentPage() {
     setSubmitting(true)
 
     try {
+      // Si no hay session activa, crear una nueva para este cliente en esta mesa
+      let activeSessionId = sessionId
+      if (!activeSessionId) {
+        const { data: session, error: sessionError } = await supabaseCustomer
+          .from('table_sessions')
+          .insert({
+            venue_id: ACTIVE_VENUE_ID,
+            customer_id: activeCustomer.id,
+            zone_id: location.zoneId || null,
+            location_label: location.label,
+            location_type: location.type
+          })
+          .select()
+          .single()
+        if (sessionError) throw sessionError
+        activeSessionId = session.id
+        setSessionId(session.id)
+      }
+
       const { data: order, error: orderError } = await supabaseCustomer
         .from('orders')
         .insert({
@@ -105,7 +124,9 @@ export default function PaymentPage() {
           notes,
           subtotal,
           total: subtotal,
-          payment_method: paymentOptions.find(o => o.id === paymentMethod)?.name || paymentMethod
+          payment_method: paymentOptions.find(o => o.id === paymentMethod)?.name || paymentMethod,
+          session_id: activeSessionId,
+          is_addition: !!sessionId
         })
         .select()
         .single()

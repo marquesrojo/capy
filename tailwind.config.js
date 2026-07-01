@@ -4,8 +4,13 @@ export default {
   theme: {
     extend: {
       colors: {
+        coral: {
+          400: '#FFAA91',
+          500: '#FF8C69',
+          600: '#E8704F'
+        },
         carbon: {
-          950: '#FAF8F5',
+          950: '#FAF9F6',
           900: '#F3F0EA',
           800: '#E8E3DA',
           700: '#D8D1C4',

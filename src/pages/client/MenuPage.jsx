@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabaseCustomer, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useCart } from '../../hooks/useCart'
 import { useCustomer } from '../../hooks/useCustomer'
@@ -19,7 +19,19 @@ export default function MenuPage() {
   const [venueLogo, setVenueLogo] = useState('')
   const [headerBgColor, setHeaderBgColor] = useState('')
   const [headerTextColor, setHeaderTextColor] = useState('#E8772A')
-  const { items, addItem, updateQuantity, itemCount, subtotal } = useCart()
+  const { items, addItem, updateQuantity, itemCount, subtotal, setLocation, setSessionId } = useCart()
+  const [searchParams] = useSearchParams()
+
+  useEffect(() => {
+    const sid = searchParams.get('session_id')
+    const zoneId = searchParams.get('zone_id')
+    const locationLabel = searchParams.get('location_label')
+    const locationType = searchParams.get('location_type')
+    if (sid && locationLabel) {
+      setSessionId(sid)
+      setLocation({ type: locationType || 'zona', zoneId: zoneId || null, mapX: null, mapY: null, label: locationLabel })
+    }
+  }, [])
 
   function handleRemoveFromMenu(product) {
     const index = items.findIndex(i => i.product.id === product.id)

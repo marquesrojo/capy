@@ -5,6 +5,7 @@ const CartContext = createContext(null)
 export function CartProvider({ children }) {
   const [items, setItems] = useState([]) // { product, quantity, notes }
   const [location, setLocation] = useState(null) // { type, zoneId, mapX, mapY, label }
+  const [sessionId, setSessionId] = useState(null)
 
   function addItem(product, quantity = 1, notes = '') {
     setItems(prev => {
@@ -38,6 +39,12 @@ export function CartProvider({ children }) {
     setItems([])
   }
 
+  function clearSession() {
+    setItems([])
+    setSessionId(null)
+    setLocation(null)
+  }
+
   const subtotal = useMemo(
     () => items.reduce((sum, i) => sum + i.product.price * i.quantity, 0),
     [items]
@@ -52,10 +59,13 @@ export function CartProvider({ children }) {
     updateItemNotes,
     removeItem,
     clearCart,
+    clearSession,
     subtotal,
     itemCount,
     location,
-    setLocation
+    setLocation,
+    sessionId,
+    setSessionId
   }
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
