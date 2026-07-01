@@ -24,7 +24,8 @@ export const supabaseCamaut = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    storageKey: 'sb-camaut-auth'
+    storageKey: 'sb-camaut-auth',
+    detectSessionInUrl: false
   }
 })
 
@@ -38,7 +39,8 @@ export const supabaseCustomer = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    storageKey: 'sb-customer-auth' // separado del storage del staff
+    storageKey: 'sb-customer-auth',
+    detectSessionInUrl: false // nunca procesa tokens de email de URL (son del staff)
   }
 })
 
