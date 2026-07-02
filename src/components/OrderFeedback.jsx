@@ -95,11 +95,18 @@ export default function OrderFeedback({ orderId, staffId }) {
     setSubmitting(true)
     setError('')
 
+    // Use registered customer id, or fall back to the anonymous auth uid
+    let customerId = customer?.id || null
+    if (!customerId) {
+      const { data: { session } } = await supabaseCustomer.auth.getSession()
+      customerId = session?.user?.id || null
+    }
+
     const { data, error: insertError } = await supabaseCustomer
       .from('order_feedback')
       .insert({
         order_id: orderId,
-        customer_id: customer?.id || null,
+        customer_id: customerId,
         rating,
         notes: notes.trim() || null,
         staff_id: staffId || null
