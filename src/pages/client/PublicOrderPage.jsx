@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { createClient } from '@supabase/supabase-js'
 import { formatPrice } from '../../lib/utils'
 import OrderFeedback from '../../components/OrderFeedback'
+import { supabaseCustomer } from '../../lib/supabase'
 
 const supabasePublic = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -55,6 +56,10 @@ export default function PublicOrderPage() {
   }, [id])
 
   async function loadOrder() {
+    // Ensure supabaseCustomer has an anon session so OrderFeedback can insert
+    const { data: { session } } = await supabaseCustomer.auth.getSession()
+    if (!session) await supabaseCustomer.auth.signInAnonymously()
+
     const { data: orderData } = await supabasePublic
       .from('orders')
       .select('id, status, location_label, total, daily_number, created_at, prep_time_minutes, prep_started_at, waiter_called_at, assigned_staff_id, payment_status, notes')
@@ -356,11 +361,9 @@ export default function PublicOrderPage() {
       )}
 
       {/* Encuesta */}
-      {order.status === 'entregado' && (
-        <div className="mt-2">
-          <OrderFeedback orderId={order.id} staffId={order.assigned_staff_id} />
-        </div>
-      )}
+      <div className="mt-2">
+        <OrderFeedback orderId={order.id} staffId={order.assigned_staff_id} />
+      </div>
 
       <p className="text-smoke-600 text-[10px] text-center mt-4">Se actualiza automáticamente</p>
     </div>

@@ -78,18 +78,20 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
   const [staffName, setStaffName] = useState(initialName)
   const [staffXP, setStaffXP] = useState(initialXP || 0)
   const [staffAlias, setStaffAlias] = useState(null)
+  const [staffAvatarUrl, setStaffAvatarUrl] = useState(null)
 
   useEffect(() => {
     if (!venueId) return
     supabaseStaff
       .from('staff_names')
-      .select('full_name, xp, alias')
+      .select('full_name, xp, alias, avatar_url')
       .eq('venue_id', venueId)
       .single()
       .then(({ data }) => {
         if (data?.full_name) setStaffName(data.full_name)
         if (data?.xp !== undefined) setStaffXP(data.xp)
         if (data?.alias) setStaffAlias(data.alias.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9_-]/g, ''))
+        if (data?.avatar_url) setStaffAvatarUrl(data.avatar_url)
       })
   }, [venueId])
 
@@ -222,6 +224,8 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
           staffId={staffId}
           staffAlias={staffAlias}
           staffName={staffName}
+          staffAvatarUrl={staffAvatarUrl}
+          venueNames={linkedVenues.map(v => v.name.replace(' — Capy', '').replace(' - Capy', ''))}
           period={wrappedPeriod}
           onClose={() => setShowWrapped(false)}
         />

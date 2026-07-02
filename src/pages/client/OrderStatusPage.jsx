@@ -390,7 +390,7 @@ export default function OrderStatusPage() {
         </button>
       )}
 
-      {['en_preparacion', 'listo', 'entregado'].includes(order.status) && (
+      {!isCancelado && (
         <OrderFeedback orderId={order.id} staffId={order.assigned_staff_id} />
       )}
     </div>

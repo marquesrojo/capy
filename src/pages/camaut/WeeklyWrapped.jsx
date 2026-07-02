@@ -16,7 +16,7 @@ const BG = [
   'linear-gradient(160deg, #003333 0%, #00695C 100%)',
 ]
 
-export default function WeeklyWrapped({ staffId, staffAlias, staffName, onClose, period = 'week' }) {
+export default function WeeklyWrapped({ staffId, staffAlias, staffName, staffAvatarUrl, venueNames = [], onClose, period = 'week' }) {
   const [slide, setSlide] = useState(0)
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -148,7 +148,7 @@ export default function WeeklyWrapped({ staffId, staffAlias, staffName, onClose,
         {slide === 1 && <OrdersCard data={data} />}
         {slide === 2 && <RatingsCard data={data} />}
         {slide === 3 && <ArchetypeCard data={data} />}
-        {slide === 4 && <SummaryCard data={data} qrUrl={qrUrl} />}
+        {slide === 4 && <SummaryCard data={data} qrUrl={qrUrl} staffName={staffName} staffAvatarUrl={staffAvatarUrl} venueNames={venueNames} />}
         {slide === 5 && (
           <ShareCard
             qrUrl={qrUrl}
@@ -258,22 +258,40 @@ function ArchetypeCard({ data }) {
   )
 }
 
-function SummaryCard({ data, qrUrl }) {
+function SummaryCard({ data, qrUrl, staffName, staffAvatarUrl, venueNames }) {
   const { orders, ratings, archetype } = data
+  const first = staffName?.split(' ')[0] || ''
   return (
-    <div className="w-full max-w-xs space-y-4">
-      <div className="wup space-y-0.5">
-        <p className="text-white/50 text-[10px] font-bold uppercase tracking-[0.2em]">Mi Wrapped · Capy</p>
-        <p className="text-white/80 font-semibold text-sm">{data.period}</p>
-      </div>
-      <div className="wpop flex items-center gap-3">
-        <span style={{ fontSize: 'clamp(2.5rem,13vw,4rem)', lineHeight: 1 }}>{archetype.emoji}</span>
+    <div className="w-full max-w-xs space-y-3">
+      {/* Identity */}
+      <div className="wup flex items-center gap-3">
+        <div className="w-12 h-12 rounded-full bg-white/20 border-2 border-white/40 overflow-hidden flex items-center justify-center flex-shrink-0">
+          {staffAvatarUrl ? (
+            <img src={staffAvatarUrl} alt={staffName} className="w-full h-full object-cover" crossOrigin="anonymous" />
+          ) : (
+            <span className="text-white font-bold text-lg">{staffName?.slice(0, 2).toUpperCase() || 'CA'}</span>
+          )}
+        </div>
         <div className="text-left">
-          <p className="font-black text-xl leading-tight">{archetype.name}</p>
-          <p className="text-white/55 text-xs leading-relaxed">{archetype.desc}</p>
+          <p className="font-black text-lg leading-tight">{first || staffName}</p>
+          {venueNames.length > 0 && (
+            <p className="text-white/55 text-[10px] leading-relaxed">{venueNames.join(' · ')}</p>
+          )}
+          <p className="text-white/40 text-[10px]">{data.period}</p>
         </div>
       </div>
-      <div className="wup2 grid grid-cols-2 gap-3">
+
+      {/* Archetype */}
+      <div className="wpop flex items-center gap-3 bg-white/10 rounded-2xl px-4 py-3">
+        <span style={{ fontSize: '2rem', lineHeight: 1 }}>{archetype.emoji}</span>
+        <div className="text-left">
+          <p className="font-black text-base leading-tight">{archetype.name}</p>
+          <p className="text-white/55 text-[11px] leading-relaxed">{archetype.desc}</p>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="wup2 grid grid-cols-2 gap-2">
         <div className="bg-white/15 backdrop-blur-sm rounded-2xl px-4 py-3 text-left">
           <p className="text-white font-black leading-none" style={{ fontSize: 'clamp(1.8rem,9vw,2.8rem)' }}>{orders.total}</p>
           <p className="text-white/55 text-xs mt-1">{orders.total === 1 ? 'comanda' : 'comandas'}</p>
@@ -290,14 +308,16 @@ function SummaryCard({ data, qrUrl }) {
           </div>
         )}
       </div>
+
       {ratings.bestComment && (
         <div className="wup3 bg-white/10 rounded-2xl px-4 py-3 text-left">
           <p className="text-white/75 text-xs italic leading-relaxed">"{ratings.bestComment}"</p>
         </div>
       )}
+
       {qrUrl && (
-        <div className="wup3 flex items-center gap-2 pt-1">
-          <img src={qrUrl} className="w-8 h-8 opacity-60" style={{ imageRendering: 'pixelated' }} />
+        <div className="wup3 flex items-center gap-2">
+          <img src={qrUrl} className="w-7 h-7 opacity-50" style={{ imageRendering: 'pixelated' }} />
           <p className="text-white/30 text-[9px]">capyapp.co</p>
         </div>
       )}

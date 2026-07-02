@@ -3,16 +3,27 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { supabaseCustomer } from '../../lib/supabase'
 import { getLevel, getXPProgress } from '../../lib/xpUtils'
 
+function calcArchetype(orderCount, fiveStarPct, ratingCount) {
+  if (orderCount >= 400)
+    return { name: 'Flash del Salón', emoji: '⚡', desc: 'Velocidad pura. Ningún pedido lo para.' }
+  if (fiveStarPct === 100 && ratingCount >= 50)
+    return { name: 'Encantador de Dulces', emoji: '🍰', desc: 'Efectividad perfecta. Sus clientes lo aman.' }
+  if (orderCount >= 200)
+    return { name: 'Tanque de la Barra', emoji: '🛡️', desc: 'Sólido y confiable. El salón lo necesita.' }
+  if (fiveStarPct >= 80 && ratingCount >= 20)
+    return { name: 'Imán de Estrellas', emoji: '⭐', desc: 'Sus clientes no paran de felicitarlo.' }
+  return { name: 'En Ascenso', emoji: '🌟', desc: 'Cada día suma experiencia y crecimiento.' }
+}
+
 export default function WaiterPublicPage() {
   const { alias } = useParams()
   const navigate = useNavigate()
   const [staff, setStaff] = useState(null)
   const [venue, setVenue] = useState(null)
   const [stats, setStats] = useState(null)
+  const [bestComment, setBestComment] = useState(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
-  const [debugInfo, setDebugInfo] = useState(null)
-  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     loadProfile()
@@ -28,7 +39,6 @@ export default function WaiterPublicPage() {
     const { data, error } = await query.maybeSingle()
 
     if (error || !data) {
-      setDebugInfo(JSON.stringify({ error: error?.message, code: error?.code, alias }, null, 2))
       setNotFound(true)
       setLoading(false)
       return
@@ -37,7 +47,7 @@ export default function WaiterPublicPage() {
 
     const promises = [
       supabaseCustomer.from('orders').select('id', { count: 'exact', head: true }).eq('assigned_staff_id', data.id),
-      supabaseCustomer.from('order_feedback').select('rating').eq('staff_id', data.id),
+      supabaseCustomer.from('order_feedback').select('rating, notes').eq('staff_id', data.id),
     ]
     if (data.venue_id) {
       promises.push(
@@ -51,21 +61,30 @@ export default function WaiterPublicPage() {
     if (venueRes?.data) setVenue(venueRes.data)
 
     const ratings = ratingsRes.data || []
+    const fiveStars = ratings.filter(r => r.rating === 5)
+    const fiveStarPct = ratings.length ? Math.round((fiveStars.length / ratings.length) * 100) : 0
+    const avgRating = ratings.length
+      ? (ratings.reduce((s, r) => s + r.rating, 0) / ratings.length).toFixed(1)
+      : null
+
+    const comment = fiveStars
+      .filter(r => r.notes?.trim().length > 10)
+      .sort((a, b) => b.notes.length - a.notes.length)[0]?.notes || null
+
+    setBestComment(comment)
     setStats({
       orders: ordersRes.count || 0,
-      avgRating: ratings.length
-        ? (ratings.reduce((s, r) => s + r.rating, 0) / ratings.length).toFixed(1)
-        : null,
+      avgRating,
       ratingCount: ratings.length,
+      fiveStarPct,
+      archetype: calcArchetype(ordersRes.count || 0, fiveStarPct, ratings.length),
     })
     setLoading(false)
   }
 
-  async function copyAlias() {
-    if (!staff?.alias_bancario) return
-    await navigator.clipboard?.writeText(staff.alias_bancario)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  function handleBack() {
+    if (window.history.length > 1) navigate(-1)
+    else navigate('/camaut')
   }
 
   if (loading) {
@@ -81,7 +100,6 @@ export default function WaiterPublicPage() {
       <div className="min-h-screen bg-[#F0F4F8] flex flex-col items-center justify-center px-5 text-center">
         <p className="text-[#1A2A3A] font-semibold mb-2">Camarero no encontrado</p>
         <p className="text-[#8896A5] text-sm">Este perfil no existe o no está disponible.</p>
-        {debugInfo && <pre className="mt-4 text-left text-[10px] text-red-500 bg-white p-3 rounded-xl border border-red-200 max-w-xs overflow-auto">{debugInfo}</pre>}
       </div>
     )
   }
@@ -90,27 +108,24 @@ export default function WaiterPublicPage() {
   const level = getLevel(xp)
   const progress = getXPProgress(xp)
 
-  function handleBack() {
-    if (window.history.length > 1) {
-      navigate(-1)
-    } else {
-      navigate('/camaut')
-    }
-  }
-
   return (
     <div className="min-h-screen bg-[#F0F4F8]">
       {/* Header */}
-      <div className="bg-[#008080] px-5 pt-12 pb-16 text-center relative">
+      <div
+        className="bg-[#008080] px-5 pb-20 text-center relative"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 52px)' }}
+      >
         <button
           onClick={handleBack}
-          className="absolute top-14 left-4 text-white/80 text-sm font-semibold flex items-center gap-1 active:opacity-60"
+          className="absolute left-4 text-white/80 text-sm font-semibold flex items-center gap-1 active:opacity-60"
+          style={{ top: 'calc(env(safe-area-inset-top, 0px) + 14px)' }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M15 18l-6-6 6-6"/>
           </svg>
           Volver
         </button>
+
         <div className="w-24 h-24 mx-auto rounded-full bg-white/20 border-4 border-white/40 overflow-hidden flex items-center justify-center">
           {staff.avatar_url ? (
             <img src={staff.avatar_url} alt={staff.full_name} className="w-full h-full object-cover" />
@@ -120,28 +135,39 @@ export default function WaiterPublicPage() {
             </span>
           )}
         </div>
-        <h1 className="text-white font-bold text-2xl mt-4 leading-tight">{staff.full_name}</h1>
-        {staff.alias && <p className="text-white/70 text-sm mt-1">@{staff.alias}</p>}
-        {venue && <p className="text-white/60 text-xs mt-2">{venue.name}</p>}
+        <h1 className="text-white font-bold text-2xl mt-3 leading-tight">{staff.full_name}</h1>
+        {staff.alias && <p className="text-white/70 text-sm mt-0.5">@{staff.alias}</p>}
+        {venue && <p className="text-white/55 text-xs mt-1.5">{venue.name.replace(' — Capy', '')}</p>}
       </div>
 
-      <div className="px-4 -mt-8 pb-10 space-y-4">
+      <div className="px-4 -mt-12 pb-10 space-y-3">
+        {/* Archetype */}
+        {stats?.archetype && (
+          <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm flex items-center gap-4">
+            <span className="text-4xl flex-shrink-0">{stats.archetype.emoji}</span>
+            <div>
+              <p className="font-bold text-[#1A2A3A] text-base leading-tight">{stats.archetype.name}</p>
+              <p className="text-[#8896A5] text-xs mt-0.5 leading-relaxed">{stats.archetype.desc}</p>
+            </div>
+          </div>
+        )}
+
         {/* Level */}
-        <div className="bg-white rounded-2xl p-5 border border-black/5 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
+        <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
+          <div className="flex items-center justify-between mb-2.5">
             <div className="flex items-center gap-2.5">
               <span className="text-2xl">{level.icon}</span>
               <div>
-                <p className="font-bold text-[#1A2A3A] leading-tight">{level.name}</p>
-                <p className="text-[#8896A5] text-xs">{xp.toLocaleString()} XP</p>
+                <p className="font-bold text-[#1A2A3A] text-sm leading-tight">{level.name}</p>
+                <p className="text-[#8896A5] text-xs">{xp.toLocaleString()} XP acumulados</p>
               </div>
             </div>
             <span className="bg-[#E8F5F5] text-[#008080] text-xs font-bold px-3 py-1 rounded-full">
-              {level.name}
+              Nivel {level.name}
             </span>
           </div>
           <div className="w-full h-2 bg-[#F0F4F8] rounded-full overflow-hidden">
-            <div className="h-2 bg-[#008080] rounded-full" style={{ width: `${progress.percent}%` }} />
+            <div className="h-2 bg-[#008080] rounded-full transition-all" style={{ width: `${progress.percent}%` }} />
           </div>
           <p className="text-[#B0BEC5] text-[10px] mt-1.5">
             {progress.current.toLocaleString()} / {progress.needed.toLocaleString()} XP para el siguiente nivel
@@ -152,14 +178,14 @@ export default function WaiterPublicPage() {
         {stats && (
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm text-center">
-              <p className="font-bold text-[#1A2A3A] text-3xl">{stats.orders}</p>
+              <p className="font-bold text-[#1A2A3A] text-3xl">{stats.orders.toLocaleString()}</p>
               <p className="text-[#8896A5] text-xs mt-1">Pedidos atendidos</p>
             </div>
             <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm text-center">
               {stats.avgRating ? (
                 <>
                   <p className="font-bold text-[#008080] text-3xl">{stats.avgRating}</p>
-                  <p className="text-[#8896A5] text-xs mt-1">{stats.ratingCount} opiniones</p>
+                  <p className="text-[#8896A5] text-xs mt-1">{stats.ratingCount} opiniones ⭐</p>
                 </>
               ) : (
                 <>
@@ -171,21 +197,11 @@ export default function WaiterPublicPage() {
           </div>
         )}
 
-        {/* Propina */}
-        {staff.alias_bancario && (
+        {/* Mejor comentario */}
+        {bestComment && (
           <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
-            <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">Dejar propina</p>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 font-mono text-[#1A2A3A] text-sm bg-[#F8FAFC] px-3 py-2.5 rounded-xl border border-black/10 truncate">
-                {staff.alias_bancario}
-              </div>
-              <button
-                onClick={copyAlias}
-                className="bg-[#008080] text-white text-xs font-semibold px-4 py-2.5 rounded-xl flex-shrink-0"
-              >
-                {copied ? '✓' : 'Copiar'}
-              </button>
-            </div>
+            <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-2">Lo que dicen sus clientes</p>
+            <p className="text-[#1A2A3A] text-sm italic leading-relaxed">"{bestComment}"</p>
           </div>
         )}
 
