@@ -41,20 +41,11 @@ export default function WaitersPage() {
   async function loadComparativa() {
     setCompLoading(true)
 
-    const { data: linked } = await supabaseStaff
-      .from('venue_staff')
-      .select('staff_profile_id')
-      .eq('venue_id', venueId)
-      .eq('status', 'active')
-
-    if (!linked?.length) { setComparativa([]); setCompLoading(false); return }
-
-    const linkedIds = linked.map(l => l.staff_profile_id)
-
     const { data: staffList } = await supabaseStaff
       .from('staff_names')
       .select('id, full_name, alias, xp, total_orders')
-      .in('id', linkedIds)
+      .eq('venue_id', venueId)
+      .eq('is_active', true)
 
     if (!staffList?.length) { setComparativa([]); setCompLoading(false); return }
 
