@@ -1,0 +1,260 @@
+import { useState, useEffect } from 'react'
+import QRCode from 'qrcode'
+import html2canvas from 'html2canvas'
+import { supabaseStaff } from '../../lib/supabase'
+import { getWeeklyWrappedData } from '../../lib/weeklyWrapped'
+
+const DURATION = 6000
+const SLIDES = 5
+
+const BG = [
+  'linear-gradient(160deg, #002d2d 0%, #008080 100%)',
+  'linear-gradient(160deg, #BF360C 0%, #FF7043 100%)',
+  'linear-gradient(160deg, #880E4F 0%, #E91E63 100%)',
+  'linear-gradient(160deg, #1A237E 0%, #5C6BC0 100%)',
+  'linear-gradient(160deg, #003333 0%, #00695C 100%)',
+]
+
+export default function WeeklyWrapped({ staffId, staffAlias, staffName, onClose }) {
+  const [slide, setSlide] = useState(0)
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [qrUrl, setQrUrl] = useState('')
+  const [exporting, setExporting] = useState(false)
+
+  const profileUrl = `${window.location.origin}/c/${staffAlias || staffId}`
+
+  useEffect(() => {
+    if (!staffId) { setLoading(false); return }
+    Promise.all([
+      getWeeklyWrappedData(supabaseStaff, staffId),
+      QRCode.toDataURL(profileUrl, {
+        width: 240, margin: 1,
+        color: { dark: '#FFFFFF', light: '#00000000' },
+      }),
+    ]).then(([wrapped, qr]) => {
+      setData(wrapped)
+      setQrUrl(qr)
+      setLoading(false)
+    })
+  }, [staffId])
+
+  // Auto-advance
+  useEffect(() => {
+    if (loading || exporting) return
+    const t = setTimeout(() => setSlide(s => Math.min(s + 1, SLIDES - 1)), DURATION)
+    return () => clearTimeout(t)
+  }, [slide, loading, exporting])
+
+  function handleTap(e) {
+    if (e.target.closest('button')) return
+    const mid = window.innerWidth / 2
+    setSlide(s => e.clientX < mid ? Math.max(0, s - 1) : Math.min(SLIDES - 1, s + 1))
+  }
+
+  async function handleExport() {
+    setExporting(true)
+    try {
+      const el = document.getElementById('wrapped-card')
+      if (!el) return
+      const canvas = await html2canvas(el, {
+        scale: 3,
+        useCORS: true,
+        backgroundColor: null,
+        logging: false,
+      })
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/png'))
+      const file = new File([blob], 'capy-wrapped.png', { type: 'image/png' })
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'Mi Wrapped de Capy' })
+      } else {
+        const url = URL.createObjectURL(blob)
+        Object.assign(document.createElement('a'), { href: url, download: 'capy-wrapped.png' }).click()
+        URL.revokeObjectURL(url)
+      }
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: BG[0] }}>
+        <div className="text-center">
+          <p className="text-white text-2xl font-bold mb-2">⚡</p>
+          <p className="text-white/70 text-sm">Calculando tu semana...</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 overflow-hidden"
+      style={{ background: BG[slide], transition: 'background 0.4s ease' }}
+      onClick={handleTap}
+    >
+      {/* Progress bars */}
+      <div className="absolute top-0 inset-x-0 flex gap-1 px-3 pt-12 z-20 pointer-events-none">
+        {Array.from({ length: SLIDES }).map((_, i) => (
+          <div key={i} className="flex-1 h-[3px] rounded-full bg-white/25 overflow-hidden">
+            <div
+              key={`${slide}-${i}`}
+              className="h-full bg-white rounded-full"
+              style={{
+                width: i < slide ? '100%' : '0%',
+                animation: i === slide && !exporting ? `wrappedFill ${DURATION}ms linear forwards` : 'none',
+              }}
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Header */}
+      <div className="absolute top-3 inset-x-0 flex items-center justify-between px-4 z-20">
+        <span className="text-white/80 text-xs font-bold tracking-widest uppercase">⚡ Capy</span>
+        <button
+          onClick={(e) => { e.stopPropagation(); onClose() }}
+          className="text-white/60 w-8 h-8 flex items-center justify-center text-lg"
+        >×</button>
+      </div>
+
+      {/* Card */}
+      <div id="wrapped-card" className="absolute inset-0 flex flex-col items-center justify-center px-7 text-white text-center pointer-events-none">
+        {slide === 0 && <IntroCard data={data} staffName={staffName} />}
+        {slide === 1 && <OrdersCard data={data} />}
+        {slide === 2 && <RatingsCard data={data} />}
+        {slide === 3 && <ArchetypeCard data={data} />}
+        {slide === 4 && (
+          <ShareCard
+            data={data}
+            qrUrl={qrUrl}
+            profileUrl={profileUrl}
+            onExport={handleExport}
+            exporting={exporting}
+          />
+        )}
+
+        {/* QR watermark on slides 0-3 */}
+        {slide < 4 && qrUrl && (
+          <div className="absolute bottom-10 right-5 flex flex-col items-center gap-1">
+            <img src={qrUrl} className="w-10 h-10 opacity-50" style={{ imageRendering: 'pixelated' }} />
+            <p className="text-white/30 text-[8px]">capyapp.co</p>
+          </div>
+        )}
+      </div>
+
+      <style>{`
+        @keyframes wrappedFill { from { width: 0% } to { width: 100% } }
+        @keyframes wrappedUp { from { opacity:0; transform:translateY(28px) } to { opacity:1; transform:translateY(0) } }
+        @keyframes wrappedPop { from { opacity:0; transform:scale(0.7) } to { opacity:1; transform:scale(1) } }
+        .wup { animation: wrappedUp 0.55s cubic-bezier(.22,1,.36,1) both }
+        .wpop { animation: wrappedPop 0.5s cubic-bezier(.22,1,.36,1) both }
+        .wup2 { animation: wrappedUp 0.55s 0.12s cubic-bezier(.22,1,.36,1) both }
+        .wup3 { animation: wrappedUp 0.55s 0.24s cubic-bezier(.22,1,.36,1) both }
+      `}</style>
+    </div>
+  )
+}
+
+function IntroCard({ data, staffName }) {
+  const first = staffName?.split(' ')[0] || 'vos'
+  return (
+    <div className="space-y-8 wup">
+      <p className="text-white/50 text-xs font-semibold uppercase tracking-[0.2em]">Tu semana en Capy</p>
+      <div>
+        <p className="font-black leading-none" style={{ fontSize: 'clamp(3rem,14vw,5.5rem)' }}>
+          El Resumen<br />de {first}
+        </p>
+      </div>
+      <p className="text-white/60 text-base">{data.period}</p>
+      <p className="text-white/35 text-xs mt-10">Tocá para ver tus logros →</p>
+    </div>
+  )
+}
+
+function OrdersCard({ data }) {
+  const { orders } = data
+  return (
+    <div className="space-y-5">
+      <p className="wup text-white/60 font-bold text-xs uppercase tracking-[0.2em]">El Correcaminos 🏃</p>
+      <p className="wpop font-black text-white leading-none" style={{ fontSize: 'clamp(5rem,24vw,9rem)' }}>
+        {orders.total}
+      </p>
+      <p className="wup2 text-white/80 text-xl font-semibold">
+        {orders.total === 1 ? 'comanda esta semana' : 'comandas esta semana'}
+      </p>
+      {orders.bestDay && (
+        <div className="wup3 bg-white/15 backdrop-blur-sm rounded-2xl px-6 py-4 mt-4">
+          <p className="text-white/60 text-xs">Día estrella</p>
+          <p className="text-white font-bold text-xl">{orders.bestDay.name}</p>
+          <p className="text-white/60 text-sm">{orders.bestDay.count} pedidos ese día</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function RatingsCard({ data }) {
+  const { ratings } = data
+  return (
+    <div className="space-y-5">
+      <p className="wup text-white/60 font-bold text-xs uppercase tracking-[0.2em]">Imán de Amor 💕</p>
+      {ratings.total > 0 ? (
+        <>
+          <p className="wpop font-black leading-none" style={{ fontSize: 'clamp(4.5rem,22vw,8rem)' }}>
+            {ratings.fiveStarPct}%
+          </p>
+          <p className="wup2 text-white/80 text-lg font-semibold">cinco estrellas ⭐</p>
+          <p className="wup2 text-white/50 text-sm">{ratings.total} {ratings.total === 1 ? 'opinión' : 'opiniones'} esta semana</p>
+          {ratings.bestComment && (
+            <div className="wup3 bg-white/15 rounded-2xl px-5 py-4 mt-2 max-w-xs mx-auto">
+              <p className="text-white/80 text-sm italic leading-relaxed">"{ratings.bestComment}"</p>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="wup2 space-y-3">
+          <p className="text-white/70 text-xl font-semibold">Sin calificaciones</p>
+          <p className="text-white/40 text-sm">Pedile a tus clientes que te califiquen esta semana</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ArchetypeCard({ data }) {
+  const { archetype } = data
+  return (
+    <div className="space-y-5">
+      <p className="wup text-white/60 font-bold text-xs uppercase tracking-[0.2em]">Tu rol esta semana</p>
+      <p className="wpop" style={{ fontSize: 'clamp(4rem,20vw,7rem)', lineHeight: 1 }}>{archetype.emoji}</p>
+      <p className="wup2 font-black text-3xl leading-tight">{archetype.name}</p>
+      <p className="wup3 text-white/65 text-base max-w-xs mx-auto leading-relaxed">{archetype.desc}</p>
+    </div>
+  )
+}
+
+function ShareCard({ data, qrUrl, profileUrl, onExport, exporting }) {
+  return (
+    <div className="space-y-6 w-full max-w-xs mx-auto">
+      <div className="wup space-y-1">
+        <p className="font-black text-3xl leading-tight">¡Compartí<br />tu Wrapped!</p>
+        <p className="text-white/50 text-xs">Subilo a tus Stories y motivá a tu equipo</p>
+      </div>
+      {qrUrl && (
+        <div className="wpop bg-white rounded-2xl p-4 w-40 h-40 mx-auto flex items-center justify-center">
+          <img src={qrUrl} className="w-full h-full" style={{ imageRendering: 'pixelated', filter: 'invert(1) sepia(1) saturate(3) hue-rotate(120deg)' }} />
+        </div>
+      )}
+      <p className="wup2 text-white/40 text-[10px] font-mono">{profileUrl}</p>
+      <button
+        onClick={(e) => { e.stopPropagation(); onExport() }}
+        disabled={exporting}
+        className="wup3 pointer-events-auto w-full bg-white text-[#008080] font-bold py-3.5 rounded-2xl text-sm active:scale-95 transition-transform disabled:opacity-50"
+      >
+        {exporting ? 'Generando imagen...' : '📲 Compartir / Guardar imagen'}
+      </button>
+    </div>
+  )
+}
