@@ -54,7 +54,7 @@ export default function WaiterCVPage() {
 
     const [expRes, ratingsRes, countRes, qrDataUrl] = await Promise.all([
       supabaseCustomer.from('staff_experience').select('*').eq('staff_id', staffData.id).order('date_from', { ascending: false }),
-      supabaseCustomer.from('order_feedback').select('rating, notes, created_at').eq('staff_id', staffData.id).order('created_at', { ascending: false }),
+      supabaseCustomer.from('order_feedback').select('rating, notes, created_at, tags').eq('staff_id', staffData.id).order('created_at', { ascending: false }),
       supabaseCustomer.rpc('count_orders_by_staff', { p_staff_id: staffData.id }),
       QRCode.toDataURL(profileUrl, { width: 160, margin: 1, color: { dark: '#1A2A3A', light: '#FFFFFF' } }),
     ])
@@ -86,6 +86,13 @@ export default function WaiterCVPage() {
   const avgRating = ratings.length ? (ratings.reduce((s, r) => s + r.rating, 0) / ratings.length).toFixed(1) : null
   const archetype = calcArchetype(orderCount, fiveStarPct, ratings.length)
   const topReviews = fiveStars.filter(r => r.notes?.trim().length > 10).slice(0, 3)
+
+  const allTags = ratings.flatMap(r => r.tags || [])
+  const tagCounts = [
+    { id: 'amabilidad', label: 'Amabilidad', emoji: '🤝', count: allTags.filter(t => t === 'amabilidad').length },
+    { id: 'rapidez', label: 'Rapidez', emoji: '⚡', count: allTags.filter(t => t === 'rapidez').length },
+    { id: 'recomendacion', label: 'Recomendó la carta', emoji: '🍽️', count: allTags.filter(t => t === 'recomendacion').length },
+  ].filter(t => t.count > 0)
 
   const trabajos = experience.filter(e => e.type === 'trabajo')
   const estudios = experience.filter(e => e.type === 'estudio')
@@ -205,6 +212,22 @@ export default function WaiterCVPage() {
               <p className="text-center text-[#B0BEC5] text-[10px] mt-3">{ratings.length} opiniones verificadas de clientes reales</p>
             )}
           </div>
+
+          {/* Recognition tags */}
+          {tagCounts.length > 0 && (
+            <div className="px-8 py-5 border-b border-black/8">
+              <p className="text-[#8896A5] text-[10px] font-bold uppercase tracking-widest mb-3">Reconocimientos de clientes</p>
+              <div className="flex flex-wrap gap-2">
+                {tagCounts.map(t => (
+                  <div key={t.id} className="flex items-center gap-1.5 bg-[#E8F5F5] border border-[#008080]/15 px-3 py-1.5 rounded-full">
+                    <span className="text-sm">{t.emoji}</span>
+                    <span className="text-[#006666] text-xs font-semibold">{t.label}</span>
+                    <span className="text-[#008080] text-xs font-bold ml-0.5">{t.count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Experience */}
           {trabajos.length > 0 && (

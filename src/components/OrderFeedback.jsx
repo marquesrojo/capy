@@ -63,12 +63,19 @@ const CAPY_FACES = [
   }
 ]
 
+const RECOGNITION_TAGS = [
+  { id: 'amabilidad', label: 'Amabilidad', emoji: '🤝' },
+  { id: 'rapidez', label: 'Rapidez', emoji: '⚡' },
+  { id: 'recomendacion', label: 'Recomendó la carta', emoji: '🍽️' },
+]
+
 export default function OrderFeedback({ orderId, staffId }) {
   const { customer } = useCustomer()
   const [existing, setExisting] = useState(null)
   const [loading, setLoading] = useState(true)
   const [rating, setRating] = useState(null)
   const [notes, setNotes] = useState('')
+  const [selectedTags, setSelectedTags] = useState([])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [kitchenAlias, setKitchenAlias] = useState(null)
@@ -106,7 +113,8 @@ export default function OrderFeedback({ orderId, staffId }) {
         customer_id: customerId,
         rating,
         notes: notes.trim() || null,
-        staff_id: staffId || null
+        staff_id: staffId || null,
+        tags: selectedTags.length > 0 ? selectedTags : null,
       })
 
     setSubmitting(false)
@@ -178,7 +186,7 @@ export default function OrderFeedback({ orderId, staffId }) {
           <button
             key={face.value}
             type="button"
-            onClick={() => setRating(face.value)}
+            onClick={() => { setRating(face.value); setSelectedTags([]) }}
             style={{
               transition: 'all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1)',
               transform: rating === face.value
@@ -195,6 +203,31 @@ export default function OrderFeedback({ orderId, staffId }) {
           </button>
         ))}
       </div>
+
+      {rating >= 4 && (
+        <div className="mb-4">
+          <p className="text-smoke-400 text-xs mb-2">¿Qué destacás?</p>
+          <div className="flex flex-wrap gap-2">
+            {RECOGNITION_TAGS.map(tag => (
+              <button
+                key={tag.id}
+                type="button"
+                onClick={() => setSelectedTags(prev =>
+                  prev.includes(tag.id) ? prev.filter(t => t !== tag.id) : [...prev, tag.id]
+                )}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                  selectedTags.includes(tag.id)
+                    ? 'bg-pucara-blue-500 border-pucara-blue-500 text-white'
+                    : 'bg-carbon-800 border-carbon-600 text-smoke-400'
+                }`}
+              >
+                <span>{tag.emoji}</span>
+                {tag.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <textarea
         value={notes}
