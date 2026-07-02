@@ -22,13 +22,13 @@ async function setupPushNotifications(staffId) {
     const permission = await Notification.requestPermission()
     if (permission !== 'granted') return
 
-    const existing = await registration.pushManager.getSubscription()
-    if (existing) return
-
-    const subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_KEY),
-    })
+    let subscription = await registration.pushManager.getSubscription()
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_KEY),
+      })
+    }
 
     const { endpoint, keys } = subscription.toJSON()
     await supabaseCamaut.from('push_subscriptions').upsert({
@@ -36,7 +36,7 @@ async function setupPushNotifications(staffId) {
       endpoint,
       p256dh: keys.p256dh,
       auth: keys.auth,
-    }, { onConflict: 'endpoint' })
+    }, { onConflict: 'staff_id,endpoint' })
   } catch {
     // push setup is best-effort
   }
