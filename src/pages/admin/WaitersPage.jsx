@@ -41,34 +41,48 @@ export default function WaitersPage() {
   async function loadComparativa() {
     setCompLoading(true)
 
-    // Get names of actively linked waiters (venue_staff → profiles)
+    // Get linked waiters: both profile_id (camaut auth UID) and name
     const { data: linked } = await supabaseStaff
       .from('venue_staff')
-      .select('profile:profiles(full_name)')
+      .select('staff_profile_id, profile:profiles(full_name)')
       .eq('venue_id', venueId)
       .eq('status', 'active')
 
     if (!linked?.length) { setComparativa([]); setCompLoading(false); return }
 
+    const linkedIds = linked.map(l => l.staff_profile_id).filter(Boolean)
     const linkedNames = linked.map(l => l.profile?.full_name).filter(Boolean)
-    if (!linkedNames.length) { setComparativa([]); setCompLoading(false); return }
 
-    // Match staff_names by full_name within the venue
-    const { data: allMatches } = await supabaseStaff
-      .from('staff_names')
-      .select('id, full_name, alias, xp, total_orders')
-      .eq('venue_id', venueId)
-      .in('full_name', linkedNames)
-      .order('xp', { ascending: false, nullsFirst: false })
-
-    if (!allMatches?.length) { setComparativa([]); setCompLoading(false); return }
-
-    // Deduplicate: one record per name, keeping the one with highest XP
-    const seen = new Map()
-    for (const s of allMatches) {
-      if (!seen.has(s.full_name)) seen.set(s.full_name, s)
+    // Attempt 1: match by camaut auth UID (staff_names.id = auth.uid for properly set up accounts)
+    // No venue_id filter — real records may have venue_id null
+    let staffList = null
+    if (linkedIds.length) {
+      const { data: byId } = await supabaseStaff
+        .from('staff_names')
+        .select('id, full_name, alias, xp, total_orders')
+        .in('id', linkedIds)
+      if (byId?.length) staffList = byId
     }
-    const staffList = Array.from(seen.values())
+
+    // Attempt 2 (fallback): match by name within venue, deduplicate keeping highest XP
+    if (!staffList && linkedNames.length) {
+      const { data: byName } = await supabaseStaff
+        .from('staff_names')
+        .select('id, full_name, alias, xp, total_orders')
+        .eq('venue_id', venueId)
+        .in('full_name', linkedNames)
+        .order('xp', { ascending: false, nullsFirst: false })
+
+      if (byName?.length) {
+        const seen = new Map()
+        for (const s of byName) {
+          if (!seen.has(s.full_name)) seen.set(s.full_name, s)
+        }
+        staffList = Array.from(seen.values())
+      }
+    }
+
+    if (!staffList?.length) { setComparativa([]); setCompLoading(false); return }
 
     const ids = staffList.map(s => s.id)
     const { data: feedbacks } = await supabaseStaff
