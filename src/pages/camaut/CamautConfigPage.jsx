@@ -143,7 +143,17 @@ function PerfilTab({ profile }) {
     e.preventDefault()
     if (!staffData) return
     setSaving(true)
-    await supabaseStaff
+
+    // Sync Camaut session to supabaseStaff before any write
+    const { data: { session } } = await supabaseCamaut.auth.getSession()
+    if (session) {
+      await supabaseStaff.auth.setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token
+      })
+    }
+
+    const { error } = await supabaseStaff
       .from('staff_names')
       .update({
         full_name: fullName.trim(),
@@ -155,14 +165,19 @@ function PerfilTab({ profile }) {
       })
       .eq('id', staffData.id)
 
-    // Sincronizar nombre en profiles usando auth.uid()
-    const { data: { user } } = await supabaseStaff.auth.getUser()
-    if (user) {
+    if (error) {
+      console.error('Error guardando perfil:', error)
+      setSaving(false)
+      return
+    }
+
+    if (session) {
       await supabaseStaff
         .from('profiles')
         .update({ full_name: fullName.trim() })
-        .eq('id', user.id)
+        .eq('id', session.user.id)
     }
+
     setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
