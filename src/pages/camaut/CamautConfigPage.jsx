@@ -103,28 +103,35 @@ function PerfilTab({ profile }) {
   async function handleAvatarChange(e) {
     const file = e.target.files?.[0]
     if (!file || !file.type.startsWith('image/') || !staffData) return
-    if (file.size > 8 * 1024 * 1024) {
-      setUploadError('La imagen no puede superar 8 MB')
-      return
-    }
     setUploadingAvatar(true)
     setUploadError('')
 
-    const ext = file.name.split('.').pop()
-    const path = `${staffData.id}.${ext}`
-    const { error: storageError } = await supabaseCamaut.storage
-      .from('camaut-avatars')
-      .upload(path, file, { upsert: true })
+    // Resize to 256x256 and convert to base64 — no Storage bucket needed
+    const dataUrl = await new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onload = (ev) => {
+        const img = new Image()
+        img.onload = () => {
+          const SIZE = 256
+          const scale = Math.min(SIZE / img.width, SIZE / img.height, 1)
+          const canvas = document.createElement('canvas')
+          canvas.width = Math.round(img.width * scale)
+          canvas.height = Math.round(img.height * scale)
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+          resolve(canvas.toDataURL('image/jpeg', 0.82))
+        }
+        img.src = ev.target.result
+      }
+      reader.readAsDataURL(file)
+    })
 
-    if (storageError) {
-      setUploadError('No se pudo subir la foto: ' + storageError.message)
-      setUploadingAvatar(false)
-      return
-    }
+    setAvatarUrl(dataUrl)
+    const { error } = await supabaseCamaut
+      .from('staff_names')
+      .update({ avatar_url: dataUrl })
+      .eq('id', staffData.id)
 
-    const { data: { publicUrl } } = supabaseCamaut.storage.from('camaut-avatars').getPublicUrl(path)
-    setAvatarUrl(publicUrl)
-    await supabaseCamaut.from('staff_names').update({ avatar_url: publicUrl }).eq('id', staffData.id)
+    if (error) setUploadError('No se pudo guardar la foto: ' + error.message)
     setUploadingAvatar(false)
   }
 
