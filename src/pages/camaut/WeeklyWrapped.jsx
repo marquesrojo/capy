@@ -78,6 +78,13 @@ export default function WeeklyWrapped({ staffId, staffAlias, staffName, onClose 
     return new Promise(r => canvas.toBlob(r, 'image/png'))
   }
 
+  const [toast, setToast] = useState('')
+
+  function showToast(msg) {
+    setToast(msg)
+    setTimeout(() => setToast(''), 3000)
+  }
+
   function downloadBlob(blob) {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -89,25 +96,17 @@ export default function WeeklyWrapped({ staffId, staffAlias, staffName, onClose 
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
 
-  async function shareFile(blob, text) {
-    const file = new File([blob], 'capy-wrapped.png', { type: 'image/png' })
-    try {
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: 'Mi Wrapped de Capy', text })
-        return
-      }
-    } catch {
-      // share cancelled or failed — fall through to download
-    }
-    downloadBlob(blob)
-  }
-
   async function handleExport() {
     setExporting(true)
     try {
       const blob = await captureBlob()
       if (!blob) return
-      await shareFile(blob, '¡Mirá mi Wrapped de Capy! 🔥')
+      const file = new File([blob], 'capy-wrapped.png', { type: 'image/png' })
+      try {
+        await navigator.share({ files: [file], title: 'Mi Wrapped de Capy', text: '¡Mirá mi Wrapped de Capy! 🔥' })
+      } catch (e) {
+        if (e?.name !== 'AbortError') downloadBlob(blob)
+      }
     } catch (e) {
       console.error('export error', e)
     } finally {
@@ -122,10 +121,12 @@ export default function WeeklyWrapped({ staffId, staffAlias, staffName, onClose 
       if (!blob) return
       try {
         await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+        showToast('Imagen copiada — pegala en Stories')
       } catch {
         downloadBlob(blob)
+        showToast('Imagen guardada — abrila en Stories')
       }
-      window.location.href = 'instagram://story-camera'
+      setTimeout(() => { window.location.href = 'instagram://story-camera' }, 400)
     } catch (e) {
       console.error('ig share error', e)
     } finally {
@@ -138,7 +139,11 @@ export default function WeeklyWrapped({ staffId, staffAlias, staffName, onClose 
     try {
       const blob = await captureBlob()
       if (!blob) return
-      await shareFile(blob, `¡Mirá mi Wrapped de Capy! 🔥\n${profileUrl}`)
+      downloadBlob(blob)
+      showToast('Imagen guardada — adjuntala en WhatsApp')
+      setTimeout(() => {
+        window.open(`https://wa.me/?text=${encodeURIComponent('¡Mirá mi Wrapped de Capy! 🔥 ' + profileUrl)}`, '_blank')
+      }, 600)
     } catch (e) {
       console.error('wa share error', e)
     } finally {
@@ -179,6 +184,13 @@ export default function WeeklyWrapped({ staffId, staffAlias, staffName, onClose 
           </div>
         ))}
       </div>
+
+      {/* Toast */}
+      {toast ? (
+        <div className="absolute top-16 inset-x-4 z-30 bg-black/70 text-white text-xs font-semibold text-center py-2.5 px-4 rounded-xl pointer-events-none">
+          {toast}
+        </div>
+      ) : null}
 
       {/* Header */}
       <div className="absolute top-3 inset-x-0 flex items-center justify-between px-4 z-20">
