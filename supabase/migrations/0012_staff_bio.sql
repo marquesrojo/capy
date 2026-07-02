@@ -1,5 +1,6 @@
 ALTER TABLE staff_names ADD COLUMN IF NOT EXISTS bio text;
 
+DROP POLICY IF EXISTS "staff_names_update_own" ON staff_names;
 CREATE POLICY "staff_names_update_own"
   ON staff_names FOR UPDATE
   USING (id = auth.uid())
