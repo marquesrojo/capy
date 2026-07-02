@@ -45,6 +45,10 @@ export function useVenue() {
   return ctx
 }
 
+export function useVenueOptional() {
+  return useContext(VenueContext)
+}
+
 export function useClientBase() {
   const ctx = useContext(VenueContext)
   return ctx?.venue?.slug ? `/r/${ctx.venue.slug}` : ''
