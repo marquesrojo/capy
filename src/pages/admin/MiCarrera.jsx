@@ -166,9 +166,11 @@ export default function MiCarrera({ venueId: propVenueId }) {
           <div className="flex justify-between items-center mb-1.5">
             <span className="text-xs font-semibold text-[#008080]">{xp.toLocaleString()} XP</span>
             {nextLevel && (
-              <span className="text-xs text-[#8896A5]">
-                {nextLevel.minXP.toLocaleString()} XP → {nextLevel.icon} {nextLevel.name}
-              </span>
+              <div className="flex items-center gap-1 text-xs text-[#8896A5]">
+                <span>{nextLevel.minXP.toLocaleString()} XP →</span>
+                <span className="text-[#8896A5]">{LEVEL_SVGS[nextLevel.name]}</span>
+                <span>{nextLevel.name}</span>
+              </div>
             )}
           </div>
           <div className="w-full bg-[#E8EDF2] rounded-full h-2.5">
@@ -183,9 +185,10 @@ export default function MiCarrera({ venueId: propVenueId }) {
             </p>
           )}
           {!nextLevel && (
-            <p className="text-[10px] text-[#008080] mt-1 font-semibold">
-              ¡Nivel máximo alcanzado! 👑
-            </p>
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="text-[#008080]">{LEVEL_SVGS['Leyenda del Salón']}</span>
+              <p className="text-[10px] text-[#008080] font-semibold">¡Nivel máximo alcanzado!</p>
+            </div>
           )}
         </div>
       </div>

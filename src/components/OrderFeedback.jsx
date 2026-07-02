@@ -64,9 +64,18 @@ const CAPY_FACES = [
 ]
 
 const RECOGNITION_TAGS = [
-  { id: 'amabilidad', label: 'Amabilidad', emoji: '🤝' },
-  { id: 'rapidez', label: 'Rapidez', emoji: '⚡' },
-  { id: 'recomendacion', label: 'Recomendó la carta', emoji: '🍽️' },
+  {
+    id: 'amabilidad', label: 'Amabilidad',
+    icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+  },
+  {
+    id: 'rapidez', label: 'Rapidez',
+    icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+  },
+  {
+    id: 'recomendacion', label: 'Recomendó la carta',
+    icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+  },
 ]
 
 export default function OrderFeedback({ orderId, staffId }) {
@@ -221,7 +230,7 @@ export default function OrderFeedback({ orderId, staffId }) {
                     : 'bg-carbon-800 border-carbon-600 text-smoke-400'
                 }`}
               >
-                <span>{tag.emoji}</span>
+                {tag.icon}
                 {tag.label}
               </button>
             ))}

@@ -3,16 +3,31 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { supabaseCustomer } from '../../lib/supabase'
 import { getLevel, getXPProgress } from '../../lib/xpUtils'
 
+const LEVEL_ICONS = {
+  'Camarero Activo': <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+  'Mozo Veloz': <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+  'Mozo Experto': <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
+  'Leyenda del Salón': <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>,
+}
+
+const ARCHETYPE_ICONS = {
+  'Flash del Salón': <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+  'Encantador de Dulces': <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>,
+  'Tanque de la Barra': <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+  'Imán de Estrellas': <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
+  'En Ascenso': <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
+}
+
 function calcArchetype(orderCount, fiveStarPct, ratingCount) {
   if (orderCount >= 400)
-    return { name: 'Flash del Salón', emoji: '⚡', desc: 'Velocidad pura. Ningún pedido lo para.' }
+    return { name: 'Flash del Salón', desc: 'Velocidad pura. Ningún pedido lo para.' }
   if (fiveStarPct === 100 && ratingCount >= 50)
-    return { name: 'Encantador de Dulces', emoji: '🍰', desc: 'Efectividad perfecta. Sus clientes lo aman.' }
+    return { name: 'Encantador de Dulces', desc: 'Efectividad perfecta. Sus clientes lo aman.' }
   if (orderCount >= 200)
-    return { name: 'Tanque de la Barra', emoji: '🛡️', desc: 'Sólido y confiable. El salón lo necesita.' }
+    return { name: 'Tanque de la Barra', desc: 'Sólido y confiable. El salón lo necesita.' }
   if (fiveStarPct >= 80 && ratingCount >= 20)
-    return { name: 'Imán de Estrellas', emoji: '⭐', desc: 'Sus clientes no paran de felicitarlo.' }
-  return { name: 'En Ascenso', emoji: '🌟', desc: 'Cada día suma experiencia y crecimiento.' }
+    return { name: 'Imán de Estrellas', desc: 'Sus clientes no paran de felicitarlo.' }
+  return { name: 'En Ascenso', desc: 'Cada día suma experiencia y crecimiento.' }
 }
 
 export default function WaiterPublicPage() {
@@ -161,7 +176,9 @@ export default function WaiterPublicPage() {
         {/* Archetype */}
         {stats?.archetype && (
           <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm flex items-center gap-4">
-            <span className="text-4xl flex-shrink-0">{stats.archetype.emoji}</span>
+            <div className="flex-shrink-0 text-[#008080]">
+              {ARCHETYPE_ICONS[stats.archetype.name]}
+            </div>
             <div>
               <p className="font-bold text-[#1A2A3A] text-base leading-tight">{stats.archetype.name}</p>
               <p className="text-[#8896A5] text-xs mt-0.5 leading-relaxed">{stats.archetype.desc}</p>
@@ -173,7 +190,7 @@ export default function WaiterPublicPage() {
         <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
           <div className="flex items-center justify-between mb-2.5">
             <div className="flex items-center gap-2.5">
-              <span className="text-2xl">{level.icon}</span>
+              <span className="text-[#008080]">{LEVEL_ICONS[level.name]}</span>
               <div>
                 <p className="font-bold text-[#1A2A3A] text-sm leading-tight">{level.name}</p>
                 <p className="text-[#8896A5] text-xs">{xp.toLocaleString()} XP acumulados</p>
@@ -220,14 +237,14 @@ export default function WaiterPublicPage() {
             <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">Reconocimientos</p>
             <div className="flex flex-wrap gap-2">
               {[
-                { id: 'amabilidad', label: 'Amabilidad', emoji: '🤝' },
-                { id: 'rapidez', label: 'Rapidez', emoji: '⚡' },
-                { id: 'recomendacion', label: 'Recomendó la carta', emoji: '🍽️' },
+                { id: 'amabilidad', label: 'Amabilidad', icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> },
+                { id: 'rapidez', label: 'Rapidez', icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> },
+                { id: 'recomendacion', label: 'Recomendó la carta', icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> },
               ].filter(t => stats.tagCounts[t.id] > 0).map(t => (
-                <div key={t.id} className="flex items-center gap-1.5 bg-[#E8F5F5] px-3 py-1.5 rounded-full">
-                  <span className="text-sm">{t.emoji}</span>
-                  <span className="text-[#008080] text-xs font-semibold">{t.label}</span>
-                  <span className="text-[#008080]/60 text-xs font-bold">{stats.tagCounts[t.id]}</span>
+                <div key={t.id} className="flex items-center gap-1.5 bg-[#E8F5F5] px-3 py-1.5 rounded-full text-[#008080]">
+                  {t.icon}
+                  <span className="text-xs font-semibold">{t.label}</span>
+                  <span className="text-xs font-bold opacity-60">{stats.tagCounts[t.id]}</span>
                 </div>
               ))}
             </div>
