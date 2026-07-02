@@ -72,7 +72,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
       .then(({ data }) => {
         if (data?.full_name) setStaffName(data.full_name)
         if (data?.xp !== undefined) setStaffXP(data.xp)
-        if (data?.alias) setStaffAlias(data.alias)
+        if (data?.alias) setStaffAlias(data.alias.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9_-]/g, ''))
       })
   }, [venueId])
 
