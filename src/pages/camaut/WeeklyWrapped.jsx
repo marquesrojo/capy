@@ -115,6 +115,8 @@ export default function WeeklyWrapped({ staffId, staffAlias, staffName, onClose 
   }
 
   async function handleShareIG() {
+    // Open Instagram immediately before any await (iOS Safari popup blocker)
+    window.location.href = 'instagram://story-camera'
     setExporting(true)
     try {
       const blob = await captureBlob()
@@ -126,7 +128,6 @@ export default function WeeklyWrapped({ staffId, staffAlias, staffName, onClose 
         downloadBlob(blob)
         showToast('Imagen guardada — abrila en Stories')
       }
-      setTimeout(() => { window.location.href = 'instagram://story-camera' }, 400)
     } catch (e) {
       console.error('ig share error', e)
     } finally {
@@ -135,15 +136,14 @@ export default function WeeklyWrapped({ staffId, staffAlias, staffName, onClose 
   }
 
   async function handleShareWA() {
+    // Open WhatsApp immediately before any await (iOS Safari popup blocker)
+    window.open(`https://wa.me/?text=${encodeURIComponent('¡Mirá mi Wrapped de Capy! 🔥 ' + profileUrl)}`, '_blank')
     setExporting(true)
     try {
       const blob = await captureBlob()
       if (!blob) return
       downloadBlob(blob)
       showToast('Imagen guardada — adjuntala en WhatsApp')
-      setTimeout(() => {
-        window.open(`https://wa.me/?text=${encodeURIComponent('¡Mirá mi Wrapped de Capy! 🔥 ' + profileUrl)}`, '_blank')
-      }, 600)
     } catch (e) {
       console.error('wa share error', e)
     } finally {
