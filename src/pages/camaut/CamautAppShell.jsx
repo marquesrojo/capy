@@ -299,9 +299,22 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
             </div>
           ) : (
             <>
-              <div className="bg-white border-b border-black/8 px-4 py-3 flex items-center gap-3">
-                <button onClick={() => setMicapyTab(null)} className="text-[#008080] text-sm font-semibold">← Volver</button>
-                <p className="font-bold text-[#1A2A3A] text-sm">{MICAPY_ITEMS.find(i => i.id === micapyTab)?.label}</p>
+              <div className="bg-white border-b border-black/8 px-4 py-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setMicapyTab(null)} className="text-[#008080] text-sm font-semibold">← Volver</button>
+                  <p className="font-bold text-[#1A2A3A] text-sm">{MICAPY_ITEMS.find(i => i.id === micapyTab)?.label}</p>
+                </div>
+                {micapyTab === 'perfil_pro' && (
+                  <button
+                    onClick={() => navigate(`/cv/${staffAlias || staffId}`)}
+                    className="text-xs font-semibold text-white bg-[#008080] rounded-full px-3 py-1.5 flex items-center gap-1.5"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                    Ver CV
+                  </button>
+                )}
               </div>
               <div className="px-5 py-5">
                 {micapyTab === 'carrera' && <MiCarrera venueId={venueId} />}
