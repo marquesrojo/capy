@@ -42,6 +42,7 @@ import CamautAppPage from './pages/camaut/CamautAppPage'
 import PrivacidadPage from './pages/camaut/PrivacidadPage'
 import TerminosPage from './pages/camaut/TerminosPage'
 import WaiterPublicPage from './pages/camaut/WaiterPublicPage'
+import WaiterCVPage from './pages/camaut/WaiterCVPage'
 
 function VenueGuard() {
   const { loading, notFound } = useVenue()
@@ -293,6 +294,7 @@ export default function App() {
               <Route path="/privacidad" element={<PrivacidadPage />} />
               <Route path="/terminos" element={<TerminosPage />} />
               <Route path="/c/:alias" element={<WaiterPublicPage />} />
+              <Route path="/cv/:alias" element={<WaiterCVPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </BrowserRouter>
