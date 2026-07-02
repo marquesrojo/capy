@@ -17,12 +17,10 @@ export default function WaiterPublicPage() {
   }, [alias])
 
   async function loadProfile() {
-    const { data, error } = await supabaseCustomer
-      .from('staff_names')
-      .select('*')
-      .or(`alias.eq.${alias},id.eq.${alias}`)
-      .eq('is_active', true)
-      .maybeSingle()
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(alias)
+    let query = supabaseCustomer.from('staff_names').select('*')
+    query = isUUID ? query.eq('id', alias) : query.eq('alias', alias)
+    const { data, error } = await query.maybeSingle()
 
     if (error || !data) {
       setNotFound(true)
