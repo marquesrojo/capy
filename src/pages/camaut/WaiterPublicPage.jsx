@@ -46,7 +46,7 @@ export default function WaiterPublicPage() {
     setStaff(data)
 
     const promises = [
-      supabaseCustomer.from('orders').select('id', { count: 'exact', head: true }).eq('assigned_staff_id', data.id),
+      supabaseCustomer.rpc('count_orders_by_staff', { p_staff_id: data.id }),
       supabaseCustomer.from('order_feedback').select('rating, notes').eq('staff_id', data.id),
     ]
     if (data.venue_id) {
@@ -73,11 +73,11 @@ export default function WaiterPublicPage() {
 
     setBestComment(comment)
     setStats({
-      orders: ordersRes.count || 0,
+      orders: ordersRes.data || 0,
       avgRating,
       ratingCount: ratings.length,
       fiveStarPct,
-      archetype: calcArchetype(ordersRes.count || 0, fiveStarPct, ratings.length),
+      archetype: calcArchetype(ordersRes.data || 0, fiveStarPct, ratings.length),
     })
     setLoading(false)
   }
