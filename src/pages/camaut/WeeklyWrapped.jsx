@@ -60,9 +60,16 @@ export default function WeeklyWrapped({ staffId, staffAlias, staffName, onClose 
       useCORS: true,
       backgroundColor: null,
       logging: false,
+      x: 0,
+      y: 0,
+      scrollX: 0,
+      scrollY: 0,
+      windowWidth: window.innerWidth,
+      windowHeight: window.innerHeight,
       onclone: (doc) => {
         const clone = doc.getElementById('wrapped-outer')
         if (clone) {
+          clone.style.position = 'absolute'
           clone.style.transition = 'none'
           clone.querySelectorAll('*').forEach(n => { n.style.animation = 'none' })
         }
@@ -71,15 +78,28 @@ export default function WeeklyWrapped({ staffId, staffAlias, staffName, onClose 
     return new Promise(r => canvas.toBlob(r, 'image/png'))
   }
 
+  function downloadBlob(blob) {
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'capy-wrapped.png'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+
   async function shareFile(blob, text) {
     const file = new File([blob], 'capy-wrapped.png', { type: 'image/png' })
-    if (navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ files: [file], title: 'Mi Wrapped de Capy', text })
-    } else {
-      const url = URL.createObjectURL(blob)
-      Object.assign(document.createElement('a'), { href: url, download: 'capy-wrapped.png' }).click()
-      URL.revokeObjectURL(url)
+    try {
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'Mi Wrapped de Capy', text })
+        return
+      }
+    } catch {
+      // share cancelled or failed — fall through to download
     }
+    downloadBlob(blob)
   }
 
   async function handleExport() {
@@ -88,6 +108,8 @@ export default function WeeklyWrapped({ staffId, staffAlias, staffName, onClose 
       const blob = await captureBlob()
       if (!blob) return
       await shareFile(blob, '¡Mirá mi Wrapped de Capy! 🔥')
+    } catch (e) {
+      console.error('export error', e)
     } finally {
       setExporting(false)
     }
@@ -101,11 +123,11 @@ export default function WeeklyWrapped({ staffId, staffAlias, staffName, onClose 
       try {
         await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
       } catch {
-        const url = URL.createObjectURL(blob)
-        Object.assign(document.createElement('a'), { href: url, download: 'capy-wrapped.png' }).click()
-        URL.revokeObjectURL(url)
+        downloadBlob(blob)
       }
       window.location.href = 'instagram://story-camera'
+    } catch (e) {
+      console.error('ig share error', e)
     } finally {
       setExporting(false)
     }
@@ -117,6 +139,8 @@ export default function WeeklyWrapped({ staffId, staffAlias, staffName, onClose 
       const blob = await captureBlob()
       if (!blob) return
       await shareFile(blob, `¡Mirá mi Wrapped de Capy! 🔥\n${profileUrl}`)
+    } catch (e) {
+      console.error('wa share error', e)
     } finally {
       setExporting(false)
     }
