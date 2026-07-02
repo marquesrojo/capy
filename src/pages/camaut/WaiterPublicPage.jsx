@@ -110,37 +110,38 @@ export default function WaiterPublicPage() {
 
   return (
     <div className="min-h-screen bg-[#F0F4F8]">
-      {/* Header */}
-      <div
-        className="bg-[#008080] px-5 pb-20 text-center relative"
-        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 52px)' }}
-      >
-        <button
-          onClick={handleBack}
-          className="absolute left-4 text-white/80 text-sm font-semibold flex items-center gap-1 active:opacity-60"
-          style={{ top: 'calc(env(safe-area-inset-top, 0px) + 14px)' }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 18l-6-6 6-6"/>
-          </svg>
-          Volver
-        </button>
+      {/* Safe-area bar + back button */}
+      <div className="bg-[#008080]" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+        <div className="px-4 py-3">
+          <button
+            onClick={handleBack}
+            className="text-white/80 text-sm font-semibold flex items-center gap-1 active:opacity-60"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6"/>
+            </svg>
+            Volver
+          </button>
+        </div>
+      </div>
 
-        <div className="w-24 h-24 mx-auto rounded-full bg-white/20 border-4 border-white/40 overflow-hidden flex items-center justify-center">
+      {/* Profile header */}
+      <div className="bg-[#008080] px-5 pt-2 pb-10 text-center">
+        <div className="w-20 h-20 mx-auto rounded-full bg-white/20 border-4 border-white/40 overflow-hidden flex items-center justify-center">
           {staff.avatar_url ? (
             <img src={staff.avatar_url} alt={staff.full_name} className="w-full h-full object-cover" />
           ) : (
-            <span className="text-white font-bold text-3xl">
+            <span className="text-white font-bold text-2xl">
               {staff.full_name?.slice(0, 2).toUpperCase() || 'CA'}
             </span>
           )}
         </div>
-        <h1 className="text-white font-bold text-2xl mt-3 leading-tight">{staff.full_name}</h1>
+        <h1 className="text-white font-bold text-xl mt-2 leading-tight">{staff.full_name}</h1>
         {staff.alias && <p className="text-white/70 text-sm mt-0.5">@{staff.alias}</p>}
-        {venue && <p className="text-white/55 text-xs mt-1.5">{venue.name.replace(' — Capy', '')}</p>}
+        {venue && <p className="text-white/55 text-xs mt-1">{venue.name.replace(' — Capy', '').replace(' - Capy', '')}</p>}
       </div>
 
-      <div className="px-4 -mt-12 pb-10 space-y-3">
+      <div className="px-4 -mt-5 pb-10 space-y-3">
         {/* Archetype */}
         {stats?.archetype && (
           <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm flex items-center gap-4">
