@@ -299,28 +299,37 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
             </div>
           ) : (
             <>
-              <div className="bg-white border-b border-black/8 px-4 py-3 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <button onClick={() => setMicapyTab(null)} className="text-[#008080] text-sm font-semibold">← Volver</button>
-                  <p className="font-bold text-[#1A2A3A] text-sm">{MICAPY_ITEMS.find(i => i.id === micapyTab)?.label}</p>
-                </div>
-                {micapyTab === 'perfil_pro' && (
-                  <button
-                    onClick={() => navigate(`/cv/${staffAlias || staffId}`)}
-                    className="text-xs font-semibold text-white bg-[#008080] rounded-full px-3 py-1.5 flex items-center gap-1.5"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-                    </svg>
-                    Ver CV
-                  </button>
-                )}
+              <div className="bg-white border-b border-black/8 px-4 py-3 flex items-center gap-3">
+                <button onClick={() => setMicapyTab(null)} className="text-[#008080] text-sm font-semibold">← Volver</button>
+                <p className="font-bold text-[#1A2A3A] text-sm">{MICAPY_ITEMS.find(i => i.id === micapyTab)?.label}</p>
               </div>
               <div className="px-5 py-5">
                 {micapyTab === 'carrera' && <MiCarrera venueId={venueId} />}
                 {micapyTab === 'ranking' && <RankingMozos globalOnly />}
                 {micapyTab === 'vincular' && <VincularTab />}
-                {micapyTab === 'perfil_pro' && <PerfilProPage venueId={venueId} />}
+                {micapyTab === 'perfil_pro' && (
+                  <>
+                    <button
+                      onClick={() => navigate(`/cv/${staffAlias || staffId}`)}
+                      className="w-full mb-4 rounded-2xl overflow-hidden text-left active:scale-[0.98] transition-transform"
+                      style={{ background: 'linear-gradient(135deg, #006666 0%, #008080 60%, #00A3A3 100%)' }}
+                    >
+                      <div className="px-5 py-4 flex items-center justify-between gap-4">
+                        <div>
+                          <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mb-0.5">Capy Pro</p>
+                          <p className="text-white font-bold text-base leading-tight">Tu carrera profesional</p>
+                          <p className="text-white/70 text-xs mt-1">CV certificado · PDF descargable · QR verificado</p>
+                        </div>
+                        <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                          </svg>
+                        </div>
+                      </div>
+                    </button>
+                    <PerfilProPage venueId={venueId} />
+                  </>
+                )}
                 {micapyTab === 'carta' && <CamautConfigPage key="carta" embedded initialTab="carta" />}
                 {micapyTab === 'notas' && <CamautConfigPage key="notas" embedded initialTab="notas" />}
                 {micapyTab === 'perfil' && <CamautConfigPage key="perfil" embedded initialTab="perfil" />}
