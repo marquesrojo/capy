@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { supabaseCustomer } from '../../lib/supabase'
 import { getLevel, getXPProgress } from '../../lib/xpUtils'
 
 export default function WaiterPublicPage() {
   const { alias } = useParams()
+  const navigate = useNavigate()
   const [staff, setStaff] = useState(null)
   const [venue, setVenue] = useState(null)
   const [stats, setStats] = useState(null)
@@ -89,10 +90,27 @@ export default function WaiterPublicPage() {
   const level = getLevel(xp)
   const progress = getXPProgress(xp)
 
+  function handleBack() {
+    if (window.history.length > 1) {
+      navigate(-1)
+    } else {
+      navigate('/camaut')
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#F0F4F8]">
       {/* Header */}
-      <div className="bg-[#008080] px-5 pt-12 pb-16 text-center">
+      <div className="bg-[#008080] px-5 pt-12 pb-16 text-center relative">
+        <button
+          onClick={handleBack}
+          className="absolute top-14 left-4 text-white/80 text-sm font-semibold flex items-center gap-1 active:opacity-60"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+          Volver
+        </button>
         <div className="w-24 h-24 mx-auto rounded-full bg-white/20 border-4 border-white/40 overflow-hidden flex items-center justify-center">
           {staff.avatar_url ? (
             <img src={staff.avatar_url} alt={staff.full_name} className="w-full h-full object-cover" />

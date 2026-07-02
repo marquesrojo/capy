@@ -5,17 +5,18 @@ import { supabaseStaff } from '../../lib/supabase'
 import { getWeeklyWrappedData } from '../../lib/weeklyWrapped'
 
 const DURATION = 6000
-const SLIDES = 5
+const SLIDES = 6
 
 const BG = [
   'linear-gradient(160deg, #002d2d 0%, #008080 100%)',
   'linear-gradient(160deg, #BF360C 0%, #FF7043 100%)',
   'linear-gradient(160deg, #880E4F 0%, #E91E63 100%)',
   'linear-gradient(160deg, #1A237E 0%, #5C6BC0 100%)',
+  'linear-gradient(160deg, #1B5E20 0%, #43A047 100%)',
   'linear-gradient(160deg, #003333 0%, #00695C 100%)',
 ]
 
-export default function WeeklyWrapped({ staffId, staffAlias, staffName, onClose }) {
+export default function WeeklyWrapped({ staffId, staffAlias, staffName, onClose, period = 'week' }) {
   const [slide, setSlide] = useState(0)
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -27,7 +28,7 @@ export default function WeeklyWrapped({ staffId, staffAlias, staffName, onClose 
   useEffect(() => {
     if (!staffId) { setLoading(false); return }
     Promise.all([
-      getWeeklyWrappedData(supabaseStaff, staffId),
+      getWeeklyWrappedData(supabaseStaff, staffId, period),
       QRCode.toDataURL(profileUrl, {
         width: 240, margin: 1,
         color: { dark: '#FFFFFF', light: '#00000000' },
@@ -37,7 +38,7 @@ export default function WeeklyWrapped({ staffId, staffAlias, staffName, onClose 
       setQrUrl(qr)
       setLoading(false)
     })
-  }, [staffId])
+  }, [staffId, period])
 
   // Auto-advance
   useEffect(() => {
@@ -46,9 +47,9 @@ export default function WeeklyWrapped({ staffId, staffAlias, staffName, onClose 
     return () => clearTimeout(t)
   }, [slide, loading])
 
-  // Pre-capture archetype slide (slide 3) so the shared image shows interesting content
+  // Pre-capture summary slide (slide 4) so the shared image shows all key stats
   useEffect(() => {
-    if (slide !== 3 || loading) return
+    if (slide !== 4 || loading) return
     let cancelled = false
     const t = setTimeout(async () => {
       const el = document.getElementById('wrapped-outer')
@@ -82,7 +83,6 @@ export default function WeeklyWrapped({ staffId, staffAlias, staffName, onClose 
     setSlide(s => e.clientX < mid ? Math.max(0, s - 1) : Math.min(SLIDES - 1, s + 1))
   }
 
-  // Called immediately in click handler — no prior await, so iOS Safari allows it
   async function handleExport() {
     if (!cachedBlob) return
     const file = new File([cachedBlob], 'capy-wrapped.png', { type: 'image/png' })
@@ -99,13 +99,12 @@ export default function WeeklyWrapped({ staffId, staffAlias, staffName, onClose 
     }
   }
 
-
   if (loading) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: BG[0] }}>
         <div className="text-center">
           <p className="text-white text-2xl font-bold mb-2">⚡</p>
-          <p className="text-white/70 text-sm">Calculando tu semana...</p>
+          <p className="text-white/70 text-sm">Calculando tu resumen...</p>
         </div>
       </div>
     )
@@ -149,7 +148,8 @@ export default function WeeklyWrapped({ staffId, staffAlias, staffName, onClose 
         {slide === 1 && <OrdersCard data={data} />}
         {slide === 2 && <RatingsCard data={data} />}
         {slide === 3 && <ArchetypeCard data={data} />}
-        {slide === 4 && (
+        {slide === 4 && <SummaryCard data={data} qrUrl={qrUrl} />}
+        {slide === 5 && (
           <ShareCard
             qrUrl={qrUrl}
             profileUrl={profileUrl}
@@ -184,7 +184,7 @@ function IntroCard({ data, staffName }) {
   const first = staffName?.split(' ')[0] || 'vos'
   return (
     <div className="space-y-8 wup">
-      <p className="text-white/50 text-xs font-semibold uppercase tracking-[0.2em]">Tu semana en Capy</p>
+      <p className="text-white/50 text-xs font-semibold uppercase tracking-[0.2em]">Tu resumen en Capy</p>
       <div>
         <p className="font-black leading-none" style={{ fontSize: 'clamp(3rem,14vw,5.5rem)' }}>
           El Resumen<br />de {first}
@@ -205,7 +205,7 @@ function OrdersCard({ data }) {
         {orders.total}
       </p>
       <p className="wup2 text-white/80 text-xl font-semibold">
-        {orders.total === 1 ? 'comanda esta semana' : 'comandas esta semana'}
+        {orders.total === 1 ? 'comanda este período' : 'comandas este período'}
       </p>
       {orders.bestDay && (
         <div className="wup3 bg-white/15 backdrop-blur-sm rounded-2xl px-6 py-4 mt-4">
@@ -229,7 +229,7 @@ function RatingsCard({ data }) {
             {ratings.fiveStarPct}%
           </p>
           <p className="wup2 text-white/80 text-lg font-semibold">cinco estrellas ⭐</p>
-          <p className="wup2 text-white/50 text-sm">{ratings.total} {ratings.total === 1 ? 'opinión' : 'opiniones'} esta semana</p>
+          <p className="wup2 text-white/50 text-sm">{ratings.total} {ratings.total === 1 ? 'opinión' : 'opiniones'} este período</p>
           {ratings.bestComment && (
             <div className="wup3 bg-white/15 rounded-2xl px-5 py-4 mt-2 max-w-xs mx-auto">
               <p className="text-white/80 text-sm italic leading-relaxed">"{ratings.bestComment}"</p>
@@ -239,7 +239,7 @@ function RatingsCard({ data }) {
       ) : (
         <div className="wup2 space-y-3">
           <p className="text-white/70 text-xl font-semibold">Sin calificaciones</p>
-          <p className="text-white/40 text-sm">Pedile a tus clientes que te califiquen esta semana</p>
+          <p className="text-white/40 text-sm">Pedile a tus clientes que te califiquen</p>
         </div>
       )}
     </div>
@@ -250,10 +250,57 @@ function ArchetypeCard({ data }) {
   const { archetype } = data
   return (
     <div className="space-y-5">
-      <p className="wup text-white/60 font-bold text-xs uppercase tracking-[0.2em]">Tu rol esta semana</p>
+      <p className="wup text-white/60 font-bold text-xs uppercase tracking-[0.2em]">Tu rol este período</p>
       <p className="wpop" style={{ fontSize: 'clamp(4rem,20vw,7rem)', lineHeight: 1 }}>{archetype.emoji}</p>
       <p className="wup2 font-black text-3xl leading-tight">{archetype.name}</p>
       <p className="wup3 text-white/65 text-base max-w-xs mx-auto leading-relaxed">{archetype.desc}</p>
+    </div>
+  )
+}
+
+function SummaryCard({ data, qrUrl }) {
+  const { orders, ratings, archetype } = data
+  return (
+    <div className="w-full max-w-xs space-y-4">
+      <div className="wup space-y-0.5">
+        <p className="text-white/50 text-[10px] font-bold uppercase tracking-[0.2em]">Mi Wrapped · Capy</p>
+        <p className="text-white/80 font-semibold text-sm">{data.period}</p>
+      </div>
+      <div className="wpop flex items-center gap-3">
+        <span style={{ fontSize: 'clamp(2.5rem,13vw,4rem)', lineHeight: 1 }}>{archetype.emoji}</span>
+        <div className="text-left">
+          <p className="font-black text-xl leading-tight">{archetype.name}</p>
+          <p className="text-white/55 text-xs leading-relaxed">{archetype.desc}</p>
+        </div>
+      </div>
+      <div className="wup2 grid grid-cols-2 gap-3">
+        <div className="bg-white/15 backdrop-blur-sm rounded-2xl px-4 py-3 text-left">
+          <p className="text-white font-black leading-none" style={{ fontSize: 'clamp(1.8rem,9vw,2.8rem)' }}>{orders.total}</p>
+          <p className="text-white/55 text-xs mt-1">{orders.total === 1 ? 'comanda' : 'comandas'}</p>
+        </div>
+        {ratings.total > 0 ? (
+          <div className="bg-white/15 backdrop-blur-sm rounded-2xl px-4 py-3 text-left">
+            <p className="text-white font-black leading-none" style={{ fontSize: 'clamp(1.8rem,9vw,2.8rem)' }}>{ratings.fiveStarPct}%</p>
+            <p className="text-white/55 text-xs mt-1">cinco ⭐</p>
+          </div>
+        ) : (
+          <div className="bg-white/15 backdrop-blur-sm rounded-2xl px-4 py-3 text-left">
+            <p className="text-white font-black text-3xl leading-none">—</p>
+            <p className="text-white/55 text-xs mt-1">sin rating</p>
+          </div>
+        )}
+      </div>
+      {ratings.bestComment && (
+        <div className="wup3 bg-white/10 rounded-2xl px-4 py-3 text-left">
+          <p className="text-white/75 text-xs italic leading-relaxed">"{ratings.bestComment}"</p>
+        </div>
+      )}
+      {qrUrl && (
+        <div className="wup3 flex items-center gap-2 pt-1">
+          <img src={qrUrl} className="w-8 h-8 opacity-60" style={{ imageRendering: 'pixelated' }} />
+          <p className="text-white/30 text-[9px]">capyapp.co</p>
+        </div>
+      )}
     </div>
   )
 }
