@@ -44,6 +44,7 @@ const MICAPY_ITEMS = [
   { id: 'ranking', label: 'Ranking', desc: 'Top mozos globales', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg> },
   { id: 'indicadores', label: 'Indicadores', desc: 'KPIs de tu turno y mes', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> },
   { id: 'encuesta', label: 'Encuesta', desc: 'Opiniones de tus clientes', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> },
+  { id: 'mi_pagina', label: 'Mi Página', desc: 'Tu landing pública', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> },
 ]
 
 export default function CamautAppShell({ venueId, staffName: initialName, staffXP: initialXP, linkedVenues = [], staffId }) {
@@ -59,17 +60,19 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
   }
   const [staffName, setStaffName] = useState(initialName)
   const [staffXP, setStaffXP] = useState(initialXP || 0)
+  const [staffAlias, setStaffAlias] = useState(null)
 
   useEffect(() => {
     if (!venueId) return
     supabaseStaff
       .from('staff_names')
-      .select('full_name, xp')
+      .select('full_name, xp, alias')
       .eq('venue_id', venueId)
       .single()
       .then(({ data }) => {
         if (data?.full_name) setStaffName(data.full_name)
         if (data?.xp !== undefined) setStaffXP(data.xp)
+        if (data?.alias) setStaffAlias(data.alias)
       })
   }, [venueId])
 
@@ -171,7 +174,13 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                 {MICAPY_ITEMS.map(item => (
                   <button
                     key={item.id}
-                    onClick={() => setMicapyTab(item.id)}
+                    onClick={() => {
+                      if (item.id === 'mi_pagina') {
+                        navigate(`/c/${staffAlias || staffId}`)
+                      } else {
+                        setMicapyTab(item.id)
+                      }
+                    }}
                     className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm text-left flex flex-col gap-2 active:scale-95 transition-transform"
                   >
                     <div className="w-10 h-10 rounded-xl bg-[#E8F5F5] flex items-center justify-center text-[#008080]">
@@ -256,67 +265,94 @@ function UbicacionesViewer({ linkedVenues }) {
   )
 }
 
+const INDICATOR_PERIODS = [
+  { id: 'hoy', label: 'Hoy' },
+  { id: 'semana', label: 'Semana' },
+  { id: 'mes', label: 'Mes' },
+  { id: 'año', label: 'Año' },
+]
+
+function getPeriodStart(p) {
+  const now = new Date()
+  if (p === 'hoy') { const d = new Date(now); d.setHours(0, 0, 0, 0); return d }
+  if (p === 'semana') { const d = new Date(now); d.setDate(d.getDate() - 6); d.setHours(0, 0, 0, 0); return d }
+  if (p === 'mes') return new Date(now.getFullYear(), now.getMonth(), 1)
+  return new Date(now.getFullYear(), 0, 1) // año
+}
+
 function IndicadoresTab({ venueId, staffId }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [period, setPeriod] = useState('mes')
 
   useEffect(() => {
     if (!staffId) { setLoading(false); return }
     loadData()
-  }, [staffId])
+  }, [staffId, period])
 
   async function loadData() {
-    const now = new Date()
-    const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0)
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    setLoading(true)
+    const start = getPeriodStart(period)
 
     const [ordersRes, tipsRes, ratingsRes] = await Promise.all([
-      supabaseStaff.from('orders').select('total, created_at').eq('venue_id', venueId).eq('assigned_staff_id', staffId).gte('created_at', monthStart.toISOString()),
-      supabaseStaff.from('waiter_tips').select('amount, created_at').eq('staff_id', staffId).gte('created_at', monthStart.toISOString()),
-      supabaseStaff.from('order_feedback').select('rating').eq('staff_id', staffId).gte('created_at', monthStart.toISOString())
+      supabaseStaff.from('orders').select('total, created_at').eq('venue_id', venueId).eq('assigned_staff_id', staffId).gte('created_at', start.toISOString()),
+      supabaseStaff.from('waiter_tips').select('amount, created_at').eq('staff_id', staffId).gte('created_at', start.toISOString()),
+      supabaseStaff.from('order_feedback').select('rating').eq('staff_id', staffId).gte('created_at', start.toISOString())
     ])
 
     const orders = ordersRes.data || []
     const tips = tipsRes.data || []
     const ratings = ratingsRes.data || []
-
-    const ordersHoy = orders.filter(o => new Date(o.created_at) >= todayStart)
-    const tipsHoy = tips.filter(t => new Date(t.created_at) >= todayStart)
     const totalVendido = orders.reduce((s, o) => s + (o.total || 0), 0)
 
     setData({
-      pedidosHoy: ordersHoy.length,
-      pedidosMes: orders.length,
-      propinasHoy: tipsHoy.reduce((s, t) => s + (t.amount || 0), 0),
-      propinasMes: tips.reduce((s, t) => s + (t.amount || 0), 0),
+      pedidos: orders.length,
+      propinas: tips.reduce((s, t) => s + (t.amount || 0), 0),
       ticketPromedio: orders.length ? totalVendido / orders.length : 0,
-      totalVendidoMes: totalVendido,
+      totalVendido,
       calificacion: ratings.length ? (ratings.reduce((s, r) => s + r.rating, 0) / ratings.length).toFixed(1) : null,
       calificacionCount: ratings.length
     })
     setLoading(false)
   }
 
-  if (loading) return <p className="text-[#8896A5] text-sm text-center py-8">Cargando...</p>
-  if (!staffId || !data) return <p className="text-[#8896A5] text-sm text-center py-8">No se encontró tu perfil.</p>
-
-  const kpis = [
-    { label: 'Pedidos hoy', value: String(data.pedidosHoy), sub: `${data.pedidosMes} este mes`, mono: false },
-    { label: 'Propinas hoy', value: formatPrice(data.propinasHoy), sub: `${formatPrice(data.propinasMes)} este mes`, mono: true },
-    { label: 'Total vendido', value: formatPrice(data.totalVendidoMes), sub: 'este mes', mono: true },
-    { label: 'Ticket promedio', value: formatPrice(data.ticketPromedio), sub: 'este mes', mono: true },
-    { label: 'Calificación', value: data.calificacion ? `${data.calificacion}/5` : '—', sub: data.calificacion ? `${data.calificacionCount} opiniones` : 'Sin datos', mono: false },
-  ]
+  const periodLabel = INDICATOR_PERIODS.find(p => p.id === period)?.label.toLowerCase() || ''
 
   return (
-    <div className="grid grid-cols-2 gap-3">
-      {kpis.map(kpi => (
-        <div key={kpi.label} className={`bg-white rounded-2xl p-4 border border-black/5 shadow-sm ${kpi.label === 'Total vendido' ? 'col-span-2' : ''}`}>
-          <p className="text-[#8896A5] text-xs mb-1">{kpi.label}</p>
-          <p className={`font-bold text-[#1A2A3A] text-xl leading-tight ${kpi.mono ? 'font-mono' : ''}`}>{kpi.value}</p>
-          <p className="text-[#B0BEC5] text-[10px] mt-0.5">{kpi.sub}</p>
+    <div className="space-y-4">
+      <div className="flex gap-1.5 bg-black/5 rounded-xl p-1">
+        {INDICATOR_PERIODS.map(p => (
+          <button key={p.id} onClick={() => setPeriod(p.id)}
+            className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              period === p.id ? 'bg-white text-[#008080] shadow-sm' : 'text-[#8896A5]'
+            }`}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <p className="text-[#8896A5] text-sm text-center py-8">Cargando...</p>
+      ) : !staffId || !data ? (
+        <p className="text-[#8896A5] text-sm text-center py-8">No se encontró tu perfil.</p>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { label: 'Pedidos', value: String(data.pedidos), sub: periodLabel, mono: false },
+            { label: 'Propinas', value: formatPrice(data.propinas), sub: periodLabel, mono: true },
+            { label: 'Total vendido', value: formatPrice(data.totalVendido), sub: periodLabel, mono: true, full: true },
+            { label: 'Ticket promedio', value: formatPrice(data.ticketPromedio), sub: periodLabel, mono: true },
+            { label: 'Calificación', value: data.calificacion ? `${data.calificacion}/5` : '—', sub: data.calificacion ? `${data.calificacionCount} opiniones` : 'Sin datos', mono: false },
+          ].map(kpi => (
+            <div key={kpi.label} className={`bg-white rounded-2xl p-4 border border-black/5 shadow-sm ${kpi.full ? 'col-span-2' : ''}`}>
+              <p className="text-[#8896A5] text-xs mb-1">{kpi.label}</p>
+              <p className={`font-bold text-[#1A2A3A] text-xl leading-tight ${kpi.mono ? 'font-mono' : ''}`}>{kpi.value}</p>
+              <p className="text-[#B0BEC5] text-[10px] mt-0.5">{kpi.sub}</p>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   )
 }

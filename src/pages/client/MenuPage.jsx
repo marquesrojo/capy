@@ -251,10 +251,9 @@ export default function MenuPage() {
 
                 {/* Retiro zones */}
                 {retiroZones.length > 0 && (
-                  <div className="space-y-1.5">
-                    <p className="text-amber-600 text-xs font-semibold uppercase tracking-wide">🛍 Retiro yo en:</p>
-                    <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
-                      {retiroZones.map(zone => (
+                  <div className="flex items-center gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
+                    <span className="text-amber-600 text-xs font-semibold whitespace-nowrap flex-shrink-0">🛍 Retiro yo en:</span>
+                    {retiroZones.map(zone => (
                         <button
                           key={zone.id}
                           onClick={() => setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })}
@@ -263,7 +262,6 @@ export default function MenuPage() {
                           {zone.name}
                         </button>
                       ))}
-                    </div>
                   </div>
                 )}
               </div>

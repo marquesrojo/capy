@@ -54,12 +54,15 @@ export default function CamautConfigPage({ initialTab, embedded }) {
 }
 
 function PerfilTab({ profile }) {
+  const fileRef = useRef(null)
   const [staffData, setStaffData] = useState(null)
   const [fullName, setFullName] = useState('')
   const [alias, setAlias] = useState('')
   const [linkedin, setLinkedin] = useState('')
   const [docNumber, setDocNumber] = useState('')
   const [aliasBancario, setAliasBancario] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState('')
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -87,7 +90,24 @@ function PerfilTab({ profile }) {
       setLinkedin(data.linkedin_url || '')
       setDocNumber(data.document_number || '')
       setAliasBancario(data.alias_bancario || '')
+      setAvatarUrl(data.avatar_url || '')
     }
+  }
+
+  async function handleAvatarChange(e) {
+    const file = e.target.files?.[0]
+    if (!file || !file.type.startsWith('image/') || !staffData) return
+    setUploadingAvatar(true)
+    const ext = file.name.split('.').pop()
+    const path = `${staffData.id}.${ext}`
+    const { error: uploadError } = await supabaseStaff.storage
+      .from('camaut-avatars')
+      .upload(path, file, { upsert: true })
+    if (!uploadError) {
+      const { data: { publicUrl } } = supabaseStaff.storage.from('camaut-avatars').getPublicUrl(path)
+      setAvatarUrl(publicUrl)
+    }
+    setUploadingAvatar(false)
   }
 
   async function handleSave(e) {
@@ -101,7 +121,8 @@ function PerfilTab({ profile }) {
         alias: alias.trim() || null,
         linkedin_url: linkedin.trim() || null,
         document_number: docNumber.trim() || null,
-        alias_bancario: aliasBancario.trim() || null
+        alias_bancario: aliasBancario.trim() || null,
+        avatar_url: avatarUrl || null
       })
       .eq('id', staffData.id)
 
@@ -121,6 +142,29 @@ function PerfilTab({ profile }) {
   return (
     <form onSubmit={handleSave} className="space-y-4">
       <div className="bg-white rounded-2xl p-5 border border-black/5 shadow-sm space-y-4">
+        {/* Avatar */}
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+        <div className="flex flex-col items-center gap-2 pb-4 border-b border-black/5">
+          <div
+            onClick={() => fileRef.current?.click()}
+            className="w-20 h-20 rounded-full bg-[#E8F5F5] border-2 border-[#008080]/20 overflow-hidden cursor-pointer flex items-center justify-center"
+          >
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-[#008080] font-bold text-2xl">{fullName?.slice(0, 2).toUpperCase() || 'CA'}</span>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploadingAvatar}
+            className="text-[#008080] text-xs font-semibold underline disabled:opacity-50"
+          >
+            {uploadingAvatar ? 'Subiendo...' : 'Cambiar foto'}
+          </button>
+        </div>
+
         <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide">Datos personales</p>
         <label className="block">
           <span className="text-[#8896A5] text-xs block mb-1.5">Nombre completo</span>
