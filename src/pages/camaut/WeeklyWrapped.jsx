@@ -165,7 +165,7 @@ export default function WeeklyWrapped({ staffId, staffAlias, staffName, onClose 
               className="h-full bg-white rounded-full"
               style={{
                 width: i < slide ? '100%' : '0%',
-                animation: i === slide && !exporting ? `wrappedFill ${DURATION}ms linear forwards` : 'none',
+                animation: i === slide ? `wrappedFill ${DURATION}ms linear forwards` : 'none',
               }}
             />
           </div>
