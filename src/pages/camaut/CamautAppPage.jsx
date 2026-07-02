@@ -3,6 +3,45 @@ import { useNavigate } from 'react-router-dom'
 import { supabaseCamaut, supabaseStaff } from '../../lib/supabase'
 import CamautAppShell from './CamautAppShell'
 
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const rawData = atob(base64)
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)))
+}
+
+async function setupPushNotifications(staffId) {
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+    const VAPID_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY
+    if (!VAPID_KEY) return
+
+    const registration = await navigator.serviceWorker.register('/sw.js')
+    await navigator.serviceWorker.ready
+
+    const permission = await Notification.requestPermission()
+    if (permission !== 'granted') return
+
+    const existing = await registration.pushManager.getSubscription()
+    if (existing) return
+
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_KEY),
+    })
+
+    const { endpoint, keys } = subscription.toJSON()
+    await supabaseCamaut.from('push_subscriptions').upsert({
+      staff_id: staffId,
+      endpoint,
+      p256dh: keys.p256dh,
+      auth: keys.auth,
+    }, { onConflict: 'endpoint' })
+  } catch {
+    // push setup is best-effort
+  }
+}
+
 export default function CamautAppPage() {
   const navigate = useNavigate()
   const [checking, setChecking] = useState(true)
@@ -47,7 +86,9 @@ export default function CamautAppPage() {
           .eq('venue_id', vId)
           .single()
         setStaffName(staffData?.full_name || fullNameFromMeta || null)
-        setStaffId(staffData?.id || null)
+        const sid = staffData?.id || null
+        setStaffId(sid)
+        if (sid) setupPushNotifications(sid)
       } else {
         setStaffName(fullNameFromMeta)
       }

@@ -5,12 +5,21 @@ import { useAuth } from '../../hooks/useAuth'
 
 const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-user`
 
+const SORT_ICONS = {
+  xp: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+  pedidos: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+  rating: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
+}
+
 export default function WaitersPage() {
   const { profile, venueId } = useAuth()
   const [tab, setTab] = useState('camareros')
   const [vinculados, setVinculados] = useState([])
   const [admins, setAdmins] = useState([])
   const [loading, setLoading] = useState(true)
+  const [comparativa, setComparativa] = useState([])
+  const [compSort, setCompSort] = useState('xp')
+  const [compLoading, setCompLoading] = useState(false)
 
   const [newEmail, setNewEmail] = useState('')
   const [newName, setNewName] = useState('')
@@ -24,6 +33,44 @@ export default function WaitersPage() {
     if (!venueId) return
     loadAll()
   }, [venueId])
+
+  useEffect(() => {
+    if (tab === 'comparativa' && venueId) loadComparativa()
+  }, [tab, venueId])
+
+  async function loadComparativa() {
+    setCompLoading(true)
+    const { data: staffList } = await supabaseStaff
+      .from('staff_names')
+      .select('id, full_name, alias, xp, total_orders')
+      .eq('venue_id', venueId)
+      .eq('is_active', true)
+
+    if (!staffList?.length) { setComparativa([]); setCompLoading(false); return }
+
+    const ids = staffList.map(s => s.id)
+    const { data: feedbacks } = await supabaseStaff
+      .from('order_feedback')
+      .select('staff_id, rating')
+      .in('staff_id', ids)
+
+    const ratingMap = {}
+    if (feedbacks) {
+      for (const f of feedbacks) {
+        if (!ratingMap[f.staff_id]) ratingMap[f.staff_id] = []
+        ratingMap[f.staff_id].push(f.rating)
+      }
+    }
+
+    const rows = staffList.map(s => {
+      const ratings = ratingMap[s.id] || []
+      const avgRating = ratings.length ? (ratings.reduce((a, b) => a + b, 0) / ratings.length) : null
+      return { ...s, avgRating, totalRatings: ratings.length }
+    })
+
+    setComparativa(rows)
+    setCompLoading(false)
+  }
 
   async function loadAll() {
     setLoading(true)
@@ -81,6 +128,7 @@ export default function WaitersPage() {
         {[
           { id: 'camareros', label: 'Capy Camarero' },
           { id: 'admins', label: 'Administradores' },
+          { id: 'comparativa', label: 'Comparativa' },
         ].map(t => (
           <button
             key={t.id}
@@ -156,6 +204,76 @@ export default function WaitersPage() {
 
           {tab === 'admins' && !isAdmin && (
             <p className="text-smoke-600 text-sm text-center py-8">Solo los administradores pueden gestionar usuarios.</p>
+          )}
+
+          {tab === 'comparativa' && (
+            <div>
+              {/* Sort controls */}
+              <div className="flex gap-2 mb-4">
+                {[
+                  { id: 'xp', label: 'XP' },
+                  { id: 'pedidos', label: 'Pedidos' },
+                  { id: 'rating', label: 'Rating' },
+                ].map(s => (
+                  <button
+                    key={s.id}
+                    onClick={() => setCompSort(s.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border ${
+                      compSort === s.id ? 'bg-ember-500 text-white border-ember-500' : 'border-carbon-700 text-smoke-400'
+                    }`}
+                  >
+                    {SORT_ICONS[s.id]}
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+
+              {compLoading ? (
+                <p className="text-smoke-500 text-sm">Cargando...</p>
+              ) : comparativa.length === 0 ? (
+                <p className="text-smoke-600 text-sm text-center py-8">Sin datos todavía.</p>
+              ) : (
+                <div className="space-y-2">
+                  {[...comparativa]
+                    .sort((a, b) => {
+                      if (compSort === 'xp') return (b.xp || 0) - (a.xp || 0)
+                      if (compSort === 'pedidos') return (b.total_orders || 0) - (a.total_orders || 0)
+                      if (compSort === 'rating') return (b.avgRating ?? -1) - (a.avgRating ?? -1)
+                      return 0
+                    })
+                    .map((s, i) => (
+                      <div key={s.id} className="bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-3 flex items-center gap-3">
+                        <span className="text-smoke-500 font-bold text-sm w-5 text-center">{i + 1}</span>
+                        <div className="w-9 h-9 rounded-full bg-ember-500/20 flex items-center justify-center text-ember-400 font-bold text-xs flex-shrink-0">
+                          {(s.alias || s.full_name)?.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-smoke-200 font-semibold text-sm truncate">
+                            {s.alias ? `@${s.alias}` : s.full_name}
+                          </p>
+                          <p className="text-smoke-500 text-xs">{s.totalRatings} reseñas</p>
+                        </div>
+                        <div className="flex gap-4 text-right">
+                          <div>
+                            <p className="text-ember-400 font-bold text-sm">{(s.xp || 0).toLocaleString()}</p>
+                            <p className="text-smoke-600 text-[10px]">XP</p>
+                          </div>
+                          <div>
+                            <p className="text-smoke-300 font-bold text-sm">{s.total_orders || 0}</p>
+                            <p className="text-smoke-600 text-[10px]">Pedidos</p>
+                          </div>
+                          <div>
+                            <p className="text-smoke-300 font-bold text-sm">
+                              {s.avgRating != null ? s.avgRating.toFixed(1) : '—'}
+                            </p>
+                            <p className="text-smoke-600 text-[10px]">Rating</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
           )}
         </>
       )}
