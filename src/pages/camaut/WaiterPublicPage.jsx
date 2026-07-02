@@ -10,7 +10,6 @@ export default function WaiterPublicPage() {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
-  const [debugInfo, setDebugInfo] = useState(null)
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
@@ -27,7 +26,6 @@ export default function WaiterPublicPage() {
     const { data, error } = await query.maybeSingle()
 
     if (error || !data) {
-      setDebugInfo(JSON.stringify({ error: error?.message, code: error?.code, alias }, null, 2))
       setNotFound(true)
       setLoading(false)
       return
@@ -80,7 +78,6 @@ export default function WaiterPublicPage() {
       <div className="min-h-screen bg-[#F0F4F8] flex flex-col items-center justify-center px-5 text-center">
         <p className="text-[#1A2A3A] font-semibold mb-2">Camarero no encontrado</p>
         <p className="text-[#8896A5] text-sm">Este perfil no existe o no está disponible.</p>
-        {debugInfo && <pre className="mt-4 text-left text-[10px] text-red-500 bg-white p-3 rounded-xl border border-red-200 max-w-xs overflow-auto">{debugInfo}</pre>}
       </div>
     )
   }
