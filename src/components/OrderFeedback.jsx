@@ -132,6 +132,15 @@ export default function OrderFeedback({ orderId, staffId }) {
       setError('No pudimos guardar tu calificación. Intentá de nuevo.')
       return
     }
+
+    if (rating === 5 && staffId) {
+      fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-staff`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: import.meta.env.VITE_SUPABASE_ANON_KEY },
+        body: JSON.stringify({ staff_id: staffId, title: '¡5 estrellas!', body: 'Un cliente te calificó con 5 estrellas.' }),
+      }).catch(() => {})
+    }
+
     // Construct local state from inputs — avoids needing SELECT policy on null customer_id
     setExisting({ order_id: orderId, customer_id: customerId, rating, notes: notes.trim() || null })
   }
