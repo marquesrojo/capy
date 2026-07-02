@@ -41,7 +41,6 @@ export default function WaitersPage() {
   async function loadComparativa() {
     setCompLoading(true)
 
-    // Get linked waiters: both profile_id (camaut auth UID) and name
     const { data: linked } = await supabaseStaff
       .from('venue_staff')
       .select('staff_profile_id, profile:profiles(full_name)')
@@ -51,26 +50,36 @@ export default function WaitersPage() {
     if (!linked?.length) { setComparativa([]); setCompLoading(false); return }
 
     const linkedIds = linked.map(l => l.staff_profile_id).filter(Boolean)
-    const linkedNames = linked.map(l => l.profile?.full_name).filter(Boolean)
 
-    if (!linkedNames.length) { setComparativa([]); setCompLoading(false); return }
+    if (!linkedIds.length) { setComparativa([]); setCompLoading(false); return }
 
-    // Search across all venues by name, pick the record with highest XP per person
-    // (real records may be in a different venue_id than the admin's profile venue_id)
-    const { data: allByName } = await supabaseStaff
+    // Primary: match by profile_id (UUID-based, reliable)
+    const { data: byId } = await supabaseStaff
       .from('staff_names')
-      .select('id, full_name, alias, xp, total_orders')
-      .in('full_name', linkedNames)
-      .order('xp', { ascending: false, nullsFirst: false })
+      .select('id, full_name, alias, xp, total_orders, profile_id')
+      .in('profile_id', linkedIds)
 
-    if (!allByName?.length) { setComparativa([]); setCompLoading(false); return }
+    // Fallback: for waiters whose staff_names record lacks profile_id, match by name
+    const foundProfileIds = new Set((byId || []).map(s => s.profile_id).filter(Boolean))
+    const missingLinks = linked.filter(l => !foundProfileIds.has(l.staff_profile_id))
+    const missingNames = missingLinks.map(l => l.profile?.full_name).filter(Boolean)
 
-    const seen = new Map()
-    for (const s of allByName) {
-      if (!seen.has(s.full_name)) seen.set(s.full_name, s)
+    let byName = []
+    if (missingNames.length) {
+      const { data: fallback } = await supabaseStaff
+        .from('staff_names')
+        .select('id, full_name, alias, xp, total_orders, profile_id')
+        .in('full_name', missingNames)
+        .order('xp', { ascending: false, nullsFirst: false })
+
+      const seen = new Map()
+      for (const s of fallback || []) {
+        if (!seen.has(s.full_name)) seen.set(s.full_name, s)
+      }
+      byName = Array.from(seen.values())
     }
-    const staffList = Array.from(seen.values())
 
+    const staffList = [...(byId || []), ...byName]
     if (!staffList.length) { setComparativa([]); setCompLoading(false); return }
 
     const ids = staffList.map(s => s.id)

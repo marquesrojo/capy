@@ -63,6 +63,14 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
         staff_profile_id: session.user.id,
         status: 'active'
       })
+      // Link staff_names record to this camaut auth user
+      if (venueId) {
+        await supabaseStaff
+          .from('staff_names')
+          .update({ profile_id: session.user.id })
+          .eq('venue_id', venueId)
+          .is('profile_id', null)
+      }
     }
     setSaving(false)
     await finishOnboarding()

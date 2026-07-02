@@ -141,6 +141,15 @@ export default function CamautVincularPage() {
       }
     }
 
+    // Setear profile_id en el staff_names del venue personal del camarero
+    if (venuePersonal) {
+      await supabaseStaff
+        .from('staff_names')
+        .update({ profile_id: session.user.id })
+        .eq('venue_id', venuePersonal)
+        .is('profile_id', null)
+    }
+
     // Copiar notas del local automáticamente al venue personal
     if (venuePersonal) {
       const { data: localNotas } = await supabaseStaff
