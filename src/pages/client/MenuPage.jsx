@@ -85,7 +85,8 @@ export default function MenuPage() {
   const mesaZones = zones.filter(z => z.type === 'mesa')
   const parentIds = new Set(mesaZones.map(z => z.parent_zone_id).filter(Boolean))
   const sectorZones = zones.filter(z => parentIds.has(z.id))
-  const directZones = zones.filter(z => z.type !== 'mesa' && !parentIds.has(z.id))
+  const directZones = zones.filter(z => z.type !== 'mesa' && !parentIds.has(z.id) && z.type !== 'retiro')
+  const retiroZones = zones.filter(z => z.type === 'retiro')
   const filteredMesas = selectedSector
     ? mesaZones.filter(z => z.parent_zone_id === selectedSector.id)
     : mesaZones
@@ -220,7 +221,7 @@ export default function MenuPage() {
               </div>
             )}
 
-            {/* Direct zones (barra, retiro, etc. — no parent-child structure) */}
+            {/* Direct zones (barra, etc. — no parent-child structure, non-retiro) */}
             {directZones.length > 0 && (
               <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
                 {directZones.map(zone => (
@@ -236,6 +237,24 @@ export default function MenuPage() {
                     {zone.type === 'retiro' ? `🛍 ${zone.name}` : zone.name}
                   </button>
                 ))}
+              </div>
+            )}
+
+            {/* Retiro zones — differentiated with label and amber color */}
+            {retiroZones.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-amber-600 text-xs font-semibold uppercase tracking-wide">🛍 Retiro yo en:</p>
+                <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
+                  {retiroZones.map(zone => (
+                    <button
+                      key={zone.id}
+                      onClick={() => setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })}
+                      className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-amber-50 border-amber-300 text-amber-700 active:bg-amber-500 active:text-white active:border-amber-500"
+                    >
+                      {zone.name}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </>
