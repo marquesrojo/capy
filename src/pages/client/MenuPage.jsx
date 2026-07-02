@@ -117,7 +117,7 @@ export default function MenuPage() {
             </div>
           </div>
           <button
-            onClick={async () => { await forgetCustomer(); navigate('/identificacion') }}
+            onClick={async () => { await forgetCustomer(); navigate(base || '/identificacion') }}
             className="text-smoke-500 text-xs underline flex-shrink-0"
           >
             No soy yo
