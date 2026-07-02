@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabaseCustomer, ACTIVE_VENUE_ID } from '../../lib/supabase'
-import { useClientBase } from '../../hooks/useVenue'
+import { useClientBase, useVenueOptional } from '../../hooks/useVenue'
 
 const STEPS = [
   {
@@ -24,6 +24,8 @@ const STEPS = [
 export default function IdentifyPage() {
   const navigate = useNavigate()
   const base = useClientBase()
+  const venueCtx = useVenueOptional()
+  const venue = venueCtx?.venue
   const [orderNumber, setOrderNumber] = useState('')
   const [finding, setFinding] = useState(false)
   const [error, setError] = useState('')
@@ -71,7 +73,11 @@ export default function IdentifyPage() {
 
         <div className="text-center">
           <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-white shadow-md p-2.5">
-            <img src="/icon-512.png" alt="Capy" className="w-full h-full object-contain" />
+            <img
+              src={venue?.logo_url || '/icon-512.png'}
+              alt={venue?.name || 'Capy'}
+              className="w-full h-full object-contain"
+            />
           </div>
           <h1 className="font-display text-3xl text-smoke-300 tracking-wide leading-tight">
             Tu mesa está lista.<br />Ahora disfrutá.
