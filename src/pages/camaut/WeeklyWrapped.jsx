@@ -52,18 +52,23 @@ export default function WeeklyWrapped({ staffId, staffAlias, staffName, onClose 
     setSlide(s => e.clientX < mid ? Math.max(0, s - 1) : Math.min(SLIDES - 1, s + 1))
   }
 
+  async function captureBlob() {
+    const el = document.getElementById('wrapped-card')
+    if (!el) return null
+    const canvas = await html2canvas(el, {
+      scale: 3,
+      useCORS: true,
+      backgroundColor: null,
+      logging: false,
+    })
+    return new Promise(r => canvas.toBlob(r, 'image/png'))
+  }
+
   async function handleExport() {
     setExporting(true)
     try {
-      const el = document.getElementById('wrapped-card')
-      if (!el) return
-      const canvas = await html2canvas(el, {
-        scale: 3,
-        useCORS: true,
-        backgroundColor: null,
-        logging: false,
-      })
-      const blob = await new Promise(r => canvas.toBlob(r, 'image/png'))
+      const blob = await captureBlob()
+      if (!blob) return
       const file = new File([blob], 'capy-wrapped.png', { type: 'image/png' })
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: 'Mi Wrapped de Capy' })
@@ -72,6 +77,24 @@ export default function WeeklyWrapped({ staffId, staffAlias, staffName, onClose 
         Object.assign(document.createElement('a'), { href: url, download: 'capy-wrapped.png' }).click()
         URL.revokeObjectURL(url)
       }
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  async function handleShareIG() {
+    setExporting(true)
+    try {
+      const blob = await captureBlob()
+      if (!blob) return
+      try {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+      } catch {
+        const url = URL.createObjectURL(blob)
+        Object.assign(document.createElement('a'), { href: url, download: 'capy-wrapped.png' }).click()
+        URL.revokeObjectURL(url)
+      }
+      window.location.href = 'instagram://story-camera'
     } finally {
       setExporting(false)
     }
@@ -131,6 +154,7 @@ export default function WeeklyWrapped({ staffId, staffAlias, staffName, onClose 
             qrUrl={qrUrl}
             profileUrl={profileUrl}
             onExport={handleExport}
+            onShareIG={handleShareIG}
             exporting={exporting}
           />
         )}
@@ -235,7 +259,7 @@ function ArchetypeCard({ data }) {
   )
 }
 
-function ShareCard({ data, qrUrl, profileUrl, onExport, exporting }) {
+function ShareCard({ data, qrUrl, profileUrl, onExport, onShareIG, exporting }) {
   return (
     <div className="space-y-6 w-full max-w-xs mx-auto">
       <div className="wup space-y-1">
@@ -248,13 +272,27 @@ function ShareCard({ data, qrUrl, profileUrl, onExport, exporting }) {
         </div>
       )}
       <p className="wup2 text-white/40 text-[10px] font-mono">{profileUrl}</p>
-      <button
-        onClick={(e) => { e.stopPropagation(); onExport() }}
-        disabled={exporting}
-        className="wup3 pointer-events-auto w-full bg-white text-[#008080] font-bold py-3.5 rounded-2xl text-sm active:scale-95 transition-transform disabled:opacity-50"
-      >
-        {exporting ? 'Generando imagen...' : '📲 Compartir / Guardar imagen'}
-      </button>
+      <div className="wup3 pointer-events-auto space-y-2.5">
+        <button
+          onClick={(e) => { e.stopPropagation(); onShareIG() }}
+          disabled={exporting}
+          className="w-full bg-gradient-to-r from-[#F58529] via-[#DD2A7B] to-[#8134AF] text-white font-bold py-3.5 rounded-2xl text-sm active:scale-95 transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          {exporting ? 'Generando...' : (
+            <>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+              Abrir en IG Stories
+            </>
+          )}
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); onExport() }}
+          disabled={exporting}
+          className="w-full bg-white/20 backdrop-blur-sm text-white font-bold py-3.5 rounded-2xl text-sm active:scale-95 transition-transform disabled:opacity-50"
+        >
+          {exporting ? 'Generando...' : '📲 Compartir / Guardar imagen'}
+        </button>
+      </div>
     </div>
   )
 }
