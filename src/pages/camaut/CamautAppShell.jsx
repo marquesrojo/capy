@@ -54,7 +54,7 @@ const MICAPY_ITEMS = [
   { id: 'indicadores', label: 'Indicadores', desc: 'KPIs de tu turno y mes', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> },
   { id: 'encuesta', label: 'Encuesta', desc: 'Opiniones de tus clientes', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> },
   { id: 'mi_pagina', label: 'Mi Página', desc: 'Tu landing pública', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> },
-  { id: 'wrapped', label: 'Weekly Wrapped', desc: 'Tu resumen viral de la semana', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> },
+  { id: 'wrapped', label: 'Wrapped', desc: 'Tu resumen semanal, mensual o anual', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> },
 ]
 
 export default function CamautAppShell({ venueId, staffName: initialName, staffXP: initialXP, linkedVenues = [], staffId }) {
@@ -64,6 +64,8 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
   const [prefillLocation, setPrefillLocation] = useState(null)
   const [waiterCallCount, setWaiterCallCount] = useState(0)
   const [showWrapped, setShowWrapped] = useState(false)
+  const [wrappedPeriod, setWrappedPeriod] = useState('week')
+  const [showPeriodPicker, setShowPeriodPicker] = useState(false)
   const [wrappedReady, setWrappedReady] = useState(false)
   const [wrappedSeen, setWrappedSeen] = useState(() =>
     localStorage.getItem(`wrapped-seen-${getWeekKey()}`) === '1'
@@ -220,8 +222,44 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
           staffId={staffId}
           staffAlias={staffAlias}
           staffName={staffName}
+          period={wrappedPeriod}
           onClose={() => setShowWrapped(false)}
         />
+      )}
+
+      {showPeriodPicker && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 flex items-end"
+          onClick={() => setShowPeriodPicker(false)}
+        >
+          <div
+            className="w-full bg-white rounded-t-3xl px-5 pt-5 pb-10 space-y-2"
+            onClick={e => e.stopPropagation()}
+          >
+            <p className="font-bold text-[#1A2A3A] text-base mb-4">Elegí tu Wrapped</p>
+            {[
+              { id: 'week', label: '⚡ Esta semana', desc: 'Desde el lunes hasta hoy' },
+              { id: 'month', label: '📅 Este mes', desc: new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }) },
+              { id: 'year', label: '🗓️ Este año', desc: String(new Date().getFullYear()) },
+            ].map(p => (
+              <button
+                key={p.id}
+                onClick={() => {
+                  setWrappedPeriod(p.id)
+                  setShowPeriodPicker(false)
+                  openWrapped()
+                }}
+                className="w-full bg-[#F0F4F8] rounded-2xl px-4 py-3.5 text-left flex items-center justify-between active:scale-95 transition-transform"
+              >
+                <div>
+                  <p className="font-bold text-[#1A2A3A] text-sm">{p.label}</p>
+                  <p className="text-[#8896A5] text-xs mt-0.5">{p.desc}</p>
+                </div>
+                <span className="text-[#008080] font-bold">→</span>
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       {tab === 'micapy' && (
@@ -237,7 +275,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                       if (item.id === 'mi_pagina') {
                         navigate(`/c/${staffAlias || staffId}`)
                       } else if (item.id === 'wrapped') {
-                        openWrapped()
+                        setShowPeriodPicker(true)
                       } else {
                         setMicapyTab(item.id)
                       }
