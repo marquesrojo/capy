@@ -35,7 +35,7 @@ export default function RankingMozos({ venueId, globalOnly }) {
       .from('staff_names')
       .select('id, full_name, alias, xp, level, total_orders, streak_days')
       .eq('is_active', true)
-      .order('xp', { ascending: false })
+      .order('xp', { ascending: false, nullsFirst: false })
       .limit(50)
 
     if (tab === 'venue') {
