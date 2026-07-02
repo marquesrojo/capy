@@ -89,9 +89,9 @@ export default function WaiterCVPage() {
 
   const allTags = ratings.flatMap(r => r.tags || [])
   const tagCounts = [
-    { id: 'amabilidad', label: 'Amabilidad', emoji: '🤝', count: allTags.filter(t => t === 'amabilidad').length },
-    { id: 'rapidez', label: 'Rapidez', emoji: '⚡', count: allTags.filter(t => t === 'rapidez').length },
-    { id: 'recomendacion', label: 'Recomendó la carta', emoji: '🍽️', count: allTags.filter(t => t === 'recomendacion').length },
+    { id: 'amabilidad', label: 'Amabilidad', icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>, count: allTags.filter(t => t === 'amabilidad').length },
+    { id: 'rapidez', label: 'Rapidez', icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>, count: allTags.filter(t => t === 'rapidez').length },
+    { id: 'recomendacion', label: 'Recomendó la carta', icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>, count: allTags.filter(t => t === 'recomendacion').length },
   ].filter(t => t.count > 0)
 
   const trabajos = experience.filter(e => e.type === 'trabajo')
@@ -219,9 +219,9 @@ export default function WaiterCVPage() {
               <p className="text-[#8896A5] text-[10px] font-bold uppercase tracking-widest mb-3">Reconocimientos de clientes</p>
               <div className="flex flex-wrap gap-2">
                 {tagCounts.map(t => (
-                  <div key={t.id} className="flex items-center gap-1.5 bg-[#E8F5F5] border border-[#008080]/15 px-3 py-1.5 rounded-full">
-                    <span className="text-sm">{t.emoji}</span>
-                    <span className="text-[#006666] text-xs font-semibold">{t.label}</span>
+                  <div key={t.id} className="flex items-center gap-1.5 bg-[#E8F5F5] border border-[#008080]/15 px-3 py-1.5 rounded-full text-[#006666]">
+                    {t.icon}
+                    <span className="text-xs font-semibold">{t.label}</span>
                     <span className="text-[#008080] text-xs font-bold ml-0.5">{t.count}</span>
                   </div>
                 ))}
