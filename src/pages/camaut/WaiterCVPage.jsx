@@ -43,7 +43,7 @@ export default function WaiterCVPage() {
     if (!session) await supabaseCustomer.auth.signInAnonymously()
 
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(alias)
-    let q = supabaseCustomer.from('staff_names').select('id, full_name, alias, avatar_url, xp, linkedin_url, venue_id')
+    let q = supabaseCustomer.from('staff_names').select('id, full_name, alias, avatar_url, xp, linkedin_url, venue_id, bio')
     q = isUUID ? q.eq('id', alias) : q.eq('alias', alias)
     const { data: staffData } = await q.maybeSingle()
 
@@ -157,6 +157,9 @@ export default function WaiterCVPage() {
               <h1 className="text-[#1A2A3A] font-bold text-2xl leading-tight">{staff.full_name}</h1>
               <p className="text-[#008080] text-sm font-medium mt-0.5">{level.icon} {level.name} · {archetype.emoji} {archetype.name}</p>
               {staff.alias && <p className="text-[#8896A5] text-xs mt-1">@{staff.alias}</p>}
+              {staff.bio && (
+                <p className="text-[#3A4A5A] text-sm mt-2 leading-relaxed">{staff.bio}</p>
+              )}
               {staff.linkedin_url && (
                 <a href={staff.linkedin_url} target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-[#2563EB] text-xs mt-2 hover:underline print:no-underline">

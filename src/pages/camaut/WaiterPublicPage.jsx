@@ -142,6 +142,14 @@ export default function WaiterPublicPage() {
       </div>
 
       <div className="px-4 -mt-5 pb-10 space-y-3">
+        {/* Bio */}
+        {staff.bio && (
+          <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
+            <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-2">Sobre mí</p>
+            <p className="text-[#3A4A5A] text-sm leading-relaxed">{staff.bio}</p>
+          </div>
+        )}
+
         {/* Archetype */}
         {stats?.archetype && (
           <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm flex items-center gap-4">
