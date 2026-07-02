@@ -63,8 +63,10 @@ function PerfilTab({ profile }) {
   const [aliasBancario, setAliasBancario] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [uploadError, setUploadError] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [urlCopied, setUrlCopied] = useState(false)
 
   useEffect(() => {
     loadStaff()
@@ -97,16 +99,39 @@ function PerfilTab({ profile }) {
   async function handleAvatarChange(e) {
     const file = e.target.files?.[0]
     if (!file || !file.type.startsWith('image/') || !staffData) return
+    if (file.size > 8 * 1024 * 1024) {
+      setUploadError('La imagen no puede superar 8 MB')
+      return
+    }
     setUploadingAvatar(true)
+    setUploadError('')
+
+    // Sync Camaut session to supabaseStaff so Storage accepts the upload
+    const { data: { session } } = await supabaseCamaut.auth.getSession()
+    if (session) {
+      await supabaseStaff.auth.setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token
+      })
+    }
+
     const ext = file.name.split('.').pop()
     const path = `${staffData.id}.${ext}`
-    const { error: uploadError } = await supabaseStaff.storage
+    const { error: storageError } = await supabaseStaff.storage
       .from('camaut-avatars')
       .upload(path, file, { upsert: true })
-    if (!uploadError) {
-      const { data: { publicUrl } } = supabaseStaff.storage.from('camaut-avatars').getPublicUrl(path)
-      setAvatarUrl(publicUrl)
+
+    if (storageError) {
+      setUploadError('No se pudo subir la foto: ' + storageError.message)
+      setUploadingAvatar(false)
+      return
     }
+
+    const { data: { publicUrl } } = supabaseStaff.storage.from('camaut-avatars').getPublicUrl(path)
+    setAvatarUrl(publicUrl)
+
+    // Auto-save to DB immediately, no need to click "Guardar"
+    await supabaseStaff.from('staff_names').update({ avatar_url: publicUrl }).eq('id', staffData.id)
     setUploadingAvatar(false)
   }
 
@@ -163,7 +188,31 @@ function PerfilTab({ profile }) {
           >
             {uploadingAvatar ? 'Subiendo...' : 'Cambiar foto'}
           </button>
+          {uploadError && <p className="text-red-500 text-xs text-center">{uploadError}</p>}
         </div>
+
+        {/* Link a la página pública */}
+        {staffData && (
+          <div className="flex items-center justify-between bg-[#F8FAFC] rounded-xl px-3 py-2.5 border border-black/8">
+            <div className="flex-1 min-w-0">
+              <p className="text-[#8896A5] text-[10px] font-semibold uppercase tracking-wide">Tu página pública</p>
+              <p className="text-[#008080] text-xs font-mono truncate">
+                capyapp.co/c/{alias || staffData.id}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                await navigator.clipboard?.writeText(`${window.location.origin}/c/${alias || staffData.id}`)
+                setUrlCopied(true)
+                setTimeout(() => setUrlCopied(false), 2000)
+              }}
+              className="text-[#008080] text-xs font-semibold ml-3 flex-shrink-0"
+            >
+              {urlCopied ? '✓ Copiado' : 'Copiar'}
+            </button>
+          </div>
+        )}
 
         <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide">Datos personales</p>
         <label className="block">
