@@ -54,13 +54,21 @@ export default function WaitersPage() {
     if (!linkedNames.length) { setComparativa([]); setCompLoading(false); return }
 
     // Match staff_names by full_name within the venue
-    const { data: staffList } = await supabaseStaff
+    const { data: allMatches } = await supabaseStaff
       .from('staff_names')
       .select('id, full_name, alias, xp, total_orders')
       .eq('venue_id', venueId)
       .in('full_name', linkedNames)
+      .order('xp', { ascending: false, nullsFirst: false })
 
-    if (!staffList?.length) { setComparativa([]); setCompLoading(false); return }
+    if (!allMatches?.length) { setComparativa([]); setCompLoading(false); return }
+
+    // Deduplicate: one record per name, keeping the one with highest XP
+    const seen = new Map()
+    for (const s of allMatches) {
+      if (!seen.has(s.full_name)) seen.set(s.full_name, s)
+    }
+    const staffList = Array.from(seen.values())
 
     const ids = staffList.map(s => s.id)
     const { data: feedbacks } = await supabaseStaff
