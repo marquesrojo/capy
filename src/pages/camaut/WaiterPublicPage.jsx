@@ -17,6 +17,9 @@ export default function WaiterPublicPage() {
   }, [alias])
 
   async function loadProfile() {
+    const { data: { session } } = await supabaseCustomer.auth.getSession()
+    if (!session) await supabaseCustomer.auth.signInAnonymously()
+
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(alias)
     let query = supabaseCustomer.from('staff_names').select('*')
     query = isUUID ? query.eq('id', alias) : query.eq('alias', alias)
