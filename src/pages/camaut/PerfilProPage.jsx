@@ -9,6 +9,10 @@ export default function PerfilProPage({ venueId }) {
   const [activeSection, setActiveSection] = useState('trabajo')
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [bio, setBio] = useState(null)
+  const [bioText, setBioText] = useState('')
+  const [bioEditing, setBioEditing] = useState(false)
+  const [bioSaving, setBioSaving] = useState(false)
 
   const [form, setForm] = useState({
     type: 'trabajo',
@@ -28,12 +32,14 @@ export default function PerfilProPage({ venueId }) {
   async function loadAll() {
     const { data: staffData } = await supabaseStaff
       .from('staff_names')
-      .select('id')
+      .select('id, bio')
       .eq('venue_id', venueId)
       .single()
 
     if (!staffData) { setLoading(false); return }
     setStaffId(staffData.id)
+    setBio(staffData.bio || null)
+    setBioText(staffData.bio || '')
 
     const [expRes, reviewsRes] = await Promise.all([
       supabaseStaff
@@ -94,6 +100,16 @@ export default function PerfilProPage({ venueId }) {
     setExperience(prev => prev.filter(e => e.id !== id))
   }
 
+  async function handleBioSave() {
+    if (!staffId) return
+    setBioSaving(true)
+    const newBio = bioText.trim() || null
+    await supabaseCamaut.from('staff_names').update({ bio: newBio }).eq('id', staffId)
+    setBio(newBio)
+    setBioEditing(false)
+    setBioSaving(false)
+  }
+
   const SECTIONS = [
     { id: 'trabajo', label: 'Experiencia' },
     { id: 'estudio', label: 'Estudios' },
@@ -113,6 +129,51 @@ export default function PerfilProPage({ venueId }) {
 
   return (
     <div className="space-y-4">
+      {/* Bio */}
+      <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[#8896A5] text-[10px] font-bold uppercase tracking-widest">Sobre mí</p>
+          {!bioEditing && (
+            <button
+              onClick={() => { setBioEditing(true); setBioText(bio || '') }}
+              className="text-[#008080] text-xs font-semibold"
+            >
+              {bio ? 'Editar' : 'Agregar'}
+            </button>
+          )}
+        </div>
+        {bioEditing ? (
+          <div className="space-y-2">
+            <textarea
+              value={bioText}
+              onChange={e => setBioText(e.target.value)}
+              placeholder="Contá tu estilo de trabajo, especialidad, lo que te diferencia..."
+              rows={4}
+              className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm bg-[#F8FAFC] text-[#1A2A3A] resize-none"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handleBioSave}
+                disabled={bioSaving}
+                className="flex-1 bg-[#008080] disabled:opacity-50 text-white font-semibold py-2 rounded-xl text-sm"
+              >
+                {bioSaving ? 'Guardando...' : 'Guardar'}
+              </button>
+              <button
+                onClick={() => { setBioEditing(false); setBioText(bio || '') }}
+                className="flex-1 border border-black/10 text-[#8896A5] py-2 rounded-xl text-sm"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        ) : bio ? (
+          <p className="text-[#3A4A5A] text-sm leading-relaxed">{bio}</p>
+        ) : (
+          <p className="text-[#B0BEC5] text-sm">Contá algo sobre tu estilo de trabajo.</p>
+        )}
+      </div>
+
       {/* Tabs de sección */}
       <div className="flex gap-2 overflow-x-auto pb-1">
         {SECTIONS.map(s => (

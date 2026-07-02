@@ -47,7 +47,7 @@ export default function WaiterPublicPage() {
 
     const promises = [
       supabaseCustomer.rpc('count_orders_by_staff', { p_staff_id: data.id }),
-      supabaseCustomer.from('order_feedback').select('rating, notes').eq('staff_id', data.id),
+      supabaseCustomer.from('order_feedback').select('rating, notes, tags').eq('staff_id', data.id),
     ]
     if (data.venue_id) {
       promises.push(
@@ -71,12 +71,20 @@ export default function WaiterPublicPage() {
       .filter(r => r.notes?.trim().length > 10)
       .sort((a, b) => b.notes.length - a.notes.length)[0]?.notes || null
 
+    const allTags = ratings.flatMap(r => r.tags || [])
+    const tagCounts = {
+      amabilidad: allTags.filter(t => t === 'amabilidad').length,
+      rapidez: allTags.filter(t => t === 'rapidez').length,
+      recomendacion: allTags.filter(t => t === 'recomendacion').length,
+    }
+
     setBestComment(comment)
     setStats({
       orders: ordersRes.data || 0,
       avgRating,
       ratingCount: ratings.length,
       fiveStarPct,
+      tagCounts,
       archetype: calcArchetype(ordersRes.data || 0, fiveStarPct, ratings.length),
     })
     setLoading(false)
@@ -142,6 +150,14 @@ export default function WaiterPublicPage() {
       </div>
 
       <div className="px-4 -mt-5 pb-10 space-y-3">
+        {/* Bio */}
+        {staff.bio && (
+          <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
+            <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-2">Sobre mí</p>
+            <p className="text-[#3A4A5A] text-sm leading-relaxed">{staff.bio}</p>
+          </div>
+        )}
+
         {/* Archetype */}
         {stats?.archetype && (
           <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm flex items-center gap-4">
@@ -194,6 +210,26 @@ export default function WaiterPublicPage() {
                   <p className="text-[#8896A5] text-xs mt-1">Sin calificaciones</p>
                 </>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Reconocimientos */}
+        {stats?.tagCounts && Object.values(stats.tagCounts).some(v => v > 0) && (
+          <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
+            <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">Reconocimientos</p>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: 'amabilidad', label: 'Amabilidad', emoji: '🤝' },
+                { id: 'rapidez', label: 'Rapidez', emoji: '⚡' },
+                { id: 'recomendacion', label: 'Recomendó la carta', emoji: '🍽️' },
+              ].filter(t => stats.tagCounts[t.id] > 0).map(t => (
+                <div key={t.id} className="flex items-center gap-1.5 bg-[#E8F5F5] px-3 py-1.5 rounded-full">
+                  <span className="text-sm">{t.emoji}</span>
+                  <span className="text-[#008080] text-xs font-semibold">{t.label}</span>
+                  <span className="text-[#008080]/60 text-xs font-bold">{stats.tagCounts[t.id]}</span>
+                </div>
+              ))}
             </div>
           </div>
         )}
