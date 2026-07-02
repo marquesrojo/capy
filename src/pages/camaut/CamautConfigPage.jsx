@@ -110,18 +110,9 @@ function PerfilTab({ profile }) {
     setUploadingAvatar(true)
     setUploadError('')
 
-    // Sync Camaut session to supabaseStaff so Storage accepts the upload
-    const { data: { session } } = await supabaseCamaut.auth.getSession()
-    if (session) {
-      await supabaseStaff.auth.setSession({
-        access_token: session.access_token,
-        refresh_token: session.refresh_token
-      })
-    }
-
     const ext = file.name.split('.').pop()
     const path = `${staffData.id}.${ext}`
-    const { error: storageError } = await supabaseStaff.storage
+    const { error: storageError } = await supabaseCamaut.storage
       .from('camaut-avatars')
       .upload(path, file, { upsert: true })
 
@@ -131,11 +122,9 @@ function PerfilTab({ profile }) {
       return
     }
 
-    const { data: { publicUrl } } = supabaseStaff.storage.from('camaut-avatars').getPublicUrl(path)
+    const { data: { publicUrl } } = supabaseCamaut.storage.from('camaut-avatars').getPublicUrl(path)
     setAvatarUrl(publicUrl)
-
-    // Auto-save to DB immediately, no need to click "Guardar"
-    await supabaseStaff.from('staff_names').update({ avatar_url: publicUrl }).eq('id', staffData.id)
+    await supabaseCamaut.from('staff_names').update({ avatar_url: publicUrl }).eq('id', staffData.id)
     setUploadingAvatar(false)
   }
 
@@ -144,16 +133,7 @@ function PerfilTab({ profile }) {
     if (!staffData) return
     setSaving(true)
 
-    // Sync Camaut session to supabaseStaff before any write
-    const { data: { session } } = await supabaseCamaut.auth.getSession()
-    if (session) {
-      await supabaseStaff.auth.setSession({
-        access_token: session.access_token,
-        refresh_token: session.refresh_token
-      })
-    }
-
-    const { error } = await supabaseStaff
+    const { error } = await supabaseCamaut
       .from('staff_names')
       .update({
         full_name: fullName.trim(),
@@ -171,11 +151,12 @@ function PerfilTab({ profile }) {
       return
     }
 
-    if (session) {
-      await supabaseStaff
+    const { data: { user } } = await supabaseCamaut.auth.getUser()
+    if (user) {
+      await supabaseCamaut
         .from('profiles')
         .update({ full_name: fullName.trim() })
-        .eq('id', session.user.id)
+        .eq('id', user.id)
     }
 
     setSaving(false)
