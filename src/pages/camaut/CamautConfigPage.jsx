@@ -53,6 +53,10 @@ export default function CamautConfigPage({ initialTab, embedded }) {
   )
 }
 
+function sanitizeAlias(v) {
+  return v.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9_-]/g, '')
+}
+
 function PerfilTab({ profile }) {
   const fileRef = useRef(null)
   const [staffData, setStaffData] = useState(null)
@@ -88,7 +92,7 @@ function PerfilTab({ profile }) {
     if (data) {
       setStaffData(data)
       setFullName(data.full_name || '')
-      setAlias(data.alias || '')
+      setAlias(sanitizeAlias(data.alias || ''))
       setLinkedin(data.linkedin_url || '')
       setDocNumber(data.document_number || '')
       setAliasBancario(data.alias_bancario || '')
@@ -143,7 +147,7 @@ function PerfilTab({ profile }) {
       .from('staff_names')
       .update({
         full_name: fullName.trim(),
-        alias: alias.trim() || null,
+        alias: sanitizeAlias(alias) || null,
         linkedin_url: linkedin.trim() || null,
         document_number: docNumber.trim() || null,
         alias_bancario: aliasBancario.trim() || null,
@@ -197,13 +201,13 @@ function PerfilTab({ profile }) {
             <div className="flex-1 min-w-0">
               <p className="text-[#8896A5] text-[10px] font-semibold uppercase tracking-wide">Tu página pública</p>
               <p className="text-[#008080] text-xs font-mono truncate">
-                capyapp.co/c/{alias || staffData.id}
+                capyapp.co/c/{sanitizeAlias(alias) || staffData.id}
               </p>
             </div>
             <button
               type="button"
               onClick={async () => {
-                await navigator.clipboard?.writeText(`${window.location.origin}/c/${alias || staffData.id}`)
+                await navigator.clipboard?.writeText(`${window.location.origin}/c/${sanitizeAlias(alias) || staffData.id}`)
                 setUrlCopied(true)
                 setTimeout(() => setUrlCopied(false), 2000)
               }}
@@ -222,9 +226,9 @@ function PerfilTab({ profile }) {
         </label>
         <label className="block">
           <span className="text-[#8896A5] text-xs block mb-1.5">Alias público (ranking)</span>
-          <input type="text" value={alias} onChange={e => setAlias(e.target.value)}
-            placeholder="Ej: mozo_veloz"
-            className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-[#F8FAFC] text-[#1A2A3A]" />
+          <input type="text" value={alias} onChange={e => setAlias(sanitizeAlias(e.target.value))}
+            placeholder="Ej: mozo-veloz"
+            className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-[#F8FAFC] text-[#1A2A3A] font-mono" />
         </label>
         <label className="block">
           <span className="text-[#8896A5] text-xs block mb-1.5">DNI / Documento</span>
