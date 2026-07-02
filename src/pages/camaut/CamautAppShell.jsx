@@ -34,6 +34,14 @@ const TABS = [
   },
 ]
 
+function getWeekKey() {
+  const d = new Date()
+  const day = d.getDay()
+  const monday = new Date(d)
+  monday.setDate(d.getDate() - (day === 0 ? 6 : day - 1))
+  return monday.toISOString().slice(0, 10)
+}
+
 const MICAPY_ITEMS = [
   { id: 'perfil', label: 'Mi Perfil', desc: 'Nombre, foto, datos', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> },
   { id: 'perfil_pro', label: 'Perfil Pro', desc: 'CV gastronómico', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> },
@@ -56,6 +64,10 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
   const [prefillLocation, setPrefillLocation] = useState(null)
   const [waiterCallCount, setWaiterCallCount] = useState(0)
   const [showWrapped, setShowWrapped] = useState(false)
+  const [wrappedReady, setWrappedReady] = useState(false)
+  const [wrappedSeen, setWrappedSeen] = useState(() =>
+    localStorage.getItem(`wrapped-seen-${getWeekKey()}`) === '1'
+  )
 
   function handleNewOrderForTable(locationLabel) {
     setPrefillLocation(locationLabel)
@@ -95,6 +107,27 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
     const t = setInterval(checkCalls, 8000)
     return () => clearInterval(t)
   }, [venueId])
+
+  useEffect(() => {
+    if (!staffId) return
+    const weekStart = new Date()
+    const day = weekStart.getDay()
+    weekStart.setDate(weekStart.getDate() - (day === 0 ? 6 : day - 1))
+    weekStart.setHours(0, 0, 0, 0)
+    supabaseStaff
+      .from('orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('assigned_staff_id', staffId)
+      .gte('created_at', weekStart.toISOString())
+      .neq('status', 'cancelado')
+      .then(({ count }) => setWrappedReady((count || 0) > 0))
+  }, [staffId])
+
+  function openWrapped() {
+    setShowWrapped(true)
+    localStorage.setItem(`wrapped-seen-${getWeekKey()}`, '1')
+    setWrappedSeen(true)
+  }
 
   const xp = staffXP || 0
   const level = getLevel(xp)
@@ -156,12 +189,26 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                     {waiterCallCount}
                   </span>
                 )}
+                {t.id === 'micapy' && wrappedReady && !wrappedSeen && (
+                  <span className="absolute -top-1.5 -right-2.5 bg-amber-400 w-3.5 h-3.5 rounded-full" />
+                )}
               </div>
               {t.label}
             </button>
           ))}
         </div>
       </div>
+
+      {/* Wrapped notification banner */}
+      {wrappedReady && !wrappedSeen && !showWrapped && (
+        <button
+          onClick={openWrapped}
+          className="w-full bg-amber-400 text-white text-xs font-bold py-2.5 px-4 flex items-center justify-between"
+        >
+          <span>⚡ Tu Weekly Wrapped está listo</span>
+          <span className="text-white/80">Ver →</span>
+        </button>
+      )}
 
       {/* Contenido */}
       {tab === 'tomar' && <WaiterOrderCamaut venueId={venueId} linkedVenues={linkedVenues} prefillLocation={prefillLocation} onPrefillUsed={() => setPrefillLocation(null)} />}
@@ -190,7 +237,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                       if (item.id === 'mi_pagina') {
                         navigate(`/c/${staffAlias || staffId}`)
                       } else if (item.id === 'wrapped') {
-                        setShowWrapped(true)
+                        openWrapped()
                       } else {
                         setMicapyTab(item.id)
                       }
@@ -279,39 +326,36 @@ function UbicacionesViewer({ linkedVenues }) {
   )
 }
 
-const INDICATOR_PERIODS = [
-  { id: 'hoy', label: 'Hoy' },
-  { id: 'semana', label: 'Semana' },
-  { id: 'mes', label: 'Mes' },
-  { id: 'año', label: 'Año' },
-]
-
-function getPeriodStart(p) {
-  const now = new Date()
-  if (p === 'hoy') { const d = new Date(now); d.setHours(0, 0, 0, 0); return d }
-  if (p === 'semana') { const d = new Date(now); d.setDate(d.getDate() - 6); d.setHours(0, 0, 0, 0); return d }
-  if (p === 'mes') return new Date(now.getFullYear(), now.getMonth(), 1)
-  return new Date(now.getFullYear(), 0, 1) // año
+function fmtDateShort(iso) {
+  const [y, m, d] = iso.split('-')
+  return `${d}/${m}/${y.slice(2)}`
 }
 
 function IndicadoresTab({ venueId, staffId }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [period, setPeriod] = useState('mes')
+  const todayIso = new Date().toISOString().slice(0, 10)
+  const monthStartIso = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10)
+  const [desde, setDesde] = useState(monthStartIso)
+  const [hasta, setHasta] = useState(todayIso)
 
   useEffect(() => {
     if (!staffId) { setLoading(false); return }
     loadData()
-  }, [staffId, period])
+  }, [staffId, desde, hasta])
 
   async function loadData() {
     setLoading(true)
-    const start = getPeriodStart(period)
+    const start = new Date(desde); start.setHours(0, 0, 0, 0)
+    const end = new Date(hasta); end.setHours(23, 59, 59, 999)
 
     const [ordersRes, tipsRes, ratingsRes] = await Promise.all([
-      supabaseStaff.from('orders').select('total, created_at').eq('venue_id', venueId).eq('assigned_staff_id', staffId).gte('created_at', start.toISOString()),
-      supabaseStaff.from('waiter_tips').select('amount, created_at').eq('staff_id', staffId).gte('created_at', start.toISOString()),
-      supabaseStaff.from('order_feedback').select('rating').eq('staff_id', staffId).gte('created_at', start.toISOString())
+      supabaseStaff.from('orders').select('total, created_at').eq('venue_id', venueId).eq('assigned_staff_id', staffId)
+        .gte('created_at', start.toISOString()).lte('created_at', end.toISOString()),
+      supabaseStaff.from('waiter_tips').select('amount, created_at').eq('staff_id', staffId)
+        .gte('created_at', start.toISOString()).lte('created_at', end.toISOString()),
+      supabaseStaff.from('order_feedback').select('rating').eq('staff_id', staffId)
+        .gte('created_at', start.toISOString()).lte('created_at', end.toISOString()),
     ])
 
     const orders = ordersRes.data || []
@@ -325,25 +369,37 @@ function IndicadoresTab({ venueId, staffId }) {
       ticketPromedio: orders.length ? totalVendido / orders.length : 0,
       totalVendido,
       calificacion: ratings.length ? (ratings.reduce((s, r) => s + r.rating, 0) / ratings.length).toFixed(1) : null,
-      calificacionCount: ratings.length
+      calificacionCount: ratings.length,
     })
     setLoading(false)
   }
 
-  const periodLabel = INDICATOR_PERIODS.find(p => p.id === period)?.label.toLowerCase() || ''
+  const rangeLabel = `${fmtDateShort(desde)} – ${fmtDateShort(hasta)}`
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-1.5 bg-black/5 rounded-xl p-1">
-        {INDICATOR_PERIODS.map(p => (
-          <button key={p.id} onClick={() => setPeriod(p.id)}
-            className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-              period === p.id ? 'bg-white text-[#008080] shadow-sm' : 'text-[#8896A5]'
-            }`}
-          >
-            {p.label}
-          </button>
-        ))}
+      <div className="flex gap-2">
+        <div className="flex-1">
+          <p className="text-[#8896A5] text-[10px] font-semibold uppercase tracking-wide mb-1">Desde</p>
+          <input
+            type="date"
+            value={desde}
+            max={hasta}
+            onChange={e => e.target.value && setDesde(e.target.value)}
+            className="w-full bg-white border border-black/10 rounded-xl px-3 py-2.5 text-sm text-[#1A2A3A] font-semibold"
+          />
+        </div>
+        <div className="flex-1">
+          <p className="text-[#8896A5] text-[10px] font-semibold uppercase tracking-wide mb-1">Hasta</p>
+          <input
+            type="date"
+            value={hasta}
+            min={desde}
+            max={todayIso}
+            onChange={e => e.target.value && setHasta(e.target.value)}
+            className="w-full bg-white border border-black/10 rounded-xl px-3 py-2.5 text-sm text-[#1A2A3A] font-semibold"
+          />
+        </div>
       </div>
 
       {loading ? (
@@ -353,10 +409,10 @@ function IndicadoresTab({ venueId, staffId }) {
       ) : (
         <div className="grid grid-cols-2 gap-3">
           {[
-            { label: 'Pedidos', value: String(data.pedidos), sub: periodLabel, mono: false },
-            { label: 'Propinas', value: formatPrice(data.propinas), sub: periodLabel, mono: true },
-            { label: 'Total vendido', value: formatPrice(data.totalVendido), sub: periodLabel, mono: true, full: true },
-            { label: 'Ticket promedio', value: formatPrice(data.ticketPromedio), sub: periodLabel, mono: true },
+            { label: 'Pedidos', value: String(data.pedidos), sub: rangeLabel, mono: false },
+            { label: 'Propinas', value: formatPrice(data.propinas), sub: rangeLabel, mono: true },
+            { label: 'Total vendido', value: formatPrice(data.totalVendido), sub: rangeLabel, mono: true, full: true },
+            { label: 'Ticket promedio', value: formatPrice(data.ticketPromedio), sub: rangeLabel, mono: true },
             { label: 'Calificación', value: data.calificacion ? `${data.calificacion}/5` : '—', sub: data.calificacion ? `${data.calificacionCount} opiniones` : 'Sin datos', mono: false },
           ].map(kpi => (
             <div key={kpi.label} className={`bg-white rounded-2xl p-4 border border-black/5 shadow-sm ${kpi.full ? 'col-span-2' : ''}`}>
