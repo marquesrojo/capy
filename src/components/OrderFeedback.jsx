@@ -95,14 +95,11 @@ export default function OrderFeedback({ orderId, staffId }) {
     setSubmitting(true)
     setError('')
 
-    // Use registered customer id, or fall back to the anonymous auth uid
-    let customerId = customer?.id || null
-    if (!customerId) {
-      const { data: { session } } = await supabaseCustomer.auth.getSession()
-      customerId = session?.user?.id || null
-    }
+    // Registered customers have a customers row; anonymous visitors don't.
+    // Null is allowed by the INSERT policy for unregistered users.
+    const customerId = customer?.id || null
 
-    const { data, error: insertError } = await supabaseCustomer
+    const { error: insertError } = await supabaseCustomer
       .from('order_feedback')
       .insert({
         order_id: orderId,
@@ -111,8 +108,6 @@ export default function OrderFeedback({ orderId, staffId }) {
         notes: notes.trim() || null,
         staff_id: staffId || null
       })
-      .select()
-      .single()
 
     setSubmitting(false)
 
@@ -120,7 +115,8 @@ export default function OrderFeedback({ orderId, staffId }) {
       setError('No pudimos guardar tu calificación. Intentá de nuevo.')
       return
     }
-    setExisting(data)
+    // Construct local state from inputs — avoids needing SELECT policy on null customer_id
+    setExisting({ order_id: orderId, customer_id: customerId, rating, notes: notes.trim() || null })
   }
 
   function handleCopyAlias() {
