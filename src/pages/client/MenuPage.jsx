@@ -187,74 +187,85 @@ export default function MenuPage() {
           <>
             <p className="text-smoke-500 text-xs font-semibold uppercase tracking-wide">¿Dónde estás?</p>
 
-            {/* Sector filter — only shown when mesas have parent zones */}
-            {sectorZones.length > 0 && (
-              <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
-                {sectorZones.map(sector => (
-                  <button
-                    key={sector.id}
-                    onClick={() => setSelectedSector(prev => prev?.id === sector.id ? null : sector)}
-                    className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border transition-colors ${
-                      selectedSector?.id === sector.id
-                        ? 'bg-pucara-blue-500 text-white border-pucara-blue-500'
-                        : 'bg-white border-black/10 text-smoke-300'
-                    }`}
-                  >
-                    {sector.name}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Mesas — shown when sector selected (or when no sectors exist) */}
-            {(sectorZones.length === 0 || selectedSector) && filteredMesas.length > 0 && (
-              <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
-                {filteredMesas.map(zone => (
-                  <button
-                    key={zone.id}
-                    onClick={() => setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })}
-                    className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-white border-black/10 text-smoke-300 active:bg-pucara-blue-500 active:text-white active:border-pucara-blue-500"
-                  >
-                    {zone.name}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Direct zones (barra, etc. — no parent-child structure, non-retiro) */}
-            {directZones.length > 0 && (
-              <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
-                {directZones.map(zone => (
-                  <button
-                    key={zone.id}
-                    onClick={() => setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })}
-                    className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border ${
-                      zone.type === 'retiro'
-                        ? 'bg-amber-50 border-amber-300 text-amber-700 active:bg-amber-500 active:text-white active:border-amber-500'
-                        : 'bg-white border-black/10 text-smoke-300 active:bg-pucara-blue-500 active:text-white active:border-pucara-blue-500'
-                    }`}
-                  >
-                    {zone.type === 'retiro' ? `🛍 ${zone.name}` : zone.name}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Retiro zones — differentiated with label and amber color */}
-            {retiroZones.length > 0 && (
+            {selectedSector ? (
+              /* Sector selected: show only its mesas + back link */
               <div className="space-y-1.5">
-                <p className="text-amber-600 text-xs font-semibold uppercase tracking-wide">🛍 Retiro yo en:</p>
+                <button
+                  onClick={() => setSelectedSector(null)}
+                  className="text-pucara-blue-400 text-xs font-semibold flex items-center gap-1"
+                >
+                  ← {selectedSector.name}
+                </button>
                 <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
-                  {retiroZones.map(zone => (
+                  {filteredMesas.map(zone => (
                     <button
                       key={zone.id}
                       onClick={() => setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })}
-                      className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-amber-50 border-amber-300 text-amber-700 active:bg-amber-500 active:text-white active:border-amber-500"
+                      className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-white border-black/10 text-smoke-300 active:bg-pucara-blue-500 active:text-white active:border-pucara-blue-500"
                     >
                       {zone.name}
                     </button>
                   ))}
                 </div>
+              </div>
+            ) : (
+              /* No sector selected: sectors + direct zones in one row, then mesas if no sectors, then retiro */
+              <div className="space-y-2">
+                {(sectorZones.length > 0 || directZones.length > 0) && (
+                  <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
+                    {sectorZones.map(sector => (
+                      <button
+                        key={sector.id}
+                        onClick={() => setSelectedSector(sector)}
+                        className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-white border-black/10 text-smoke-300 active:bg-pucara-blue-500 active:text-white active:border-pucara-blue-500"
+                      >
+                        {sector.name}
+                      </button>
+                    ))}
+                    {directZones.map(zone => (
+                      <button
+                        key={zone.id}
+                        onClick={() => setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })}
+                        className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-white border-black/10 text-smoke-300 active:bg-pucara-blue-500 active:text-white active:border-pucara-blue-500"
+                      >
+                        {zone.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Mesas directas — solo si no hay sectores */}
+                {sectorZones.length === 0 && mesaZones.length > 0 && (
+                  <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
+                    {mesaZones.map(zone => (
+                      <button
+                        key={zone.id}
+                        onClick={() => setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })}
+                        className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-white border-black/10 text-smoke-300 active:bg-pucara-blue-500 active:text-white active:border-pucara-blue-500"
+                      >
+                        {zone.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Retiro zones */}
+                {retiroZones.length > 0 && (
+                  <div className="space-y-1.5">
+                    <p className="text-amber-600 text-xs font-semibold uppercase tracking-wide">🛍 Retiro yo en:</p>
+                    <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
+                      {retiroZones.map(zone => (
+                        <button
+                          key={zone.id}
+                          onClick={() => setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })}
+                          className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-amber-50 border-amber-300 text-amber-700 active:bg-amber-500 active:text-white active:border-amber-500"
+                        >
+                          {zone.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </>
