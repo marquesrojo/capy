@@ -228,13 +228,9 @@ export default function MenuPage() {
                   <button
                     key={zone.id}
                     onClick={() => setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })}
-                    className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border ${
-                      zone.type === 'retiro'
-                        ? 'bg-amber-50 border-amber-300 text-amber-700 active:bg-amber-500 active:text-white active:border-amber-500'
-                        : 'bg-white border-black/10 text-smoke-300 active:bg-pucara-blue-500 active:text-white active:border-pucara-blue-500'
-                    }`}
+                    className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-white border-black/10 text-smoke-300 active:bg-pucara-blue-500 active:text-white active:border-pucara-blue-500"
                   >
-                    {zone.type === 'retiro' ? `🛍 ${zone.name}` : zone.name}
+                    {zone.name}
                   </button>
                 ))}
               </div>
