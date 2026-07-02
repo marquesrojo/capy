@@ -164,14 +164,20 @@ export default function MenuPage() {
       {/* Location selector */}
       <div className="px-5 pt-4 pb-1 space-y-2">
         {location?.label ? (
-          <div className="flex items-center justify-between bg-white rounded-xl px-4 py-2.5 border border-black/5 shadow-sm">
+          <div className={`flex items-center justify-between rounded-xl px-4 py-2.5 border shadow-sm ${
+            location.type === 'retiro'
+              ? 'bg-amber-50 border-amber-300'
+              : 'bg-white border-black/5'
+          }`}>
             <div className="flex items-center gap-2">
-              <span>📍</span>
-              <p className="text-smoke-300 font-semibold text-sm">{location.label}</p>
+              <span>{location.type === 'retiro' ? '🛍' : '📍'}</span>
+              <p className={`font-semibold text-sm ${location.type === 'retiro' ? 'text-amber-700' : 'text-smoke-300'}`}>
+                {location.label}
+              </p>
             </div>
             <button
               onClick={() => { setLocation(null); setSelectedSector(null) }}
-              className="text-pucara-blue-400 text-xs font-semibold"
+              className={`text-xs font-semibold ${location.type === 'retiro' ? 'text-amber-600' : 'text-pucara-blue-400'}`}
             >
               Cambiar
             </button>
@@ -221,9 +227,13 @@ export default function MenuPage() {
                   <button
                     key={zone.id}
                     onClick={() => setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })}
-                    className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-white border-black/10 text-smoke-300 active:bg-pucara-blue-500 active:text-white active:border-pucara-blue-500"
+                    className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border ${
+                      zone.type === 'retiro'
+                        ? 'bg-amber-50 border-amber-300 text-amber-700 active:bg-amber-500 active:text-white active:border-amber-500'
+                        : 'bg-white border-black/10 text-smoke-300 active:bg-pucara-blue-500 active:text-white active:border-pucara-blue-500'
+                    }`}
                   >
-                    {zone.name}
+                    {zone.type === 'retiro' ? `🛍 ${zone.name}` : zone.name}
                   </button>
                 ))}
               </div>
