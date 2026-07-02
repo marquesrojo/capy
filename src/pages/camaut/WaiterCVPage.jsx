@@ -4,16 +4,27 @@ import QRCode from 'qrcode'
 import { supabaseCustomer } from '../../lib/supabase'
 import { getLevel } from '../../lib/xpUtils'
 
+const LEVEL_ICONS_SM = {
+  'Camarero Activo': <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+  'Mozo Veloz': <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+  'Mozo Experto': <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
+  'Leyenda del Salón': <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>,
+}
+
+const ARCHETYPE_ICONS_SM = {
+  'Flash del Salón': <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+  'Encantador de Mesas': <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>,
+  'Tanque de la Barra': <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+  'Imán de Estrellas': <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
+  'En Ascenso': <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
+}
+
 function calcArchetype(orderCount, fiveStarPct, ratingCount) {
-  if (orderCount >= 400)
-    return { name: 'Flash del Salón', emoji: '⚡' }
-  if (fiveStarPct === 100 && ratingCount >= 50)
-    return { name: 'Encantador de Mesas', emoji: '🍰' }
-  if (orderCount >= 200)
-    return { name: 'Tanque de la Barra', emoji: '🛡️' }
-  if (fiveStarPct >= 80 && ratingCount >= 20)
-    return { name: 'Imán de Estrellas', emoji: '⭐' }
-  return { name: 'En Ascenso', emoji: '🌟' }
+  if (orderCount >= 400) return { name: 'Flash del Salón' }
+  if (fiveStarPct === 100 && ratingCount >= 50) return { name: 'Encantador de Mesas' }
+  if (orderCount >= 200) return { name: 'Tanque de la Barra' }
+  if (fiveStarPct >= 80 && ratingCount >= 20) return { name: 'Imán de Estrellas' }
+  return { name: 'En Ascenso' }
 }
 
 function fmtPeriod(dateStr) {
@@ -162,7 +173,13 @@ export default function WaiterCVPage() {
             </div>
             <div className="flex-1 min-w-0">
               <h1 className="text-[#1A2A3A] font-bold text-2xl leading-tight">{staff.full_name}</h1>
-              <p className="text-[#008080] text-sm font-medium mt-0.5">{level.icon} {level.name} · {archetype.emoji} {archetype.name}</p>
+              <div className="flex items-center gap-1.5 text-[#008080] text-sm font-medium mt-0.5">
+                {LEVEL_ICONS_SM[level.name]}
+                <span>{level.name}</span>
+                <span className="text-[#008080]/40">·</span>
+                {ARCHETYPE_ICONS_SM[archetype.name]}
+                <span>{archetype.name}</span>
+              </div>
               {staff.alias && <p className="text-[#8896A5] text-xs mt-1">@{staff.alias}</p>}
               {staff.bio && (
                 <p className="text-[#3A4A5A] text-sm mt-2 leading-relaxed">{staff.bio}</p>

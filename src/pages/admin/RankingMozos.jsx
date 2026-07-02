@@ -3,6 +3,13 @@ import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { getLevel } from '../../lib/xpUtils'
 
+const LEVEL_ICONS = {
+  'Camarero Activo': <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+  'Mozo Veloz': <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+  'Mozo Experto': <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
+  'Leyenda del Salón': <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>,
+}
+
 export default function RankingMozos({ venueId, globalOnly }) {
   const { profile } = useAuth()
   const [tab, setTab] = useState(globalOnly ? 'global' : 'venue')
@@ -159,7 +166,10 @@ export default function RankingMozos({ venueId, globalOnly }) {
                       {waiter.alias ? `@${waiter.alias}` : waiter.full_name}
                       {isMe && <span className="ml-1 text-[#008080] text-xs">(vos)</span>}
                     </p>
-                    <p className="text-[10px] text-[#8896A5]">{level.icon} {level.name}</p>
+                    <div className="flex items-center gap-1 text-[#8896A5]">
+                      {LEVEL_ICONS[level.name]}
+                      <p className="text-[10px]">{level.name}</p>
+                    </div>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-bold text-[#008080]">{(waiter.xp || 0).toLocaleString()}</p>
@@ -183,7 +193,12 @@ export default function RankingMozos({ venueId, globalOnly }) {
                   A {(ranking[myPosition - 2].xp - (ranking[myPosition - 1]?.xp || 0)).toLocaleString()} XP del puesto #{myPosition - 1}
                 </p>
               )}
-              {myPosition <= 3 && <p className="text-white/70 text-xs">¡Estás en el podio! 🏆</p>}
+              {myPosition <= 3 && (
+                <div className="flex items-center gap-1.5 text-white/70 text-xs">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+                  <span>¡Estás en el podio!</span>
+                </div>
+              )}
             </div>
             <div className="text-right">
               <p className="text-white font-bold">{(ranking[myPosition - 1]?.xp || 0).toLocaleString()} XP</p>
