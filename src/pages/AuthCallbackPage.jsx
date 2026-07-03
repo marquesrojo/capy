@@ -122,6 +122,7 @@ export default function AuthCallbackPage() {
         ) : (
           <p className="text-smoke-400 text-sm">Verificando tu cuenta...</p>
         )}
+        <p className="text-smoke-700 text-[9px] mt-4">v4</p>
       </div>
     </div>
   )
