@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet, Link } from 'react-rout
 import { AuthProvider } from './hooks/useAuth'
 import { CustomerProvider } from './hooks/useCustomer'
 import { CartProvider } from './hooks/useCart'
-import { RequireCustomer, RequireStaff, RequireAdmin } from './components/ProtectedRoute'
+import { RequireCustomer, RequireStaff, RequireAdmin, RequireSuperAdmin } from './components/ProtectedRoute'
 import { VenueProvider, useVenue } from './hooks/useVenue'
 
 import HubPage from './pages/HubPage'
@@ -42,6 +42,7 @@ import CamautAppPage from './pages/camaut/CamautAppPage'
 import PrivacidadPage from './pages/camaut/PrivacidadPage'
 import TerminosPage from './pages/camaut/TerminosPage'
 import WaiterPublicPage from './pages/camaut/WaiterPublicPage'
+import SuperAdminPage from './pages/admin/SuperAdminPage'
 import WaiterCVPage from './pages/camaut/WaiterCVPage'
 
 function VenueGuard() {
@@ -280,6 +281,14 @@ export default function App() {
                   <RequireStaff>
                     <ShiftSummaryPage />
                   </RequireStaff>
+                }
+              />
+              <Route
+                path="/admin/superadmin"
+                element={
+                  <RequireSuperAdmin>
+                    <SuperAdminPage />
+                  </RequireSuperAdmin>
                 }
               />
 

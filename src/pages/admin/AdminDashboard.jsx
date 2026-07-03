@@ -58,7 +58,7 @@ function AdminDashboardInner() {
   const [hasProducts, setHasProducts] = useState(true)
   const [hasStaff, setHasStaff] = useState(true)
   const [hasLocations, setHasLocations] = useState(true)
-  const { signOut, profile, venueId } = useAuth()
+  const { signOut, profile, venueId, isSuperAdmin } = useAuth()
 
   useEffect(() => {
     if (!venueId) return
@@ -344,6 +344,11 @@ function AdminDashboardInner() {
             </svg>
             {refreshing ? 'Actualizando...' : 'Actualizar'}
           </button>
+          {isSuperAdmin && (
+            <Link to="/admin/superadmin" className="text-ember-500 text-xs underline font-semibold">
+              Superadmin
+            </Link>
+          )}
           <Link to="/admin/historial" className="text-smoke-400 text-xs underline">
             Historial
           </Link>
