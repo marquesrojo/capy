@@ -17,7 +17,7 @@ UPDATE profiles SET venue_id = '00000000-0000-0000-0000-000000000001' WHERE role
 -- Ampliar roles permitidos
 ALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
 ALTER TABLE profiles ADD CONSTRAINT profiles_role_check
-  CHECK (role IN ('cliente', 'admin', 'cocina', 'camarero', 'propietario'));
+  CHECK (role IN ('cliente', 'admin', 'cocina', 'camarero', 'propietario', 'superadmin'));
 
 -- ============================================================
 -- camarero_venues: un camarero puede estar en varios venues
