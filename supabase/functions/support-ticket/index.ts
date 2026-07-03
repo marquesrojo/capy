@@ -18,9 +18,19 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   )
 
+  // Extraer email del usuario desde el token JWT
+  let staffEmail: string | null = null
+  const authHeader = req.headers.get('Authorization')
+  const token = authHeader?.replace('Bearer ', '')
+  if (token) {
+    const { data: { user } } = await supabase.auth.getUser(token)
+    staffEmail = user?.email || null
+  }
+
   await supabase.from('support_tickets').insert({
     staff_id: staff_id || null,
     staff_name: staff_name || null,
+    staff_email: staffEmail,
     message: message.trim(),
   })
 
@@ -39,6 +49,7 @@ Deno.serve(async (req) => {
         html: `
           <h2>Nuevo ticket de soporte</h2>
           <p><b>De:</b> ${staff_name || 'Sin nombre'}</p>
+          ${staffEmail ? `<p><b>Email:</b> ${staffEmail}</p>` : ''}
           <p><b>Mensaje:</b></p>
           <p>${message.trim().replace(/\n/g, '<br>')}</p>
         `,

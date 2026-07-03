@@ -638,6 +638,18 @@ function SoporteTab({ staffId, staffName }) {
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
+  const [tickets, setTickets] = useState([])
+
+  useEffect(() => {
+    if (!staffId) return
+    supabaseStaff
+      .from('support_tickets')
+      .select('id, message, status, response, created_at')
+      .eq('staff_id', staffId)
+      .order('created_at', { ascending: false })
+      .limit(10)
+      .then(({ data }) => setTickets(data || []))
+  }, [staffId, sent])
 
   async function handleSend() {
     if (!message.trim()) return
@@ -683,12 +695,43 @@ function SoporteTab({ staffId, staffName }) {
 
   return (
     <div className="space-y-4">
+      {/* Historial de tickets */}
+      {tickets.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide">Mis mensajes anteriores</p>
+          {tickets.map(t => {
+            const elapsed = Math.round((Date.now() - new Date(t.created_at).getTime()) / 60000)
+            const timeLabel = elapsed < 60 ? `${elapsed}m` : elapsed < 1440 ? `${Math.round(elapsed / 60)}h` : `${Math.round(elapsed / 1440)}d`
+            return (
+              <div key={t.id} className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
+                <div className="flex items-center justify-between mb-1">
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                    t.status === 'resolved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                  }`}>
+                    {t.status === 'resolved' ? 'Respondido' : 'Pendiente'}
+                  </span>
+                  <span className="text-[#B0BEC5] text-xs">{timeLabel}</span>
+                </div>
+                <p className="text-[#8896A5] text-sm mt-1">{t.message}</p>
+                {t.response && (
+                  <div className="mt-2 bg-[#E8F5F5] rounded-xl px-3 py-2">
+                    <p className="text-[#008080] text-[10px] font-bold uppercase mb-0.5">Respuesta de Capy</p>
+                    <p className="text-[#1A2A3A] text-sm">{t.response}</p>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Nuevo mensaje */}
+      <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide">Nuevo mensaje</p>
       <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
         <p className="text-[#8896A5] text-xs mb-1">De</p>
         <p className="font-semibold text-[#1A2A3A] text-sm">{staffName || 'Camarero'}</p>
       </div>
       <div>
-        <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-2">Mensaje</p>
         <textarea
           value={message}
           onChange={e => setMessage(e.target.value)}

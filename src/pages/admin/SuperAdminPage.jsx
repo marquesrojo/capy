@@ -223,9 +223,11 @@ function SoporteTab() {
     setLoading(false)
   }
 
-  async function resolve(id) {
-    await supabaseStaff.from('support_tickets').update({ status: 'resolved' }).eq('id', id)
-    setTickets(prev => prev.map(t => t.id === id ? { ...t, status: 'resolved' } : t))
+  async function resolve(id, response) {
+    const updates = { status: 'resolved', responded_at: new Date().toISOString() }
+    if (response?.trim()) updates.response = response.trim()
+    await supabaseStaff.from('support_tickets').update(updates).eq('id', id)
+    setTickets(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t))
   }
 
   if (loading) return <p className="text-smoke-500 text-sm">Cargando...</p>
@@ -242,7 +244,7 @@ function SoporteTab() {
         <div className="space-y-2">
           <p className="text-smoke-500 text-xs font-semibold uppercase tracking-wide">Abiertos · {open.length}</p>
           {open.map(t => (
-            <TicketCard key={t.id} ticket={t} onResolve={() => resolve(t.id)} />
+            <TicketCard key={t.id} ticket={t} onResolve={(response) => resolve(t.id, response)} />
           ))}
         </div>
       )}
@@ -259,6 +261,10 @@ function SoporteTab() {
 }
 
 function TicketCard({ ticket, onResolve }) {
+  const [response, setResponse] = useState('')
+  const [showReply, setShowReply] = useState(false)
+  const [saving, setSaving] = useState(false)
+
   const elapsed = Math.round((Date.now() - new Date(ticket.created_at).getTime()) / 60000)
   const timeLabel = elapsed < 60
     ? `${elapsed}m`
@@ -266,25 +272,73 @@ function TicketCard({ ticket, onResolve }) {
       ? `${Math.round(elapsed / 60)}h`
       : `${Math.round(elapsed / 1440)}d`
 
+  async function handleResolve() {
+    setSaving(true)
+    await onResolve(response)
+    setSaving(false)
+    setShowReply(false)
+  }
+
   return (
     <div className={`bg-carbon-900 border rounded-xl px-4 py-3 ${
       ticket.status === 'open' ? 'border-ember-500/40' : 'border-carbon-700 opacity-60'
     }`}>
       <div className="flex items-center justify-between mb-1">
-        <p className="text-smoke-300 text-sm font-medium">{ticket.staff_name || 'Anónimo'}</p>
-        <div className="flex items-center gap-2">
-          <span className="text-smoke-500 text-xs">{timeLabel}</span>
-          {ticket.status === 'open' && onResolve && (
-            <button
-              onClick={onResolve}
-              className="text-[10px] px-2.5 py-0.5 rounded-full border border-emerald-500/40 text-emerald-500"
-            >
-              Resolver
-            </button>
+        <div>
+          <p className="text-smoke-300 text-sm font-medium">{ticket.staff_name || 'Anónimo'}</p>
+          {ticket.staff_email && (
+            <p className="text-smoke-500 text-xs font-mono">{ticket.staff_email}</p>
           )}
         </div>
+        <span className="text-smoke-500 text-xs">{timeLabel}</span>
       </div>
-      <p className="text-smoke-400 text-sm whitespace-pre-wrap">{ticket.message}</p>
+
+      <p className="text-smoke-400 text-sm whitespace-pre-wrap mt-1">{ticket.message}</p>
+
+      {ticket.response && (
+        <div className="mt-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
+          <p className="text-emerald-500 text-[10px] font-semibold uppercase mb-1">Respuesta</p>
+          <p className="text-smoke-300 text-sm whitespace-pre-wrap">{ticket.response}</p>
+        </div>
+      )}
+
+      {ticket.status === 'open' && onResolve && (
+        <div className="mt-2">
+          {!showReply ? (
+            <button
+              onClick={() => setShowReply(true)}
+              className="text-[10px] px-2.5 py-1 rounded-full border border-emerald-500/40 text-emerald-500"
+            >
+              Responder y resolver
+            </button>
+          ) : (
+            <div className="space-y-2 mt-1">
+              <textarea
+                value={response}
+                onChange={e => setResponse(e.target.value)}
+                placeholder="Escribí tu respuesta (opcional)..."
+                rows={3}
+                className="w-full bg-carbon-800 border border-carbon-600 rounded-xl px-3 py-2 text-sm text-smoke-200 resize-none focus:outline-none focus:border-emerald-500"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleResolve}
+                  disabled={saving}
+                  className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-semibold rounded-lg disabled:opacity-50"
+                >
+                  {saving ? 'Guardando...' : 'Resolver'}
+                </button>
+                <button
+                  onClick={() => setShowReply(false)}
+                  className="px-3 py-1.5 border border-carbon-600 text-smoke-400 text-xs rounded-lg"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
