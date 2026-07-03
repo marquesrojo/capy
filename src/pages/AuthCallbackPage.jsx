@@ -14,7 +14,18 @@ export default function AuthCallbackPage() {
       let { data: { session }, error } = await supabaseStaff.auth.getSession()
 
       if (!session) {
-        // PKCE flow: code in query param
+        // Email confirmation via token_hash (Supabase PKCE email OTP flow)
+        const tokenHash = searchParams.get('token_hash')
+        const type = searchParams.get('type')
+        if (tokenHash && type) {
+          const result = await supabaseStaff.auth.verifyOtp({ token_hash: tokenHash, type })
+          session = result.data?.session ?? null
+          error = result.error ?? null
+        }
+      }
+
+      if (!session) {
+        // OAuth PKCE flow: code in query param
         const code = searchParams.get('code')
         if (code) {
           const result = await supabaseStaff.auth.exchangeCodeForSession(code)
