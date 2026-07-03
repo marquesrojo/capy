@@ -9,33 +9,36 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     async function handleCallback() {
-      await new Promise(r => setTimeout(r, 500))
+      let session = null
+      let authError = null
 
-      let { data: { session }, error } = await supabaseStaff.auth.getSession()
+      // 1. Already authenticated (e.g., returning user)
+      const { data: { session: existing } } = await supabaseStaff.auth.getSession()
+      session = existing
 
+      // 2. Email confirmation via token_hash (Supabase PKCE email OTP)
       if (!session) {
-        // Email confirmation via token_hash (Supabase PKCE email OTP flow)
         const tokenHash = searchParams.get('token_hash')
         const type = searchParams.get('type')
         if (tokenHash && type) {
           const result = await supabaseStaff.auth.verifyOtp({ token_hash: tokenHash, type })
           session = result.data?.session ?? null
-          error = result.error ?? null
+          authError = result.error ?? null
         }
       }
 
+      // 3. OAuth PKCE: code in query param
       if (!session) {
-        // OAuth PKCE flow: code in query param
         const code = searchParams.get('code')
         if (code) {
           const result = await supabaseStaff.auth.exchangeCodeForSession(code)
           session = result.data?.session ?? null
-          error = result.error ?? null
+          authError = result.error ?? null
         }
       }
 
+      // 4. Implicit flow: tokens in URL hash
       if (!session) {
-        // Implicit flow: tokens in URL hash
         const hash = window.location.hash
         if (hash.includes('access_token=')) {
           const hashParams = new URLSearchParams(hash.slice(1))
@@ -47,19 +50,19 @@ export default function AuthCallbackPage() {
               refresh_token: refreshToken || ''
             })
             session = result.data?.session ?? null
-            error = result.error ?? null
+            authError = result.error ?? null
           }
         }
       }
 
-      if (error || !session) {
+      if (authError || !session) {
         const hash = window.location.hash
         const postAuth = localStorage.getItem('capy-post-auth')
         localStorage.removeItem('capy-post-auth')
         if (hash.includes('error=access_denied')) {
           setError('El link expiró. Registrate de nuevo.')
         } else {
-          setError(error?.message || 'No pudimos verificar tu cuenta. Intentá de nuevo.')
+          setError(authError?.message || 'No pudimos verificar tu cuenta. Intentá de nuevo.')
         }
         setTimeout(() => navigate(postAuth === 'camaut' ? '/camaut/login' : '/admin/login'), 3000)
         return

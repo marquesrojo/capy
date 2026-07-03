@@ -16,7 +16,8 @@ export const supabaseStaff = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    storageKey: 'sb-staff-auth'
+    storageKey: 'sb-staff-auth',
+    detectSessionInUrl: false // AuthCallbackPage handles all URL params manually
   }
 })
 
