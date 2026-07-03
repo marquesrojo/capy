@@ -12,7 +12,7 @@ export function RequireCustomer({ children }) {
 }
 
 export function RequireStaff({ children }) {
-  const { user, profile, loading, profileLoading, isStaff, isAdmin, venueId } = useAuth()
+  const { user, profile, loading, profileLoading, isStaff, isAdmin, isSuperAdmin, venueId } = useAuth()
   const location = useLocation()
 
   if (venueId) setActiveVenueId(venueId)
@@ -21,6 +21,9 @@ export function RequireStaff({ children }) {
   if (!user) return <Navigate to="/admin/login" replace />
   if (!profile) return <Navigate to="/admin/login" replace />
   if (!isStaff) return <Navigate to="/identificacion" replace />
+  if (isSuperAdmin && (location.pathname === '/admin' || location.pathname === '/admin/')) {
+    return <Navigate to="/admin/superadmin" replace />
+  }
   if (isAdmin && !venueId) return <Navigate to="/admin/onboarding" replace />
   if (profile?.role === 'camarero' && (location.pathname === '/admin' || location.pathname === '/admin/')) {
     return <Navigate to="/admin/tomar" replace />
@@ -31,6 +34,16 @@ export function RequireStaff({ children }) {
       {children}
     </>
   )
+}
+
+export function RequireSuperAdmin({ children }) {
+  const { user, profile, loading, profileLoading, isSuperAdmin } = useAuth()
+
+  if (loading || profileLoading) return <FullScreenLoader />
+  if (!user) return <Navigate to="/admin/login" replace />
+  if (!profile) return <Navigate to="/admin/login" replace />
+  if (!isSuperAdmin) return <Navigate to="/admin" replace />
+  return children
 }
 
 export function RequireAdmin({ children }) {

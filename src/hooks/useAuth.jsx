@@ -78,7 +78,8 @@ export function AuthProvider({ children }) {
     loading,
     profileLoading,
     venueId: profile?.venue_id || null,
-    isStaff: profile?.role === 'admin' || profile?.role === 'camarero' || profile?.role === 'propietario',
+    isSuperAdmin: profile?.role === 'superadmin',
+    isStaff: profile?.role === 'admin' || profile?.role === 'camarero' || profile?.role === 'propietario' || profile?.role === 'superadmin',
     isAdmin: profile?.role === 'admin' || profile?.role === 'propietario',
     signInWithEmail,
     signOut
