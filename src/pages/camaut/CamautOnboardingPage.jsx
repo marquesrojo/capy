@@ -79,27 +79,51 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
     setSaving(true)
     try {
       const session = await getSession()
-      if (session) {
+      if (session && !venueId) {
+        const userId = session.user.id
+        const name = fullName.trim() || session.user.user_metadata?.full_name || 'Camarero'
+        const slug = `camaut-${userId.replace(/-/g, '').slice(0, 12)}`
 
-        if (!venueId) {
-          const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/register-camaut`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-            },
-            body: JSON.stringify({
-              userId: session.user.id,
-              fullName: fullName.trim() || session.user.user_metadata?.full_name || 'Camarero',
-            })
-          })
-          const result = await res.json()
-          if (!result.success) {
-            alert('Error: ' + (result.error || 'No se pudo crear tu cuenta'))
+        // Create autonomous venue
+        let { data: venue, error: venueError } = await supabaseStaff
+          .from('venues')
+          .insert({ name: `${name} — Capy`, slug, owner_id: userId, is_active: true })
+          .select('id')
+          .single()
+
+        if (venueError) {
+          if (venueError.code === '23505') {
+            // Venue already exists (retry) — look it up
+            const res = await supabaseStaff.from('venues').select('id').eq('slug', slug).maybeSingle()
+            venue = res.data
+          } else {
+            alert('Error: ' + venueError.message)
             setSaving(false)
             return
           }
         }
+
+        if (!venue?.id) {
+          alert('Error: No se pudo crear tu cuenta')
+          setSaving(false)
+          return
+        }
+
+        // Update profile with autonomous venue (upsert handles missing profile row)
+        const { error: profileError } = await supabaseStaff
+          .from('profiles')
+          .upsert({ id: userId, venue_id: venue.id, role: 'camarero', full_name: name, is_autonomous: true }, { onConflict: 'id' })
+
+        if (profileError) {
+          alert('Error: ' + profileError.message)
+          setSaving(false)
+          return
+        }
+
+        // Create staff_names record for the autonomous venue
+        await supabaseStaff
+          .from('staff_names')
+          .insert({ venue_id: venue.id, full_name: name, profile_id: userId, xp: 0 })
       }
       onComplete()
     } catch (err) {
