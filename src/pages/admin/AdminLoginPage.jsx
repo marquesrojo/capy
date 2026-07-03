@@ -20,6 +20,21 @@ export default function AdminLoginPage() {
   const [loginError, setLoginError] = useState('')
   const [loginLoading, setLoginLoading] = useState(false)
 
+  // Recovery
+  const [showRecovery, setShowRecovery] = useState(false)
+  const [recoverySent, setRecoverySent] = useState(false)
+  const [recoveryLoading, setRecoveryLoading] = useState(false)
+
+  async function handleRecovery(e) {
+    e.preventDefault()
+    setRecoveryLoading(true)
+    await supabaseStaff.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/auth/callback?type=admin`
+    })
+    setRecoveryLoading(false)
+    setRecoverySent(true)
+  }
+
   // Registro nuevo por email
   const [regEmail, setRegEmail] = useState('')
   const [regPassword, setRegPassword] = useState('')
@@ -137,6 +152,46 @@ export default function AdminLoginPage() {
               {loginLoading ? 'Cargando...' : 'Ingresar'}
             </button>
           </form>
+
+          {!showRecovery && (
+            <button
+              type="button"
+              onClick={() => setShowRecovery(true)}
+              className="w-full text-smoke-500 text-xs underline pt-1"
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
+          )}
+
+          {showRecovery && (
+            <div className="pt-1">
+              {recoverySent ? (
+                <p className="text-smoke-400 text-xs text-center">
+                  Si el email existe, te mandamos el link de recuperación.
+                </p>
+              ) : (
+                <form onSubmit={handleRecovery} className="space-y-2">
+                  {!email && (
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      placeholder="Tu email"
+                      className="input text-sm"
+                    />
+                  )}
+                  <button
+                    type="submit"
+                    disabled={recoveryLoading}
+                    className="w-full border border-carbon-600 text-smoke-400 text-xs font-medium py-2 rounded-xl disabled:opacity-50"
+                  >
+                    {recoveryLoading ? 'Enviando...' : `Enviar link a ${email || 'mi email'}`}
+                  </button>
+                </form>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Divider */}
