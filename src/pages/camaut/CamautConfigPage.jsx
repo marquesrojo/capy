@@ -942,7 +942,11 @@ function ImportarConIA({ venueId, menuId, onImported }) {
         setStep('review')
       } catch (err) {
         console.error(err)
-        setError('No se pudo analizar la imagen: ' + err.message)
+        const msg = err.message || ''
+        const isOverloaded = /high demand|overload|capacity|try again later/i.test(msg)
+        setError(isOverloaded
+          ? 'La IA tiene mucha demanda en este momento. Esperá unos minutos e intentá de nuevo.'
+          : 'No se pudo analizar la imagen. Intentá de nuevo.')
         setStep('idle')
       }
     }

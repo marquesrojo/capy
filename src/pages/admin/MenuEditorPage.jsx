@@ -439,7 +439,11 @@ function ImportarConIA({ venueId, onImported }) {
         setDetected(items.map(i => ({ ...i, selected: true })))
         setStep('review')
       } catch (err) {
-        setError('No se pudo analizar la imagen: ' + err.message)
+        const msg = err.message || ''
+        const isOverloaded = /high demand|overload|capacity|try again later/i.test(msg)
+        setError(isOverloaded
+          ? 'La IA tiene mucha demanda en este momento. Esperá unos minutos e intentá de nuevo.'
+          : 'No se pudo analizar la imagen. Intentá de nuevo.')
         setStep('idle')
       }
     }
