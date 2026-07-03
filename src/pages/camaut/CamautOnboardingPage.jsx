@@ -13,15 +13,18 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
   const [searchError, setSearchError] = useState('')
   const [showVincular, setShowVincular] = useState(false)
 
+  async function getSession() {
+    const { data: { session: s1 } } = await supabaseCamaut.auth.getSession()
+    if (s1) return s1
+    const { data: { session: s2 } } = await supabaseStaff.auth.getSession()
+    return s2
+  }
+
   async function saveNombre() {
     if (!fullName.trim()) return
     setSaving(true)
-    const { data: { session } } = await supabaseCamaut.auth.getSession()
+    const session = await getSession()
     if (session) {
-      await supabaseStaff.auth.setSession({
-        access_token: session.access_token,
-        refresh_token: session.refresh_token
-      })
       if (venueId) {
         await supabaseStaff.from('staff_names').update({ full_name: fullName.trim() }).eq('venue_id', venueId)
         await supabaseStaff.from('profiles').update({ full_name: fullName.trim() }).eq('id', session.user.id)
@@ -52,12 +55,8 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
   async function vincular() {
     if (!linkedVenue) return
     setSaving(true)
-    const { data: { session } } = await supabaseCamaut.auth.getSession()
+    const session = await getSession()
     if (session) {
-      await supabaseStaff.auth.setSession({
-        access_token: session.access_token,
-        refresh_token: session.refresh_token
-      })
       await supabaseStaff.from('venue_staff').insert({
         venue_id: linkedVenue.id,
         staff_profile_id: session.user.id,
@@ -79,12 +78,8 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
   async function finishOnboarding() {
     setSaving(true)
     try {
-      const { data: { session } } = await supabaseCamaut.auth.getSession()
+      const session = await getSession()
       if (session) {
-        await supabaseStaff.auth.setSession({
-          access_token: session.access_token,
-          refresh_token: session.refresh_token
-        })
 
         if (!venueId) {
           const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/register-camaut`, {
