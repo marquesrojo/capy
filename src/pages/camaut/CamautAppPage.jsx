@@ -58,15 +58,26 @@ export default function CamautAppPage() {
 
   async function checkAuth() {
     try {
-      const { data: { session } } = await supabaseCamaut.auth.getSession()
+      let { data: { session } } = await supabaseCamaut.auth.getSession()
+
+      if (!session) {
+        // Fallback: unified auth flow uses supabaseStaff — copy session to camaut client
+        const { data: staffData } = await supabaseStaff.auth.getSession()
+        if (staffData.session) {
+          await supabaseCamaut.auth.setSession({
+            access_token: staffData.session.access_token,
+            refresh_token: staffData.session.refresh_token
+          })
+          session = staffData.session
+        }
+      } else {
+        await supabaseStaff.auth.setSession({
+          access_token: session.access_token,
+          refresh_token: session.refresh_token
+        })
+      }
+
       if (!session) { navigate('/camaut/login'); return }
-
-      await new Promise(r => setTimeout(r, 500))
-
-      await supabaseStaff.auth.setSession({
-        access_token: session.access_token,
-        refresh_token: session.refresh_token
-      })
 
       const { data: profile } = await supabaseCamaut
         .from('profiles')

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { supabaseCamaut } from '../../lib/supabase'
+import { supabaseStaff } from '../../lib/supabase'
 
 export default function CamautRegisterPage() {
   const navigate = useNavigate()
@@ -11,10 +11,11 @@ export default function CamautRegisterPage() {
 
   async function handleGoogleRegister() {
     setGoogleLoading(true)
-    await supabaseCamaut.auth.signInWithOAuth({
+    localStorage.setItem('capy-post-auth', 'camaut')
+    await supabaseStaff.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/camaut/callback`
+        redirectTo: `${window.location.origin}/auth/callback`
       }
     })
   }
@@ -44,11 +45,12 @@ export default function CamautRegisterPage() {
 
     try {
       // 1. Crear usuario en Supabase Auth
-      const { data: authData, error: authError } = await supabaseCamaut.auth.signUp({
+      localStorage.setItem('capy-post-auth', 'camaut')
+      const { data: authData, error: authError } = await supabaseStaff.auth.signUp({
         email: email.trim(),
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/camaut/callback`,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
             full_name: fullName.trim(),
             role: 'camarero'

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { supabaseCamaut, supabaseStaff } from '../lib/supabase'
+import { supabaseStaff } from '../lib/supabase'
 
 export default function AuthCallbackPage() {
   const navigate = useNavigate()
@@ -9,19 +9,14 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     async function handleCallback() {
-      await new Promise(r => setTimeout(r, 1000))
+      await new Promise(r => setTimeout(r, 500))
 
-      const isAdmin = searchParams.get('type') === 'admin'
-      const client = isAdmin ? supabaseStaff : supabaseCamaut
+      let { data: { session }, error } = await supabaseStaff.auth.getSession()
 
-      let { data: { session }, error } = await client.auth.getSession()
-
-      // Both clients have detectSessionInUrl:false so neither auto-exchanges OAuth codes.
-      // Explicitly exchange the code here with the correct client.
       if (!session) {
         const code = searchParams.get('code')
         if (code) {
-          const result = await client.auth.exchangeCodeForSession(code)
+          const result = await supabaseStaff.auth.exchangeCodeForSession(code)
           session = result.data?.session ?? null
           error = result.error ?? null
         }
@@ -29,37 +24,38 @@ export default function AuthCallbackPage() {
 
       if (error || !session) {
         const hash = window.location.hash
+        const postAuth = localStorage.getItem('capy-post-auth')
+        localStorage.removeItem('capy-post-auth')
         if (hash.includes('error=access_denied')) {
           setError('El link expiró. Registrate de nuevo.')
         } else {
           setError('No pudimos verificar tu cuenta. Intentá de nuevo.')
         }
-        setTimeout(() => navigate(isAdmin ? '/admin/login' : '/camaut/login'), 3000)
+        setTimeout(() => navigate(postAuth === 'camaut' ? '/camaut/login' : '/admin/login'), 3000)
         return
       }
 
-      const { data: profile } = await client
+      // Camaut flow: always go to camaut app
+      const postAuth = localStorage.getItem('capy-post-auth')
+      if (postAuth === 'camaut') {
+        localStorage.removeItem('capy-post-auth')
+        navigate('/camaut/app')
+        return
+      }
+
+      // Admin/staff flow
+      const { data: profile } = await supabaseStaff
         .from('profiles')
-        .select('role, is_autonomous, venue_id')
+        .select('role, venue_id')
         .eq('id', session.user.id)
         .single()
 
-      if (isAdmin) {
-        if (profile?.role === 'camarero') {
-          navigate('/admin/tomar')
-        } else if (!profile?.venue_id) {
-          navigate('/admin/onboarding')
-        } else {
-          navigate('/admin')
-        }
+      if (profile?.role === 'camarero') {
+        navigate('/admin/tomar')
+      } else if (!profile?.venue_id) {
+        navigate('/admin/onboarding')
       } else {
-        if (profile?.is_autonomous) {
-          navigate('/camaut/app')
-        } else if (['admin', 'camarero', 'propietario', 'superadmin', 'cocina'].includes(profile?.role)) {
-          navigate('/admin')
-        } else {
-          navigate('/camaut/app')
-        }
+        navigate('/admin')
       }
     }
 
