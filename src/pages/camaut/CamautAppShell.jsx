@@ -43,8 +43,8 @@ function getWeekKey() {
 }
 
 const MICAPY_ITEMS = [
-  { id: 'perfil', label: 'Mi Perfil', desc: 'Nombre, foto, datos', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> },
-  { id: 'perfil_pro', label: 'Perfil Pro', desc: 'CV gastronómico', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> },
+  { id: 'invitar', label: 'Invitar', desc: 'Sumá colegas o locales', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> },
+  { id: 'perfil', label: 'Perfil', desc: 'Datos personales y CV Pro', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> },
   { id: 'carta', label: 'Mis Cartas', desc: 'Menúes y cartas propias', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> },
   { id: 'notas', label: 'Notas rápidas', desc: 'Chips para ítems', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> },
   { id: 'vincular', label: 'Vincular', desc: 'Conectar con restaurantes', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
@@ -276,7 +276,8 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                   <button
                     key={item.id}
                     onClick={() => {
-                      if (item.id === 'progreso') { setMicapyTab('progreso'); setMicapySubTab('carrera') }
+                      if (item.id === 'perfil') { setMicapyTab('perfil'); setMicapySubTab('datos') }
+                      else if (item.id === 'progreso') { setMicapyTab('progreso'); setMicapySubTab('carrera') }
                       else if (item.id === 'estadisticas') { setMicapyTab('estadisticas'); setMicapySubTab('indicadores') }
                       else if (item.id === 'social') { setMicapyTab('social'); setMicapySubTab('pagina') }
                       else { setMicapyTab(item.id) }
@@ -302,8 +303,17 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
               </div>
 
               {/* Sub-tabs para ítems fusionados */}
-              {['progreso', 'estadisticas', 'social'].includes(micapyTab) && (
+              {['perfil', 'progreso', 'estadisticas', 'social'].includes(micapyTab) && (
                 <div className="bg-white border-b border-black/8 px-4 flex gap-1 pb-0">
+                  {micapyTab === 'perfil' && [
+                    { id: 'datos', label: 'Mis Datos' },
+                    { id: 'pro', label: 'CV Pro' },
+                  ].map(s => (
+                    <button key={s.id} onClick={() => setMicapySubTab(s.id)}
+                      className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-colors ${micapySubTab === s.id ? 'border-[#008080] text-[#008080]' : 'border-transparent text-[#8896A5]'}`}>
+                      {s.label}
+                    </button>
+                  ))}
                   {micapyTab === 'progreso' && [
                     { id: 'carrera', label: 'Mi Carrera' },
                     { id: 'ranking', label: 'Ranking' },
@@ -380,7 +390,8 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                   </div>
                 )}
                 {micapyTab === 'vincular' && <VincularTab />}
-                {micapyTab === 'perfil_pro' && (
+                {micapyTab === 'perfil' && micapySubTab === 'datos' && <CamautConfigPage key="perfil" embedded initialTab="perfil" />}
+                {micapyTab === 'perfil' && micapySubTab === 'pro' && (
                   <>
                     <button
                       onClick={() => navigate(`/cv/${staffAlias || staffId}`)}
@@ -405,7 +416,6 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                 )}
                 {micapyTab === 'carta' && <CamautConfigPage key="carta" embedded initialTab="carta" />}
                 {micapyTab === 'notas' && <CamautConfigPage key="notas" embedded initialTab="notas" />}
-                {micapyTab === 'perfil' && <CamautConfigPage key="perfil" embedded initialTab="perfil" />}
                 {micapyTab === 'ubicaciones' && <UbicacionesViewer linkedVenues={linkedVenues} />}
                 {micapyTab === 'soporte' && <SoporteTab staffId={staffId} staffName={staffName} />}
                 {micapyTab === 'invitar' && <InvitarTab staffName={staffName} />}
