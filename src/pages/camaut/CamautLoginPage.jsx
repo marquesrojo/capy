@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { supabaseCamaut } from '../../lib/supabase'
+import { supabaseStaff } from '../../lib/supabase'
 
 export default function CamautLoginPage() {
   const navigate = useNavigate()
@@ -15,7 +15,7 @@ export default function CamautLoginPage() {
     setLoading(true)
     setError('')
 
-    const { error: loginError } = await supabaseCamaut.auth.signInWithPassword({
+    const { error: loginError } = await supabaseStaff.auth.signInWithPassword({
       email: email.trim(),
       password
     })
@@ -31,7 +31,8 @@ export default function CamautLoginPage() {
 
   async function handleGoogleLogin() {
     setGoogleLoading(true)
-    await supabaseCamaut.auth.signInWithOAuth({
+    localStorage.setItem('capy-post-auth', 'camaut')
+    await supabaseStaff.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`

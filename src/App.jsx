@@ -38,6 +38,7 @@ import PublicOrderPage from './pages/client/PublicOrderPage'
 import CamautLandingPage from './pages/camaut/CamautLandingPage'
 import CamautRegisterPage from './pages/camaut/CamautRegisterPage'
 import CamautLoginPage from './pages/camaut/CamautLoginPage'
+import CamautCallbackPage from './pages/camaut/CamautCallbackPage'
 import CamautAppPage from './pages/camaut/CamautAppPage'
 import PrivacidadPage from './pages/camaut/PrivacidadPage'
 import TerminosPage from './pages/camaut/TerminosPage'
@@ -298,6 +299,7 @@ export default function App() {
               <Route path="/camaut" element={<CamautLandingPage />} />
               <Route path="/camaut/registro" element={<CamautRegisterPage />} />
               <Route path="/camaut/login" element={<CamautLoginPage />} />
+              <Route path="/camaut/callback" element={<CamautCallbackPage />} />
               <Route path="/camaut/vincular" element={<CamautVincularPage />} />
               <Route path="/camaut/app" element={<CamautAppPage />} />
               <Route path="/privacidad" element={<PrivacidadPage />} />

@@ -49,6 +49,11 @@ export function AuthProvider({ children }) {
         }
         // PGRST116 = no rows — trigger may have failed to create the profile
         if (error?.code === 'PGRST116') {
+          // Don't auto-create propietario for camaut registrations
+          if (localStorage.getItem('capy-post-auth') === 'camaut') {
+            setProfileLoading(false)
+            return
+          }
           const { data: created } = await supabaseStaff
             .from('profiles')
             .insert({ id: session.user.id, role: 'propietario' })
