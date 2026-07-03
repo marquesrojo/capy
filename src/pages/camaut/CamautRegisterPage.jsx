@@ -48,7 +48,8 @@ export default function CamautRegisterPage() {
         email: email.trim(),
         password,
         options: {
-          data: { 
+          emailRedirectTo: `${window.location.origin}/camaut/callback`,
+          data: {
             full_name: fullName.trim(),
             role: 'camarero'
           }
