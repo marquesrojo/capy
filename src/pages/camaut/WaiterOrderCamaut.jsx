@@ -61,7 +61,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
       supabaseStaff.from('categories').select('id, name, menu_id').eq('venue_id', activeVenueId).order('sort_order'),
       supabaseStaff.from('products').select('id, name, price, category_id').eq('venue_id', activeVenueId).eq('is_available', true),
       supabaseStaff.from('venues').select('whatsapp_number').eq('id', activeVenueId).single(),
-      supabaseStaff.from('staff_names').select('id').eq('venue_id', venueId).single(),
+      supabaseStaff.from('staff_names').select('id').eq('venue_id', venueId).limit(1).maybeSingle(),
       supabaseStaff.from('venue_zones').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order'),      supabaseStaff.from('quick_notes').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order'),
       supabaseStaff.from('staff_menus').select('*').eq('venue_id', activeVenueId).order('created_at')
     ])
