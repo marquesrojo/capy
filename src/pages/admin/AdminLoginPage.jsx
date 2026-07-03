@@ -28,17 +28,20 @@ export default function AdminLoginPage() {
   async function handleRecovery(e) {
     e.preventDefault()
     setRecoveryLoading(true)
-    await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-recovery-email`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-      },
-      body: JSON.stringify({
-        email: email.trim(),
-        redirect_to: `${window.location.origin}/auth/callback?type=admin`,
-      }),
-    })
+    try {
+      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-recovery-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          redirect_to: `${window.location.origin}/auth/callback?type=admin`,
+        }),
+      })
+    } catch (_) {}
     setRecoveryLoading(false)
     setRecoverySent(true)
   }
