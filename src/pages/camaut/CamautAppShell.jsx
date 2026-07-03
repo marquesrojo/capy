@@ -644,15 +644,27 @@ function SoporteTab({ staffId, staffName }) {
     setSending(true)
     setError('')
     try {
+      const { data: { session } } = await supabaseCamaut.auth.getSession()
+      const token = session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/support-ticket`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', apikey: import.meta.env.VITE_SUPABASE_ANON_KEY },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
         body: JSON.stringify({ staff_id: staffId, staff_name: staffName, message }),
       })
+      if (!res.ok) {
+        const text = await res.text()
+        console.error('support-ticket error:', res.status, text)
+        throw new Error(`HTTP ${res.status}`)
+      }
       const data = await res.json()
       if (!data.success) throw new Error(data.error || 'Error')
       setSent(true)
-    } catch {
+    } catch (err) {
+      console.error('support-ticket:', err)
       setError('No pudimos enviar tu mensaje. Intentá de nuevo.')
     }
     setSending(false)
