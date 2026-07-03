@@ -58,6 +58,7 @@ function AdminDashboardInner() {
   const [hasProducts, setHasProducts] = useState(true)
   const [hasStaff, setHasStaff] = useState(true)
   const [hasLocations, setHasLocations] = useState(true)
+  const [waiterCalls, setWaiterCalls] = useState([])
   const { signOut, profile, venueId, isSuperAdmin } = useAuth()
 
   useEffect(() => {
@@ -67,6 +68,7 @@ function AdminDashboardInner() {
     loadVenue()
     loadZones()
     loadOnboardingChecks()
+    loadWaiterCalls()
   }, [venueId])
 
   async function loadOnboardingChecks() {
@@ -87,6 +89,24 @@ function AdminDashboardInner() {
       .eq('venue_id', venueId)
       .order('sort_order')
     setZones(data || [])
+  }
+
+  async function loadWaiterCalls() {
+    const { data } = await supabaseStaff
+      .from('waiter_calls')
+      .select('id, location_label, called_at')
+      .eq('venue_id', venueId)
+      .is('resolved_at', null)
+      .order('called_at', { ascending: true })
+    setWaiterCalls(data || [])
+  }
+
+  async function dismissAnonCall(callId) {
+    setWaiterCalls(prev => prev.filter(c => c.id !== callId))
+    await supabaseStaff
+      .from('waiter_calls')
+      .update({ resolved_at: new Date().toISOString() })
+      .eq('id', callId)
   }
 
   async function loadVenue() {
@@ -226,6 +246,11 @@ function AdminDashboardInner() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'order_items' },
         () => load({ silent: true })
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'waiter_calls', filter: `venue_id=eq.${venueId}` },
+        () => loadWaiterCalls()
       )
       .subscribe()
 
@@ -438,6 +463,33 @@ function AdminDashboardInner() {
           Cocina
         </button>
       </div>
+
+      {waiterCalls.length > 0 && (
+        <div className="px-4 pt-4">
+          <p className="text-teal-400 text-xs font-semibold uppercase tracking-wide mb-2">
+            🔔 Llaman al camarero · {waiterCalls.length}
+          </p>
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            {waiterCalls.map(call => (
+              <div
+                key={call.id}
+                className="min-w-[160px] bg-teal-500/10 border border-teal-500/40 rounded-xl p-3 flex-shrink-0"
+              >
+                <p className="text-teal-300 font-semibold text-sm mb-0.5">📍 {call.location_label}</p>
+                <p className="text-smoke-500 text-xs mb-2">
+                  {new Date(call.called_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                </p>
+                <button
+                  onClick={() => dismissAnonCall(call.id)}
+                  className="text-smoke-400 text-xs underline"
+                >
+                  Atendido
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {view !== 'cocina' && pendingProofOrders.length > 0 && (
         <div className="px-4 pt-4">

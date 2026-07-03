@@ -3,40 +3,58 @@ import { useNavigate } from 'react-router-dom'
 import { supabaseCustomer, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useClientBase, useVenueOptional } from '../../hooks/useVenue'
 
-const STEPS = [
-  {
-    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5V4.5a1 1 0 0 1 1-1h6.5L18 9.5V19.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M11.5 3.5V9h5.5"/><path d="M8 13h8M8 16.5h5"/></svg>,
-    title: 'Mirá la carta con calma',
-    desc: 'Sin que nadie te apure'
-  },
-  {
-    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h11"/></svg>,
-    title: 'Pedí cuando quieras',
-    desc: 'A tu propio ritmo'
-  },
-  {
-    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h2M10 15h4"/></svg>,
-    title: 'Pagá como prefieras',
-    desc: 'Sin esperar la cuenta'
-  }
-]
-
 export default function IdentifyPage() {
   const navigate = useNavigate()
   const base = useClientBase()
   const venueCtx = useVenueOptional()
   const venue = venueCtx?.venue
+  const venueId = venue?.id || ACTIVE_VENUE_ID
+
   const [orderNumber, setOrderNumber] = useState('')
   const [finding, setFinding] = useState(false)
   const [error, setError] = useState('')
 
-  // Detectar si viene de un link de confirmación de email
+  // Waiter call flow
+  const [showWaiterCall, setShowWaiterCall] = useState(false)
+  const [zones, setZones] = useState([])
+  const [zonesLoading, setZonesLoading] = useState(false)
+  const [callLoading, setCallLoading] = useState(false)
+  const [callSent, setCallSent] = useState(false)
+
   useEffect(() => {
     const hash = window.location.hash
     if (hash && (hash.includes('access_token') || hash.includes('error'))) {
       navigate('/auth/callback' + hash)
     }
   }, [])
+
+  async function openWaiterCall() {
+    setShowWaiterCall(true)
+    setCallSent(false)
+    if (zones.length === 0) {
+      setZonesLoading(true)
+      const { data } = await supabaseCustomer
+        .from('venue_zones')
+        .select('id, name, type')
+        .eq('venue_id', venueId)
+        .eq('is_active', true)
+        .order('sort_order')
+        .order('name')
+      setZones(data || [])
+      setZonesLoading(false)
+    }
+  }
+
+  async function handleCallWaiter(zone) {
+    setCallLoading(true)
+    await supabaseCustomer.from('waiter_calls').insert({
+      venue_id: venueId,
+      zone_id: zone.id,
+      location_label: zone.name,
+    })
+    setCallLoading(false)
+    setCallSent(true)
+  }
 
   async function handleFindOrder(e) {
     e.preventDefault()
@@ -47,7 +65,7 @@ export default function IdentifyPage() {
     const { data } = await supabaseCustomer
       .from('orders')
       .select('id')
-      .eq('venue_id', ACTIVE_VENUE_ID)
+      .eq('venue_id', venueId)
       .eq('daily_number', parseInt(orderNumber))
       .order('created_at', { ascending: false })
       .limit(1)
@@ -62,15 +80,19 @@ export default function IdentifyPage() {
     navigate(`/pedido/${data.id}`)
   }
 
+  const mesas = zones.filter(z => z.type === 'mesa')
+  const sectores = zones.filter(z => z.type === 'zona')
+  const retiro = zones.filter(z => z.type === 'retiro')
+
   return (
     <div className="min-h-screen bg-carbon-950 flex flex-col items-center justify-center px-5 py-12 relative overflow-hidden">
 
-      {/* Glow cálido de fondo */}
       <div className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-[28rem] h-[28rem] rounded-full bg-ember-400/20 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-32 -right-16 w-72 h-72 rounded-full bg-pucara-blue-400/10 blur-3xl" />
 
-      <div className="w-full max-w-sm space-y-8 relative">
+      <div className="w-full max-w-sm space-y-6 relative">
 
+        {/* Logo + venue */}
         <div className="text-center">
           <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-white shadow-md p-2.5">
             <img
@@ -79,34 +101,29 @@ export default function IdentifyPage() {
               className="w-full h-full object-contain"
             />
           </div>
-          <h1 className="font-display text-3xl text-smoke-300 tracking-wide leading-tight">
-            Tu mesa está lista.<br />Ahora disfrutá.
+          <h1 className="font-display text-2xl text-smoke-300 tracking-wide leading-tight">
+            {venue?.name || 'Bienvenido'}
           </h1>
-          <p className="text-smoke-500 text-sm mt-3 max-w-[18rem] mx-auto leading-relaxed">
-            Pedí a tu ritmo, sin esperar al mozo y sin apuro por la cuenta.
-          </p>
+          <p className="text-smoke-500 text-sm mt-1">¿Qué querés hacer?</p>
         </div>
 
-        {/* Pasos */}
-        <div className="grid grid-cols-3 gap-2">
-          {STEPS.map((s, i) => (
-            <div key={i} className="bg-carbon-900/70 border border-carbon-700 rounded-2xl px-2 py-4 text-center">
-              <div className="w-9 h-9 rounded-xl bg-ember-500/10 text-ember-600 flex items-center justify-center mx-auto mb-2">
-                {s.icon}
-              </div>
-              <p className="text-smoke-300 text-[11px] font-semibold leading-snug">{s.title}</p>
-              <p className="text-smoke-500 text-[10px] mt-0.5 leading-snug">{s.desc}</p>
-            </div>
-          ))}
+        {/* Acciones principales */}
+        <div className="space-y-3">
+          <button
+            onClick={openWaiterCall}
+            className="w-full bg-carbon-900 border border-carbon-700 hover:border-teal-500/60 hover:bg-carbon-800 text-smoke-300 font-semibold py-5 rounded-2xl text-base flex items-center justify-center gap-3 transition-colors"
+          >
+            <span className="text-2xl">🔔</span>
+            Llamar al camarero
+          </button>
+          <button
+            onClick={() => navigate(`${base}/carta`)}
+            className="w-full bg-pucara-blue-500 hover:bg-pucara-blue-600 text-white font-semibold py-5 rounded-2xl text-base flex items-center justify-center gap-3 shadow-pucara transition-colors"
+          >
+            <span className="text-2xl">🍽️</span>
+            Ver la carta
+          </button>
         </div>
-
-        {/* CTA principal */}
-        <button
-          onClick={() => navigate(`${base}/carta`)}
-          className="w-full bg-pucara-blue-500 hover:bg-pucara-blue-600 text-white font-semibold py-4 rounded-2xl text-lg shadow-pucara"
-        >
-          Ver la carta →
-        </button>
 
         {/* Seguimiento de pedido */}
         <div className="bg-carbon-900/70 border border-carbon-700 rounded-2xl p-4 text-left">
@@ -132,6 +149,85 @@ export default function IdentifyPage() {
           {error && <p className="text-red-700 text-xs mt-2">{error}</p>}
         </div>
 
+      </div>
+
+      {/* Drawer: Llamar camarero */}
+      {showWaiterCall && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => !callLoading && setShowWaiterCall(false)}
+          />
+          <div className="relative bg-carbon-900 rounded-t-3xl px-5 pt-5 pb-10 max-h-[80vh] overflow-y-auto">
+            {callSent ? (
+              <div className="text-center py-8">
+                <div className="text-5xl mb-4">🔔</div>
+                <p className="text-smoke-200 font-semibold text-lg mb-2">¡Camarero en camino!</p>
+                <p className="text-smoke-500 text-sm mb-6">Ya saben dónde estás.</p>
+                <button
+                  onClick={() => setShowWaiterCall(false)}
+                  className="bg-ember-500 hover:bg-ember-600 text-white font-semibold py-3 px-8 rounded-2xl text-sm"
+                >
+                  Cerrar
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <h2 className="text-smoke-200 font-semibold text-lg">¿Dónde estás?</h2>
+                    <p className="text-smoke-500 text-sm">Así saben a dónde ir</p>
+                  </div>
+                  <button
+                    onClick={() => setShowWaiterCall(false)}
+                    className="text-smoke-500 hover:text-smoke-300 text-2xl leading-none"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                {zonesLoading ? (
+                  <p className="text-smoke-500 text-sm text-center py-8">Cargando...</p>
+                ) : zones.length === 0 ? (
+                  <p className="text-smoke-500 text-sm text-center py-8">No hay mesas configuradas todavía.</p>
+                ) : (
+                  <div className="space-y-5">
+                    {mesas.length > 0 && (
+                      <ZoneGroup label="Mesas" zones={mesas} onSelect={handleCallWaiter} loading={callLoading} />
+                    )}
+                    {sectores.length > 0 && (
+                      <ZoneGroup label="Sectores" zones={sectores} onSelect={handleCallWaiter} loading={callLoading} />
+                    )}
+                    {retiro.length > 0 && (
+                      <ZoneGroup label="Puntos de retiro" zones={retiro} onSelect={handleCallWaiter} loading={callLoading} />
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ZoneGroup({ label, zones, onSelect, loading }) {
+  return (
+    <div>
+      <p className="text-smoke-500 text-xs font-semibold uppercase tracking-wide mb-2">{label}</p>
+      <div className="space-y-2">
+        {zones.map(zone => (
+          <button
+            key={zone.id}
+            onClick={() => onSelect(zone)}
+            disabled={loading}
+            className="w-full bg-carbon-800 border border-carbon-700 hover:border-teal-500/60 hover:bg-carbon-750 disabled:opacity-50 rounded-2xl p-4 flex items-center justify-between text-left transition-colors"
+          >
+            <span className="text-smoke-300 font-medium">{zone.name}</span>
+            <span className="text-teal-400">→</span>
+          </button>
+        ))}
       </div>
     </div>
   )
