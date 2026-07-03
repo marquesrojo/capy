@@ -16,8 +16,7 @@ export const supabaseStaff = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    storageKey: 'sb-staff-auth',
-    detectSessionInUrl: false // prevent auto-interception of Camaut OAuth codes
+    storageKey: 'sb-staff-auth'
   }
 })
 

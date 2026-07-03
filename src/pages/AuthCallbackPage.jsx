@@ -14,11 +14,30 @@ export default function AuthCallbackPage() {
       let { data: { session }, error } = await supabaseStaff.auth.getSession()
 
       if (!session) {
+        // PKCE flow: code in query param
         const code = searchParams.get('code')
         if (code) {
           const result = await supabaseStaff.auth.exchangeCodeForSession(code)
           session = result.data?.session ?? null
           error = result.error ?? null
+        }
+      }
+
+      if (!session) {
+        // Implicit flow: tokens in URL hash
+        const hash = window.location.hash
+        if (hash.includes('access_token=')) {
+          const hashParams = new URLSearchParams(hash.slice(1))
+          const accessToken = hashParams.get('access_token')
+          const refreshToken = hashParams.get('refresh_token')
+          if (accessToken) {
+            const result = await supabaseStaff.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken || ''
+            })
+            session = result.data?.session ?? null
+            error = result.error ?? null
+          }
         }
       }
 
@@ -29,7 +48,7 @@ export default function AuthCallbackPage() {
         if (hash.includes('error=access_denied')) {
           setError('El link expiró. Registrate de nuevo.')
         } else {
-          setError('No pudimos verificar tu cuenta. Intentá de nuevo.')
+          setError(error?.message || 'No pudimos verificar tu cuenta. Intentá de nuevo.')
         }
         setTimeout(() => navigate(postAuth === 'camaut' ? '/camaut/login' : '/admin/login'), 3000)
         return
