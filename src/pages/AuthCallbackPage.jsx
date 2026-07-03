@@ -12,9 +12,15 @@ export default function AuthCallbackPage() {
       let session = null
       let authError = null
 
+      console.log('[AuthCallback] URL search:', window.location.search)
+      console.log('[AuthCallback] URL hash:', window.location.hash ? window.location.hash.slice(0, 80) + '...' : '(empty)')
+      console.log('[AuthCallback] capy-post-auth:', localStorage.getItem('capy-post-auth'))
+      console.log('[AuthCallback] code-verifier present:', !!localStorage.getItem('sb-staff-auth-code-verifier'))
+
       // 1. Already authenticated (e.g., returning user)
       const { data: { session: existing } } = await supabaseStaff.auth.getSession()
       session = existing
+      console.log('[AuthCallback] existing session:', !!session)
 
       // 2. Email confirmation via token_hash (Supabase PKCE email OTP)
       if (!session) {
@@ -31,9 +37,11 @@ export default function AuthCallbackPage() {
       if (!session) {
         const code = searchParams.get('code')
         if (code) {
+          console.log('[AuthCallback] trying exchangeCodeForSession, code length:', code.length)
           const result = await supabaseStaff.auth.exchangeCodeForSession(code)
           session = result.data?.session ?? null
           authError = result.error ?? null
+          console.log('[AuthCallback] exchange result — session:', !!session, 'error:', authError?.message)
         }
       }
 
