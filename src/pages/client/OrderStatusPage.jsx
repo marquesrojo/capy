@@ -120,7 +120,20 @@ export default function OrderStatusPage() {
       .update({ waiter_called_at: new Date().toISOString() })
       .eq('id', orderId)
     setCalling(false)
-    if (!error) setOrder(prev => ({ ...prev, waiter_called_at: new Date().toISOString() }))
+    if (!error) {
+      setOrder(prev => ({ ...prev, waiter_called_at: new Date().toISOString() }))
+      if (order.assigned_staff_id) {
+        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-staff`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: import.meta.env.VITE_SUPABASE_ANON_KEY },
+          body: JSON.stringify({
+            staff_id: order.assigned_staff_id,
+            title: '🔔 Te llaman',
+            body: `${order.location_label} te está llamando.`,
+          }),
+        }).catch(() => {})
+      }
+    }
   }
 
   async function handleCancelCall() {
