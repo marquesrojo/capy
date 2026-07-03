@@ -21,7 +21,7 @@ export default function AuthCallbackPage() {
       if (!session) {
         const code = searchParams.get('code')
         if (code) {
-          const result = await client.auth.exchangeCodeForSession(window.location.href)
+          const result = await client.auth.exchangeCodeForSession(code)
           session = result.data?.session ?? null
           error = result.error ?? null
         }

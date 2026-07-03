@@ -20,10 +20,9 @@ export default function CamautCallbackPage() {
       err = sessionError
 
       if (!session) {
-        const url = new URL(window.location.href)
-        const code = url.searchParams.get('code')
+        const code = new URL(window.location.href).searchParams.get('code')
         if (code) {
-          const result = await supabaseCamaut.auth.exchangeCodeForSession(window.location.href)
+          const result = await supabaseCamaut.auth.exchangeCodeForSession(code)
           session = result.data?.session ?? null
           err = result.error ?? null
         }
