@@ -110,6 +110,17 @@ function RequestBillForm({ order, onUpdated, mpEnabled, paymentMethods }) {
         .single()
       if (updateError) throw updateError
       onUpdated(data)
+      if (order.assigned_staff_id) {
+        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-staff`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: import.meta.env.VITE_SUPABASE_ANON_KEY },
+          body: JSON.stringify({
+            staff_id: order.assigned_staff_id,
+            title: '💳 La cuenta',
+            body: `${order.location_label} pide la cuenta (${method}).`,
+          }),
+        }).catch(() => {})
+      }
     } catch (err) {
       setError('No pudimos pedir la cuenta. Intentá de nuevo.')
       setSubmitting(false)
