@@ -55,6 +55,7 @@ const MICAPY_ITEMS = [
   { id: 'encuesta', label: 'Encuesta', desc: 'Opiniones de tus clientes', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> },
   { id: 'mi_pagina', label: 'Mi Página', desc: 'Tu landing pública', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> },
   { id: 'wrapped', label: 'Wrapped', desc: 'Tu resumen semanal, mensual o anual', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> },
+  { id: 'soporte', label: 'Soporte', desc: 'Envianos un mensaje', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> },
 ]
 
 export default function CamautAppShell({ venueId, staffName: initialName, staffXP: initialXP, linkedVenues = [], staffId }) {
@@ -336,6 +337,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                 {micapyTab === 'ubicaciones' && <UbicacionesViewer linkedVenues={linkedVenues} />}
                 {micapyTab === 'indicadores' && <IndicadoresTab venueId={venueId} staffId={staffId} />}
                 {micapyTab === 'encuesta' && <EncuestaTab staffId={staffId} />}
+                {micapyTab === 'soporte' && <SoporteTab staffId={staffId} staffName={staffName} />}
               </div>
             </>
           )}
@@ -558,6 +560,70 @@ function EncuestaTab({ staffId }) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function SoporteTab({ staffId, staffName }) {
+  const [message, setMessage] = useState('')
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleSend() {
+    if (!message.trim()) return
+    setSending(true)
+    setError('')
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/support-ticket`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: import.meta.env.VITE_SUPABASE_ANON_KEY },
+        body: JSON.stringify({ staff_id: staffId, staff_name: staffName, message }),
+      })
+      const data = await res.json()
+      if (!data.success) throw new Error(data.error || 'Error')
+      setSent(true)
+    } catch {
+      setError('No pudimos enviar tu mensaje. Intentá de nuevo.')
+    }
+    setSending(false)
+  }
+
+  if (sent) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
+        <div className="w-14 h-14 rounded-full bg-[#E8F5F5] flex items-center justify-center text-[#008080] text-2xl">✓</div>
+        <p className="font-bold text-[#1A2A3A] text-base">Mensaje enviado</p>
+        <p className="text-[#8896A5] text-sm">El equipo de Capy lo va a revisar pronto.</p>
+        <button onClick={() => { setSent(false); setMessage('') }} className="text-[#008080] text-sm underline mt-2">Enviar otro mensaje</button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
+        <p className="text-[#8896A5] text-xs mb-1">De</p>
+        <p className="font-semibold text-[#1A2A3A] text-sm">{staffName || 'Camarero'}</p>
+      </div>
+      <div>
+        <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-2">Mensaje</p>
+        <textarea
+          value={message}
+          onChange={e => setMessage(e.target.value)}
+          placeholder="Contanos en qué podemos ayudarte..."
+          rows={5}
+          className="w-full bg-white border border-black/10 rounded-2xl px-4 py-3 text-sm text-[#1A2A3A] resize-none focus:outline-none focus:border-[#008080]"
+        />
+      </div>
+      {error && <p className="text-red-500 text-xs">{error}</p>}
+      <button
+        onClick={handleSend}
+        disabled={sending || !message.trim()}
+        className="w-full bg-[#008080] disabled:opacity-50 text-white font-bold py-3.5 rounded-2xl text-sm"
+      >
+        {sending ? 'Enviando...' : 'Enviar mensaje →'}
+      </button>
     </div>
   )
 }
