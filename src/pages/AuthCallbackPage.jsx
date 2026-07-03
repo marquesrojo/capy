@@ -16,12 +16,12 @@ export default function AuthCallbackPage() {
 
       let { data: { session }, error } = await client.auth.getSession()
 
-      // supabaseCamaut has detectSessionInUrl:false so it won't auto-exchange the OAuth code.
-      // Explicitly exchange it here so Google OAuth works for the Camaut flow.
-      if (!session && !isAdmin) {
+      // Both clients have detectSessionInUrl:false so neither auto-exchanges OAuth codes.
+      // Explicitly exchange the code here with the correct client.
+      if (!session) {
         const code = searchParams.get('code')
         if (code) {
-          const result = await supabaseCamaut.auth.exchangeCodeForSession(window.location.href)
+          const result = await client.auth.exchangeCodeForSession(window.location.href)
           session = result.data?.session ?? null
           error = result.error ?? null
         }
