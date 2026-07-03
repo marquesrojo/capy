@@ -90,8 +90,14 @@ serve(async (req) => {
   if (!res.ok) {
     const err = await res.text()
     console.error('Resend error:', err)
-    return new Response(JSON.stringify({ error: err }), { status: 500 })
+    return new Response(JSON.stringify({ error: err }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 
-  return new Response(JSON.stringify({ success: true }), { status: 200 })
+  return new Response(JSON.stringify({ success: true }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  })
 })
