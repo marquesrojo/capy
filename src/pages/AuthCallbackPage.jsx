@@ -14,7 +14,18 @@ export default function AuthCallbackPage() {
       const isAdmin = searchParams.get('type') === 'admin'
       const client = isAdmin ? supabaseStaff : supabaseCamaut
 
-      const { data: { session }, error } = await client.auth.getSession()
+      let { data: { session }, error } = await client.auth.getSession()
+
+      // supabaseCamaut has detectSessionInUrl:false so it won't auto-exchange the OAuth code.
+      // Explicitly exchange it here so Google OAuth works for the Camaut flow.
+      if (!session && !isAdmin) {
+        const code = searchParams.get('code')
+        if (code) {
+          const result = await supabaseCamaut.auth.exchangeCodeForSession(window.location.href)
+          session = result.data?.session ?? null
+          error = result.error ?? null
+        }
+      }
 
       if (error || !session) {
         const hash = window.location.hash
@@ -44,7 +55,7 @@ export default function AuthCallbackPage() {
       } else {
         if (profile?.is_autonomous) {
           navigate('/camaut/app')
-        } else if (profile?.role === 'admin' || profile?.role === 'camarero') {
+        } else if (['admin', 'camarero', 'propietario', 'superadmin', 'cocina'].includes(profile?.role)) {
           navigate('/admin')
         } else {
           navigate('/camaut/app')
