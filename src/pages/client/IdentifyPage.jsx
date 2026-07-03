@@ -113,7 +113,12 @@ export default function IdentifyPage() {
             onClick={openWaiterCall}
             className="w-full bg-carbon-900 border border-carbon-700 hover:border-teal-500/60 hover:bg-carbon-800 text-smoke-300 font-semibold py-5 rounded-2xl text-base flex items-center justify-center gap-3 transition-colors"
           >
-            <span className="text-2xl">🔔</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 18h18"/>
+              <path d="M12 3a7 7 0 0 1 7 7v5H5v-5a7 7 0 0 1 7-7z"/>
+              <path d="M12 3V1.5"/>
+              <circle cx="12" cy="20" r="1.5"/>
+            </svg>
             Llamar al camarero
           </button>
           <button
@@ -161,7 +166,14 @@ export default function IdentifyPage() {
           <div className="relative bg-carbon-900 rounded-t-3xl px-5 pt-5 pb-10 max-h-[80vh] overflow-y-auto">
             {callSent ? (
               <div className="text-center py-8">
-                <div className="text-5xl mb-4">🔔</div>
+                <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full bg-teal-500/10 text-teal-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 18h18"/>
+                    <path d="M12 3a7 7 0 0 1 7 7v5H5v-5a7 7 0 0 1 7-7z"/>
+                    <path d="M12 3V1.5"/>
+                    <circle cx="12" cy="20" r="1.5"/>
+                  </svg>
+                </div>
                 <p className="text-smoke-200 font-semibold text-lg mb-2">¡Camarero en camino!</p>
                 <p className="text-smoke-500 text-sm mb-6">Ya saben dónde estás.</p>
                 <button
