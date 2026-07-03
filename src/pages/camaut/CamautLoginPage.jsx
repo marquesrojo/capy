@@ -34,7 +34,7 @@ export default function CamautLoginPage() {
     await supabaseCamaut.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`
+        redirectTo: `${window.location.origin}/camaut/callback`
       }
     })
   }
