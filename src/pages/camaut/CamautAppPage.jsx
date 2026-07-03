@@ -84,7 +84,8 @@ export default function CamautAppPage() {
           .from('staff_names')
           .select('id, full_name')
           .eq('venue_id', vId)
-          .single()
+          .limit(1)
+          .maybeSingle()
         setStaffName(staffData?.full_name || fullNameFromMeta || null)
         const sid = staffData?.id || null
         setStaffId(sid)
