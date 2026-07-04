@@ -154,8 +154,7 @@ function VenuesTab() {
 }
 
 function CamautTab() {
-  const [staff, setStaff] = useState([])
-  const [venues, setVenues] = useState({})
+  const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -163,15 +162,36 @@ function CamautTab() {
       const [staffRes, venuesRes] = await Promise.all([
         supabaseStaff
           .from('staff_names')
-          .select('id, full_name, alias, xp, total_orders, is_active, profile_id, venue_id')
-          .eq('is_active', true)
-          .order('xp', { ascending: false }),
-        supabaseStaff.from('venues').select('id, name'),
+          .select('id, full_name, xp, total_orders, is_active, profile_id, venue_id')
+          .eq('is_active', true),
+        supabaseStaff.from('venues').select('id, name, slug'),
       ])
-      setStaff(staffRes.data || [])
+      const rows = staffRes.data || []
       const vmap = {}
-      for (const v of venuesRes.data || []) vmap[v.id] = v.name
-      setVenues(vmap)
+      for (const v of venuesRes.data || []) vmap[v.id] = v
+
+      // Deduplicate by profile_id — keep best XP row, aggregate venue names
+      const byProfile = {}
+      const noProfile = []
+      for (const r of rows) {
+        const venue = vmap[r.venue_id]
+        const isAutonomous = venue?.slug?.startsWith('camaut-')
+        if (r.profile_id) {
+          if (!byProfile[r.profile_id]) {
+            byProfile[r.profile_id] = { ...r, venues: [], totalXP: 0, totalOrders: 0 }
+          }
+          const entry = byProfile[r.profile_id]
+          entry.totalXP += r.xp || 0
+          entry.totalOrders += r.total_orders || 0
+          if (!isAutonomous && venue) entry.venues.push(venue.name)
+        } else {
+          if (!isAutonomous) noProfile.push({ ...r, venueName: venue?.name })
+        }
+      }
+
+      const withAccount = Object.values(byProfile).sort((a, b) => b.totalXP - a.totalXP)
+      const withoutAccount = noProfile.sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''))
+      setUsers([...withAccount, ...withoutAccount])
       setLoading(false)
     }
     load()
@@ -179,30 +199,41 @@ function CamautTab() {
 
   if (loading) return <p className="text-smoke-500 text-sm">Cargando...</p>
 
+  const withAccount = users.filter(u => u.profile_id)
+  const withoutAccount = users.filter(u => !u.profile_id)
+
   return (
-    <div className="space-y-2">
-      <p className="text-smoke-500 text-xs mb-3">{staff.length} camareros activos</p>
-      {staff.map(s => (
-        <div key={s.id} className="bg-carbon-900 border border-carbon-700 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-smoke-200 font-medium text-sm truncate">{s.full_name}</p>
-            <p className="text-smoke-500 text-xs">{venues[s.venue_id] || '—'}</p>
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <p className="text-smoke-500 text-xs font-semibold uppercase tracking-wide">{withAccount.length} con cuenta</p>
+        {withAccount.map(s => (
+          <div key={s.profile_id} className="bg-carbon-900 border border-carbon-700 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-smoke-200 font-medium text-sm truncate">{s.full_name}</p>
+              <p className="text-smoke-500 text-xs truncate">
+                {s.venues.length ? s.venues.join(', ') : 'Autónomo'}
+              </p>
+            </div>
+            <div className="text-right flex-shrink-0">
+              <p className="font-mono text-ember-400 text-sm">{s.totalXP} XP</p>
+              <p className="text-smoke-500 text-xs">{s.totalOrders} pedidos</p>
+            </div>
           </div>
-          <div className="text-right flex-shrink-0">
-            <p className="font-mono text-ember-400 text-sm">{s.xp ?? 0} XP</p>
-            <p className="text-smoke-500 text-xs">{s.total_orders ?? 0} pedidos</p>
-          </div>
-          <div className="flex-shrink-0">
-            <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
-              s.profile_id
-                ? 'border-emerald-500/40 text-emerald-500'
-                : 'border-carbon-600 text-smoke-500'
-            }`}>
-              {s.profile_id ? 'vinculado' : 'sin cuenta'}
-            </span>
-          </div>
+        ))}
+      </div>
+      {withoutAccount.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-smoke-500 text-xs font-semibold uppercase tracking-wide">{withoutAccount.length} sin cuenta</p>
+          {withoutAccount.map(s => (
+            <div key={s.id} className="bg-carbon-900 border border-carbon-700 rounded-xl px-4 py-3 flex items-center justify-between gap-3 opacity-60">
+              <div className="min-w-0">
+                <p className="text-smoke-200 font-medium text-sm truncate">{s.full_name}</p>
+                <p className="text-smoke-500 text-xs">{s.venueName || '—'}</p>
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   )
 }
