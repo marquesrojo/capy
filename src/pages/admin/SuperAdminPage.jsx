@@ -73,7 +73,7 @@ function StatsTab() {
       const todayISO = today.toISOString()
 
       const [venuesRes, staffRes, ordersRes, ticketsRes] = await Promise.all([
-        supabaseStaff.from('venues').select('id', { count: 'exact', head: true }),
+        supabaseStaff.from('venues').select('id', { count: 'exact', head: true }).not('slug', 'like', 'camaut-%'),
         supabaseStaff.from('venue_staff').select('id', { count: 'exact', head: true }),
         supabaseStaff.from('orders').select('total').gte('created_at', todayISO),
         supabaseStaff.from('support_tickets').select('id', { count: 'exact', head: true }).eq('status', 'open'),
@@ -116,6 +116,7 @@ function VenuesTab() {
       const { data } = await supabaseStaff
         .from('venues')
         .select('id, name, slug, is_active, created_at, mp_enabled')
+        .not('slug', 'like', 'camaut-%')
         .order('created_at', { ascending: false })
       setVenues(data || [])
       setLoading(false)
