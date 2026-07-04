@@ -85,10 +85,10 @@ export default function AuthCallbackPage() {
 
       if (profile?.role === 'camarero') {
         navigate('/admin/tomar')
-      } else if (!profile?.venue_id) {
-        navigate('/admin/onboarding')
-      } else {
+      } else if (profile?.role === 'superadmin' || profile?.venue_id) {
         navigate('/admin')
+      } else {
+        navigate('/admin/onboarding')
       }
     }
 
