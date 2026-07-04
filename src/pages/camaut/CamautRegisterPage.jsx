@@ -38,13 +38,15 @@ export default function CamautRegisterPage() {
     setStep(2)
   }
 
+  const [resending, setResending] = useState(false)
+  const [resendDone, setResendDone] = useState(false)
+
   async function handleRegister(e) {
     e.preventDefault()
     setLoading(true)
     setError('')
 
     try {
-      // 1. Crear usuario en Supabase Auth
       localStorage.setItem('capy-post-auth', 'camaut')
       const { data: authData, error: authError } = await supabaseStaff.auth.signUp({
         email: email.trim(),
@@ -59,13 +61,31 @@ export default function CamautRegisterPage() {
       })
       if (authError) throw authError
 
-      // Registro exitoso — el venue se crea en el onboarding
+      // Si Supabase devuelve sesión directamente, la confirmación de email
+      // está deshabilitada — ir al app sin esperar email
+      if (authData.session) {
+        navigate('/camaut/app')
+        return
+      }
+
       setStep(3)
     } catch (err) {
       setError(err.message || 'Error al crear la cuenta. Intentá de nuevo.')
     } finally {
       setLoading(false)
     }
+  }
+
+  async function handleResend() {
+    setResending(true)
+    setResendDone(false)
+    await supabaseStaff.auth.resend({
+      type: 'signup',
+      email: email.trim(),
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` }
+    })
+    setResendDone(true)
+    setResending(false)
   }
 
   // Si el registro fue exitoso, mostrar mensaje de confirmación
@@ -79,10 +99,20 @@ export default function CamautRegisterPage() {
           </svg>
         </div>
         <h1 className="font-bold text-smoke-200 text-2xl mb-2">Revisá tu email</h1>
-        <p className="text-smoke-500 text-sm mb-6 max-w-xs">
-          Te enviamos un link de confirmación a <strong>{email}</strong>. Hacé click en el link para activar tu cuenta.
+        <p className="text-smoke-500 text-sm mb-1 max-w-xs">
+          Te enviamos un link de confirmación a <strong>{email}</strong>.
         </p>
-        <Link to="/camaut/login" className="text-ember-500 text-sm underline">
+        <p className="text-smoke-600 text-xs mb-6 max-w-xs">
+          Si no lo ves, revisá la carpeta de spam o correo no deseado.
+        </p>
+        <button
+          onClick={handleResend}
+          disabled={resending || resendDone}
+          className="text-ember-500 text-sm underline mb-4 disabled:opacity-50"
+        >
+          {resending ? 'Reenviando...' : resendDone ? '¡Reenviado! Revisá tu casilla.' : 'No llegó el email → Reenviar'}
+        </button>
+        <Link to="/camaut/login" className="text-smoke-500 text-xs underline">
           Ya confirmé mi email → Entrar
         </Link>
       </div>
