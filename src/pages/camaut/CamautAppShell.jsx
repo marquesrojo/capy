@@ -70,6 +70,29 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
     localStorage.getItem(`wrapped-seen-${getWeekKey()}`) === '1'
   )
 
+  const [gsState, setGsState] = useState(() => {
+    const saved = localStorage.getItem('camaut-getting-started')
+    return saved ? JSON.parse(saved) : { dismissed: false, perfil: false, carta: false, ubicaciones: false }
+  })
+
+  function updateGs(updates) {
+    setGsState(prev => {
+      const next = { ...prev, ...updates }
+      localStorage.setItem('camaut-getting-started', JSON.stringify(next))
+      return next
+    })
+  }
+
+  function goToSection(id) {
+    updateGs({ [id]: true })
+    setTab('micapy')
+    if (id === 'perfil') { setMicapyTab('perfil'); setMicapySubTab('datos') }
+    else if (id === 'carta') { setMicapyTab('carta') }
+    else if (id === 'ubicaciones') { setMicapyTab('ubicaciones') }
+  }
+
+  const showGettingStarted = !gsState.dismissed && !(gsState.perfil && gsState.carta && gsState.ubicaciones)
+
   function handleNewOrderForTable(locationLabel) {
     setPrefillLocation(locationLabel)
     setTab('tomar')
@@ -211,6 +234,60 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
           <span>⚡ Tu Weekly Wrapped está listo</span>
           <span className="text-white/80">Ver →</span>
         </button>
+      )}
+
+      {/* Primeros pasos */}
+      {tab === 'tomar' && showGettingStarted && (
+        <div className="mx-4 mt-4 bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
+          <div className="px-4 pt-4 pb-3 flex items-start justify-between gap-3">
+            <div>
+              <p className="font-bold text-[#1A2A3A] text-sm">Primeros pasos</p>
+              <p className="text-[#8896A5] text-xs mt-0.5">Completá estas acciones para sacar el máximo provecho</p>
+            </div>
+            <button onClick={() => updateGs({ dismissed: true })} className="text-[#B0BEC5] text-xl leading-none flex-shrink-0 mt-0.5">×</button>
+          </div>
+          <div className="divide-y divide-black/5">
+            {[
+              {
+                id: 'perfil',
+                label: 'Completá tu perfil',
+                desc: 'Foto, alias y datos para tu página pública',
+                icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              },
+              {
+                id: 'carta',
+                label: 'Cargá tu carta con IA',
+                desc: 'Sacale una foto al menú y la IA lo sube en segundos',
+                icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              },
+              {
+                id: 'ubicaciones',
+                label: 'Agregá ubicaciones',
+                desc: 'Mesas, barras y salones de tu lugar de trabajo',
+                icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+              },
+            ].map(item => (
+              <button
+                key={item.id}
+                onClick={() => goToSection(item.id)}
+                className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-[#F0F4F8] transition-colors"
+              >
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${gsState[item.id] ? 'bg-[#008080] border-[#008080]' : 'border-[#B0BEC5]'}`}>
+                  {gsState[item.id] && (
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm font-semibold leading-tight ${gsState[item.id] ? 'text-[#8896A5] line-through' : 'text-[#1A2A3A]'}`}>{item.label}</p>
+                  <p className="text-[#8896A5] text-xs mt-0.5">{item.desc}</p>
+                </div>
+                <div className={`flex-shrink-0 ${gsState[item.id] ? 'text-[#008080]' : 'text-[#B0BEC5]'}`}>{item.icon}</div>
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Contenido */}

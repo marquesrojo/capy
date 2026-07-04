@@ -171,48 +171,69 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
         </div>
       )}
 
-      {/* PASO 2 — Acción */}
+      {/* PASO 2 — Primeros pasos */}
       {step === 2 && !showVincular && (
         <div className="flex-1 flex flex-col">
-          <div className="mb-8">
+          <div className="mb-6">
             <p className="text-smoke-500 text-sm mb-1">Paso 2 de 2</p>
             <h1 className="font-bold text-smoke-200 text-2xl mb-2">
               ¡Listo, {fullName.split(' ')[0]}!
             </h1>
             <p className="text-smoke-500 text-sm leading-relaxed">
-              Podés tomar pedidos ahora mismo. Cuando confirmes un pedido, los productos y ubicaciones que ingreses a mano quedan guardados en <span className="text-ember-500">Mi Carta</span> para la próxima vez.
+              Tu cuenta está lista. Te recomendamos estas tres acciones para arrancar:
             </p>
           </div>
 
-          <div className="mt-6 space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={finishOnboarding}
-                disabled={saving}
-                className="flex flex-col items-center justify-center gap-3 bg-ember-500 disabled:opacity-50 text-white font-bold py-8 rounded-2xl"
-              >
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                </svg>
-                <span className="text-sm leading-tight text-center">Tomar mi primer pedido</span>
-              </button>
+          <div className="space-y-2.5 mb-8">
+            {[
+              {
+                num: '1',
+                label: 'Completá tu perfil',
+                desc: 'Foto, alias y datos para tu página pública',
+                icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              },
+              {
+                num: '2',
+                label: 'Cargá tu carta con IA',
+                desc: 'Sacale una foto al menú y la IA lo sube en segundos',
+                icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              },
+              {
+                num: '3',
+                label: 'Agregá ubicaciones',
+                desc: 'Mesas, barras y salones de tu lugar de trabajo',
+                icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+              },
+            ].map(item => (
+              <div key={item.num} className="flex items-center gap-3 bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-3.5">
+                <div className="w-7 h-7 rounded-full bg-ember-500/15 text-ember-500 font-bold text-xs flex items-center justify-center flex-shrink-0">
+                  {item.num}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-smoke-200 font-semibold text-sm leading-tight">{item.label}</p>
+                  <p className="text-smoke-500 text-xs mt-0.5">{item.desc}</p>
+                </div>
+                <div className="text-smoke-600 flex-shrink-0">{item.icon}</div>
+              </div>
+            ))}
+          </div>
 
-              <button
-                onClick={() => setShowVincular(true)}
-                className="flex flex-col items-center justify-center gap-3 bg-carbon-900 border border-carbon-700 text-smoke-300 font-bold py-8 rounded-2xl"
-              >
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                  <circle cx="9" cy="7" r="4"/>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-                </svg>
-                <span className="text-sm leading-tight text-center">Vincularme a un Local</span>
-              </button>
-            </div>
-
+          <div className="mt-auto space-y-3">
+            <button
+              onClick={finishOnboarding}
+              disabled={saving}
+              className="w-full bg-ember-500 disabled:opacity-50 text-white font-bold py-4 rounded-2xl text-sm"
+            >
+              {saving ? 'Creando tu cuenta...' : 'Empezar →'}
+            </button>
+            <button
+              onClick={() => setShowVincular(true)}
+              className="w-full bg-carbon-900 border border-carbon-700 text-smoke-400 font-semibold py-3.5 rounded-2xl text-sm"
+            >
+              Vincularme a un restaurante primero
+            </button>
             <p className="text-smoke-600 text-xs text-center">
-              Podés vincular un restaurante y completar tu perfil después desde <span className="text-ember-500">Mi Capy</span>.
+              También podés vincular un restaurante después desde <span className="text-ember-500">Mi Capy</span>.
             </p>
           </div>
         </div>
