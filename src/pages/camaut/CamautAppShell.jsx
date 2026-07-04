@@ -492,7 +492,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                 )}
                 {micapyTab === 'carta' && <CamautConfigPage key="carta" embedded initialTab="carta" />}
                 {micapyTab === 'notas' && <CamautConfigPage key="notas" embedded initialTab="notas" />}
-                {micapyTab === 'ubicaciones' && <UbicacionesViewer linkedVenues={linkedVenues} />}
+                {micapyTab === 'ubicaciones' && <UbicacionesViewer linkedVenues={linkedVenues} venueId={venueId} />}
                 {micapyTab === 'soporte' && <SoporteTab staffId={staffId} staffName={staffName} />}
                 {micapyTab === 'invitar' && <InvitarTab staffName={staffName} />}
               </div>
@@ -504,8 +504,9 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
   )
 }
 
-function UbicacionesViewer({ linkedVenues }) {
+function UbicacionesViewer({ linkedVenues, venueId }) {
   const [venueZones, setVenueZones] = useState({})
+  const [ownZones, setOwnZones] = useState(null)
 
   useEffect(() => {
     if (!linkedVenues?.length) return
@@ -520,11 +521,34 @@ function UbicacionesViewer({ linkedVenues }) {
     })
   }, [linkedVenues])
 
-  if (!linkedVenues?.length) {
+  useEffect(() => {
+    if (!venueId || linkedVenues?.length) return
+    supabaseStaff
+      .from('venue_zones')
+      .select('*')
+      .eq('venue_id', venueId)
+      .eq('is_active', true)
+      .order('sort_order')
+      .then(({ data }) => setOwnZones(data || []))
+  }, [venueId, linkedVenues])
+
+  if (!linkedVenues?.length && !venueId) {
     return (
       <p className="text-[#8896A5] text-sm text-center py-8">
         No estás vinculado a ningún restaurante.
       </p>
+    )
+  }
+
+  if (!linkedVenues?.length && venueId) {
+    return (
+      <div>
+        <FloorPlanViewer
+          zones={ownZones || []}
+          venueId={venueId}
+          supabaseClient={supabaseStaff}
+        />
+      </div>
     )
   }
 
