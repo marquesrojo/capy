@@ -5,8 +5,18 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 
 serve(async (req) => {
   const payload = await req.json()
+  console.log('send-auth-email payload keys:', Object.keys(payload))
+
+  if (!RESEND_API_KEY) {
+    console.error('RESEND_API_KEY is not set')
+    return new Response(JSON.stringify({ error: 'RESEND_API_KEY not configured' }), {
+      status: 500, headers: { 'Content-Type': 'application/json' }
+    })
+  }
+
   const { user, email_data } = payload
   const { token_hash, redirect_to, email_action_type } = email_data
+  console.log('email_action_type:', email_action_type, 'to:', user?.email)
 
   const verifyUrl = `${SUPABASE_URL}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${encodeURIComponent(redirect_to)}`
 
@@ -89,12 +99,13 @@ serve(async (req) => {
 
   if (!res.ok) {
     const err = await res.text()
-    console.error('Resend error:', err)
+    console.error('Resend error status:', res.status, 'body:', err)
     return new Response(JSON.stringify({ error: err }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     })
   }
+  console.log('Email sent OK to', user?.email)
 
   return new Response(JSON.stringify({ success: true }), {
     status: 200,
