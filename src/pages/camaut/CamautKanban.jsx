@@ -116,13 +116,18 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
           .select('id, menu_id, waiter_called_at')
           .in('id', own.map(o => o.id))
         const extraMap = Object.fromEntries((extraData || []).map(o => [o.id, o]))
-        setOwnOrders(own.map(o => ({
+        const merged = own.map(o => ({
           ...o,
           menu_id: extraMap[o.id]?.menu_id || null,
           waiter_called_at: extraMap[o.id]?.waiter_called_at || null
-        })))
+        }))
+        setOwnOrders(prev => {
+          const serverIds = new Set(merged.map(o => o.id))
+          const localEntregados = prev.filter(o => o.status === 'entregado' && !serverIds.has(o.id))
+          return [...merged, ...localEntregados]
+        })
       } else {
-        setOwnOrders([])
+        setOwnOrders(prev => prev.filter(o => o.status === 'entregado'))
       }
       setLinkedOrders(result.linkedOrders || [])
     }

@@ -316,7 +316,7 @@ export default function PublicOrderPage() {
       </div>
 
       {/* La cuenta por favor */}
-      {!billRequested && order.status !== 'entregado' && (
+      {!billRequested && (
         <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4 mb-4">
           <p className="text-smoke-400 text-xs font-semibold uppercase tracking-wide mb-3">La cuenta, por favor</p>
           <div className="grid grid-cols-3 gap-2">
