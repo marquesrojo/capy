@@ -91,11 +91,12 @@ export default function CamautAppPage() {
       const fullNameFromMeta = session.user?.user_metadata?.full_name || profile?.full_name || null
 
       if (vId) {
+        // Filter by profile_id so we always get THIS user's record, not any staff member
         const { data: staffData } = await supabaseStaff
           .from('staff_names')
           .select('id, full_name')
           .eq('venue_id', vId)
-          .limit(1)
+          .eq('profile_id', session.user.id)
           .maybeSingle()
         setStaffName(staffData?.full_name || fullNameFromMeta || null)
         const sid = staffData?.id || null

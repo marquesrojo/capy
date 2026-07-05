@@ -120,10 +120,10 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
           return
         }
 
-        // Create staff_names record for the autonomous venue
+        // Create staff_names record for the autonomous venue (upsert handles reruns)
         await supabaseStaff
           .from('staff_names')
-          .insert({ venue_id: venue.id, full_name: name, profile_id: userId, xp: 0 })
+          .upsert({ venue_id: venue.id, full_name: name, profile_id: userId, xp: 0 }, { onConflict: 'venue_id,profile_id' })
       }
       onComplete()
     } catch (err) {
