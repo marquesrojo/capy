@@ -5,7 +5,7 @@ import { formatPrice } from '../../lib/utils'
 import { awardXP } from '../../lib/xpUtils'
 import FloorPlanViewer from '../../components/FloorPlanViewer'
 
-export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillLocation = null, onPrefillUsed }) {
+export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillLocation = null, onPrefillUsed, onXPUpdate }) {
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
   const [zones, setZones] = useState([])
@@ -144,7 +144,10 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
 
       const result = await res.json()
       if (result.success) {
-        if (staffId) await awardXP(staffId, 'send_order', activeVenueId)
+        if (staffId) {
+          const newXP = await awardXP(staffId, 'send_order', activeVenueId)
+          if (newXP !== null && onXPUpdate) onXPUpdate(newXP)
+        }
         if (result.order?.id && activeVenueId === venueId && activeMenuId && activeMenuId !== 'all') {
           await supabaseStaff.from('orders').update({ menu_id: activeMenuId }).eq('id', result.order.id)
         }

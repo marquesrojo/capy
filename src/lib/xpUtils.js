@@ -54,56 +54,47 @@ export function getXPProgress(xp) {
   }
 }
 
-// Función principal: otorgar XP
+// Función principal: otorgar XP. Retorna el nuevo XP o null si falla.
 export async function awardXP(staffId, actionKey, venueId) {
   const action = XP_ACTIONS[actionKey]
-  if (!action) return
+  if (!action || !staffId) return null
 
-  // Registrar transacción
-  await supabaseStaff
+  const { error: txError } = await supabaseStaff
     .from('xp_transactions')
-    .insert({
-      staff_id: staffId,
-      venue_id: venueId,
-      action: actionKey,
-      xp_delta: action.xp
-    })
+    .insert({ staff_id: staffId, venue_id: venueId, action: actionKey, xp_delta: action.xp })
+  if (txError) console.error('[awardXP] xp_transactions insert:', txError.message)
 
-  // Obtener XP actual
-  const { data: staff } = await supabaseStaff
+  // Incluir venue_id para que la RLS pueda matchear el registro
+  const { data: staff, error: selectError } = await supabaseStaff
     .from('staff_names')
     .select('xp, total_orders, streak_days, last_login_date')
     .eq('id', staffId)
+    .eq('venue_id', venueId)
     .maybeSingle()
-
-  if (!staff) return
+  if (selectError) console.error('[awardXP] staff_names select:', selectError.message)
+  if (!staff) return null
 
   const newXP = Math.max(0, (staff.xp || 0) + action.xp)
   const newLevel = getLevel(newXP).name
-
-  // Actualizar XP y nivel
   const updates = { xp: newXP, level: newLevel }
 
-  // Si es send_order, incrementar total_orders
   if (actionKey === 'send_order') {
     updates.total_orders = (staff.total_orders || 0) + 1
   }
-
-  // Racha diaria
   if (actionKey === 'daily_streak' || actionKey === 'first_order_of_day') {
-    const today = new Date().toISOString().split('T')[0]
-    updates.last_login_date = today
+    updates.last_login_date = new Date().toISOString().split('T')[0]
   }
 
-  await supabaseStaff
+  const { error: updateError } = await supabaseStaff
     .from('staff_names')
     .update(updates)
     .eq('id', staffId)
+    .eq('venue_id', venueId)
+  if (updateError) console.error('[awardXP] staff_names update:', updateError.message)
 
-  // Chequear badges
   await checkBadges(staffId, { ...staff, xp: newXP, total_orders: updates.total_orders || staff.total_orders }, venueId)
 
-  return { newXP, newLevel }
+  return updateError ? null : newXP
 }
 
 async function checkBadges(staffId, staff, venueId) {
