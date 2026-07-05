@@ -4,13 +4,13 @@ import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice } from '../../lib/utils'
 
-export default function ShiftSummaryPage({ embedded, venueId: propVenueId }) {
+export default function ShiftSummaryPage({ embedded, venueId: propVenueId, staffId: propStaffId }) {
   const { profile, venueId: authVenueId } = useAuth()
   const activeVenueId = propVenueId || authVenueId
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState(null)
   const [feedback, setFeedback] = useState([])
-  const [staffId, setStaffId] = useState(null)
+  const [staffId, setStaffId] = useState(propStaffId || null)
   const [tips, setTips] = useState([])
   const [tipAmount, setTipAmount] = useState('')
   const [tipNotes, setTipNotes] = useState('')
@@ -22,9 +22,9 @@ export default function ShiftSummaryPage({ embedded, venueId: propVenueId }) {
   })
 
   useEffect(() => {
-    if (!profile) return
+    if (!propStaffId && !profile) return
     loadStaffAndSummary()
-  }, [profile, selectedDate])
+  }, [profile, selectedDate, propStaffId])
 
   function prevDay() {
     setSelectedDate(prev => {
@@ -56,14 +56,16 @@ export default function ShiftSummaryPage({ embedded, venueId: propVenueId }) {
   async function loadStaffAndSummary() {
     setLoading(true)
 
-    const { data: staffData } = await supabaseStaff
-      .from('staff_names')
-      .select('id')
-      .eq('venue_id', activeVenueId)
-      .ilike('full_name', profile.full_name?.trim() || '')
-      .single()
-
-    const sid = staffData?.id || null
+    let sid = propStaffId || null
+    if (!sid) {
+      const { data: staffData } = await supabaseStaff
+        .from('staff_names')
+        .select('id')
+        .eq('venue_id', activeVenueId)
+        .ilike('full_name', profile.full_name?.trim() || '')
+        .single()
+      sid = staffData?.id || null
+    }
     setStaffId(sid)
 
     if (!sid) {

@@ -293,7 +293,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
       {/* Contenido */}
       {tab === 'tomar' && <WaiterOrderCamaut venueId={venueId} linkedVenues={linkedVenues} prefillLocation={prefillLocation} onPrefillUsed={() => setPrefillLocation(null)} />}
       {tab === 'pedidos' && <CamautKanban venueId={venueId} linkedVenues={linkedVenues} staffId={staffId} onNewOrderForTable={handleNewOrderForTable} />}
-      {tab === 'turno' && <ShiftSummaryPage embedded venueId={venueId} />}
+      {tab === 'turno' && <ShiftSummaryPage embedded venueId={venueId} staffId={staffId} />}
 
       {showWrapped && (
         <WeeklyWrapped
