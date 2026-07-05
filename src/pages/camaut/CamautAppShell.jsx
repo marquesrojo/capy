@@ -50,6 +50,7 @@ const MICAPY_ITEMS = [
   { id: 'vincular', label: 'Vincular', desc: 'Conectar con restaurantes', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
   { id: 'ubicaciones', label: 'Ubicaciones', desc: 'Mapa de salones vinculados', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> },
   { id: 'progreso', label: 'Progreso', desc: 'Carrera, XP y ranking', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg> },
+  { id: 'historial', label: 'Historial', desc: 'Pedidos enviados', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3h18v4H3z"/><path d="M3 10h18v4H3z"/><path d="M3 17h12v4H3z"/></svg> },
   { id: 'estadisticas', label: 'Estadísticas', desc: 'KPIs y encuestas de clientes', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> },
   { id: 'social', label: 'Social', desc: 'Tu página y Wrapped', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> },
   { id: 'soporte', label: 'Soporte', desc: 'Envianos un mensaje', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> },
@@ -465,6 +466,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                     ))}
                   </div>
                 )}
+                {micapyTab === 'historial' && <HistorialTab staffId={staffId} />}
                 {micapyTab === 'vincular' && <VincularTab />}
                 {micapyTab === 'perfil' && micapySubTab === 'datos' && <CamautConfigPage key="perfil" embedded initialTab="perfil" />}
                 {micapyTab === 'perfil' && micapySubTab === 'pro' && (
@@ -996,6 +998,82 @@ function VincularTab() {
       {linkedVenues.length === 0 && (
         <p className="text-[#8896A5] text-sm text-center py-4">No estás vinculado a ningún restaurante todavía.</p>
       )}
+    </div>
+  )
+}
+
+function HistorialTab({ staffId }) {
+  const [orders, setOrders] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [expanded, setExpanded] = useState(null)
+
+  useEffect(() => {
+    if (!staffId) { setLoading(false); return }
+    supabaseStaff
+      .from('orders')
+      .select('id, daily_number, location_label, total, status, created_at, order_items')
+      .eq('assigned_staff_id', staffId)
+      .neq('status', 'cancelado')
+      .order('created_at', { ascending: false })
+      .limit(60)
+      .then(({ data }) => { setOrders(data || []); setLoading(false) })
+  }, [staffId])
+
+  const STATUS_LABEL = {
+    recibido: 'Recibido',
+    pendiente_aprobacion: 'Pendiente',
+    en_preparacion: 'En preparación',
+    listo: 'Listo',
+    entregado: 'Entregado',
+    cancelado: 'Cancelado',
+  }
+
+  function fmtDate(iso) {
+    const d = new Date(iso)
+    return d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+  }
+
+  if (loading) return <p className="text-[#8896A5] text-sm text-center py-8">Cargando...</p>
+  if (!staffId) return <p className="text-[#8896A5] text-sm text-center py-8">No se encontró tu perfil.</p>
+  if (!orders.length) return <p className="text-[#8896A5] text-sm text-center py-8">Sin pedidos registrados.</p>
+
+  return (
+    <div className="space-y-2">
+      <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">Últimos {orders.length} pedidos</p>
+      {orders.map(order => {
+        const isExpanded = expanded === order.id
+        const items = order.order_items || []
+        return (
+          <button
+            key={order.id}
+            onClick={() => setExpanded(prev => prev === order.id ? null : order.id)}
+            className="w-full bg-white rounded-2xl px-4 py-3.5 border border-black/5 shadow-sm text-left"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[#008080] font-bold text-sm">#{order.daily_number || order.id.slice(0, 4)}</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                  order.status === 'entregado' ? 'bg-emerald-100 text-emerald-700' :
+                  order.status === 'en_preparacion' || order.status === 'listo' ? 'bg-[#E8F5F5] text-[#008080]' :
+                  'bg-[#F0F4F8] text-[#8896A5]'
+                }`}>{STATUS_LABEL[order.status] || order.status}</span>
+              </div>
+              <span className="font-mono font-bold text-[#1A2A3A] text-sm">{formatPrice(order.total)}</span>
+            </div>
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-[#8896A5] text-xs">📍 {order.location_label}</p>
+              <p className="text-[#B0BEC5] text-xs">{fmtDate(order.created_at)}</p>
+            </div>
+            {isExpanded && items.length > 0 && (
+              <div className="mt-2 pt-2 border-t border-black/5 space-y-0.5">
+                {items.map((item, i) => (
+                  <p key={i} className="text-[#8896A5] text-xs">{item.quantity}× {item.product_name}</p>
+                ))}
+              </div>
+            )}
+          </button>
+        )
+      })}
     </div>
   )
 }

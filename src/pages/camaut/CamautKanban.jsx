@@ -139,8 +139,8 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
   }
 
   async function updateStatus(orderId, newStatus) {
-    await supabaseStaff.from('orders').update({ status: newStatus }).eq('id', orderId)
     setOwnOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o))
+    await supabaseStaff.from('orders').update({ status: newStatus }).eq('id', orderId)
   }
 
   async function clearWaiterCall(orderId) {
