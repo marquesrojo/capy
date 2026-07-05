@@ -122,9 +122,13 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
           waiter_called_at: extraMap[o.id]?.waiter_called_at || null
         }))
         setOwnOrders(prev => {
+          const prevEntregadoIds = new Set(prev.filter(o => o.status === 'entregado').map(o => o.id))
           const serverIds = new Set(merged.map(o => o.id))
-          const localEntregados = prev.filter(o => o.status === 'entregado' && !serverIds.has(o.id))
-          return [...merged, ...localEntregados]
+          // If server returns an order the user already marked entregado locally, keep entregado
+          const safeMerged = merged.map(o => prevEntregadoIds.has(o.id) ? { ...o, status: 'entregado' } : o)
+          // Also keep entregado orders the server no longer returns (already filtered server-side)
+          const orphanEntregados = prev.filter(o => o.status === 'entregado' && !serverIds.has(o.id))
+          return [...safeMerged, ...orphanEntregados]
         })
       } else {
         setOwnOrders(prev => prev.filter(o => o.status === 'entregado'))

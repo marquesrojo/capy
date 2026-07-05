@@ -74,7 +74,7 @@ export async function awardXP(staffId, actionKey, venueId) {
     .from('staff_names')
     .select('xp, total_orders, streak_days, last_login_date')
     .eq('id', staffId)
-    .single()
+    .maybeSingle()
 
   if (!staff) return
 
