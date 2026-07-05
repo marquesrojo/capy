@@ -466,7 +466,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                     ))}
                   </div>
                 )}
-                {micapyTab === 'historial' && <HistorialTab staffId={staffId} />}
+                {micapyTab === 'historial' && <HistorialTab staffId={staffId} venueId={venueId} />}
                 {micapyTab === 'vincular' && <VincularTab />}
                 {micapyTab === 'perfil' && micapySubTab === 'datos' && <CamautConfigPage key="perfil" embedded initialTab="perfil" />}
                 {micapyTab === 'perfil' && micapySubTab === 'pro' && (
@@ -1002,22 +1002,26 @@ function VincularTab() {
   )
 }
 
-function HistorialTab({ staffId }) {
+function HistorialTab({ staffId, venueId }) {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(null)
 
   useEffect(() => {
-    if (!staffId) { setLoading(false); return }
-    supabaseStaff
+    if (!venueId && !staffId) { setLoading(false); return }
+    let query = supabaseStaff
       .from('orders')
       .select('id, daily_number, location_label, total, status, created_at, order_items')
-      .eq('assigned_staff_id', staffId)
       .neq('status', 'cancelado')
       .order('created_at', { ascending: false })
       .limit(60)
-      .then(({ data }) => { setOrders(data || []); setLoading(false) })
-  }, [staffId])
+    if (venueId) {
+      query = query.eq('venue_id', venueId)
+    } else {
+      query = query.eq('assigned_staff_id', staffId)
+    }
+    query.then(({ data }) => { setOrders(data || []); setLoading(false) })
+  }, [staffId, venueId])
 
   const STATUS_LABEL = {
     recibido: 'Recibido',
