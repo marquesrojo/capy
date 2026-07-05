@@ -122,7 +122,7 @@ export default function CamautAppPage() {
         .select('venue:venues(id, name)')
         .eq('staff_profile_id', session.user.id)
         .eq('status', 'active')
-      setLinkedVenues(linked?.map(l => l.venue).filter(Boolean) || [])
+      setLinkedVenues(linked?.map(l => l.venue).filter(Boolean).filter(v => v.id !== vId) || [])
 
       setAuthorized(true)
     } catch (err) {
