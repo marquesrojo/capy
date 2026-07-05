@@ -108,7 +108,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
       .from('staff_names')
       .select('full_name, xp, alias, avatar_url')
       .eq('venue_id', venueId)
-      .single()
+      .maybeSingle()
       .then(({ data }) => {
         if (data?.full_name) setStaffName(data.full_name)
         if (data?.xp !== undefined) setStaffXP(data.xp)
