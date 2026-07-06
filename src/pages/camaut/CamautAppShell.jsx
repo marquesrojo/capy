@@ -15,6 +15,9 @@ import CamautKanban from './CamautKanban'
 import CamautOnboardingPage from './CamautOnboardingPage'
 import WeeklyWrapped from './WeeklyWrapped'
 
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent.toLowerCase())
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || !!window.navigator.standalone
+
 const TABS = [
   {
     id: 'tomar', label: 'Comanda',
@@ -79,6 +82,21 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
         setWrappedSeen(true)
       }
     })
+  }, [])
+
+  const [installPrompt, setInstallPrompt] = useState(window._pwaInstallPrompt || null)
+  const [appInstalled, setAppInstalled] = useState(false)
+  const [showInstallModal, setShowInstallModal] = useState(false)
+
+  useEffect(() => {
+    const onPrompt = e => { e.preventDefault(); window._pwaInstallPrompt = e; setInstallPrompt(e) }
+    const onInstalled = () => { setAppInstalled(true); window._pwaInstallPrompt = null; setInstallPrompt(null) }
+    window.addEventListener('beforeinstallprompt', onPrompt)
+    window.addEventListener('appinstalled', onInstalled)
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onPrompt)
+      window.removeEventListener('appinstalled', onInstalled)
+    }
   }, [])
 
   const [gsState, setGsState] = useState(() => {
@@ -368,17 +386,75 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
         </div>
       )}
 
+      {showInstallModal && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 flex items-end"
+          onClick={() => setShowInstallModal(false)}
+        >
+          <div
+            className="w-full bg-white rounded-t-3xl px-5 pt-5 pb-10"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-5">
+              <p className="font-bold text-[#1A2A3A] text-base">Agregá al escritorio</p>
+              <button onClick={() => setShowInstallModal(false)} className="text-[#B0BEC5] text-xl leading-none">×</button>
+            </div>
+            <div className="space-y-4">
+              {[
+                {
+                  n: '1',
+                  text: 'Tocá el botón Compartir en Safari',
+                  icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#008080" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                },
+                {
+                  n: '2',
+                  text: 'Deslizá y tocá "Agregar a pantalla de inicio"',
+                  icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#008080" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                },
+                {
+                  n: '3',
+                  text: 'Confirmá tocando "Agregar"',
+                  icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#008080" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                },
+              ].map(step => (
+                <div key={step.n} className="flex items-center gap-4">
+                  <div className="w-8 h-8 rounded-full bg-[#E8F5F5] flex items-center justify-center flex-shrink-0 text-[#008080] font-bold text-sm">
+                    {step.n}
+                  </div>
+                  <div className="flex-1 flex items-center justify-between gap-3">
+                    <p className="text-[#1A2A3A] text-sm">{step.text}</p>
+                    <div className="flex-shrink-0">{step.icon}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-[#8896A5] text-xs text-center mt-5">Solo funciona desde Safari en iPhone/iPad</p>
+          </div>
+        </div>
+      )}
+
       {tab === 'micapy' && (
         <div className="bg-[#F0F4F8]">
           {!micapyTab ? (
             <div className="px-4 pt-5 pb-8">
               <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-4 px-1">Mi Capy</p>
               <div className="grid grid-cols-2 gap-3">
-                {MICAPY_ITEMS.map(item => (
+                {[
+                  ...MICAPY_ITEMS,
+                  ...(!isStandalone && !appInstalled ? [{
+                    id: 'instalar',
+                    label: 'Instalar app',
+                    desc: 'Agregá al escritorio',
+                    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 16V4"/><path d="M8 12l4 4 4-4"/><rect x="3" y="18" width="18" height="3" rx="1.5"/></svg>
+                  }] : [])
+                ].map(item => (
                   <button
                     key={item.id}
                     onClick={() => {
-                      if (item.id === 'perfil') { setMicapyTab('perfil'); setMicapySubTab('datos') }
+                      if (item.id === 'instalar') {
+                        if (isIOS) { setShowInstallModal(true) }
+                        else if (installPrompt) { installPrompt.prompt() }
+                      } else if (item.id === 'perfil') { setMicapyTab('perfil'); setMicapySubTab('datos') }
                       else if (item.id === 'progreso') { setMicapyTab('progreso'); setMicapySubTab('carrera') }
                       else if (item.id === 'estadisticas') { setMicapyTab('estadisticas'); setMicapySubTab('indicadores') }
                       else if (item.id === 'social') { setMicapyTab('social'); setMicapySubTab('pagina') }
