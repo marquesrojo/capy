@@ -67,7 +67,9 @@ export default function MenuPage() {
   const accentText = headerTextColor || '#FFFFFF'
 
   const visibleProducts = activeCategory
-    ? products.filter(p => p.category_id === activeCategory)
+    ? products
+        .filter(p => p.category_id === activeCategory)
+        .sort((a, b) => (b.image_url ? 1 : 0) - (a.image_url ? 1 : 0))
     : []
 
   const searchResults = search.trim()
@@ -165,7 +167,7 @@ export default function MenuPage() {
         /* Sidebar + products */
         <div className="flex-1 overflow-hidden flex">
           {/* Category sidebar */}
-          <div className="w-[76px] flex-shrink-0 overflow-y-auto scrollbar-hide pb-16"
+          <div className="w-[84px] flex-shrink-0 overflow-y-auto scrollbar-hide pb-16"
             style={{ backgroundColor: `${accentBg}18` }}>
             {categories.map(cat => {
               const active = activeCategory === cat.id
@@ -176,15 +178,15 @@ export default function MenuPage() {
                   className="w-full py-1.5 pl-0 pr-1.5 flex justify-end"
                 >
                   <div
-                    className="w-[66px] py-2.5 px-1.5 rounded-r-xl flex flex-col items-center gap-0.5 text-center border-l-[3px] transition-all"
+                    className="w-[74px] py-3 px-2 rounded-r-xl flex flex-col items-center gap-0.5 text-center border-l-[3px] transition-all"
                     style={active
                       ? { borderColor: accentBg, backgroundColor: 'white' }
                       : { borderColor: 'transparent' }
                     }
                   >
                     <span
-                      className="text-[9px] font-semibold leading-tight break-words w-full"
-                      style={{ color: active ? accentBg : '#6B7A8D' }}
+                      className="text-[11px] font-semibold leading-tight break-words w-full"
+                      style={{ color: active ? accentBg : '#374151' }}
                     >
                       {cat.name}
                     </span>

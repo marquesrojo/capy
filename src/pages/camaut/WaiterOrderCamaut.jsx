@@ -632,20 +632,20 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
         /* Sidebar + productos */
         <div className="flex-1 overflow-hidden flex">
           {/* Sidebar de categorías */}
-          <div className="w-[76px] flex-shrink-0 bg-[#E4EBF0] overflow-y-auto scrollbar-hide">
+          <div className="w-[84px] flex-shrink-0 bg-[#E4EBF0] overflow-y-auto scrollbar-hide">
             {filteredCategories.map(cat => (
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id)}
                 className="w-full py-1.5 pl-0 pr-1.5 flex justify-end"
               >
-                <div className={`w-[66px] py-2.5 px-1 rounded-r-xl flex flex-col items-center gap-0.5 text-center border-l-[3px] transition-all ${
+                <div className={`w-[74px] py-3 px-2 rounded-r-xl flex flex-col items-center gap-0.5 text-center border-l-[3px] transition-all ${
                   activeCategory === cat.id
                     ? 'border-[#008080] bg-white shadow-sm'
                     : 'border-transparent'
                 }`}>
-                  <span className={`text-[9px] font-semibold leading-tight break-words w-full ${
-                    activeCategory === cat.id ? 'text-[#005f5f]' : 'text-[#6B7A8D]'
+                  <span className={`text-[11px] font-semibold leading-tight break-words w-full ${
+                    activeCategory === cat.id ? 'text-[#005f5f]' : 'text-[#374151]'
                   }`}>
                     {cat.name}
                   </span>
