@@ -106,9 +106,10 @@ export default function MenuEditorPage() {
           <div key={cat.id} className="mb-6">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <h2 className="text-smoke-400 text-xs font-semibold uppercase tracking-wide">
-                  {cat.name}
-                </h2>
+                <CategoryNameEditor
+                  cat={cat}
+                  onSave={newName => setCategories(prev => prev.map(c => c.id === cat.id ? { ...c, name: newName } : c))}
+                />
                 <select
                   value={cat.kind || 'otro'}
                   onChange={async e => {
@@ -154,6 +155,47 @@ export default function MenuEditorPage() {
         ))}
       </div>
     </div>
+  )
+}
+
+function CategoryNameEditor({ cat, onSave }) {
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(cat.name)
+  const inputRef = useRef(null)
+
+  async function save() {
+    const trimmed = value.trim()
+    if (!trimmed || trimmed === cat.name) { setValue(cat.name); setEditing(false); return }
+    await supabaseStaff.from('categories').update({ name: trimmed }).eq('id', cat.id)
+    onSave(trimmed)
+    setEditing(false)
+  }
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        value={value}
+        onChange={e => setValue(e.target.value)}
+        onBlur={save}
+        onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') { setValue(cat.name); setEditing(false) } }}
+        className="text-xs font-semibold uppercase tracking-wide bg-carbon-800 border border-ember-500/50 rounded px-2 py-0.5 text-smoke-200 w-32 focus:outline-none"
+        autoFocus
+      />
+    )
+  }
+
+  return (
+    <button
+      onClick={() => { setValue(cat.name); setEditing(true) }}
+      className="text-smoke-400 text-xs font-semibold uppercase tracking-wide hover:text-smoke-200 flex items-center gap-1 group"
+      title="Editar nombre"
+    >
+      {cat.name}
+      <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-0 group-hover:opacity-60 transition-opacity">
+        <path d="M11 2l3 3-9 9H2v-3z"/>
+      </svg>
+    </button>
   )
 }
 
