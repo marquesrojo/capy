@@ -27,7 +27,7 @@ export default function IdentifyPage() {
   const venueId = venue?.id || ACTIVE_VENUE_ID
   const selfColor = venue?.landing_self_color || '#1A3A6B'
   const waiterColor = venue?.landing_waiter_color || '#B22222'
-  const { setLocation, setSessionId } = useCart()
+  const { setLocation, setSessionId, addItem } = useCart()
 
   const [orderNumber, setOrderNumber] = useState('')
   const [finding, setFinding] = useState(false)
@@ -361,7 +361,11 @@ export default function IdentifyPage() {
           <p className="text-sm font-black uppercase tracking-wider text-[#1A2332] mb-3">Sugerencias del chef</p>
           <div className="grid grid-cols-2 gap-3">
             {topProducts.slice(0, 4).map(p => (
-              <div key={p.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-black/[0.05]">
+              <button
+                key={p.id}
+                onClick={() => { addItem(p, 1); navigate(`${base}/carta`) }}
+                className="bg-white rounded-2xl overflow-hidden shadow-sm border border-black/[0.05] text-left active:scale-[0.97] transition-transform"
+              >
                 {p.image_url ? (
                   <img src={p.image_url} alt={p.name} className="w-full h-28 object-cover" />
                 ) : (
@@ -371,7 +375,7 @@ export default function IdentifyPage() {
                   <p className="text-xs font-bold text-[#1A2332] leading-tight line-clamp-2 mb-1">{p.name}</p>
                   <p className="text-sm font-black" style={{ color: selfColor }}>{formatPrice(p.price)}</p>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>
