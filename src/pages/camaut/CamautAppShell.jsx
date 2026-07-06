@@ -1020,7 +1020,7 @@ function HistorialTab({ staffId, venueId }) {
 
     let query = supabaseCamaut
       .from('orders')
-      .select('id, daily_number, location_label, total, status, created_at, order_items')
+      .select('id, daily_number, location_label, total, status, created_at, order_items(product_name, quantity, unit_price, item_notes)')
       .neq('status', 'cancelado')
       .order('created_at', { ascending: false })
       .limit(60)
