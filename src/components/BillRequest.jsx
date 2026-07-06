@@ -46,8 +46,8 @@ export default function BillRequest({ order, onUpdated }) {
           {isPickup
             ? `Retirá y pagá en ${order.location_label}`
             : isCashMethod
-              ? 'Un mozo se está acercando a cobrar en efectivo'
-              : 'Un mozo se está acercando con el posnet'}
+              ? 'Un camarero/a se está acercando a cobrar en efectivo'
+              : 'Un camarero/a se está acercando con el posnet'}
         </p>
       </div>
     )

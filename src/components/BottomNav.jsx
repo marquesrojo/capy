@@ -119,7 +119,7 @@ export default function BottomNav() {
           style={{ color: waiterColor }}
         >
           <span className="text-xl leading-none">🔔</span>
-          MOZO
+          ATENCIÓN
         </button>
       </nav>
 
@@ -132,7 +132,7 @@ export default function BottomNav() {
               <div className="text-center py-8">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center text-3xl"
                   style={{ background: `${waiterColor}18` }}>🔔</div>
-                <p className="text-[#1A2332] font-black text-xl mb-1 uppercase">¡Camarero en camino!</p>
+                <p className="text-[#1A2332] font-black text-xl mb-1 uppercase">¡Camarero/a en camino!</p>
                 <p className="text-[#9DAAB8] text-sm mb-6">Ya saben dónde estás.</p>
                 <button
                   onClick={() => setShowWaiter(false)}
@@ -146,7 +146,7 @@ export default function BottomNav() {
               <>
                 <div className="flex items-center justify-between mb-5">
                   <div>
-                    <h2 className="text-[#1A2332] font-black text-xl uppercase">Llamar al mozo</h2>
+                    <h2 className="text-[#1A2332] font-black text-xl uppercase">Solicitar atención</h2>
                     <p className="text-[#9DAAB8] text-sm">¿En qué te podemos ayudar?</p>
                   </div>
                   <button
@@ -187,7 +187,7 @@ export default function BottomNav() {
                       style={{ backgroundColor: waiterColor }}
                       className="w-full disabled:opacity-50 text-white font-black py-4 rounded-2xl text-base uppercase tracking-wide"
                     >
-                      {callLoading ? 'Enviando...' : 'Llamar al mozo'}
+                      {callLoading ? 'Enviando...' : 'Solicitar atención'}
                     </button>
                   </>
                 ) : zones.length === 0 ? (
@@ -197,7 +197,7 @@ export default function BottomNav() {
                     style={{ backgroundColor: waiterColor }}
                     className="w-full disabled:opacity-50 text-white font-black py-4 rounded-2xl text-base uppercase"
                   >
-                    {callLoading ? 'Enviando...' : 'Llamar al mozo'}
+                    {callLoading ? 'Enviando...' : 'Solicitar atención'}
                   </button>
                 ) : (
                   <div>

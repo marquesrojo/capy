@@ -207,7 +207,7 @@ export default function IdentifyPage() {
           className="rounded-2xl p-4 flex flex-col items-center justify-center gap-2.5 text-white active:opacity-85 shadow-sm min-h-[100px]"
         >
           <span className="text-3xl leading-none">🔔</span>
-          <span className="text-xs font-bold text-center leading-tight">Quiero que me atienda un mozo</span>
+          <span className="text-xs font-bold text-center leading-tight">Quiero que me atienda un camarero/a</span>
         </button>
       </div>
 
@@ -421,7 +421,7 @@ export default function IdentifyPage() {
               <div className="text-center py-8">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center text-3xl"
                   style={{ background: `${waiterColor}18` }}>🔔</div>
-                <p className="text-[#1A2332] font-black text-xl mb-1 uppercase">¡Camarero en camino!</p>
+                <p className="text-[#1A2332] font-black text-xl mb-1 uppercase">¡Camarero/a en camino!</p>
                 <p className="text-[#9DAAB8] text-sm mb-6">Ya saben dónde estás.</p>
                 <button onClick={() => setShowWaiterCall(false)}
                   style={{ backgroundColor: waiterColor }}
@@ -433,7 +433,7 @@ export default function IdentifyPage() {
               <>
                 <div className="flex items-center justify-between mb-5">
                   <div>
-                    <h2 className="text-[#1A2332] font-black text-xl uppercase">Llamar al mozo</h2>
+                    <h2 className="text-[#1A2332] font-black text-xl uppercase">Solicitar atención</h2>
                     <p className="text-[#9DAAB8] text-sm">¿En qué te podemos ayudar?</p>
                   </div>
                   <button onClick={() => !callLoading && setShowWaiterCall(false)}
@@ -470,7 +470,7 @@ export default function IdentifyPage() {
                       disabled={callLoading}
                       style={{ backgroundColor: waiterColor }}
                       className="w-full disabled:opacity-50 text-white font-black py-4 rounded-2xl text-base uppercase tracking-wide">
-                      {callLoading ? 'Enviando...' : 'Llamar al mozo'}
+                      {callLoading ? 'Enviando...' : 'Solicitar atención'}
                     </button>
                   </>
                 ) : (
@@ -481,7 +481,7 @@ export default function IdentifyPage() {
                         disabled={callLoading}
                         style={{ backgroundColor: waiterColor }}
                         className="w-full disabled:opacity-50 text-white font-black py-4 rounded-2xl text-base uppercase">
-                        {callLoading ? 'Enviando...' : 'Llamar al mozo'}
+                        {callLoading ? 'Enviando...' : 'Solicitar atención'}
                       </button>
                     ) : (
                       <>

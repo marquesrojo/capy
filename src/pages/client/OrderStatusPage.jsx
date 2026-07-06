@@ -220,7 +220,7 @@ export default function OrderStatusPage() {
             onClick={e => e.stopPropagation()}
           >
             <p className="font-bold text-smoke-200 text-base mb-1">Compartí tu pedido</p>
-            <p className="text-smoke-500 text-xs mb-4">Mostráselo al camarero o compartilo</p>
+            <p className="text-smoke-500 text-xs mb-4">Mostráselo al camarero/a o compartilo</p>
             <ClientQRCode orderId={order.id} />
             <button
               onClick={() => setShowQR(false)}
@@ -388,7 +388,7 @@ export default function OrderStatusPage() {
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
               <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
             </svg>
-            Llamar al camarero
+            Solicitar atención
           </button>
         )}
       </div>
