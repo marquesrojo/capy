@@ -36,6 +36,7 @@ export default function IdentifyPage() {
 
   const [zones, setZones] = useState([])
   const [pickedZone, setPickedZone] = useState(null)
+  const [showZonePicker, setShowZonePicker] = useState(false)
 
   const [showWaiterCall, setShowWaiterCall] = useState(false)
   const [selectedReason, setSelectedReason] = useState(null)
@@ -188,92 +189,114 @@ export default function IdentifyPage() {
         </button>
       </div>
 
-      {/* ── Selector de mesa (QR general, sin prefill) ── */}
+      {/* ── Selector de mesa/sector (QR general, sin prefill) ── */}
       {!prefillZoneId && zones.length > 0 && (
         <div className="mt-5 px-5">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-bold uppercase tracking-wider text-[#9DAAB8]">¿En qué mesa estás?</p>
-            <span className="text-[10px] text-[#C0CBDA] font-medium">opcional</span>
-          </div>
-
-          {mesas.length > 0 && (
-            <div className="grid grid-cols-5 gap-2 mb-3">
-              {mesas.map(zone => {
-                const active = pickedZone?.id === zone.id
-                return (
-                  <button
-                    key={zone.id}
-                    onClick={() => pickZone(zone)}
-                    className="flex flex-col items-center gap-1"
-                  >
-                    <div
-                      className="w-full aspect-square rounded-full flex items-center justify-center text-sm font-black transition-all border-2"
-                      style={active
-                        ? { backgroundColor: selfColor, borderColor: selfColor, color: 'white' }
-                        : { backgroundColor: 'white', borderColor: selfColor, color: selfColor }
-                      }
-                    >
-                      {zoneShort(zone.name)}
-                    </div>
-                  </button>
-                )
-              })}
+          {/* Toggle row */}
+          <button
+            onClick={() => setShowZonePicker(v => !v)}
+            className="w-full flex items-center justify-between bg-white rounded-2xl px-4 py-3 border border-black/[0.06] shadow-sm active:opacity-80"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-base">📍</span>
+              {pickedZone ? (
+                <span className="text-sm font-bold text-[#1A2332]">{pickedZone.name}</span>
+              ) : (
+                <span className="text-sm font-semibold text-[#6B7A8D]">¿En qué mesa o sector estás?</span>
+              )}
+              <span className="text-[10px] text-[#C0CBDA] font-medium ml-1">opcional</span>
             </div>
-          )}
+            <svg
+              width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9DAAB8" strokeWidth="2.5"
+              className={`transition-transform duration-200 ${showZonePicker ? 'rotate-180' : ''}`}
+            >
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
 
-          {sectores.length > 0 && (
-            <>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Sectores</p>
-              <div className="grid grid-cols-4 gap-2 mb-3">
-                {sectores.map(zone => {
-                  const active = pickedZone?.id === zone.id
-                  return (
-                    <button
-                      key={zone.id}
-                      onClick={() => pickZone(zone)}
-                      className="rounded-xl py-2.5 text-xs font-bold text-center border-2 transition-all"
-                      style={active
-                        ? { backgroundColor: selfColor, borderColor: selfColor, color: 'white' }
-                        : { backgroundColor: 'white', borderColor: selfColor, color: selfColor }
-                      }
-                    >
-                      {zone.name}
-                    </button>
-                  )
-                })}
-              </div>
-            </>
-          )}
+          {/* Expandable content */}
+          {showZonePicker && (
+            <div className="mt-2 bg-white rounded-2xl border border-black/[0.06] p-4 shadow-sm">
+              {mesas.length > 0 && (
+                <>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Mesas</p>
+                  <div className="grid grid-cols-5 gap-2 mb-4">
+                    {mesas.map(zone => {
+                      const active = pickedZone?.id === zone.id
+                      return (
+                        <button
+                          key={zone.id}
+                          onClick={() => { pickZone(zone); setShowZonePicker(false) }}
+                          className="aspect-square rounded-full flex items-center justify-center text-sm font-black transition-all border-2"
+                          style={active
+                            ? { backgroundColor: selfColor, borderColor: selfColor, color: 'white' }
+                            : { backgroundColor: '#F0F4F8', borderColor: selfColor, color: selfColor }
+                          }
+                        >
+                          {zoneShort(zone.name)}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
 
-          {retiro.length > 0 && (
-            <>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Retiro</p>
-              <div className="grid grid-cols-3 gap-2 mb-3">
-                {retiro.map(zone => {
-                  const active = pickedZone?.id === zone.id
-                  return (
-                    <button
-                      key={zone.id}
-                      onClick={() => pickZone(zone)}
-                      className="rounded-xl py-2.5 text-xs font-bold text-center border-2 transition-all"
-                      style={active
-                        ? { backgroundColor: selfColor, borderColor: selfColor, color: 'white' }
-                        : { backgroundColor: 'white', borderColor: selfColor, color: selfColor }
-                      }
-                    >
-                      {zone.name}
-                    </button>
-                  )
-                })}
-              </div>
-            </>
-          )}
+              {sectores.length > 0 && (
+                <>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Sectores</p>
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    {sectores.map(zone => {
+                      const active = pickedZone?.id === zone.id
+                      return (
+                        <button
+                          key={zone.id}
+                          onClick={() => { pickZone(zone); setShowZonePicker(false) }}
+                          className="rounded-xl py-2.5 text-xs font-bold text-center border-2 transition-all"
+                          style={active
+                            ? { backgroundColor: selfColor, borderColor: selfColor, color: 'white' }
+                            : { backgroundColor: '#F0F4F8', borderColor: selfColor, color: selfColor }
+                          }
+                        >
+                          {zone.name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
 
-          {pickedZone && (
-            <div className="flex items-center justify-between bg-white rounded-xl px-4 py-2.5 border border-black/[0.06]">
-              <span className="text-xs font-bold text-[#1A2332]">📍 {pickedZone.name} seleccionada</span>
-              <button onClick={() => { setPickedZone(null); setLocation(null) }}
-                className="text-[#9DAAB8] text-xs underline">cambiar</button>
+              {retiro.length > 0 && (
+                <>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Retiro</p>
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    {retiro.map(zone => {
+                      const active = pickedZone?.id === zone.id
+                      return (
+                        <button
+                          key={zone.id}
+                          onClick={() => { pickZone(zone); setShowZonePicker(false) }}
+                          className="rounded-xl py-2.5 text-xs font-bold text-center border-2 transition-all"
+                          style={active
+                            ? { backgroundColor: selfColor, borderColor: selfColor, color: 'white' }
+                            : { backgroundColor: '#F0F4F8', borderColor: selfColor, color: selfColor }
+                          }
+                        >
+                          {zone.name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
+
+              {pickedZone && (
+                <button
+                  onClick={() => { setPickedZone(null); setLocation(null) }}
+                  className="text-[#9DAAB8] text-xs underline w-full text-center mt-1"
+                >
+                  Quitar selección
+                </button>
+              )}
             </div>
           )}
         </div>
