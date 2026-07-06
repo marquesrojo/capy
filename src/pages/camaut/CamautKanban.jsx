@@ -61,7 +61,6 @@ function PrepTimer({ order }) {
 
 export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNewOrderForTable }) {
   const [ownOrders, setOwnOrders] = useState([])
-  const deliveredIdsRef = useRef(new Set()) // IDs marcados como entregado localmente
   const [linkedOrders, setLinkedOrders] = useState([])
   const [menus, setMenus] = useState([])
   const [activeMenuFilter, setActiveMenuFilter] = useState('all')
@@ -96,57 +95,63 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
   }, [venueId, linkedVenues, staffId])
 
   async function loadOrders() {
-    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/camaut-orders`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-      },
-      body: JSON.stringify({
-        venueId,
-        linkedVenueIds: linkedVenues.map(v => v.id),
-        staffId
-      })
-    })
-    const result = await res.json()
-    if (result.success) {
-      const own = result.ownOrders || []
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+
+    // Fetch active orders from edge fn + today's delivered orders from Supabase in parallel
+    const [res, deliveredRes] = await Promise.all([
+      fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/camaut-orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
+          venueId,
+          linkedVenueIds: linkedVenues.map(v => v.id),
+          staffId
+        })
+      }).then(r => r.json()),
+      venueId
+        ? supabaseStaff
+            .from('orders')
+            .select('id, daily_number, location_label, total, status, created_at, notes, prep_started_at, prep_time_minutes, menu_id, waiter_called_at, order_items(product_name, quantity, unit_price, item_notes)')
+            .eq('venue_id', venueId)
+            .eq('status', 'entregado')
+            .gte('created_at', todayStart.toISOString())
+            .order('created_at', { ascending: false })
+        : Promise.resolve({ data: [] })
+    ])
+
+    if (res.success) {
+      const own = res.ownOrders || []
+      let extraMap = {}
       if (own.length > 0) {
         const { data: extraData } = await supabaseStaff
           .from('orders')
           .select('id, menu_id, waiter_called_at')
           .in('id', own.map(o => o.id))
-        const extraMap = Object.fromEntries((extraData || []).map(o => [o.id, o]))
-        const serverOrders = own.map(o => ({
-          ...o,
-          // If we've locally marked this order as entregado, override any stale status
-          // the server still returns (race: poll fires before DB write completes)
-          status: deliveredIdsRef.current.has(o.id) ? 'entregado' : o.status,
-          menu_id: extraMap[o.id]?.menu_id || null,
-          waiter_called_at: extraMap[o.id]?.waiter_called_at || null
-        }))
-        setOwnOrders(prev => {
-          // Preserve locally-delivered orders the server no longer returns
-          const serverIds = new Set(serverOrders.map(o => o.id))
-          const localDelivered = prev.filter(o => deliveredIdsRef.current.has(o.id) && !serverIds.has(o.id))
-          return [...serverOrders, ...localDelivered]
-        })
-      } else {
-        // Server returned nothing — keep any locally-delivered orders
-        setOwnOrders(prev => prev.filter(o => deliveredIdsRef.current.has(o.id)))
+        extraMap = Object.fromEntries((extraData || []).map(o => [o.id, o]))
       }
-      setLinkedOrders(result.linkedOrders || [])
+      const activeOrders = own.map(o => ({
+        ...o,
+        menu_id: extraMap[o.id]?.menu_id || null,
+        waiter_called_at: extraMap[o.id]?.waiter_called_at || null
+      }))
+      const todayDelivered = deliveredRes.data || []
+      const activeIds = new Set(activeOrders.map(o => o.id))
+      // Merge active orders with today's delivered (server is the source of truth — no local state needed)
+      setOwnOrders([...activeOrders, ...todayDelivered.filter(o => !activeIds.has(o.id))])
+      setLinkedOrders(res.linkedOrders || [])
     }
     setLoading(false)
   }
 
   async function updateStatus(orderId, newStatus) {
-    if (newStatus === 'entregado') {
-      deliveredIdsRef.current.add(orderId)
-    }
-    // Patch status in place — order stays in ownOrders regardless of status
     setOwnOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o))
-    await supabaseStaff.from('orders').update({ status: newStatus }).eq('id', orderId)
+    const { error } = await supabaseStaff.from('orders').update({ status: newStatus }).eq('id', orderId)
+    if (error) console.error('[updateStatus] DB error:', error.message)
+    loadOrders()
   }
 
   async function clearWaiterCall(orderId) {
