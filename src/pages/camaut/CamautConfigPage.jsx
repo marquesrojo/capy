@@ -59,6 +59,7 @@ function sanitizeAlias(v) {
 
 function PerfilTab({ profile }) {
   const fileRef = useRef(null)
+  const staffLoadedRef = useRef(false)
   const [staffData, setStaffData] = useState(null)
   const [fullName, setFullName] = useState('')
   const [alias, setAlias] = useState('')
@@ -77,11 +78,17 @@ function PerfilTab({ profile }) {
   }, [profile])
 
   async function loadStaff() {
-    if (!profile) return
+    if (staffLoadedRef.current) return
+    let userId = profile?.id
+    if (!userId) {
+      const { data: { session } } = await supabaseCamaut.auth.getSession()
+      userId = session?.user?.id
+    }
+    if (!userId) return
     const { data: profileData } = await supabaseStaff
       .from('profiles')
       .select('venue_id')
-      .eq('id', profile.id)
+      .eq('id', userId)
       .single()
     if (!profileData?.venue_id) return
     const { data } = await supabaseStaff
@@ -90,6 +97,7 @@ function PerfilTab({ profile }) {
       .eq('venue_id', profileData.venue_id)
       .single()
     if (data) {
+      staffLoadedRef.current = true
       setStaffData(data)
       setFullName(data.full_name || '')
       setAlias(sanitizeAlias(data.alias || ''))
