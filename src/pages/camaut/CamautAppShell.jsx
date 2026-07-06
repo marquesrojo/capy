@@ -1005,22 +1005,42 @@ function VincularTab() {
 function HistorialTab({ staffId, venueId }) {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
+  const [queryError, setQueryError] = useState(null)
   const [expanded, setExpanded] = useState(null)
 
   useEffect(() => {
     if (!venueId && !staffId) { setLoading(false); return }
-    let query = supabaseStaff
+    setLoading(true)
+    setQueryError(null)
+
+    let orFilter = null
+    if (venueId && staffId) {
+      orFilter = `venue_id.eq.${venueId},assigned_staff_id.eq.${staffId}`
+    }
+
+    let query = supabaseCamaut
       .from('orders')
       .select('id, daily_number, location_label, total, status, created_at, order_items')
       .neq('status', 'cancelado')
       .order('created_at', { ascending: false })
       .limit(60)
-    if (venueId) {
+
+    if (orFilter) {
+      query = query.or(orFilter)
+    } else if (venueId) {
       query = query.eq('venue_id', venueId)
     } else {
       query = query.eq('assigned_staff_id', staffId)
     }
-    query.then(({ data }) => { setOrders(data || []); setLoading(false) })
+
+    query.then(({ data, error }) => {
+      if (error) {
+        console.error('[HistorialTab] query error:', error.message)
+        setQueryError(error.message)
+      }
+      setOrders(data || [])
+      setLoading(false)
+    })
   }, [staffId, venueId])
 
   const STATUS_LABEL = {
@@ -1038,7 +1058,7 @@ function HistorialTab({ staffId, venueId }) {
   }
 
   if (loading) return <p className="text-[#8896A5] text-sm text-center py-8">Cargando...</p>
-  if (!staffId) return <p className="text-[#8896A5] text-sm text-center py-8">No se encontró tu perfil.</p>
+  if (queryError) return <p className="text-red-500 text-xs text-center py-8">Error: {queryError}</p>
   if (!orders.length) return <p className="text-[#8896A5] text-sm text-center py-8">Sin pedidos registrados.</p>
 
   return (

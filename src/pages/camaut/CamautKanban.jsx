@@ -137,12 +137,14 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
 
   async function updateStatus(orderId, newStatus) {
     if (newStatus === 'entregado') {
+      // Capture from closure before any state updates — avoids the batching race
+      // where setOwnOrders functional prev might be stale if poll fired concurrently
+      const order = ownOrders.find(o => o.id === orderId)
       deliveredIdsRef.current.add(orderId)
-      setOwnOrders(prev => {
-        const order = prev.find(o => o.id === orderId)
-        if (order) setDeliveredOrders(d => [...d, { ...order, status: 'entregado' }])
-        return prev.filter(o => o.id !== orderId)
-      })
+      setOwnOrders(prev => prev.filter(o => o.id !== orderId))
+      if (order) {
+        setDeliveredOrders(d => [...d, { ...order, status: 'entregado' }])
+      }
     } else {
       setOwnOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o))
     }
