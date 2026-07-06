@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabaseCustomer, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useCart } from '../../hooks/useCart'
 import { useCustomer } from '../../hooks/useCustomer'
 import { formatPrice } from '../../lib/utils'
-import { isSpeechRecognitionSupported } from '../../lib/voiceOrderParser'
 import BottomNav from '../../components/BottomNav'
 import { useClientBase } from '../../hooks/useVenue'
 
@@ -27,6 +26,12 @@ export default function MenuPage() {
   const navigate = useNavigate()
   const base = useClientBase()
 
+  const sectionRefs = useRef({})
+  const chipRefs = useRef({})
+  const chipsBarRef = useRef(null)
+  const headerRef = useRef(null)
+  const isClickScrolling = useRef(false)
+
   useEffect(() => {
     const sid = searchParams.get('session_id')
     const zoneId = searchParams.get('zone_id')
@@ -37,11 +42,6 @@ export default function MenuPage() {
       setLocation({ type: locationType || 'zona', zoneId: zoneId || null, mapX: null, mapY: null, label: locationLabel })
     }
   }, [])
-
-  function handleRemoveFromMenu(product) {
-    const index = items.findIndex(i => i.product.id === product.id)
-    if (index >= 0) updateQuantity(index, items[index].quantity - 1)
-  }
 
   useEffect(() => {
     async function load() {
@@ -67,12 +67,68 @@ export default function MenuPage() {
     load()
   }, [])
 
-  const visibleProducts = search.trim()
+  // Auto-highlight chip as user scrolls through category sections
+  useEffect(() => {
+    if (search || categories.length === 0) return
+
+    const observer = new IntersectionObserver(entries => {
+      if (isClickScrolling.current) return
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const catId = entry.target.dataset.catId
+          if (!catId) return
+          setActiveCategory(catId)
+          // Auto-center the matching chip in the scrollable bar
+          const chip = chipRefs.current[catId]
+          const bar = chipsBarRef.current
+          if (chip && bar) {
+            bar.scrollTo({
+              left: chip.offsetLeft - bar.offsetWidth / 2 + chip.offsetWidth / 2,
+              behavior: 'smooth',
+            })
+          }
+        }
+      })
+    }, {
+      rootMargin: '-100px 0px -55% 0px',
+      threshold: 0,
+    })
+
+    Object.values(sectionRefs.current).forEach(el => { if (el) observer.observe(el) })
+    return () => observer.disconnect()
+  }, [categories, search])
+
+  function scrollToCategory(catId) {
+    setActiveCategory(catId)
+    isClickScrolling.current = true
+    const el = sectionRefs.current[catId]
+    const headerHeight = headerRef.current?.offsetHeight || 130
+    if (el) {
+      const top = el.getBoundingClientRect().top + window.scrollY - headerHeight - 8
+      window.scrollTo({ top, behavior: 'smooth' })
+    }
+    setTimeout(() => { isClickScrolling.current = false }, 1000)
+  }
+
+  function handleRemoveFromMenu(product) {
+    const index = items.findIndex(i => i.product.id === product.id)
+    if (index >= 0) updateQuantity(index, items[index].quantity - 1)
+  }
+
+  // Use venue header colors as accent; fall back to a neutral blue
+  const accentBg = headerBgColor || '#1A3A6B'
+  const accentText = headerTextColor || '#FFFFFF'
+
+  const productsByCategory = categories
+    .map(cat => ({ ...cat, products: products.filter(p => p.category_id === cat.id) }))
+    .filter(cat => cat.products.length > 0)
+
+  const searchResults = search.trim()
     ? products.filter(p =>
         p.name.toLowerCase().includes(search.toLowerCase()) ||
         (p.description || '').toLowerCase().includes(search.toLowerCase())
       )
-    : products.filter(p => p.category_id === activeCategory)
+    : []
 
   if (loading) {
     return (
@@ -100,6 +156,7 @@ export default function MenuPage() {
       )}
 
       <header
+        ref={headerRef}
         className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-black/8 px-5 pt-5 pb-3"
         style={headerBgColor ? { backgroundColor: headerBgColor } : undefined}
       >
@@ -142,18 +199,23 @@ export default function MenuPage() {
           )}
         </div>
 
-        {/* Category tabs */}
+        {/* Category chips — sticky, auto-highlights on scroll */}
         {!search && (
-          <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
+          <div ref={chipsBarRef} className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
             {categories.map(cat => (
               <button
                 key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
-                className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border transition-colors ${
+                ref={el => { chipRefs.current[cat.id] = el }}
+                onClick={() => scrollToCategory(cat.id)}
+                className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border transition-colors flex-shrink-0 ${
                   activeCategory === cat.id
-                    ? 'bg-pucara-blue-500 text-white border-pucara-blue-500'
+                    ? 'border-transparent'
                     : 'bg-white border-black/10 text-smoke-300'
                 }`}
+                style={activeCategory === cat.id
+                  ? { backgroundColor: accentBg, color: accentText }
+                  : undefined
+                }
               >
                 {cat.name}
               </button>
@@ -166,9 +228,7 @@ export default function MenuPage() {
       <div className="px-5 pt-4 pb-1 space-y-2">
         {location?.label ? (
           <div className={`flex items-center justify-between rounded-xl px-4 py-2.5 border shadow-sm ${
-            location.type === 'retiro'
-              ? 'bg-amber-50 border-amber-300'
-              : 'bg-white border-black/5'
+            location.type === 'retiro' ? 'bg-amber-50 border-amber-300' : 'bg-white border-black/5'
           }`}>
             <div className="flex items-center gap-2">
               <span>{location.type === 'retiro' ? '🛍' : '📍'}</span>
@@ -186,82 +246,57 @@ export default function MenuPage() {
         ) : zones.length > 0 ? (
           <>
             <p className="text-smoke-500 text-xs font-semibold uppercase tracking-wide">¿Dónde estás?</p>
-
             {selectedSector ? (
-              /* Sector selected: show only its mesas + back link */
               <div className="space-y-1.5">
-                <button
-                  onClick={() => setSelectedSector(null)}
-                  className="text-pucara-blue-400 text-xs font-semibold flex items-center gap-1"
-                >
+                <button onClick={() => setSelectedSector(null)} className="text-pucara-blue-400 text-xs font-semibold flex items-center gap-1">
                   ← {selectedSector.name}
                 </button>
                 <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
                   {filteredMesas.map(zone => (
-                    <button
-                      key={zone.id}
-                      onClick={() => setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })}
-                      className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-white border-black/10 text-smoke-300 active:bg-pucara-blue-500 active:text-white active:border-pucara-blue-500"
-                    >
+                    <button key={zone.id} onClick={() => setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })}
+                      className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-white border-black/10 text-smoke-300 active:bg-pucara-blue-500 active:text-white active:border-pucara-blue-500">
                       {zone.name}
                     </button>
                   ))}
                 </div>
               </div>
             ) : (
-              /* No sector selected: sectors + direct zones in one row, then mesas if no sectors, then retiro */
               <div className="space-y-2">
                 {(sectorZones.length > 0 || directZones.length > 0) && (
                   <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
                     {sectorZones.map(sector => (
-                      <button
-                        key={sector.id}
-                        onClick={() => setSelectedSector(sector)}
-                        className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-white border-black/10 text-smoke-300 active:bg-pucara-blue-500 active:text-white active:border-pucara-blue-500"
-                      >
+                      <button key={sector.id} onClick={() => setSelectedSector(sector)}
+                        className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-white border-black/10 text-smoke-300 active:bg-pucara-blue-500 active:text-white">
                         {sector.name}
                       </button>
                     ))}
                     {directZones.map(zone => (
-                      <button
-                        key={zone.id}
-                        onClick={() => setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })}
-                        className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-white border-black/10 text-smoke-300 active:bg-pucara-blue-500 active:text-white active:border-pucara-blue-500"
-                      >
+                      <button key={zone.id} onClick={() => setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })}
+                        className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-white border-black/10 text-smoke-300 active:bg-pucara-blue-500 active:text-white">
                         {zone.name}
                       </button>
                     ))}
                   </div>
                 )}
-
-                {/* Mesas directas — solo si no hay sectores */}
                 {sectorZones.length === 0 && mesaZones.length > 0 && (
                   <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
                     {mesaZones.map(zone => (
-                      <button
-                        key={zone.id}
-                        onClick={() => setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })}
-                        className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-white border-black/10 text-smoke-300 active:bg-pucara-blue-500 active:text-white active:border-pucara-blue-500"
-                      >
+                      <button key={zone.id} onClick={() => setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })}
+                        className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-white border-black/10 text-smoke-300 active:bg-pucara-blue-500 active:text-white">
                         {zone.name}
                       </button>
                     ))}
                   </div>
                 )}
-
-                {/* Retiro zones */}
                 {retiroZones.length > 0 && (
                   <div className="flex items-center gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
                     <span className="text-amber-600 text-xs font-semibold whitespace-nowrap flex-shrink-0">🛍 Retiro yo en:</span>
                     {retiroZones.map(zone => (
-                        <button
-                          key={zone.id}
-                          onClick={() => setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })}
-                          className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-amber-50 border-amber-300 text-amber-700 active:bg-amber-500 active:text-white active:border-amber-500"
-                        >
-                          {zone.name}
-                        </button>
-                      ))}
+                      <button key={zone.id} onClick={() => setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })}
+                        className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-amber-50 border-amber-300 text-amber-700 active:bg-amber-500 active:text-white active:border-amber-500">
+                        {zone.name}
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
@@ -271,27 +306,44 @@ export default function MenuPage() {
       </div>
 
       {/* Products */}
-      <main className="px-5 pt-3 space-y-2">
-        {visibleProducts.length === 0 && (
-          <p className="text-smoke-500 text-sm text-center py-10">
-            {search ? `No encontramos "${search}" en la carta.` : 'No hay productos en esta categoría.'}
-          </p>
+      <main className="px-5 pt-3">
+        {search ? (
+          <div className="space-y-2">
+            {searchResults.length === 0 ? (
+              <p className="text-smoke-500 text-sm text-center py-10">No encontramos "{search}" en la carta.</p>
+            ) : searchResults.map(product => (
+              <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu}
+                qty={items.find(i => i.product.id === product.id)?.quantity || 0}
+                accentBg={accentBg} accentText={accentText} />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {productsByCategory.map(cat => (
+              <section
+                key={cat.id}
+                ref={el => { sectionRefs.current[cat.id] = el }}
+                data-cat-id={cat.id}
+              >
+                <h2 className="text-[11px] font-bold uppercase tracking-widest text-smoke-400 mb-3">{cat.name}</h2>
+                <div className="space-y-2">
+                  {cat.products.map(product => (
+                    <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu}
+                      qty={items.find(i => i.product.id === product.id)?.quantity || 0}
+                      accentBg={accentBg} accentText={accentText} />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
         )}
-        {visibleProducts.map(product => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            onAdd={addItem}
-            onRemove={handleRemoveFromMenu}
-            qty={items.find(i => i.product.id === product.id)?.quantity || 0}
-          />
-        ))}
       </main>
 
       {itemCount > 0 && (
         <button
           onClick={() => navigate(location ? `${base}/pago` : `${base}/ubicacion`)}
-          className="fixed bottom-20 left-5 right-5 bg-pucara-blue-500 hover:bg-pucara-blue-600 text-white rounded-2xl py-4 px-5 flex items-center justify-between shadow-pucara font-semibold z-20"
+          className="fixed bottom-20 left-5 right-5 rounded-2xl py-4 px-5 flex items-center justify-between shadow-lg font-semibold z-20 active:opacity-90"
+          style={{ backgroundColor: accentBg, color: accentText }}
         >
           <span>{itemCount} {itemCount === 1 ? 'item' : 'items'}</span>
           <span>{formatPrice(subtotal)} · {location ? 'Confirmar →' : 'Continuar →'}</span>
@@ -303,7 +355,7 @@ export default function MenuPage() {
   )
 }
 
-function ProductCard({ product, onAdd, onRemove, qty }) {
+function ProductCard({ product, onAdd, onRemove, qty, accentBg = '#1A3A6B', accentText = '#FFFFFF' }) {
   return (
     <div className={`bg-white border rounded-xl flex gap-3 transition-colors ${
       product.is_available ? 'border-black/5 shadow-sm' : 'border-black/5 opacity-50'
@@ -314,7 +366,7 @@ function ProductCard({ product, onAdd, onRemove, qty }) {
       <div className="flex-1 min-w-0 py-3 pr-3">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-semibold text-smoke-300 text-sm leading-tight">{product.name}</h3>
-          <span className="font-mono text-pucara-blue-400 text-sm whitespace-nowrap flex-shrink-0">
+          <span className="font-mono text-sm whitespace-nowrap flex-shrink-0" style={{ color: accentBg }}>
             {formatPrice(product.price)}
           </span>
         </div>
@@ -333,10 +385,11 @@ function ProductCard({ product, onAdd, onRemove, qty }) {
               >
                 −
               </button>
-              <span className={`font-semibold w-5 text-center text-sm ${qty > 0 ? 'text-pucara-blue-500' : 'text-smoke-400'}`}>{qty}</span>
+              <span className="font-semibold w-5 text-center text-sm" style={{ color: qty > 0 ? accentBg : '#9CA3AF' }}>{qty}</span>
               <button
                 onClick={() => onAdd(product, 1)}
-                className="w-8 h-8 rounded-lg bg-pucara-blue-500 text-white flex items-center justify-center font-bold text-base active:bg-pucara-blue-600"
+                className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-base active:opacity-80"
+                style={{ backgroundColor: accentBg, color: accentText }}
               >
                 +
               </button>
