@@ -268,7 +268,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto flex flex-col">
       {/* Wrapped notification banner */}
       {wrappedReady && !wrappedSeen && !showWrapped && (
         <button

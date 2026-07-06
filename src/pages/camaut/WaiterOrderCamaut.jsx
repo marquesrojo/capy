@@ -454,11 +454,11 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
 
   // PASO 1 — Carta
   return (
-    <div className="bg-[#F0F4F8] pb-32">
+    <div className="flex-1 min-h-0 flex flex-col bg-[#F0F4F8]">
 
       {/* Indicador de carta activa */}
       {linkedVenues.length > 0 && (
-        <div className="px-4 pt-3 pb-3 flex items-center justify-between bg-white border-b border-black/5">
+        <div className="flex-shrink-0 px-4 pt-3 pb-3 flex items-center justify-between bg-white border-b border-black/5">
           <div>
             <p className="text-[#8896A5] text-[10px] font-semibold uppercase tracking-wide">Carta activa</p>
             <p className="font-bold text-[#1A2A3A] text-sm">
@@ -474,11 +474,11 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
         </div>
       )}
 
-      {/* Mis Cartas (venue propio): primero selector de carta/menú, luego ubicación */}
+      {/* Mis Cartas (venue propio): selector de carta/menú */}
       {activeVenueId === venueId && menus.length > 0 && (
-        <div className="px-4 pt-3 pb-1">
+        <div className="flex-shrink-0 px-4 pt-3 pb-1">
           <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-2">Seleccioná tu carta</p>
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
             <button
               onClick={() => { setActiveMenuId('all'); setActiveCategory(categories[0]?.id || null) }}
               className={`whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold border ${
@@ -521,7 +521,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
       )}
 
       {/* Ubicación */}
-      <div className="px-4 pt-4 pb-2">
+      <div className="flex-shrink-0 px-4 pt-4 pb-2">
         <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-2">Ubicación</p>
         {activeVenueId !== venueId ? (
           zones.some(z => z.pos_x != null) ? (
@@ -582,7 +582,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
       </div>
 
       {/* Buscador */}
-      <div className="px-4 pt-3 pb-1">
+      <div className="flex-shrink-0 px-4 pt-2 pb-2">
         <div className="relative">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-[#B0BEC5]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -604,8 +604,8 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
       </div>
 
       {searchResults ? (
-        /* Resultados de búsqueda */
-        <div className="px-4 space-y-2 mt-2">
+        /* Resultados de búsqueda — scrollable */
+        <div className="flex-1 overflow-y-auto px-4 pt-1 pb-4 space-y-2">
           {searchResults.length === 0 ? (
             <p className="text-[#8896A5] text-sm text-center py-6">Sin resultados para "{searchQuery}"</p>
           ) : (
@@ -614,11 +614,11 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
               const qty = item?.qty || 0
               return (
                 <div key={product.id} className="bg-white rounded-xl px-4 py-3 flex items-center justify-between border border-black/5 shadow-sm">
-                  <div>
+                  <div className="flex-1 min-w-0 pr-2">
                     <p className="text-sm font-semibold text-[#1A2A3A]">{product.name}</p>
                     <p className="text-xs text-[#8896A5]">{categoryMap[product.category_id] || ''} · <span className="text-[#008080] font-semibold">{formatPrice(product.price)}</span></p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <button onClick={() => changeQty(product.id, -1)} className="w-7 h-7 rounded-lg border border-black/10 bg-[#F8FAFC] text-[#3A4A5A] font-bold text-sm flex items-center justify-center">−</button>
                     <span className="font-bold text-[#1A2A3A] text-sm w-5 text-center">{qty}</span>
                     <button onClick={() => changeQty(product.id, 1)} className="w-7 h-7 rounded-lg bg-[#4DD0E1] text-white font-bold text-sm flex items-center justify-center">+</button>
@@ -629,36 +629,41 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
           )}
         </div>
       ) : (
-        <>
-          {/* Categorías */}
-          <div className="px-4 pt-3 pb-2 flex gap-2 overflow-x-auto">
+        /* Sidebar + productos */
+        <div className="flex-1 overflow-hidden flex">
+          {/* Sidebar de categorías */}
+          <div className="w-[76px] flex-shrink-0 bg-[#E4EBF0] overflow-y-auto scrollbar-hide">
             {filteredCategories.map(cat => (
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id)}
-                className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border ${
+                className={`w-full py-3 px-1.5 flex flex-col items-center gap-1 text-center border-l-[3px] transition-colors ${
                   activeCategory === cat.id
-                    ? 'bg-[#008080] text-white border-[#008080]'
-                    : 'bg-white border-black/10 text-[#3A4A5A]'
+                    ? 'border-[#008080] bg-[#d0eeee]'
+                    : 'border-transparent'
                 }`}
               >
-                {cat.name}
+                <span className={`text-[9px] font-semibold leading-tight break-words w-full ${
+                  activeCategory === cat.id ? 'text-[#005f5f]' : 'text-[#6B7A8D]'
+                }`}>
+                  {cat.name}
+                </span>
               </button>
             ))}
           </div>
 
-          {/* Productos */}
-          <div className="px-4 space-y-2 mt-1">
+          {/* Lista de productos */}
+          <div className="flex-1 overflow-y-auto pt-2 pb-4 px-2.5 space-y-2">
             {visibleProducts.map(product => {
               const item = cart[product.id]
               const qty = item?.qty || 0
               return (
-                <div key={product.id} className="bg-white rounded-xl px-4 py-3 flex items-center justify-between border border-black/5 shadow-sm">
-                  <div>
-                    <p className="text-sm font-semibold text-[#1A2A3A]">{product.name}</p>
-                    <p className="text-xs text-[#008080] font-semibold">{formatPrice(product.price)}</p>
+                <div key={product.id} className="bg-white rounded-xl px-3 py-3 flex items-center justify-between border border-black/5 shadow-sm">
+                  <div className="flex-1 min-w-0 pr-2">
+                    <p className="text-sm font-semibold text-[#1A2A3A] leading-snug">{product.name}</p>
+                    <p className="text-xs text-[#008080] font-semibold mt-0.5">{formatPrice(product.price)}</p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
                     <button onClick={() => changeQty(product.id, -1)} className="w-7 h-7 rounded-lg border border-black/10 bg-[#F8FAFC] text-[#3A4A5A] font-bold text-sm flex items-center justify-center">−</button>
                     <span className="font-bold text-[#1A2A3A] text-sm w-5 text-center">{qty}</span>
                     <button onClick={() => changeQty(product.id, 1)} className="w-7 h-7 rounded-lg bg-[#4DD0E1] text-white font-bold text-sm flex items-center justify-center">+</button>
@@ -666,17 +671,15 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
                 </div>
               )
             })}
-
-            {/* Agregar producto nuevo */}
             <NuevoProductoInline venueId={activeVenueId} categoryId={categories[0]?.id} onAdded={loadCarta} />
           </div>
-        </>
+        </div>
       )}
 
-      {/* Footer con botón ir a confirmar */}
+      {/* Barra del carrito */}
       {cartItems.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-black/10 px-4 py-4">
-          <div className="flex items-center justify-between mb-3">
+        <div className="flex-shrink-0 bg-white border-t border-black/10 px-4 py-4">
+          <div className="flex items-center justify-between">
             <div>
               <p className="text-[#8896A5] text-xs">{cartItems.length} producto{cartItems.length !== 1 ? 's' : ''}</p>
               <p className="font-mono font-bold text-[#008080] text-lg">{formatPrice(total)}</p>
