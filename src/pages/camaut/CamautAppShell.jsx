@@ -91,8 +91,6 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
     else if (id === 'ubicaciones') { setMicapyTab('ubicaciones') }
   }
 
-  const showGettingStarted = !gsState.dismissed && !(gsState.perfil && gsState.carta && gsState.ubicaciones)
-
   function handleNewOrderForTable(locationLabel) {
     setPrefillLocation(locationLabel)
     setTab('tomar')
@@ -101,9 +99,10 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
   const [staffXP, setStaffXP] = useState(initialXP || 0)
   const [staffAlias, setStaffAlias] = useState(null)
   const [staffAvatarUrl, setStaffAvatarUrl] = useState(null)
+  const [staffLoaded, setStaffLoaded] = useState(false)
 
   useEffect(() => {
-    if (!venueId) return
+    if (!venueId) { setStaffLoaded(true); return }
     supabaseStaff
       .from('staff_names')
       .select('full_name, xp, alias, avatar_url')
@@ -114,6 +113,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
         if (data?.xp !== undefined) setStaffXP(data.xp)
         if (data?.alias) setStaffAlias(data.alias.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9_-]/g, ''))
         if (data?.avatar_url) setStaffAvatarUrl(data.avatar_url)
+        setStaffLoaded(true)
       })
   }, [venueId])
 
@@ -158,6 +158,9 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
   const xp = staffXP || 0
   const level = getLevel(xp)
   const progress = getXPProgress(xp)
+  // Only show once data is loaded; hide permanently once the user has any XP
+  // (server value — immune to localStorage being cleared between sessions).
+  const showGettingStarted = staffLoaded && xp === 0 && !gsState.dismissed && !(gsState.perfil && gsState.carta && gsState.ubicaciones)
 
   async function handleSignOut() {
     await supabaseCamaut.auth.signOut()
