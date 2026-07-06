@@ -22,24 +22,18 @@ export default function AdminLoginPage() {
 
   // Recovery
   const [showRecovery, setShowRecovery] = useState(false)
+  const [recoveryEmail, setRecoveryEmail] = useState('')
   const [recoverySent, setRecoverySent] = useState(false)
   const [recoveryLoading, setRecoveryLoading] = useState(false)
 
   async function handleRecovery(e) {
     e.preventDefault()
+    const target = recoveryEmail.trim() || email.trim()
+    if (!target) return
     setRecoveryLoading(true)
     try {
-      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-recovery-email`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({
-          email: email.trim(),
-          redirect_to: `${window.location.origin}/auth/callback?type=admin`,
-        }),
+      await supabaseStaff.auth.resetPasswordForEmail(target, {
+        redirectTo: `${window.location.origin}/auth/callback?type=admin`,
       })
     } catch (_) {}
     setRecoveryLoading(false)
@@ -182,22 +176,22 @@ export default function AdminLoginPage() {
                 </p>
               ) : (
                 <form onSubmit={handleRecovery} className="space-y-2">
-                  {!email && (
+                  {!email.trim() && (
                     <input
                       type="email"
                       required
-                      value={email}
-                      onChange={e => setEmail(e.target.value)}
+                      value={recoveryEmail}
+                      onChange={e => setRecoveryEmail(e.target.value)}
                       placeholder="Tu email"
                       className="input text-sm"
                     />
                   )}
                   <button
                     type="submit"
-                    disabled={recoveryLoading}
+                    disabled={recoveryLoading || (!email.trim() && !recoveryEmail.trim())}
                     className="w-full border border-carbon-600 text-smoke-400 text-xs font-medium py-2 rounded-xl disabled:opacity-50"
                   >
-                    {recoveryLoading ? 'Enviando...' : `Enviar link a ${email || 'mi email'}`}
+                    {recoveryLoading ? 'Enviando...' : `Enviar link a ${email.trim() || recoveryEmail.trim() || 'mi email'}`}
                   </button>
                 </form>
               )}

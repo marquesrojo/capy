@@ -58,6 +58,7 @@ function AdminDashboardInner() {
   const [hasProducts, setHasProducts] = useState(true)
   const [hasStaff, setHasStaff] = useState(true)
   const [hasLocations, setHasLocations] = useState(true)
+  const [hasCamautStaff, setHasCamautStaff] = useState(true)
   const [waiterCalls, setWaiterCalls] = useState([])
   const { signOut, profile, venueId, isSuperAdmin } = useAuth()
 
@@ -72,14 +73,16 @@ function AdminDashboardInner() {
   }, [venueId])
 
   async function loadOnboardingChecks() {
-    const [prodRes, staffRes, zoneRes] = await Promise.all([
+    const [prodRes, staffRes, zoneRes, camautRes] = await Promise.all([
       supabaseStaff.from('products').select('id', { count: 'exact', head: true }).eq('venue_id', venueId).limit(1),
       supabaseStaff.from('staff_names').select('id', { count: 'exact', head: true }).eq('venue_id', venueId).eq('is_active', true).limit(1),
-      supabaseStaff.from('venue_zones').select('id', { count: 'exact', head: true }).eq('venue_id', venueId).limit(1)
+      supabaseStaff.from('venue_zones').select('id', { count: 'exact', head: true }).eq('venue_id', venueId).limit(1),
+      supabaseStaff.from('venue_staff').select('id', { count: 'exact', head: true }).eq('venue_id', venueId).limit(1),
     ])
     setHasProducts((prodRes.count ?? 0) > 0)
     setHasStaff((staffRes.count ?? 0) > 0)
     setHasLocations((zoneRes.count ?? 0) > 0)
+    setHasCamautStaff((camautRes.count ?? 0) > 0)
   }
 
   async function loadZones() {
@@ -405,7 +408,7 @@ function AdminDashboardInner() {
         </button>
       </div>
 
-      {profile?.role !== 'camarero' && (!hasProducts || !hasStaff || !hasLocations) && (
+      {profile?.role !== 'camarero' && (!hasProducts || !hasStaff || !hasLocations || !hasCamautStaff) && (
         <div className="px-4 pt-4 space-y-2">
           {!hasProducts && (
             <OnboardingAlert
@@ -432,6 +435,15 @@ function AdminDashboardInner() {
               description="Sin ubicaciones, los clientes no pueden indicar dónde están."
               linkTo="/admin/ubicaciones"
               linkLabel="Crear ubicaciones →"
+            />
+          )}
+          {!hasCamautStaff && (
+            <OnboardingAlert
+              icon="📲"
+              title="Vinculá el camaut con tu local"
+              description="Los camareros instalan el camaut y escanean el QR de este panel para empezar a operar."
+              linkTo="/admin/qr"
+              linkLabel="Ver QR →"
             />
           )}
         </div>

@@ -5,6 +5,11 @@ import { supabaseStaff, setActiveVenueId } from '../../lib/supabase'
 
 
 
+function generateInviteCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+}
+
 function toSlug(name) {
   return name
     .toLowerCase()
@@ -48,7 +53,7 @@ export default function AdminOnboardingPage() {
 
     const { data: venue, error: venueError } = await supabaseStaff
       .from('venues')
-      .insert({ name: name.trim(), slug: slug.trim(), owner_id: user.id, is_active: true })
+      .insert({ name: name.trim(), slug: slug.trim(), owner_id: user.id, is_active: true, invite_code: generateInviteCode() })
       .select()
       .single()
 
