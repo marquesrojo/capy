@@ -167,7 +167,7 @@ export default function MenuPage() {
         /* Sidebar + products */
         <div className="flex-1 overflow-hidden flex">
           {/* Category sidebar */}
-          <div className="w-[84px] flex-shrink-0 overflow-y-auto scrollbar-hide pb-16"
+          <div className="w-[96px] flex-shrink-0 overflow-y-auto scrollbar-hide pb-16"
             style={{ backgroundColor: `${accentBg}18` }}>
             {categories.map(cat => {
               const active = activeCategory === cat.id
@@ -178,7 +178,7 @@ export default function MenuPage() {
                   className="w-full py-1.5 pl-0 pr-1.5 flex justify-end"
                 >
                   <div
-                    className="w-[74px] py-3 px-2 rounded-r-xl flex flex-col items-center gap-0.5 text-center border-l-[3px] transition-all"
+                    className="w-[86px] py-3 px-2 rounded-r-xl flex flex-col items-center gap-0.5 text-center border-l-[3px] transition-all"
                     style={active
                       ? { borderColor: accentBg, backgroundColor: 'white' }
                       : { borderColor: 'transparent' }
