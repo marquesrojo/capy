@@ -18,7 +18,7 @@ export default function OrderConfirmedPage() {
       const [orderRes, venueRes] = await Promise.all([
         supabaseCustomer
           .from('orders')
-          .select('id, status, location_label')
+          .select('id, status, location_label, location_type, daily_number')
           .eq('id', orderId)
           .single(),
         supabaseCustomer
@@ -43,22 +43,45 @@ export default function OrderConfirmedPage() {
   }
 
   const needsValidation = order?.status === 'pendiente_aprobacion'
+  const isRetiro = order?.location_type === 'retiro'
+  const needsWhatsapp = (needsValidation || isRetiro) && venueWhatsapp
 
-  if (needsValidation && venueWhatsapp) {
-    const shortId = orderId.slice(0, 4).toUpperCase()
-    const message = `Hola! Soy ${customer?.full_name || 'un cliente'}, valido mi pedido #${shortId} para ${order.location_label}`
+  if (needsWhatsapp) {
+    const ticketNum = order.daily_number ? `#${order.daily_number}` : `#${orderId.slice(0, 4).toUpperCase()}`
+    const message = isRetiro
+      ? `Hola! Soy ${customer?.full_name || 'un cliente'}, confirmo mi pedido de retiro ${ticketNum}`
+      : `Hola! Soy ${customer?.full_name || 'un cliente'}, valido mi pedido ${ticketNum} para ${order.location_label}`
     const waLink = `https://wa.me/${venueWhatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`
 
     return (
       <div className="min-h-screen bg-carbon-950 flex items-center justify-center px-5">
         <div className="w-full max-w-sm text-center">
-          <div className="text-5xl mb-4">📲</div>
-          <h1 className="font-display text-3xl text-ember-500 tracking-wide mb-2">
-            FALTA VALIDAR
-          </h1>
-          <p className="text-smoke-300 text-sm mb-8">
-            Para que tu pedido entre en preparación, confirmalo por WhatsApp. Es rápido.
-          </p>
+          {isRetiro ? (
+            <>
+              <div className="text-5xl mb-4">🛍️</div>
+              <h1 className="font-display text-3xl text-ember-500 tracking-wide mb-2">
+                PEDIDO LISTO
+              </h1>
+              <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5 mb-5">
+                <p className="text-smoke-500 text-xs mb-1">Tu número de retiro</p>
+                <p className="font-display text-5xl text-ember-500 tracking-wider">{ticketNum}</p>
+                <p className="text-smoke-500 text-xs mt-2">{order.location_label}</p>
+              </div>
+              <p className="text-smoke-300 text-sm mb-6">
+                Confirmá por WhatsApp para que tu pedido entre en preparación. Guardá tu número de retiro.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="text-5xl mb-4">📲</div>
+              <h1 className="font-display text-3xl text-ember-500 tracking-wide mb-2">
+                FALTA VALIDAR
+              </h1>
+              <p className="text-smoke-300 text-sm mb-8">
+                Para que tu pedido entre en preparación, confirmalo por WhatsApp. Es rápido.
+              </p>
+            </>
+          )}
 
           <a
             href={waLink}
