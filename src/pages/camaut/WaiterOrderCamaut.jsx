@@ -644,8 +644,8 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
                     ? 'border-[#008080] bg-white shadow-sm'
                     : 'border-transparent'
                 }`}>
-                  <span className={`text-[11px] font-semibold leading-tight break-words w-full ${
-                    activeCategory === cat.id ? 'text-[#005f5f]' : 'text-[#374151]'
+                  <span className={`text-[11px] leading-tight break-words w-full ${
+                    activeCategory === cat.id ? 'font-bold text-[#005f5f]' : 'font-medium text-[#8896A5]'
                   }`}>
                     {cat.name}
                   </span>

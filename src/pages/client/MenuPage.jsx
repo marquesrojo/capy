@@ -185,8 +185,8 @@ export default function MenuPage() {
                     }
                   >
                     <span
-                      className="text-[11px] font-semibold leading-tight break-words w-full"
-                      style={{ color: active ? accentBg : '#374151' }}
+                      className={`text-[11px] leading-tight break-words w-full ${active ? 'font-bold' : 'font-medium'}`}
+                      style={{ color: active ? accentBg : '#8896A5' }}
                     >
                       {cat.name}
                     </span>
