@@ -281,10 +281,15 @@ function CartaTab({ profile }) {
   useEffect(() => { loadAll() }, [profile])
 
   async function loadAll() {
-    if (!profile) return
+    let userId = profile?.id
+    if (!userId) {
+      const { data: { session } } = await supabaseCamaut.auth.getSession()
+      userId = session?.user?.id
+    }
+    if (!userId) { setLoading(false); return }
     const { data: profileData } = await supabaseCamaut
-      .from('profiles').select('venue_id').eq('id', profile.id).single()
-    if (!profileData?.venue_id) return
+      .from('profiles').select('venue_id').eq('id', userId).single()
+    if (!profileData?.venue_id) { setLoading(false); return }
     setVenueId(profileData.venue_id)
 
     const [menuRes, catRes, prodRes] = await Promise.all([
@@ -691,10 +696,24 @@ function NotasTab({ profile }) {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    if (profile?.venue_id) {
-      setVenueId(profile.venue_id)
-      loadNotas(profile.venue_id)
+    async function init() {
+      let vId = profile?.venue_id
+      if (!vId) {
+        const { data: { session } } = await supabaseCamaut.auth.getSession()
+        if (session?.user?.id) {
+          const { data: pd } = await supabaseCamaut
+            .from('profiles').select('venue_id').eq('id', session.user.id).single()
+          vId = pd?.venue_id
+        }
+      }
+      if (vId) {
+        setVenueId(vId)
+        loadNotas(vId)
+      } else {
+        setLoading(false)
+      }
     }
+    init()
   }, [profile])
 
   async function loadNotas(vId) {

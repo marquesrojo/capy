@@ -201,9 +201,9 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
   }
 
   return (
-    <div className="min-h-screen bg-[#F0F4F8]">
+    <div className="h-screen flex flex-col bg-[#F0F4F8]">
       {/* Header */}
-      <div className="bg-white border-b border-black/8 px-5 pt-4 pb-0 shadow-sm">
+      <div className="bg-white border-b border-black/8 px-5 pt-4 pb-0 shadow-sm flex-shrink-0">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-full bg-[#008080] flex items-center justify-center text-white font-bold text-base flex-shrink-0">
@@ -250,6 +250,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
         </div>
       </div>
 
+      <div className="flex-1 overflow-y-auto">
       {/* Wrapped notification banner */}
       {wrappedReady && !wrappedSeen && !showWrapped && (
         <button
@@ -553,6 +554,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
           )}
         </div>
       )}
+      </div>
     </div>
   )
 }
@@ -1145,8 +1147,12 @@ function VincularTab() {
   }, [])
 
   async function loadLinked() {
-    const { data: { session } } = await supabaseCamaut.auth.getSession()
-    if (!session) return
+    let { data: { session } } = await supabaseCamaut.auth.getSession()
+    if (!session) {
+      const result = await supabaseStaff.auth.getSession()
+      session = result.data.session
+    }
+    if (!session) { setLoading(false); return }
     const { data } = await supabaseStaff
       .from('venue_staff')
       .select('id, status, venue:venues(id, name), joined_at')
