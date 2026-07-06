@@ -6,14 +6,13 @@ import { useCustomer } from '../../hooks/useCustomer'
 import { formatPrice } from '../../lib/utils'
 import { useClientBase } from '../../hooks/useVenue'
 
-// Forma de pago elegida aca = solo una PREFERENCIA declarada por el
-// cliente. No dispara ninguna accion de cobro todavia. El pedido entra
-// directo a 'recibido' y sigue su flujo normal de cocina. El cobro real
-// se gestiona despues, cuando el cliente toca "La cuenta por favor"
-// desde el detalle de su pedido (ver OrderStatusPage / BillRequest).
+// Payment method chosen here is a PREFERENCE declared by the customer.
+// No payment action is triggered. The order goes to 'recibido' and follows
+// its normal kitchen flow. Actual billing is handled later when the customer
+// requests the bill from their order detail (OrderStatusPage / BillRequest).
 
 export default function PaymentPage() {
-  const { items, subtotal, location, updateQuantity, updateItemNotes, clearCart, itemCount, sessionId, setSessionId } = useCart()
+  const { items, subtotal, location, updateQuantity, clearCart, itemCount, sessionId, setSessionId } = useCart()
   const { customer, registerCustomer } = useCustomer()
   const navigate = useNavigate()
   const base = useClientBase()
@@ -23,8 +22,8 @@ export default function PaymentPage() {
   const [paymentMethod, setPaymentMethod] = useState('')
   const [paymentOptions, setPaymentOptions] = useState([])
   const [guestName, setGuestName] = useState('')
-  const [showGuestForm, setShowGuestForm] = useState(false)
   const [quickNotes, setQuickNotes] = useState([])
+  const [venueColor, setVenueColor] = useState('#1A3A6B')
 
   useEffect(() => {
     if (itemCount === 0) navigate(`${base}/carta`)
@@ -33,7 +32,7 @@ export default function PaymentPage() {
 
   useEffect(() => {
     async function loadData() {
-      const [methodsRes, notesRes] = await Promise.all([
+      const [methodsRes, notesRes, venueRes] = await Promise.all([
         supabaseCustomer
           .from('payment_methods')
           .select('id, name')
@@ -45,13 +44,19 @@ export default function PaymentPage() {
           .select('id, label')
           .eq('venue_id', ACTIVE_VENUE_ID)
           .eq('is_active', true)
-          .order('sort_order')
+          .order('sort_order'),
+        supabaseCustomer
+          .from('venues')
+          .select('header_bg_color')
+          .eq('id', ACTIVE_VENUE_ID)
+          .single()
       ])
       if (methodsRes.data?.length) {
         setPaymentOptions(methodsRes.data)
         setPaymentMethod(methodsRes.data[0].id)
       }
       setQuickNotes(notesRes.data || [])
+      if (venueRes.data?.header_bg_color) setVenueColor(venueRes.data.header_bg_color)
     }
     loadData()
   }, [])
@@ -61,12 +66,6 @@ export default function PaymentPage() {
   async function handleConfirm() {
     setError('')
 
-    // Si todavía no completó nombre+whatsapp, mostrar el formulario primero
-    if (!customer && !showGuestForm) {
-      setShowGuestForm(true)
-      return
-    }
-
     let activeCustomer = customer
     if (!activeCustomer) {
       if (!guestName.trim()) {
@@ -74,7 +73,6 @@ export default function PaymentPage() {
         return
       }
       setSubmitting(true)
-      // Asegurar sesión anónima activa antes de registrar
       const { data: sessionData } = await supabaseCustomer.auth.getSession()
       if (!sessionData.session) {
         await supabaseCustomer.auth.signInAnonymously()
@@ -91,7 +89,6 @@ export default function PaymentPage() {
     setSubmitting(true)
 
     try {
-      // Si no hay session activa, crear una nueva para este cliente en esta mesa
       let activeSessionId = sessionId
       if (!activeSessionId) {
         const { data: session, error: sessionError } = await supabaseCustomer
@@ -156,18 +153,18 @@ export default function PaymentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-carbon-950 pb-40">
-      <header className="px-5 pt-6 pb-4">
-        <h1 className="font-display text-3xl text-pucara-blue-500 tracking-wide">TU PEDIDO</h1>
-        <p className="text-smoke-400 text-sm">📍 {location.label}</p>
+    <div className="min-h-screen bg-[#F0F4F8] pb-40">
+      <header className="px-5 pt-6 pb-4" style={{ backgroundColor: venueColor }}>
+        <h1 className="font-display text-3xl text-white tracking-wide">TU PEDIDO</h1>
+        <p className="text-white/70 text-sm">📍 {location.label}</p>
       </header>
 
-      <main className="px-5 space-y-2">
+      <main className="px-5 pt-4 space-y-3">
         {items.map((item, index) => (
-          <div key={index} className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4">
+          <div key={index} className="bg-white border border-black/[0.06] rounded-2xl p-4 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div className="flex-1 min-w-0">
-                <p className="text-smoke-300 font-medium text-sm">{item.product.name}</p>
+                <p className="text-[#1A2332] font-medium text-sm">{item.product.name}</p>
                 <p className="font-mono text-smoke-500 text-xs mt-0.5">
                   {formatPrice(item.product.price)} c/u
                 </p>
@@ -175,20 +172,21 @@ export default function PaymentPage() {
               <div className="flex items-center gap-3 flex-shrink-0">
                 <button
                   onClick={() => updateQuantity(index, item.quantity - 1)}
-                  className="w-11 h-11 rounded-full bg-carbon-700 text-smoke-300 flex items-center justify-center text-lg font-bold active:bg-carbon-600"
+                  className="w-9 h-9 rounded-full bg-[#F0F4F8] text-[#1A2332] flex items-center justify-center text-lg font-bold active:opacity-70"
                 >
                   −
                 </button>
-                <span className="text-smoke-300 w-5 text-center font-semibold">{item.quantity}</span>
+                <span className="text-[#1A2332] w-5 text-center font-semibold text-sm">{item.quantity}</span>
                 <button
                   onClick={() => updateQuantity(index, item.quantity + 1)}
-                  className="w-11 h-11 rounded-full bg-carbon-700 text-smoke-300 flex items-center justify-center text-lg font-bold active:bg-carbon-600"
+                  className="w-9 h-9 rounded-full text-white flex items-center justify-center text-lg font-bold active:opacity-70"
+                  style={{ backgroundColor: venueColor }}
                 >
                   +
                 </button>
               </div>
               <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                <span className="font-mono text-pucara-blue-400 font-semibold text-sm">
+                <span className="font-mono font-semibold text-sm" style={{ color: venueColor }}>
                   {formatPrice(item.product.price * item.quantity)}
                 </span>
                 <button
@@ -204,13 +202,27 @@ export default function PaymentPage() {
 
         <button
           onClick={() => navigate(`${base}/carta?location_label=${encodeURIComponent(location.label)}&zone_id=${location.zoneId || ''}&location_type=${location.type || 'zona'}`)}
-          className="w-full border-2 border-dashed border-pucara-blue-500/30 text-pucara-blue-500 text-sm font-semibold py-3 rounded-2xl"
+          className="w-full border-2 border-dashed text-sm font-semibold py-3 rounded-2xl"
+          style={{ borderColor: `${venueColor}50`, color: venueColor }}
         >
           + Agregar más ítems
         </button>
 
-        <label className="block pt-2">
-          <span className="text-smoke-400 text-xs mb-1.5 block">Notas para tu pedido (opcional)</span>
+        {!customer && (
+          <div className="bg-white border border-black/[0.06] rounded-2xl p-4 shadow-sm space-y-2">
+            <p className="text-[#1A2332] text-sm font-medium">¿Cómo te llamás?</p>
+            <input
+              type="text"
+              value={guestName}
+              onChange={e => setGuestName(e.target.value)}
+              placeholder="Tu nombre"
+              className="input"
+            />
+          </div>
+        )}
+
+        <label className="block">
+          <span className="text-smoke-500 text-xs mb-1.5 block">Notas para tu pedido (opcional)</span>
           <textarea
             value={notes}
             onChange={e => setNotes(e.target.value)}
@@ -232,11 +244,11 @@ export default function PaymentPage() {
                         : notes ? `${notes}, ${qn.label}` : qn.label
                       setNotes(newNotes)
                     }}
-                    className={`text-xs px-2.5 py-1 rounded-full border ${
-                      active
-                        ? 'bg-pucara-blue-500 text-white border-pucara-blue-500'
-                        : 'border-carbon-600 text-smoke-500'
-                    }`}
+                    className="text-xs px-2.5 py-1 rounded-full border transition-colors"
+                    style={active
+                      ? { backgroundColor: venueColor, color: 'white', borderColor: venueColor }
+                      : { borderColor: '#D1D9E0', color: '#8896A5' }
+                    }
                   >
                     {qn.label}
                   </button>
@@ -246,41 +258,45 @@ export default function PaymentPage() {
           )}
         </label>
 
-        {!customer && showGuestForm && (
-          <div className="pt-4 bg-carbon-900 border border-carbon-700 rounded-2xl p-4 space-y-3">
-            <p className="text-smoke-300 text-sm font-medium">Antes de confirmar, contanos quién pide</p>
-            <p className="text-smoke-500 text-xs">Así armamos tu mensaje de validación por WhatsApp.</p>
-            <input
-              type="text"
-              value={guestName}
-              onChange={e => setGuestName(e.target.value)}
-              placeholder="Tu nombre"
-              className="input"
-              autoFocus
-            />
+        {paymentOptions.length > 0 && (
+          <div>
+            <span className="text-smoke-500 text-xs mb-2 block">Forma de pago</span>
+            <div className="flex flex-wrap gap-2">
+              {paymentOptions.map(opt => {
+                const active = paymentMethod === opt.id
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setPaymentMethod(opt.id)}
+                    className="px-4 py-2 rounded-full text-sm font-medium border transition-colors"
+                    style={active
+                      ? { backgroundColor: venueColor, color: 'white', borderColor: venueColor }
+                      : { borderColor: '#D1D9E0', color: '#4A5568' }
+                    }
+                  >
+                    {opt.name}
+                  </button>
+                )
+              })}
+            </div>
           </div>
         )}
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-carbon-950 border-t border-carbon-700 px-5 py-4 space-y-3">
-        {error && <p className="text-red-700 text-sm">{error}</p>}
-        <p className="text-smoke-500 text-xs">
-          📲 Después de confirmar vas a validar tu pedido por WhatsApp para que entre en preparación.
-        </p>
-        <div className="flex items-center justify-between text-smoke-300">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-black/[0.06] px-5 py-4 space-y-3">
+        {error && <p className="text-red-600 text-sm">{error}</p>}
+        <div className="flex items-center justify-between text-[#1A2332]">
           <span className="font-medium">Total</span>
-          <span className="font-mono text-pucara-blue-400 text-lg">{formatPrice(subtotal)}</span>
+          <span className="font-mono font-bold text-lg" style={{ color: venueColor }}>{formatPrice(subtotal)}</span>
         </div>
         <button
           onClick={handleConfirm}
           disabled={submitting}
-          className="w-full bg-pucara-blue-500 hover:bg-pucara-blue-600 disabled:opacity-50 text-white font-semibold py-4 rounded-xl"
+          className="w-full disabled:opacity-50 text-white font-semibold py-4 rounded-xl"
+          style={{ backgroundColor: venueColor }}
         >
-          {submitting
-            ? 'Procesando...'
-            : !customer && showGuestForm
-              ? 'Confirmar pedido →'
-              : 'Siguiente paso →'}
+          {submitting ? 'Procesando...' : 'Confirmar pedido →'}
         </button>
       </div>
     </div>
