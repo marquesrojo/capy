@@ -637,17 +637,19 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id)}
-                className={`w-full py-3 px-1.5 flex flex-col items-center gap-1 text-center border-l-[3px] transition-colors ${
-                  activeCategory === cat.id
-                    ? 'border-[#008080] bg-[#d0eeee]'
-                    : 'border-transparent'
-                }`}
+                className="w-full py-1.5 pl-0 pr-1.5 flex justify-end"
               >
-                <span className={`text-[9px] font-semibold leading-tight break-words w-full ${
-                  activeCategory === cat.id ? 'text-[#005f5f]' : 'text-[#6B7A8D]'
+                <div className={`w-[66px] py-2.5 px-1 rounded-r-xl flex flex-col items-center gap-0.5 text-center border-l-[3px] transition-all ${
+                  activeCategory === cat.id
+                    ? 'border-[#008080] bg-white shadow-sm'
+                    : 'border-transparent'
                 }`}>
-                  {cat.name}
-                </span>
+                  <span className={`text-[9px] font-semibold leading-tight break-words w-full ${
+                    activeCategory === cat.id ? 'text-[#005f5f]' : 'text-[#6B7A8D]'
+                  }`}>
+                    {cat.name}
+                  </span>
+                </div>
               </button>
             ))}
           </div>
