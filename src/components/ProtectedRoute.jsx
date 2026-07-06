@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useCustomer } from '../hooks/useCustomer'
@@ -15,7 +16,7 @@ export function RequireStaff({ children }) {
   const { user, profile, loading, profileLoading, isStaff, isAdmin, isSuperAdmin, venueId } = useAuth()
   const location = useLocation()
 
-  if (venueId) setActiveVenueId(venueId)
+  useEffect(() => { if (venueId) setActiveVenueId(venueId) }, [venueId])
 
   if (loading || profileLoading) return <FullScreenLoader />
   if (!user) return <Navigate to="/admin/login" replace />
@@ -49,7 +50,7 @@ export function RequireSuperAdmin({ children }) {
 export function RequireAdmin({ children }) {
   const { user, profile, loading, profileLoading, isAdmin, venueId } = useAuth()
 
-  if (venueId) setActiveVenueId(venueId)
+  useEffect(() => { if (venueId) setActiveVenueId(venueId) }, [venueId])
 
   if (loading || profileLoading) return <FullScreenLoader />
   if (!user) return <Navigate to="/admin/login" replace />
