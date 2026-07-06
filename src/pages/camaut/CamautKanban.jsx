@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import QRCode from 'qrcode'
 import { formatPrice } from '../../lib/utils'
 import { supabaseStaff } from '../../lib/supabase'
@@ -61,8 +61,7 @@ function PrepTimer({ order }) {
 
 export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNewOrderForTable }) {
   const [ownOrders, setOwnOrders] = useState([])
-  const [deliveredOrders, setDeliveredOrders] = useState([]) // entregados locales, nunca tocados por el poll
-  const deliveredIdsRef = useRef(new Set())
+  const deliveredIdsRef = useRef(new Set()) // IDs marcados como entregado localmente
   const [linkedOrders, setLinkedOrders] = useState([])
   const [menus, setMenus] = useState([])
   const [activeMenuFilter, setActiveMenuFilter] = useState('all')
@@ -118,17 +117,20 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
           .select('id, menu_id, waiter_called_at')
           .in('id', own.map(o => o.id))
         const extraMap = Object.fromEntries((extraData || []).map(o => [o.id, o]))
-        // Exclude orders already tracked as delivered locally — they live in deliveredOrders
-        const merged = own
-          .filter(o => !deliveredIdsRef.current.has(o.id))
-          .map(o => ({
-            ...o,
-            menu_id: extraMap[o.id]?.menu_id || null,
-            waiter_called_at: extraMap[o.id]?.waiter_called_at || null
-          }))
-        setOwnOrders(merged)
+        const serverOrders = own.map(o => ({
+          ...o,
+          menu_id: extraMap[o.id]?.menu_id || null,
+          waiter_called_at: extraMap[o.id]?.waiter_called_at || null
+        }))
+        setOwnOrders(prev => {
+          // Preserve locally-delivered orders the server no longer returns
+          const serverIds = new Set(serverOrders.map(o => o.id))
+          const localDelivered = prev.filter(o => deliveredIdsRef.current.has(o.id) && !serverIds.has(o.id))
+          return [...serverOrders, ...localDelivered]
+        })
       } else {
-        setOwnOrders([])
+        // Server returned nothing — keep any locally-delivered orders
+        setOwnOrders(prev => prev.filter(o => deliveredIdsRef.current.has(o.id)))
       }
       setLinkedOrders(result.linkedOrders || [])
     }
@@ -137,17 +139,10 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
 
   async function updateStatus(orderId, newStatus) {
     if (newStatus === 'entregado') {
-      // Capture from closure before any state updates — avoids the batching race
-      // where setOwnOrders functional prev might be stale if poll fired concurrently
-      const order = ownOrders.find(o => o.id === orderId)
       deliveredIdsRef.current.add(orderId)
-      setOwnOrders(prev => prev.filter(o => o.id !== orderId))
-      if (order) {
-        setDeliveredOrders(d => [...d, { ...order, status: 'entregado' }])
-      }
-    } else {
-      setOwnOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o))
     }
+    // Patch status in place — order stays in ownOrders regardless of status
+    setOwnOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o))
     await supabaseStaff.from('orders').update({ status: newStatus }).eq('id', orderId)
   }
 
@@ -339,10 +334,9 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
           )}
           <div className="overflow-x-auto px-4 py-4">
           {(() => {
-            const allOwn = [...ownOrders, ...deliveredOrders]
             const displayOrders = activeMenuFilter === 'all'
-              ? allOwn
-              : allOwn.filter(o => o.menu_id === activeMenuFilter)
+              ? ownOrders
+              : ownOrders.filter(o => o.menu_id === activeMenuFilter)
             return (
           <div className="flex gap-3" style={{ minWidth: `${COLUMNS.length * 180}px` }}>
             {COLUMNS.map(col => {
