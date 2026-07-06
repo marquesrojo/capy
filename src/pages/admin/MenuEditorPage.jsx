@@ -144,6 +144,7 @@ export default function MenuEditorPage() {
                   <ProductRow
                     key={product.id}
                     product={product}
+                    venueId={venueId}
                     categories={categories}
                     onToggle={() => toggleAvailability(product)}
                     onDelete={() => deleteProduct(product.id)}
@@ -199,71 +200,91 @@ function CategoryNameEditor({ cat, onSave }) {
   )
 }
 
-function ProductRow({ product, categories, onToggle, onDelete, onSave }) {
+function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }) {
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(product.name)
   const [price, setPrice] = useState(String(product.price))
   const [description, setDescription] = useState(product.description || '')
   const [categoryId, setCategoryId] = useState(product.category_id)
+  const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState(null)
   const [saving, setSaving] = useState(false)
+  const imgInputRef = useRef(null)
+
+  function handleImageChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+  }
 
   async function handleSave() {
     setSaving(true)
+    let imageUrl = product.image_url || null
+
+    if (imageFile) {
+      const ext = imageFile.name.split('.').pop()
+      const path = `${venueId}/products/${product.id}.${ext}`
+      const { error: upErr } = await supabaseStaff.storage
+        .from('venue-assets')
+        .upload(path, imageFile, { upsert: true })
+      if (!upErr) {
+        const { data: urlData } = supabaseStaff.storage.from('venue-assets').getPublicUrl(path)
+        imageUrl = `${urlData.publicUrl}?t=${Date.now()}`
+      }
+    }
+
     const updates = {
       name: name.trim(),
       price: Number(price),
       description: description.trim() || null,
-      category_id: categoryId
+      category_id: categoryId,
+      image_url: imageUrl,
     }
     await supabaseStaff.from('products').update(updates).eq('id', product.id)
     onSave({ ...product, ...updates })
     setSaving(false)
     setEditing(false)
+    setImageFile(null)
+    setImagePreview(null)
+  }
+
+  async function toggleFeatured() {
+    const next = !product.is_featured
+    await supabaseStaff.from('products').update({ is_featured: next }).eq('id', product.id)
+    onSave({ ...product, is_featured: next })
   }
 
   if (editing) {
+    const displayImg = imagePreview || product.image_url
     return (
       <div className="bg-carbon-900 border border-ember-500/40 rounded-xl p-3 space-y-2">
-        <input
-          className="input"
-          value={name}
-          onChange={e => setName(e.target.value)}
-          placeholder="Nombre"
-        />
-        <input
-          className="input"
-          value={description}
-          onChange={e => setDescription(e.target.value)}
-          placeholder="Descripción (opcional)"
-        />
-        <input
-          className="input"
-          type="number"
-          value={price}
-          onChange={e => setPrice(e.target.value)}
-          placeholder="Precio"
-        />
-        <select
-          className="input"
-          value={categoryId}
-          onChange={e => setCategoryId(e.target.value)}
+        {/* Image upload */}
+        <div
+          onClick={() => imgInputRef.current?.click()}
+          className="w-full h-28 rounded-xl border border-dashed border-carbon-600 overflow-hidden cursor-pointer flex items-center justify-center bg-carbon-800"
         >
-          {categories.map(c => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
+          {displayImg ? (
+            <img src={displayImg} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-smoke-500 text-xs">📷 Agregar foto</span>
+          )}
+        </div>
+        <input ref={imgInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+
+        <input className="input" value={name} onChange={e => setName(e.target.value)} placeholder="Nombre" />
+        <input className="input" value={description} onChange={e => setDescription(e.target.value)} placeholder="Descripción (opcional)" />
+        <input className="input" type="number" value={price} onChange={e => setPrice(e.target.value)} placeholder="Precio" />
+        <select className="input" value={categoryId} onChange={e => setCategoryId(e.target.value)}>
+          {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
         <div className="flex gap-2">
-          <button
-            onClick={() => setEditing(false)}
-            className="flex-1 border border-carbon-700 text-smoke-400 py-2 rounded-xl text-xs"
-          >
+          <button onClick={() => { setEditing(false); setImageFile(null); setImagePreview(null) }}
+            className="flex-1 border border-carbon-700 text-smoke-400 py-2 rounded-xl text-xs">
             Cancelar
           </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex-1 bg-ember-500 text-white font-semibold py-2 rounded-xl text-xs"
-          >
+          <button onClick={handleSave} disabled={saving}
+            className="flex-1 bg-ember-500 text-white font-semibold py-2 rounded-xl text-xs">
             {saving ? 'Guardando...' : 'Guardar'}
           </button>
         </div>
@@ -272,34 +293,43 @@ function ProductRow({ product, categories, onToggle, onDelete, onSave }) {
   }
 
   return (
-    <div className="bg-carbon-900 border border-carbon-700 rounded-xl p-3 flex items-center justify-between">
-      <div className="min-w-0">
-        <p className="text-smoke-300 text-sm font-medium">{product.name}</p>
+    <div className="bg-carbon-900 border border-carbon-700 rounded-xl p-3 flex items-center gap-3">
+      {/* Thumbnail */}
+      <div
+        onClick={() => setEditing(true)}
+        className="w-12 h-12 rounded-lg bg-carbon-800 flex-shrink-0 overflow-hidden cursor-pointer flex items-center justify-center"
+      >
+        {product.image_url ? (
+          <img src={product.image_url} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-smoke-600 text-lg">📷</span>
+        )}
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <p className="text-smoke-300 text-sm font-medium truncate">{product.name}</p>
         <p className="font-mono text-ember-400 text-xs">{formatPrice(product.price)}</p>
       </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
+
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        {/* Featured toggle */}
+        <button
+          onClick={toggleFeatured}
+          title={product.is_featured ? 'Quitar destacado' : 'Marcar como destacado'}
+          className={`text-base leading-none transition-opacity ${product.is_featured ? 'opacity-100' : 'opacity-25 hover:opacity-60'}`}
+        >
+          ⭐
+        </button>
         <button
           onClick={onToggle}
-          className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border ${
-            product.is_available
-              ? 'border-emerald-500/40 text-emerald-700'
-              : 'border-red-500/40 text-red-700'
+          className={`text-[10px] font-semibold px-2 py-1 rounded-full border ${
+            product.is_available ? 'border-emerald-500/40 text-emerald-700' : 'border-red-500/40 text-red-700'
           }`}
         >
-          {product.is_available ? 'Disponible' : 'Agotado'}
+          {product.is_available ? 'Disp.' : 'Agot.'}
         </button>
-        <button
-          onClick={() => setEditing(true)}
-          className="text-smoke-400 text-xs underline"
-        >
-          Editar
-        </button>
-        <button
-          onClick={onDelete}
-          className="text-smoke-500 text-xs underline"
-        >
-          Borrar
-        </button>
+        <button onClick={() => setEditing(true)} className="text-smoke-400 text-xs underline">Editar</button>
+        <button onClick={onDelete} className="text-smoke-500 text-xs underline">Borrar</button>
       </div>
     </div>
   )
@@ -361,18 +391,39 @@ function NewProductForm({ venueId, categories, onClose, onCreated }) {
   const [price, setPrice] = useState('')
   const [categoryId, setCategoryId] = useState(categories[0]?.id || '')
   const [description, setDescription] = useState('')
+  const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState(null)
   const [saving, setSaving] = useState(false)
+  const imgInputRef = useRef(null)
+
+  function handleImageChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
     setSaving(true)
-    await supabaseStaff.from('products').insert({
-      venue_id: venueId,
-      category_id: categoryId,
-      name,
-      description,
-      price: Number(price)
-    })
+    const { data: newProduct } = await supabaseStaff
+      .from('products')
+      .insert({ venue_id: venueId, category_id: categoryId, name, description, price: Number(price) })
+      .select('id')
+      .single()
+
+    if (newProduct && imageFile) {
+      const ext = imageFile.name.split('.').pop()
+      const path = `${venueId}/products/${newProduct.id}.${ext}`
+      const { error: upErr } = await supabaseStaff.storage
+        .from('venue-assets')
+        .upload(path, imageFile, { upsert: true })
+      if (!upErr) {
+        const { data: urlData } = supabaseStaff.storage.from('venue-assets').getPublicUrl(path)
+        await supabaseStaff.from('products').update({ image_url: `${urlData.publicUrl}?t=${Date.now()}` }).eq('id', newProduct.id)
+      }
+    }
+
     setSaving(false)
     onCreated()
   }
@@ -380,48 +431,33 @@ function NewProductForm({ venueId, categories, onClose, onCreated }) {
   return (
     <form onSubmit={handleSubmit} className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4 mb-6 space-y-3">
       <p className="text-smoke-300 text-sm font-medium">Nuevo producto</p>
-      <input
-        className="input"
-        placeholder="Nombre del producto"
-        required
-        value={name}
-        onChange={e => setName(e.target.value)}
-      />
-      <input
-        className="input"
-        placeholder="Descripción (opcional)"
-        value={description}
-        onChange={e => setDescription(e.target.value)}
-      />
-      <input
-        className="input"
-        placeholder="Precio"
-        type="number"
-        required
-        min="0"
-        value={price}
-        onChange={e => setPrice(e.target.value)}
-      />
+
+      {/* Image upload */}
+      <div
+        onClick={() => imgInputRef.current?.click()}
+        className="w-full h-28 rounded-xl border border-dashed border-carbon-600 overflow-hidden cursor-pointer flex items-center justify-center bg-carbon-800"
+      >
+        {imagePreview ? (
+          <img src={imagePreview} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-smoke-500 text-xs">📷 Foto del producto (opcional)</span>
+        )}
+      </div>
+      <input ref={imgInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+
+      <input className="input" placeholder="Nombre del producto" required value={name} onChange={e => setName(e.target.value)} />
+      <input className="input" placeholder="Descripción (opcional)" value={description} onChange={e => setDescription(e.target.value)} />
+      <input className="input" placeholder="Precio" type="number" required min="0" value={price} onChange={e => setPrice(e.target.value)} />
       <select className="input" value={categoryId} onChange={e => setCategoryId(e.target.value)}>
         {categories.map(c => (
-          <option key={c.id} value={c.id}>
-            {c.name} ({KIND_LABELS[c.kind] || 'Otro'})
-          </option>
+          <option key={c.id} value={c.id}>{c.name} ({KIND_LABELS[c.kind] || 'Otro'})</option>
         ))}
       </select>
       <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex-1 border border-carbon-700 text-smoke-400 py-2.5 rounded-xl text-sm"
-        >
+        <button type="button" onClick={onClose} className="flex-1 border border-carbon-700 text-smoke-400 py-2.5 rounded-xl text-sm">
           Cancelar
         </button>
-        <button
-          type="submit"
-          disabled={saving}
-          className="flex-1 bg-ember-500 hover:bg-ember-600 text-white font-semibold py-2.5 rounded-xl text-sm"
-        >
+        <button type="submit" disabled={saving} className="flex-1 bg-ember-500 hover:bg-ember-600 text-white font-semibold py-2.5 rounded-xl text-sm">
           {saving ? 'Guardando...' : 'Guardar'}
         </button>
       </div>

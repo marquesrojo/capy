@@ -18,6 +18,8 @@ export default function IdentifyPage() {
   const venueCtx = useVenueOptional()
   const venue = venueCtx?.venue
   const venueId = venue?.id || ACTIVE_VENUE_ID
+  const selfColor = venue?.landing_self_color || '#008080'
+  const waiterColor = venue?.landing_waiter_color || '#FF8C69'
   const { setLocation, setSessionId } = useCart()
 
   const [orderNumber, setOrderNumber] = useState('')
@@ -70,8 +72,9 @@ export default function IdentifyPage() {
       .select('id, name, price, image_url')
       .eq('venue_id', venueId)
       .eq('is_available', true)
+      .eq('is_featured', true)
       .order('sort_order')
-      .limit(3)
+      .limit(10)
       .then(({ data }) => setTopProducts(data || []))
 
     // Load zones for general QR (no prefill)
@@ -197,14 +200,16 @@ export default function IdentifyPage() {
       <div className="px-5 space-y-3">
         <button
           onClick={() => navigate(`${base}/carta`)}
-          className="w-full bg-[#008080] active:bg-[#006666] text-white font-bold py-4 rounded-2xl text-base flex items-center justify-center gap-2.5 shadow-sm"
+          style={{ backgroundColor: selfColor }}
+          className="w-full text-white font-bold py-4 rounded-2xl text-base flex items-center justify-center gap-2.5 shadow-sm active:opacity-90"
         >
           <span className="text-xl">🍽️</span>
           Quiero pedir yo mismo
         </button>
         <button
           onClick={openWaiterCall}
-          className="w-full bg-[#FF8C69] active:bg-[#e07a5a] text-white font-bold py-4 rounded-2xl text-base flex items-center justify-center gap-2.5 shadow-sm"
+          style={{ backgroundColor: waiterColor }}
+          className="w-full text-white font-bold py-4 rounded-2xl text-base flex items-center justify-center gap-2.5 shadow-sm active:opacity-90"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M3 18h18"/>
@@ -376,7 +381,8 @@ export default function IdentifyPage() {
                     <button
                       onClick={handleWaiterCallConfirm}
                       disabled={callLoading}
-                      className="w-full bg-[#FF8C69] disabled:opacity-50 text-white font-bold py-4 rounded-2xl text-base"
+                      style={{ backgroundColor: waiterColor }}
+                      className="w-full disabled:opacity-50 text-white font-bold py-4 rounded-2xl text-base"
                     >
                       {callLoading ? 'Enviando...' : 'Llamar al mozo'}
                     </button>

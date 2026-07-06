@@ -16,7 +16,9 @@ export default function VenueSettingsPage() {
   const [headerBgColor, setHeaderBgColor] = useState('#1A1A1A')
   const [headerTextColor, setHeaderTextColor] = useState('#E8772A')
   const [kitchenAlias, setKitchenAlias] = useState('')
-  const [activePicker, setActivePicker] = useState(null) // 'bg' | 'text' | null
+  const [landingSelfColor, setLandingSelfColor] = useState('#008080')
+  const [landingWaiterColor, setLandingWaiterColor] = useState('#FF8C69')
+  const [activePicker, setActivePicker] = useState(null) // 'bg' | 'text' | 'self' | 'waiter' | null
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -27,7 +29,7 @@ export default function VenueSettingsPage() {
     async function load() {
       const { data } = await supabaseStaff
         .from('venues')
-        .select('name, whatsapp_number, logo_url, header_bg_color, header_text_color, kitchen_alias')
+        .select('name, whatsapp_number, logo_url, header_bg_color, header_text_color, kitchen_alias, landing_self_color, landing_waiter_color')
         .eq('id', venueId)
         .single()
       setName(data?.name || '')
@@ -36,6 +38,8 @@ export default function VenueSettingsPage() {
       if (data?.header_bg_color) setHeaderBgColor(data.header_bg_color)
       if (data?.header_text_color) setHeaderTextColor(data.header_text_color)
       if (data?.kitchen_alias) setKitchenAlias(data.kitchen_alias)
+      if (data?.landing_self_color) setLandingSelfColor(data.landing_self_color)
+      if (data?.landing_waiter_color) setLandingWaiterColor(data.landing_waiter_color)
       setLoading(false)
     }
     load()
@@ -96,7 +100,9 @@ export default function VenueSettingsPage() {
           logo_url: finalLogoUrl || null,
           header_bg_color: headerBgColor,
           header_text_color: headerTextColor,
-          kitchen_alias: kitchenAlias.trim() || null
+          kitchen_alias: kitchenAlias.trim() || null,
+          landing_self_color: landingSelfColor,
+          landing_waiter_color: landingWaiterColor
         })
         .eq('id', venueId)
 
@@ -232,6 +238,59 @@ export default function VenueSettingsPage() {
             <span className="text-xs font-bold tracking-wide" style={{ color: headerTextColor }}>
               {name ? name.toUpperCase() : 'NOMBRE DEL LOCAL'}
             </span>
+          </div>
+        </div>
+
+        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
+          <p className="text-smoke-300 font-medium text-sm mb-1">Colores de la página de bienvenida</p>
+          <p className="text-smoke-500 text-xs mb-4">
+            Botones que el cliente ve al escanear el QR del local.
+          </p>
+
+          <div className="flex gap-3 mb-4">
+            <button
+              type="button"
+              onClick={() => setActivePicker(activePicker === 'self' ? null : 'self')}
+              className={`flex-1 flex items-center gap-2 rounded-lg px-2 py-1.5 border ${activePicker === 'self' ? 'border-ember-500 bg-carbon-800' : 'border-carbon-700 bg-carbon-800'}`}
+            >
+              <div className="w-8 h-8 rounded border border-carbon-600 flex-shrink-0" style={{ backgroundColor: landingSelfColor }} />
+              <div className="text-left">
+                <p className="text-smoke-400 text-[10px]">Pedir yo mismo</p>
+                <p className="text-smoke-300 text-xs font-mono">{landingSelfColor}</p>
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActivePicker(activePicker === 'waiter' ? null : 'waiter')}
+              className={`flex-1 flex items-center gap-2 rounded-lg px-2 py-1.5 border ${activePicker === 'waiter' ? 'border-ember-500 bg-carbon-800' : 'border-carbon-700 bg-carbon-800'}`}
+            >
+              <div className="w-8 h-8 rounded border border-carbon-600 flex-shrink-0" style={{ backgroundColor: landingWaiterColor }} />
+              <div className="text-left">
+                <p className="text-smoke-400 text-[10px]">Llamar mozo</p>
+                <p className="text-smoke-300 text-xs font-mono">{landingWaiterColor}</p>
+              </div>
+            </button>
+          </div>
+
+          {activePicker === 'self' && (
+            <div className="mb-4 bg-carbon-800 rounded-xl p-3">
+              <ColorPicker value={landingSelfColor} onChange={setLandingSelfColor} />
+            </div>
+          )}
+          {activePicker === 'waiter' && (
+            <div className="mb-4 bg-carbon-800 rounded-xl p-3">
+              <ColorPicker value={landingWaiterColor} onChange={setLandingWaiterColor} />
+            </div>
+          )}
+
+          <p className="text-smoke-500 text-xs mb-2">Vista previa</p>
+          <div className="space-y-2">
+            <div className="w-full py-3 rounded-xl flex items-center justify-center gap-2" style={{ backgroundColor: landingSelfColor }}>
+              <span className="text-white font-semibold text-sm">🍽️ Quiero pedir yo mismo</span>
+            </div>
+            <div className="w-full py-3 rounded-xl flex items-center justify-center gap-2" style={{ backgroundColor: landingWaiterColor }}>
+              <span className="text-white font-semibold text-sm">🔔 Quiero que me atienda un mozo</span>
+            </div>
           </div>
         </div>
 
