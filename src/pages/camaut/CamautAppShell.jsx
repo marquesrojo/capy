@@ -66,6 +66,10 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
   const [wrappedPeriod, setWrappedPeriod] = useState('week')
   const [showPeriodPicker, setShowPeriodPicker] = useState(false)
   const [wrappedReady, setWrappedReady] = useState(false)
+  const [statsDesde, setStatsDesde] = useState(() =>
+    new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10)
+  )
+  const [statsHasta, setStatsHasta] = useState(() => new Date().toISOString().slice(0, 10))
   const [wrappedSeen, setWrappedSeen] = useState(() =>
     localStorage.getItem(`wrapped-seen-${getWeekKey()}`) === '1'
   )
@@ -436,8 +440,24 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
               <div className="px-5 py-5">
                 {micapyTab === 'progreso' && micapySubTab === 'carrera' && <MiCarrera venueId={venueId} />}
                 {micapyTab === 'progreso' && micapySubTab === 'ranking' && <RankingMozos globalOnly />}
-                {micapyTab === 'estadisticas' && micapySubTab === 'indicadores' && <IndicadoresTab venueId={venueId} staffId={staffId} />}
-                {micapyTab === 'estadisticas' && micapySubTab === 'encuesta' && <EncuestaTab staffId={staffId} />}
+                {micapyTab === 'estadisticas' && ['indicadores', 'encuesta'].includes(micapySubTab) && (
+                  <div className="flex gap-2 mb-4">
+                    <div className="flex-1">
+                      <p className="text-[#8896A5] text-[10px] font-semibold uppercase tracking-wide mb-1">Desde</p>
+                      <input type="date" value={statsDesde} max={statsHasta}
+                        onChange={e => e.target.value && setStatsDesde(e.target.value)}
+                        className="w-full bg-white border border-black/10 rounded-xl px-3 py-2.5 text-sm text-[#1A2A3A] font-semibold" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[#8896A5] text-[10px] font-semibold uppercase tracking-wide mb-1">Hasta</p>
+                      <input type="date" value={statsHasta} min={statsDesde} max={new Date().toISOString().slice(0, 10)}
+                        onChange={e => e.target.value && setStatsHasta(e.target.value)}
+                        className="w-full bg-white border border-black/10 rounded-xl px-3 py-2.5 text-sm text-[#1A2A3A] font-semibold" />
+                    </div>
+                  </div>
+                )}
+                {micapyTab === 'estadisticas' && micapySubTab === 'indicadores' && <IndicadoresTab venueId={venueId} staffId={staffId} desde={statsDesde} hasta={statsHasta} />}
+                {micapyTab === 'estadisticas' && micapySubTab === 'encuesta' && <EncuestaTab staffId={staffId} desde={statsDesde} hasta={statsHasta} />}
                 {micapyTab === 'estadisticas' && micapySubTab === 'historial' && <HistorialTab staffId={staffId} venueId={venueId} />}
                 {micapyTab === 'social' && micapySubTab === 'pagina' && (
                   <div className="space-y-3">
@@ -768,13 +788,9 @@ function fmtDateShort(iso) {
   return `${d}/${m}/${y.slice(2)}`
 }
 
-function IndicadoresTab({ venueId, staffId }) {
+function IndicadoresTab({ venueId, staffId, desde, hasta }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const todayIso = new Date().toISOString().slice(0, 10)
-  const monthStartIso = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10)
-  const [desde, setDesde] = useState(monthStartIso)
-  const [hasta, setHasta] = useState(todayIso)
 
   useEffect(() => {
     if (!staffId) { setLoading(false); return }
@@ -815,30 +831,6 @@ function IndicadoresTab({ venueId, staffId }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
-        <div className="flex-1">
-          <p className="text-[#8896A5] text-[10px] font-semibold uppercase tracking-wide mb-1">Desde</p>
-          <input
-            type="date"
-            value={desde}
-            max={hasta}
-            onChange={e => e.target.value && setDesde(e.target.value)}
-            className="w-full bg-white border border-black/10 rounded-xl px-3 py-2.5 text-sm text-[#1A2A3A] font-semibold"
-          />
-        </div>
-        <div className="flex-1">
-          <p className="text-[#8896A5] text-[10px] font-semibold uppercase tracking-wide mb-1">Hasta</p>
-          <input
-            type="date"
-            value={hasta}
-            min={desde}
-            max={todayIso}
-            onChange={e => e.target.value && setHasta(e.target.value)}
-            className="w-full bg-white border border-black/10 rounded-xl px-3 py-2.5 text-sm text-[#1A2A3A] font-semibold"
-          />
-        </div>
-      </div>
-
       {loading ? (
         <p className="text-[#8896A5] text-sm text-center py-8">Cargando...</p>
       ) : !staffId || !data ? (
@@ -864,7 +856,7 @@ function IndicadoresTab({ venueId, staffId }) {
   )
 }
 
-function EncuestaTab({ staffId }) {
+function EncuestaTab({ staffId, desde, hasta }) {
   const [feedback, setFeedback] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -874,16 +866,17 @@ function EncuestaTab({ staffId }) {
   useEffect(() => {
     if (!staffId) { setLoading(false); return }
     loadData()
-  }, [staffId])
+  }, [staffId, desde, hasta])
 
   async function loadData() {
-    const since = new Date()
-    since.setDate(since.getDate() - 30)
+    const start = new Date(desde); start.setHours(0, 0, 0, 0)
+    const end = new Date(hasta); end.setHours(23, 59, 59, 999)
     const { data } = await supabaseStaff
       .from('order_feedback')
       .select('rating, notes, created_at')
       .eq('staff_id', staffId)
-      .gte('created_at', since.toISOString())
+      .gte('created_at', start.toISOString())
+      .lte('created_at', end.toISOString())
       .order('created_at', { ascending: false })
     setFeedback(data || [])
     setLoading(false)
