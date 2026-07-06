@@ -1,6 +1,118 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabaseCamaut, supabaseStaff } from '../../lib/supabase'
+
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent.toLowerCase())
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || !!window.navigator.standalone
+
+function InstallCard() {
+  const [installPrompt, setInstallPrompt] = useState(window._pwaInstallPrompt || null)
+  const [installed, setInstalled] = useState(false)
+
+  useEffect(() => {
+    const onPrompt = e => { e.preventDefault(); window._pwaInstallPrompt = e; setInstallPrompt(e) }
+    const onInstalled = () => { setInstalled(true); window._pwaInstallPrompt = null; setInstallPrompt(null) }
+    window.addEventListener('beforeinstallprompt', onPrompt)
+    window.addEventListener('appinstalled', onInstalled)
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onPrompt)
+      window.removeEventListener('appinstalled', onInstalled)
+    }
+  }, [])
+
+  async function handleInstall() {
+    if (!installPrompt) return
+    installPrompt.prompt()
+    const { outcome } = await installPrompt.userChoice
+    if (outcome === 'accepted') {
+      setInstalled(true)
+      window._pwaInstallPrompt = null
+      setInstallPrompt(null)
+    }
+  }
+
+  // Already installed or just installed this session
+  if (isStandalone || installed) {
+    return (
+      <div className="flex items-center gap-3 bg-carbon-900 border border-emerald-500/40 rounded-2xl px-4 py-3.5">
+        <div className="w-7 h-7 rounded-full bg-emerald-500/15 text-emerald-400 text-xs flex items-center justify-center flex-shrink-0 font-bold">✓</div>
+        <div className="flex-1 min-w-0">
+          <p className="text-smoke-200 font-semibold text-sm leading-tight">App instalada</p>
+          <p className="text-smoke-500 text-xs mt-0.5">Ya podés recibir notificaciones de pedidos</p>
+        </div>
+      </div>
+    )
+  }
+
+  // iOS: manual instructions
+  if (isIOS) {
+    return (
+      <div className="bg-carbon-900 border border-ember-500/30 rounded-2xl px-4 py-4">
+        <div className="flex items-start gap-3 mb-3">
+          <div className="w-7 h-7 rounded-full bg-ember-500/15 text-ember-500 text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>
+            </svg>
+          </div>
+          <div>
+            <p className="text-smoke-200 font-semibold text-sm leading-tight">Instalá la app en tu iPhone</p>
+            <p className="text-smoke-500 text-xs mt-0.5">Necesario para recibir notificaciones de pedidos</p>
+          </div>
+        </div>
+        <div className="space-y-2 pl-10">
+          <div className="flex items-center gap-2">
+            <span className="text-ember-500 font-bold text-xs w-4 flex-shrink-0">1.</span>
+            <span className="text-smoke-400 text-xs">
+              Tocá el botón{' '}
+              <span className="inline-flex items-center gap-1 text-smoke-200 font-semibold">
+                Compartir
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
+                </svg>
+              </span>{' '}
+              en la barra del navegador
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-ember-500 font-bold text-xs w-4 flex-shrink-0">2.</span>
+            <span className="text-smoke-400 text-xs">
+              Elegí <span className="text-smoke-200 font-semibold">"Agregar a inicio"</span>
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-ember-500 font-bold text-xs w-4 flex-shrink-0">3.</span>
+            <span className="text-smoke-400 text-xs">
+              Tocá <span className="text-smoke-200 font-semibold">"Agregar"</span> para confirmar
+            </span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Android/Chrome with deferred prompt
+  if (installPrompt) {
+    return (
+      <button
+        onClick={handleInstall}
+        className="w-full flex items-center gap-3 bg-carbon-900 border border-ember-500/30 rounded-2xl px-4 py-3.5 text-left"
+      >
+        <div className="w-7 h-7 rounded-full bg-ember-500/15 text-ember-500 text-xs flex items-center justify-center flex-shrink-0">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-smoke-200 font-semibold text-sm leading-tight">Instalá la app</p>
+          <p className="text-smoke-500 text-xs mt-0.5">Acceso directo y notificaciones de pedidos</p>
+        </div>
+        <span className="text-ember-500 font-bold text-sm flex-shrink-0">Instalar →</span>
+      </button>
+    )
+  }
+
+  return null
+}
 
 export default function CamautOnboardingPage({ staffName: initialName, venueId, onComplete }) {
   const navigate = useNavigate()
@@ -62,7 +174,6 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
         staff_profile_id: session.user.id,
         status: 'active'
       })
-      // Link staff_names record to this camaut auth user
       if (venueId) {
         await supabaseStaff
           .from('staff_names')
@@ -84,7 +195,6 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
         const name = fullName.trim() || session.user.user_metadata?.full_name || 'Camarero'
         const slug = `camaut-${userId.replace(/-/g, '').slice(0, 12)}`
 
-        // Create autonomous venue
         let { data: venue, error: venueError } = await supabaseStaff
           .from('venues')
           .insert({ name: `${name} — Capy`, slug, owner_id: userId, is_active: true })
@@ -93,7 +203,6 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
 
         if (venueError) {
           if (venueError.code === '23505') {
-            // Venue already exists (retry) — look it up
             const res = await supabaseStaff.from('venues').select('id').eq('slug', slug).maybeSingle()
             venue = res.data
           } else {
@@ -109,7 +218,6 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
           return
         }
 
-        // Update profile with autonomous venue (upsert handles missing profile row)
         const { error: profileError } = await supabaseStaff
           .from('profiles')
           .upsert({ id: userId, venue_id: venue.id, role: 'camarero', full_name: name, is_autonomous: true }, { onConflict: 'id' })
@@ -120,7 +228,6 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
           return
         }
 
-        // Create staff_names record for the autonomous venue (upsert handles reruns)
         await supabaseStaff
           .from('staff_names')
           .upsert({ venue_id: venue.id, full_name: name, profile_id: userId, xp: 0 }, { onConflict: 'venue_id,profile_id' })
@@ -181,11 +288,11 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
               ¡Listo, {fullName.split(' ')[0]}!
             </h1>
             <p className="text-smoke-500 text-sm leading-relaxed">
-              Tu cuenta está lista. Te recomendamos estas tres acciones para arrancar:
+              Tu cuenta está lista. Te recomendamos estas acciones para arrancar:
             </p>
           </div>
 
-          <div className="space-y-2.5 mb-8">
+          <div className="space-y-2.5 mb-6">
             {[
               {
                 num: '1',
@@ -217,6 +324,8 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
                 <div className="text-smoke-600 flex-shrink-0">{item.icon}</div>
               </div>
             ))}
+
+            <InstallCard />
           </div>
 
           <div className="mt-auto space-y-3">

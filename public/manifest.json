@@ -1,11 +1,11 @@
 {
-  "name": "Capy",
-  "short_name": "Capy",
-  "description": "Pedidos para tu local",
-  "start_url": "/",
+  "name": "Camaut",
+  "short_name": "Camaut",
+  "description": "La app para camareros",
+  "start_url": "/camaut/app",
   "display": "standalone",
-  "background_color": "#FAF8F5",
-  "theme_color": "#E8772A",
+  "background_color": "#0F1923",
+  "theme_color": "#008080",
   "icons": [
     {
       "src": "/icon-192.png",
