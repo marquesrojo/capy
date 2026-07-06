@@ -519,6 +519,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
 }
 
 function UbicacionesViewer({ linkedVenues, venueId }) {
+  const [subTab, setSubTab] = useState('salones')
   const [venueZones, setVenueZones] = useState({})
   const [ownZones, setOwnZones] = useState(null)
 
@@ -554,35 +555,210 @@ function UbicacionesViewer({ linkedVenues, venueId }) {
     )
   }
 
-  if (!linkedVenues?.length && venueId) {
-    return (
-      <div>
-        <FloorPlanViewer
-          zones={ownZones || []}
-          venueId={venueId}
-          supabaseClient={supabaseStaff}
-        />
-      </div>
-    )
-  }
+  const showTabs = !!venueId
 
   return (
-    <div className="space-y-6">
-      {linkedVenues.map(venue => {
-        const zones = venueZones[venue.id] || []
-        return (
-          <div key={venue.id}>
-            <p className="font-semibold text-[#1A2A3A] text-sm mb-3">
-              {venue.name.replace(' — Capy', '')}
-            </p>
+    <div>
+      {showTabs && (
+        <div className="flex gap-1 bg-[#F0F4F8] rounded-2xl p-1 mb-4">
+          {[
+            { id: 'salones', label: 'Salones' },
+            { id: 'cartas', label: 'Por Carta' },
+          ].map(t => (
+            <button
+              key={t.id}
+              onClick={() => setSubTab(t.id)}
+              className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-colors ${subTab === t.id ? 'bg-white text-[#008080] shadow-sm' : 'text-[#8896A5]'}`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {subTab === 'salones' && (
+        !linkedVenues?.length ? (
+          <div>
             <FloorPlanViewer
-              zones={zones}
-              venueId={venue.id}
+              zones={ownZones || []}
+              venueId={venueId}
               supabaseClient={supabaseStaff}
             />
           </div>
+        ) : (
+          <div className="space-y-6">
+            {linkedVenues.map(venue => {
+              const zones = venueZones[venue.id] || []
+              return (
+                <div key={venue.id}>
+                  <p className="font-semibold text-[#1A2A3A] text-sm mb-3">
+                    {venue.name.replace(' — Capy', '')}
+                  </p>
+                  <FloorPlanViewer
+                    zones={zones}
+                    venueId={venue.id}
+                    supabaseClient={supabaseStaff}
+                  />
+                </div>
+              )
+            })}
+          </div>
         )
-      })}
+      )}
+
+      {subTab === 'cartas' && venueId && (
+        <MenuZonasTab venueId={venueId} />
+      )}
+    </div>
+  )
+}
+
+function MenuZonasTab({ venueId }) {
+  const [menus, setMenus] = useState([])
+  const [selectedMenuId, setSelectedMenuId] = useState(null)
+  const [zones, setZones] = useState([])
+  const [loadingMenus, setLoadingMenus] = useState(true)
+  const [loadingZones, setLoadingZones] = useState(false)
+  const [newZoneName, setNewZoneName] = useState('')
+  const [adding, setAdding] = useState(false)
+
+  useEffect(() => {
+    supabaseStaff
+      .from('staff_menus')
+      .select('id, name')
+      .eq('venue_id', venueId)
+      .order('created_at')
+      .then(({ data }) => {
+        setMenus(data || [])
+        setLoadingMenus(false)
+      })
+  }, [venueId])
+
+  useEffect(() => {
+    if (loadingMenus) return
+    setLoadingZones(true)
+    let query = supabaseStaff
+      .from('venue_zones')
+      .select('*')
+      .eq('venue_id', venueId)
+      .eq('is_active', true)
+      .order('sort_order')
+    if (selectedMenuId) {
+      query = query.eq('menu_id', selectedMenuId)
+    } else {
+      query = query.is('menu_id', null)
+    }
+    query.then(({ data }) => {
+      setZones(data || [])
+      setLoadingZones(false)
+    })
+  }, [selectedMenuId, venueId, loadingMenus])
+
+  async function addZone() {
+    const name = newZoneName.trim()
+    if (!name) return
+    setAdding(true)
+    const { data } = await supabaseStaff
+      .from('venue_zones')
+      .insert({ venue_id: venueId, name, type: 'mesa', is_active: true, menu_id: selectedMenuId || null, sort_order: zones.length })
+      .select()
+      .single()
+    if (data) setZones(prev => [...prev, data])
+    setNewZoneName('')
+    setAdding(false)
+  }
+
+  async function removeZone(id) {
+    await supabaseStaff.from('venue_zones').update({ is_active: false }).eq('id', id)
+    setZones(prev => prev.filter(z => z.id !== id))
+  }
+
+  if (loadingMenus) return <p className="text-[#8896A5] text-sm text-center py-8">Cargando cartas...</p>
+
+  const selectedMenu = menus.find(m => m.id === selectedMenuId)
+  const selectedLabel = selectedMenu ? selectedMenu.name : 'General'
+
+  return (
+    <div className="space-y-4">
+      {/* Selector de carta */}
+      <div>
+        <p className="text-[#8896A5] text-[10px] font-semibold uppercase tracking-wide mb-2">Carta</p>
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          <button
+            onClick={() => setSelectedMenuId(null)}
+            className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-semibold border transition-colors ${
+              selectedMenuId === null ? 'bg-[#008080] text-white border-[#008080]' : 'bg-white text-[#8896A5] border-black/10'
+            }`}
+          >
+            General
+          </button>
+          {menus.map(m => (
+            <button
+              key={m.id}
+              onClick={() => setSelectedMenuId(m.id)}
+              className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-semibold border transition-colors ${
+                selectedMenuId === m.id ? 'bg-[#008080] text-white border-[#008080]' : 'bg-white text-[#8896A5] border-black/10'
+              }`}
+            >
+              {m.name}
+            </button>
+          ))}
+        </div>
+        {menus.length === 0 && (
+          <p className="text-[#B0BEC5] text-xs mt-2">No tenés cartas creadas. Creá una desde Mis Cartas.</p>
+        )}
+      </div>
+
+      {/* Lista de zonas */}
+      <div>
+        <p className="text-[#8896A5] text-[10px] font-semibold uppercase tracking-wide mb-2">
+          Mesas · {selectedLabel}
+        </p>
+        {loadingZones ? (
+          <p className="text-[#8896A5] text-sm text-center py-4">Cargando...</p>
+        ) : zones.length === 0 ? (
+          <p className="text-[#B0BEC5] text-sm text-center py-4">Sin mesas para esta carta.</p>
+        ) : (
+          <div className="space-y-2">
+            {zones.map(zone => (
+              <div key={zone.id} className="bg-white rounded-2xl px-4 py-3 border border-black/5 shadow-sm flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-[#1A2A3A] text-sm">{zone.name}</p>
+                  <p className="text-[#B0BEC5] text-xs capitalize">{zone.type}</p>
+                </div>
+                <button
+                  onClick={() => removeZone(zone.id)}
+                  className="text-red-400 text-xs underline flex-shrink-0"
+                >
+                  Quitar
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Agregar zona */}
+      <div>
+        <p className="text-[#8896A5] text-[10px] font-semibold uppercase tracking-wide mb-2">Agregar mesa</p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newZoneName}
+            onChange={e => setNewZoneName(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && !adding && newZoneName.trim() && addZone()}
+            placeholder={`Ej: Mesa 1, Barra, VIP…`}
+            className="flex-1 bg-white border border-black/10 rounded-2xl px-4 py-3 text-sm text-[#1A2A3A] focus:outline-none focus:border-[#008080]"
+          />
+          <button
+            onClick={addZone}
+            disabled={adding || !newZoneName.trim()}
+            className="bg-[#008080] disabled:opacity-50 text-white font-bold px-5 rounded-2xl text-sm flex-shrink-0"
+          >
+            {adding ? '…' : '+'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
