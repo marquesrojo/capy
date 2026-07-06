@@ -29,7 +29,7 @@ export default function VenueSettingsPage() {
     async function load() {
       const { data } = await supabaseStaff
         .from('venues')
-        .select('name, whatsapp_number, logo_url, header_bg_color, header_text_color, kitchen_alias, landing_self_color, landing_waiter_color')
+        .select('name, whatsapp_number, logo_url, header_bg_color, header_text_color, kitchen_alias')
         .eq('id', venueId)
         .single()
       setName(data?.name || '')
@@ -38,8 +38,18 @@ export default function VenueSettingsPage() {
       if (data?.header_bg_color) setHeaderBgColor(data.header_bg_color)
       if (data?.header_text_color) setHeaderTextColor(data.header_text_color)
       if (data?.kitchen_alias) setKitchenAlias(data.kitchen_alias)
-      if (data?.landing_self_color) setLandingSelfColor(data.landing_self_color)
-      if (data?.landing_waiter_color) setLandingWaiterColor(data.landing_waiter_color)
+
+      // Columnas opcionales — solo disponibles después de la migración SQL
+      try {
+        const { data: colors } = await supabaseStaff
+          .from('venues')
+          .select('landing_self_color, landing_waiter_color')
+          .eq('id', venueId)
+          .single()
+        if (colors?.landing_self_color) setLandingSelfColor(colors.landing_self_color)
+        if (colors?.landing_waiter_color) setLandingWaiterColor(colors.landing_waiter_color)
+      } catch (_) {}
+
       setLoading(false)
     }
     load()
@@ -101,12 +111,18 @@ export default function VenueSettingsPage() {
           header_bg_color: headerBgColor,
           header_text_color: headerTextColor,
           kitchen_alias: kitchenAlias.trim() || null,
-          landing_self_color: landingSelfColor,
-          landing_waiter_color: landingWaiterColor
         })
         .eq('id', venueId)
 
       if (updateError) throw updateError
+
+      // Columnas opcionales — silencioso si todavía no existe la migración SQL
+      try {
+        await supabaseStaff
+          .from('venues')
+          .update({ landing_self_color: landingSelfColor, landing_waiter_color: landingWaiterColor })
+          .eq('id', venueId)
+      } catch (_) {}
 
       setLogoUrl(finalLogoUrl)
       setLogoFile(null)
