@@ -25,19 +25,29 @@ export default function IdentifyPage() {
   const [orderError, setOrderError] = useState('')
   const [topProducts, setTopProducts] = useState([])
 
+  // Zones for location picker (general QR)
+  const [zones, setZones] = useState([])
+  const [zonesLoading, setZonesLoading] = useState(false)
+  const [pickedZone, setPickedZone] = useState(null) // { id, name, type }
+  const [showZonePicker, setShowZonePicker] = useState(false)
+
   // Waiter call flow
   const [showWaiterCall, setShowWaiterCall] = useState(false)
   const [selectedReason, setSelectedReason] = useState(null)
-  const [zones, setZones] = useState([])
-  const [zonesLoading, setZonesLoading] = useState(false)
   const [callLoading, setCallLoading] = useState(false)
   const [callSent, setCallSent] = useState(false)
 
-  // URL params from QR code
+  // URL params from QR per-table
   const prefillZoneId = searchParams.get('zone_id')
   const prefillLabel = searchParams.get('location_label')
   const prefillType = searchParams.get('location_type') || 'zona'
   const prefillSession = searchParams.get('session_id')
+
+  const decodedLabel = prefillLabel ? decodeURIComponent(prefillLabel) : null
+
+  // Active location: prefilled from URL or picked manually
+  const activeZoneId = prefillZoneId || pickedZone?.id || null
+  const activeLabel = decodedLabel || pickedZone?.name || null
 
   useEffect(() => {
     const hash = window.location.hash
@@ -46,7 +56,7 @@ export default function IdentifyPage() {
       return
     }
     if (prefillZoneId && prefillLabel) {
-      setLocation({ type: prefillType, zoneId: prefillZoneId, label: decodeURIComponent(prefillLabel) })
+      setLocation({ type: prefillType, zoneId: prefillZoneId, label: decodedLabel })
     }
     if (prefillSession) {
       setSessionId(prefillSession)
@@ -63,24 +73,40 @@ export default function IdentifyPage() {
       .order('sort_order')
       .limit(3)
       .then(({ data }) => setTopProducts(data || []))
-  }, [venueId])
 
-  async function openWaiterCall() {
-    setShowWaiterCall(true)
-    setCallSent(false)
-    setSelectedReason(null)
-    if (zones.length === 0 && !prefillZoneId) {
+    // Load zones for general QR (no prefill)
+    if (!prefillZoneId) {
       setZonesLoading(true)
-      const { data } = await supabaseCustomer
+      supabaseCustomer
         .from('venue_zones')
         .select('id, name, type')
         .eq('venue_id', venueId)
         .eq('is_active', true)
         .order('sort_order')
         .order('name')
-      setZones(data || [])
-      setZonesLoading(false)
+        .then(({ data }) => {
+          setZones(data || [])
+          setZonesLoading(false)
+        })
     }
+  }, [venueId])
+
+  function pickZone(zone) {
+    setPickedZone(zone)
+    setShowZonePicker(false)
+    setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })
+  }
+
+  function clearPickedZone() {
+    setPickedZone(null)
+    setLocation(null)
+    setShowZonePicker(true)
+  }
+
+  async function openWaiterCall() {
+    setShowWaiterCall(true)
+    setCallSent(false)
+    setSelectedReason(null)
   }
 
   async function submitCall(zoneId, zoneName) {
@@ -94,6 +120,12 @@ export default function IdentifyPage() {
     })
     setCallLoading(false)
     setCallSent(true)
+  }
+
+  async function handleWaiterCallConfirm() {
+    if (activeZoneId && activeLabel) {
+      await submitCall(activeZoneId, activeLabel)
+    }
   }
 
   async function handleFindOrder(e) {
@@ -117,10 +149,12 @@ export default function IdentifyPage() {
     navigate(`/pedido/${data.id}`)
   }
 
-  const decodedLabel = prefillLabel ? decodeURIComponent(prefillLabel) : null
   const mesas = zones.filter(z => z.type === 'mesa')
   const sectores = zones.filter(z => z.type === 'zona')
   const retiro = zones.filter(z => z.type === 'retiro')
+
+  // In the waiter drawer, we need zones split too — but zones are already loaded
+  const waiterNeedsZonePick = !activeZoneId && zones.length > 0
 
   function formatPrice(p) {
     return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(p)
@@ -141,12 +175,18 @@ export default function IdentifyPage() {
         <h1 className="text-xl font-bold text-[#1A2332] tracking-tight">
           {venue?.name || 'Bienvenido'}
         </h1>
-        {decodedLabel ? (
+
+        {/* Location chip — prefilled or picked */}
+        {activeLabel ? (
           <div className="inline-flex items-center gap-1.5 mt-2 bg-[#008080]/10 text-[#005f5f] text-xs font-semibold px-3 py-1.5 rounded-full">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
             </svg>
-            {decodedLabel}
+            {activeLabel}
+            {/* Allow changing if it was manually picked (not from URL) */}
+            {!prefillZoneId && (
+              <button onClick={clearPickedZone} className="ml-1 text-[#008080]/60 hover:text-[#008080] leading-none">×</button>
+            )}
           </div>
         ) : (
           <p className="text-[#6B7A8D] text-sm mt-1">¿Cómo querés continuar?</p>
@@ -176,9 +216,51 @@ export default function IdentifyPage() {
         </button>
       </div>
 
+      {/* Location picker — general QR only (no prefill), optional */}
+      {!prefillZoneId && zones.length > 0 && (
+        <div className="mt-5 mx-5 bg-white border border-black/[0.06] rounded-2xl overflow-hidden">
+          <button
+            onClick={() => setShowZonePicker(v => !v)}
+            className="w-full flex items-center justify-between px-4 py-3.5"
+          >
+            <div className="flex items-center gap-2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B7A8D" strokeWidth="2.5">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              </svg>
+              <span className="text-sm font-semibold text-[#1A2332]">
+                {pickedZone ? pickedZone.name : '¿En qué mesa estás?'}
+              </span>
+              {!pickedZone && (
+                <span className="text-xs text-[#9DAAB8] font-normal">(opcional)</span>
+              )}
+            </div>
+            <svg
+              width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9DAAB8" strokeWidth="2.5"
+              className={`transition-transform ${showZonePicker ? 'rotate-180' : ''}`}
+            >
+              <path d="M6 9l6 6 6-6"/>
+            </svg>
+          </button>
+
+          {showZonePicker && !zonesLoading && (
+            <div className="px-4 pb-4 space-y-4 border-t border-black/[0.04] pt-3">
+              {mesas.length > 0 && (
+                <ZoneGroup label="Mesas" zones={mesas} selected={pickedZone?.id} onSelect={pickZone} />
+              )}
+              {sectores.length > 0 && (
+                <ZoneGroup label="Sectores" zones={sectores} selected={pickedZone?.id} onSelect={pickZone} />
+              )}
+              {retiro.length > 0 && (
+                <ZoneGroup label="Puntos de retiro" zones={retiro} selected={pickedZone?.id} onSelect={pickZone} />
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Sugerencias del chef */}
       {topProducts.length > 0 && (
-        <div className="mt-8 px-5">
+        <div className="mt-6 px-5">
           <p className="text-xs font-semibold text-[#9DAAB8] uppercase tracking-wider mb-3">Sugerencias del chef</p>
           <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide -mx-5 px-5">
             {topProducts.map(p => (
@@ -269,7 +351,7 @@ export default function IdentifyPage() {
                       onClick={() => setSelectedReason(r.id === selectedReason ? null : r.id)}
                       className={`p-3.5 rounded-2xl border text-left transition-all ${
                         selectedReason === r.id
-                          ? 'border-[#FF8C69] bg-[#FF8C69]/8'
+                          ? 'border-[#FF8C69] bg-[#FFF3EF]'
                           : 'border-[#E8EEF4] bg-[#F8FAFB]'
                       }`}
                     >
@@ -281,18 +363,18 @@ export default function IdentifyPage() {
                   ))}
                 </div>
 
-                {/* Location */}
-                {prefillZoneId ? (
+                {/* Location: prefilled or picked or zone selector */}
+                {activeZoneId ? (
                   <>
                     <div className="flex items-center gap-2 bg-[#F0F4F8] rounded-xl px-4 py-3 mb-4">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6B7A8D" strokeWidth="2.5">
                         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                       </svg>
                       <span className="text-[#6B7A8D] text-sm">Ubicación:</span>
-                      <span className="text-[#1A2332] font-semibold text-sm">{decodedLabel}</span>
+                      <span className="text-[#1A2332] font-semibold text-sm">{activeLabel}</span>
                     </div>
                     <button
-                      onClick={() => submitCall(prefillZoneId, decodedLabel)}
+                      onClick={handleWaiterCallConfirm}
                       disabled={callLoading}
                       className="w-full bg-[#FF8C69] disabled:opacity-50 text-white font-bold py-4 rounded-2xl text-base"
                     >
@@ -300,12 +382,20 @@ export default function IdentifyPage() {
                     </button>
                   </>
                 ) : (
+                  /* No location set — show zone picker inline */
                   <div>
                     <p className="text-[#9DAAB8] text-xs font-semibold uppercase tracking-wider mb-3">¿Dónde estás?</p>
                     {zonesLoading ? (
                       <p className="text-[#6B7A8D] text-sm text-center py-4">Cargando...</p>
                     ) : zones.length === 0 ? (
-                      <p className="text-[#6B7A8D] text-sm text-center py-4">No hay mesas configuradas.</p>
+                      /* No zones configured — call without location */
+                      <button
+                        onClick={() => submitCall(null, 'Sin especificar')}
+                        disabled={callLoading}
+                        className="w-full bg-[#FF8C69] disabled:opacity-50 text-white font-bold py-4 rounded-2xl text-base"
+                      >
+                        {callLoading ? 'Enviando...' : 'Llamar al mozo'}
+                      </button>
                     ) : (
                       <div className="space-y-4">
                         {mesas.length > 0 && (
@@ -330,7 +420,7 @@ export default function IdentifyPage() {
   )
 }
 
-function ZoneGroup({ label, zones, onSelect, loading }) {
+function ZoneGroup({ label, zones, selected, onSelect, loading }) {
   return (
     <div>
       <p className="text-[#9DAAB8] text-xs font-semibold uppercase tracking-wider mb-2">{label}</p>
@@ -340,9 +430,13 @@ function ZoneGroup({ label, zones, onSelect, loading }) {
             key={zone.id}
             onClick={() => onSelect(zone)}
             disabled={loading}
-            className="bg-[#F0F4F8] border border-[#E0E8EF] active:border-[#FF8C69] active:bg-[#FF8C69]/5 disabled:opacity-50 rounded-xl py-3 px-2 text-center transition-colors"
+            className={`border rounded-xl py-3 px-2 text-center transition-colors disabled:opacity-50 ${
+              selected === zone.id
+                ? 'border-[#008080] bg-[#008080]/8 text-[#005f5f]'
+                : 'bg-[#F0F4F8] border-[#E0E8EF] text-[#1A2332]'
+            }`}
           >
-            <span className="text-[#1A2332] font-semibold text-sm">{zone.name}</span>
+            <span className="font-semibold text-sm">{zone.name}</span>
           </button>
         ))}
       </div>
