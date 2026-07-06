@@ -10,8 +10,6 @@ import { useClientBase } from '../../hooks/useVenue'
 export default function MenuPage() {
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
-  const [zones, setZones] = useState([])
-  const [selectedSector, setSelectedSector] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState(null)
   const [search, setSearch] = useState('')
@@ -19,18 +17,13 @@ export default function MenuPage() {
   const [venueName, setVenueName] = useState('')
   const [venueLogo, setVenueLogo] = useState('')
   const [headerBgColor, setHeaderBgColor] = useState('')
-  const [headerTextColor, setHeaderTextColor] = useState('#E8772A')
+  const [headerTextColor, setHeaderTextColor] = useState('#FFFFFF')
   const { items, addItem, updateQuantity, itemCount, subtotal, location, setLocation, setSessionId } = useCart()
   const [searchParams] = useSearchParams()
   const { customer, forgetCustomer } = useCustomer()
   const navigate = useNavigate()
   const base = useClientBase()
-
-  const sectionRefs = useRef({})
-  const chipRefs = useRef({})
-  const chipsBarRef = useRef(null)
   const headerRef = useRef(null)
-  const isClickScrolling = useRef(false)
 
   useEffect(() => {
     const sid = searchParams.get('session_id')
@@ -39,21 +32,19 @@ export default function MenuPage() {
     const locationType = searchParams.get('location_type')
     if (locationLabel) {
       if (sid) setSessionId(sid)
-      setLocation({ type: locationType || 'zona', zoneId: zoneId || null, mapX: null, mapY: null, label: locationLabel })
+      setLocation({ type: locationType || 'zona', zoneId: zoneId || null, label: locationLabel })
     }
   }, [])
 
   useEffect(() => {
     async function load() {
-      const [catRes, prodRes, venueRes, zoneRes] = await Promise.all([
+      const [catRes, prodRes, venueRes] = await Promise.all([
         supabaseCustomer.from('categories').select('*').eq('venue_id', ACTIVE_VENUE_ID).eq('is_active', true).order('sort_order'),
         supabaseCustomer.from('products').select('*').eq('venue_id', ACTIVE_VENUE_ID).order('sort_order'),
         supabaseCustomer.from('venues').select('high_demand, name, logo_url, header_bg_color, header_text_color').eq('id', ACTIVE_VENUE_ID).single(),
-        supabaseCustomer.from('venue_zones').select('*').eq('venue_id', ACTIVE_VENUE_ID).eq('is_active', true).order('sort_order')
       ])
       setCategories(catRes.data || [])
       setProducts(prodRes.data || [])
-      setZones(zoneRes.data || [])
       if (catRes.data?.length) setActiveCategory(catRes.data[0].id)
       if (venueRes.data) {
         setHighDemand(venueRes.data.high_demand)
@@ -67,61 +58,17 @@ export default function MenuPage() {
     load()
   }, [])
 
-  // Auto-highlight chip as user scrolls through category sections
-  useEffect(() => {
-    if (search || categories.length === 0) return
-
-    const observer = new IntersectionObserver(entries => {
-      if (isClickScrolling.current) return
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const catId = entry.target.dataset.catId
-          if (!catId) return
-          setActiveCategory(catId)
-          // Auto-center the matching chip in the scrollable bar
-          const chip = chipRefs.current[catId]
-          const bar = chipsBarRef.current
-          if (chip && bar) {
-            bar.scrollTo({
-              left: chip.offsetLeft - bar.offsetWidth / 2 + chip.offsetWidth / 2,
-              behavior: 'smooth',
-            })
-          }
-        }
-      })
-    }, {
-      rootMargin: '-100px 0px -55% 0px',
-      threshold: 0,
-    })
-
-    Object.values(sectionRefs.current).forEach(el => { if (el) observer.observe(el) })
-    return () => observer.disconnect()
-  }, [categories, search])
-
-  function scrollToCategory(catId) {
-    setActiveCategory(catId)
-    isClickScrolling.current = true
-    const el = sectionRefs.current[catId]
-    const headerHeight = headerRef.current?.offsetHeight || 130
-    if (el) {
-      const top = el.getBoundingClientRect().top + window.scrollY - headerHeight - 8
-      window.scrollTo({ top, behavior: 'smooth' })
-    }
-    setTimeout(() => { isClickScrolling.current = false }, 1000)
-  }
-
   function handleRemoveFromMenu(product) {
     const index = items.findIndex(i => i.product.id === product.id)
     if (index >= 0) updateQuantity(index, items[index].quantity - 1)
   }
 
-  // Use venue header colors as accent; fall back to a neutral blue
   const accentBg = headerBgColor || '#1A3A6B'
   const accentText = headerTextColor || '#FFFFFF'
 
-  const productsByCategory = categories
-    .map(cat => ({ ...cat, products: products.filter(p => p.category_id === cat.id) }))
-    .filter(cat => cat.products.length > 0)
+  const visibleProducts = activeCategory
+    ? products.filter(p => p.category_id === activeCategory)
+    : []
 
   const searchResults = search.trim()
     ? products.filter(p =>
@@ -132,217 +79,139 @@ export default function MenuPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F0F4F8] flex items-center justify-center">
+      <div className="h-screen bg-[#F0F4F8] flex items-center justify-center">
         <p className="text-smoke-400 text-sm">Cargando carta...</p>
       </div>
     )
   }
 
-  const mesaZones = zones.filter(z => z.type === 'mesa')
-  const parentIds = new Set(mesaZones.map(z => z.parent_zone_id).filter(Boolean))
-  const sectorZones = zones.filter(z => parentIds.has(z.id))
-  const directZones = zones.filter(z => z.type !== 'mesa' && !parentIds.has(z.id) && z.type !== 'retiro')
-  const retiroZones = zones.filter(z => z.type === 'retiro')
-  const filteredMesas = selectedSector
-    ? mesaZones.filter(z => z.parent_zone_id === selectedSector.id)
-    : mesaZones
-
   return (
-    <div className="min-h-screen bg-[#F0F4F8] pb-32">
+    <div className="h-screen flex flex-col bg-[#F0F4F8] overflow-hidden">
       {highDemand && (
-        <div className="bg-red-500/15 border-b border-red-500/30 px-5 py-3 text-center">
-          <p className="text-red-700 text-sm font-medium">⏳ Alta demanda — puede haber demora en los pedidos. ¡Gracias por tu paciencia!</p>
+        <div className="flex-shrink-0 bg-red-500/15 border-b border-red-500/30 px-5 py-2 text-center">
+          <p className="text-red-700 text-sm font-medium">⏳ Alta demanda — puede haber demora. ¡Gracias por tu paciencia!</p>
         </div>
       )}
 
       <header
         ref={headerRef}
-        className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-black/8 px-5 pt-5 pb-3"
-        style={headerBgColor ? { backgroundColor: headerBgColor } : undefined}
+        className="flex-shrink-0 px-4 pt-4 pb-3"
+        style={headerBgColor ? { backgroundColor: headerBgColor } : { backgroundColor: accentBg }}
       >
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between mb-2.5">
+          <div className="flex items-center gap-2.5">
             {venueLogo && (
-              <img src={venueLogo} alt={venueName} className="w-10 h-10 rounded-xl object-cover border border-black/10 flex-shrink-0" />
+              <img src={venueLogo} alt={venueName} className="w-9 h-9 rounded-xl object-cover border border-white/20 flex-shrink-0" />
             )}
             <div>
-              <h1 className="font-display text-3xl tracking-wide leading-none" style={{ color: headerTextColor }}>
-                CARTA{venueName ? ` ${venueName.toUpperCase()}` : ''}
+              <h1 className="font-display text-2xl tracking-wide leading-none" style={{ color: accentText }}>
+                {venueName ? venueName.toUpperCase() : 'CARTA'}
               </h1>
-              {customer?.full_name && (
-                <p className="text-smoke-500 text-xs mt-1">Hola, {customer.full_name}</p>
+              {location?.label && (
+                <button
+                  onClick={() => setLocation(null)}
+                  className="flex items-center gap-1 mt-0.5"
+                  style={{ color: `${accentText}99` }}
+                >
+                  <span className="text-[10px]">{location.type === 'retiro' ? '🛍' : '📍'}</span>
+                  <span className="text-[10px] font-semibold">{location.label}</span>
+                  <span className="text-[10px] opacity-60">· cambiar</span>
+                </button>
               )}
             </div>
           </div>
-          <button
-            onClick={async () => { await forgetCustomer(); navigate(base || '/identificacion') }}
-            className="text-smoke-500 text-xs underline flex-shrink-0"
-          >
-            No soy yo
-          </button>
+          {customer?.full_name && (
+            <button
+              onClick={async () => { await forgetCustomer(); navigate(base || '/identificacion') }}
+              className="text-[10px] font-semibold opacity-60"
+              style={{ color: accentText }}
+            >
+              No soy yo
+            </button>
+          )}
         </div>
 
         {/* Search */}
-        <div className="relative mb-2">
+        <div className="relative">
           <input
             type="search"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Buscar en la carta..."
-            className="w-full border border-black/10 rounded-xl px-9 py-2.5 text-sm bg-[#F0F4F8] text-smoke-300 placeholder:text-smoke-500 outline-none focus:border-pucara-blue-500/50"
+            className="w-full border-0 rounded-xl px-9 py-2 text-sm bg-white/20 text-white placeholder:text-white/50 outline-none focus:bg-white/30"
+            style={{ color: accentText }}
           />
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-smoke-500" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 opacity-60" style={{ color: accentText }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35" strokeLinecap="round"/>
           </svg>
           {search && (
-            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-smoke-500 text-sm">✕</button>
+            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-sm opacity-60" style={{ color: accentText }}>✕</button>
           )}
         </div>
-
-        {/* Category chips — sticky, auto-highlights on scroll */}
-        {!search && (
-          <div ref={chipsBarRef} className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
-            {categories.map(cat => (
-              <button
-                key={cat.id}
-                ref={el => { chipRefs.current[cat.id] = el }}
-                onClick={() => scrollToCategory(cat.id)}
-                className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border transition-colors flex-shrink-0 ${
-                  activeCategory === cat.id
-                    ? 'border-transparent'
-                    : 'bg-white border-black/10 text-smoke-300'
-                }`}
-                style={activeCategory === cat.id
-                  ? { backgroundColor: accentBg, color: accentText }
-                  : undefined
-                }
-              >
-                {cat.name}
-              </button>
-            ))}
-          </div>
-        )}
       </header>
 
-      {/* Location selector */}
-      <div className="px-5 pt-4 pb-1 space-y-2">
-        {location?.label ? (
-          <div className={`flex items-center justify-between rounded-xl px-4 py-2.5 border shadow-sm ${
-            location.type === 'retiro' ? 'bg-amber-50 border-amber-300' : 'bg-white border-black/5'
-          }`}>
-            <div className="flex items-center gap-2">
-              <span>{location.type === 'retiro' ? '🛍' : '📍'}</span>
-              <p className={`font-semibold text-sm ${location.type === 'retiro' ? 'text-amber-700' : 'text-smoke-300'}`}>
-                {location.label}
-              </p>
-            </div>
-            <button
-              onClick={() => { setLocation(null); setSelectedSector(null) }}
-              className={`text-xs font-semibold ${location.type === 'retiro' ? 'text-amber-600' : 'text-pucara-blue-400'}`}
-            >
-              Cambiar
-            </button>
-          </div>
-        ) : zones.length > 0 ? (
-          <>
-            <p className="text-smoke-500 text-xs font-semibold uppercase tracking-wide">¿Dónde estás?</p>
-            {selectedSector ? (
-              <div className="space-y-1.5">
-                <button onClick={() => setSelectedSector(null)} className="text-pucara-blue-400 text-xs font-semibold flex items-center gap-1">
-                  ← {selectedSector.name}
+      {search ? (
+        /* Search results — full width scrollable */
+        <div className="flex-1 overflow-y-auto px-4 pt-3 pb-36 space-y-2">
+          {searchResults.length === 0 ? (
+            <p className="text-smoke-500 text-sm text-center py-10">No encontramos "{search}" en la carta.</p>
+          ) : searchResults.map(product => (
+            <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu}
+              qty={items.find(i => i.product.id === product.id)?.quantity || 0}
+              accentBg={accentBg} accentText={accentText} />
+          ))}
+        </div>
+      ) : (
+        /* Sidebar + products */
+        <div className="flex-1 overflow-hidden flex">
+          {/* Category sidebar */}
+          <div className="w-[76px] flex-shrink-0 overflow-y-auto scrollbar-hide pb-16"
+            style={{ backgroundColor: `${accentBg}18` }}>
+            {categories.map(cat => {
+              const active = activeCategory === cat.id
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveCategory(cat.id)}
+                  className="w-full py-1.5 pl-0 pr-1.5 flex justify-end"
+                >
+                  <div
+                    className="w-[66px] py-2.5 px-1.5 rounded-r-xl flex flex-col items-center gap-0.5 text-center border-l-[3px] transition-all"
+                    style={active
+                      ? { borderColor: accentBg, backgroundColor: 'white' }
+                      : { borderColor: 'transparent' }
+                    }
+                  >
+                    <span
+                      className="text-[9px] font-semibold leading-tight break-words w-full"
+                      style={{ color: active ? accentBg : '#6B7A8D' }}
+                    >
+                      {cat.name}
+                    </span>
+                  </div>
                 </button>
-                <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
-                  {filteredMesas.map(zone => (
-                    <button key={zone.id} onClick={() => setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })}
-                      className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-white border-black/10 text-smoke-300 active:bg-pucara-blue-500 active:text-white active:border-pucara-blue-500">
-                      {zone.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {(sectorZones.length > 0 || directZones.length > 0) && (
-                  <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
-                    {sectorZones.map(sector => (
-                      <button key={sector.id} onClick={() => setSelectedSector(sector)}
-                        className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-white border-black/10 text-smoke-300 active:bg-pucara-blue-500 active:text-white">
-                        {sector.name}
-                      </button>
-                    ))}
-                    {directZones.map(zone => (
-                      <button key={zone.id} onClick={() => setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })}
-                        className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-white border-black/10 text-smoke-300 active:bg-pucara-blue-500 active:text-white">
-                        {zone.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {sectorZones.length === 0 && mesaZones.length > 0 && (
-                  <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
-                    {mesaZones.map(zone => (
-                      <button key={zone.id} onClick={() => setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })}
-                        className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-white border-black/10 text-smoke-300 active:bg-pucara-blue-500 active:text-white">
-                        {zone.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {retiroZones.length > 0 && (
-                  <div className="flex items-center gap-2 overflow-x-auto -mx-5 px-5 pb-1 scrollbar-hide">
-                    <span className="text-amber-600 text-xs font-semibold whitespace-nowrap flex-shrink-0">🛍 Retiro yo en:</span>
-                    {retiroZones.map(zone => (
-                      <button key={zone.id} onClick={() => setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })}
-                        className="whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border bg-amber-50 border-amber-300 text-amber-700 active:bg-amber-500 active:text-white active:border-amber-500">
-                        {zone.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </>
-        ) : null}
-      </div>
+              )
+            })}
+          </div>
 
-      {/* Products */}
-      <main className="px-5 pt-3">
-        {search ? (
-          <div className="space-y-2">
-            {searchResults.length === 0 ? (
-              <p className="text-smoke-500 text-sm text-center py-10">No encontramos "{search}" en la carta.</p>
-            ) : searchResults.map(product => (
+          {/* Product list */}
+          <div className="flex-1 overflow-y-auto pt-2 pb-36 px-2.5 space-y-2">
+            {visibleProducts.map(product => (
               <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu}
                 qty={items.find(i => i.product.id === product.id)?.quantity || 0}
                 accentBg={accentBg} accentText={accentText} />
             ))}
+            {visibleProducts.length === 0 && (
+              <p className="text-smoke-500 text-sm text-center py-10">Sin productos en esta categoría.</p>
+            )}
           </div>
-        ) : (
-          <div className="space-y-8">
-            {productsByCategory.map(cat => (
-              <section
-                key={cat.id}
-                ref={el => { sectionRefs.current[cat.id] = el }}
-                data-cat-id={cat.id}
-              >
-                <h2 className="text-[11px] font-bold uppercase tracking-widest text-smoke-400 mb-3">{cat.name}</h2>
-                <div className="space-y-2">
-                  {cat.products.map(product => (
-                    <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu}
-                      qty={items.find(i => i.product.id === product.id)?.quantity || 0}
-                      accentBg={accentBg} accentText={accentText} />
-                  ))}
-                </div>
-              </section>
-            ))}
-          </div>
-        )}
-      </main>
+        </div>
+      )}
 
       {itemCount > 0 && (
         <button
           onClick={() => navigate(location ? `${base}/pago` : `${base}/ubicacion`)}
-          className="fixed bottom-20 left-5 right-5 rounded-2xl py-4 px-5 flex items-center justify-between shadow-lg font-semibold z-20 active:opacity-90"
+          className="fixed bottom-20 left-4 right-4 rounded-2xl py-4 px-5 flex items-center justify-between shadow-lg font-semibold z-20 active:opacity-90"
           style={{ backgroundColor: accentBg, color: accentText }}
         >
           <span>{itemCount} {itemCount === 1 ? 'item' : 'items'}</span>
