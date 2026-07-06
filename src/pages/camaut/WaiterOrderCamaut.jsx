@@ -28,6 +28,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
   const [staffId, setStaffId] = useState(null)
   const [submitError, setSubmitError] = useState(null)
   const [step, setStep] = useState('carta') // 'carta' | 'confirmar'
+  const [searchQuery, setSearchQuery] = useState('')
   const [showMap, setShowMap] = useState(false)
   const [contextReady, setContextReady] = useState(() => {
     if (linkedVenues.length === 0) return true
@@ -182,6 +183,24 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
     : mesaZones
 
   const visibleProducts = products.filter(p => p.category_id === activeCategory)
+
+  const categoryMap = Object.fromEntries(categories.map(c => [c.id, c.name]))
+  const q = searchQuery.trim().toLowerCase()
+  const searchResults = q
+    ? (() => {
+        const words = q.split(/\s+/)
+        return products
+          .filter(p => {
+            const haystack = `${p.name} ${categoryMap[p.category_id] || ''}`.toLowerCase()
+            return words.every(w => haystack.includes(w))
+          })
+          .sort((a, b) => {
+            const aExact = a.name.toLowerCase().startsWith(q) ? 0 : 1
+            const bExact = b.name.toLowerCase().startsWith(q) ? 0 : 1
+            return aExact - bExact
+          })
+      })()
+    : null
 
   // Pantalla de confirmación exitosa
   if (lastOrder) {
@@ -562,52 +581,97 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
         )}
       </div>
 
-      {/* Categorías */}
-      <div className="px-4 pt-3 pb-2 flex gap-2 overflow-x-auto">
-        {filteredCategories.map(cat => (
-          <button
-            key={cat.id}
-            onClick={() => setActiveCategory(cat.id)}
-            className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border ${
-              activeCategory === cat.id
-                ? 'bg-[#008080] text-white border-[#008080]'
-                : 'bg-white border-black/10 text-[#3A4A5A]'
-            }`}
-          >
-            {cat.name}
-          </button>
-        ))}
+      {/* Buscador */}
+      <div className="px-4 pt-3 pb-1">
+        <div className="relative">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-[#B0BEC5]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Buscar en la carta..."
+            className="w-full bg-white border border-black/10 rounded-xl pl-9 pr-9 py-2.5 text-sm text-[#1A2A3A] placeholder-[#B0BEC5]"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#B0BEC5] text-lg leading-none"
+            >×</button>
+          )}
+        </div>
       </div>
 
-      {/* Productos */}
-      <div className="px-4 space-y-2 mt-1">
-        {visibleProducts.map(product => {
-          const item = cart[product.id]
-          const qty = item?.qty || 0
-          return (
-            <div key={product.id} className="bg-white rounded-xl px-4 py-3 flex items-center justify-between border border-black/5 shadow-sm">
-              <div>
-                <p className="text-sm font-semibold text-[#1A2A3A]">{product.name}</p>
-                <p className="text-xs text-[#008080] font-semibold">{formatPrice(product.price)}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => changeQty(product.id, -1)}
-                  className="w-7 h-7 rounded-lg border border-black/10 bg-[#F8FAFC] text-[#3A4A5A] font-bold text-sm flex items-center justify-center"
-                >−</button>
-                <span className="font-bold text-[#1A2A3A] text-sm w-5 text-center">{qty}</span>
-                <button
-                  onClick={() => changeQty(product.id, 1)}
-                  className="w-7 h-7 rounded-lg bg-[#4DD0E1] text-white font-bold text-sm flex items-center justify-center"
-                >+</button>
-              </div>
-            </div>
-          )
-        })}
+      {searchResults ? (
+        /* Resultados de búsqueda */
+        <div className="px-4 space-y-2 mt-2">
+          {searchResults.length === 0 ? (
+            <p className="text-[#8896A5] text-sm text-center py-6">Sin resultados para "{searchQuery}"</p>
+          ) : (
+            searchResults.map(product => {
+              const item = cart[product.id]
+              const qty = item?.qty || 0
+              return (
+                <div key={product.id} className="bg-white rounded-xl px-4 py-3 flex items-center justify-between border border-black/5 shadow-sm">
+                  <div>
+                    <p className="text-sm font-semibold text-[#1A2A3A]">{product.name}</p>
+                    <p className="text-xs text-[#8896A5]">{categoryMap[product.category_id] || ''} · <span className="text-[#008080] font-semibold">{formatPrice(product.price)}</span></p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => changeQty(product.id, -1)} className="w-7 h-7 rounded-lg border border-black/10 bg-[#F8FAFC] text-[#3A4A5A] font-bold text-sm flex items-center justify-center">−</button>
+                    <span className="font-bold text-[#1A2A3A] text-sm w-5 text-center">{qty}</span>
+                    <button onClick={() => changeQty(product.id, 1)} className="w-7 h-7 rounded-lg bg-[#4DD0E1] text-white font-bold text-sm flex items-center justify-center">+</button>
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+      ) : (
+        <>
+          {/* Categorías */}
+          <div className="px-4 pt-3 pb-2 flex gap-2 overflow-x-auto">
+            {filteredCategories.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold border ${
+                  activeCategory === cat.id
+                    ? 'bg-[#008080] text-white border-[#008080]'
+                    : 'bg-white border-black/10 text-[#3A4A5A]'
+                }`}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
 
-        {/* Agregar producto nuevo */}
-        <NuevoProductoInline venueId={activeVenueId} categoryId={categories[0]?.id} onAdded={loadCarta} />
-      </div>
+          {/* Productos */}
+          <div className="px-4 space-y-2 mt-1">
+            {visibleProducts.map(product => {
+              const item = cart[product.id]
+              const qty = item?.qty || 0
+              return (
+                <div key={product.id} className="bg-white rounded-xl px-4 py-3 flex items-center justify-between border border-black/5 shadow-sm">
+                  <div>
+                    <p className="text-sm font-semibold text-[#1A2A3A]">{product.name}</p>
+                    <p className="text-xs text-[#008080] font-semibold">{formatPrice(product.price)}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => changeQty(product.id, -1)} className="w-7 h-7 rounded-lg border border-black/10 bg-[#F8FAFC] text-[#3A4A5A] font-bold text-sm flex items-center justify-center">−</button>
+                    <span className="font-bold text-[#1A2A3A] text-sm w-5 text-center">{qty}</span>
+                    <button onClick={() => changeQty(product.id, 1)} className="w-7 h-7 rounded-lg bg-[#4DD0E1] text-white font-bold text-sm flex items-center justify-center">+</button>
+                  </div>
+                </div>
+              )
+            })}
+
+            {/* Agregar producto nuevo */}
+            <NuevoProductoInline venueId={activeVenueId} categoryId={categories[0]?.id} onAdded={loadCarta} />
+          </div>
+        </>
+      )}
 
       {/* Footer con botón ir a confirmar */}
       {cartItems.length > 0 && (
