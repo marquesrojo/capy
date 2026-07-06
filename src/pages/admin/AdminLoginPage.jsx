@@ -6,7 +6,7 @@ import { supabaseStaff } from '../../lib/supabase'
 async function signInWithGoogle() {
   await supabaseStaff.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: `${window.location.origin}/auth/callback?type=admin` }
+    options: { redirectTo: `${window.location.origin}/auth/callback` }
   })
 }
 
@@ -33,7 +33,7 @@ export default function AdminLoginPage() {
     setRecoveryLoading(true)
     try {
       await supabaseStaff.auth.resetPasswordForEmail(target, {
-        redirectTo: `${window.location.origin}/auth/callback?type=admin`,
+        redirectTo: `${window.location.origin}/auth/callback`,
       })
     } catch (_) {}
     setRecoveryLoading(false)
@@ -79,7 +79,7 @@ export default function AdminLoginPage() {
     const { data, error } = await supabaseStaff.auth.signUp({
       email: regEmail.trim(),
       password: regPassword,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback?type=admin` }
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` }
     })
     setRegLoading(false)
     if (error) {

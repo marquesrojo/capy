@@ -14,7 +14,7 @@ export default function HubPage() {
   useEffect(() => {
     const hash = window.location.hash
     if (hash && (hash.includes('access_token') || hash.includes('error'))) {
-      window.location.href = '/auth/callback?type=admin' + hash
+      window.location.href = '/auth/callback' + hash
     }
   }, [])
 
