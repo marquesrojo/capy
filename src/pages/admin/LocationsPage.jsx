@@ -147,6 +147,14 @@ export default function LocationsPage() {
         </div>
       </header>
 
+      <div className="mx-5 mt-4 mb-1 flex items-center gap-2 bg-carbon-900 border border-carbon-700 rounded-xl px-4 py-3">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B7A8D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+        </svg>
+        <p className="text-smoke-500 text-xs flex-1">Los QR por mesa se generan en</p>
+        <Link to="/admin/qr" className="text-ember-500 text-xs font-semibold">Códigos QR →</Link>
+      </div>
+
       <main className="px-5 mt-4">
         {viewMode === 'mapa' ? (
           <FloorPlanEditor zones={filtered} parentZones={parentZonas} onSaved={load} />
