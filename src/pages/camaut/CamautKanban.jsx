@@ -119,6 +119,9 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
         const extraMap = Object.fromEntries((extraData || []).map(o => [o.id, o]))
         const serverOrders = own.map(o => ({
           ...o,
+          // If we've locally marked this order as entregado, override any stale status
+          // the server still returns (race: poll fires before DB write completes)
+          status: deliveredIdsRef.current.has(o.id) ? 'entregado' : o.status,
           menu_id: extraMap[o.id]?.menu_id || null,
           waiter_called_at: extraMap[o.id]?.waiter_called_at || null
         }))
