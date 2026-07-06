@@ -79,7 +79,10 @@ export default function CamautAppPage() {
 
       if (!session) { navigate('/camaut/login'); return }
 
-      const { data: profile } = await supabaseCamaut
+      // Use supabaseStaff for the profile query — it's guaranteed to have the
+      // session explicitly set in both auth paths above, avoiding edge cases
+      // where supabaseCamaut's internal session state lags behind.
+      const { data: profile } = await supabaseStaff
         .from('profiles')
         .select('venue_id, is_autonomous, full_name')
         .eq('id', session.user.id)

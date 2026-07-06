@@ -125,6 +125,7 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
           .from('staff_names')
           .upsert({ venue_id: venue.id, full_name: name, profile_id: userId, xp: 0 }, { onConflict: 'venue_id,profile_id' })
       }
+      localStorage.setItem(`camaut-onboarded-${session.user.id}`, '1')
       onComplete()
     } catch (err) {
       alert('Error: ' + err.message)

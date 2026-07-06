@@ -50,8 +50,7 @@ const MICAPY_ITEMS = [
   { id: 'vincular', label: 'Vincular', desc: 'Conectar con restaurantes', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
   { id: 'ubicaciones', label: 'Ubicaciones', desc: 'Mapa de salones vinculados', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> },
   { id: 'progreso', label: 'Progreso', desc: 'Carrera, XP y ranking', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg> },
-  { id: 'historial', label: 'Historial', desc: 'Pedidos enviados', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3h18v4H3z"/><path d="M3 10h18v4H3z"/><path d="M3 17h12v4H3z"/></svg> },
-  { id: 'estadisticas', label: 'Estadísticas', desc: 'KPIs y encuestas de clientes', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> },
+  { id: 'estadisticas', label: 'Estadísticas', desc: 'KPIs, encuestas e historial', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> },
   { id: 'social', label: 'Social', desc: 'Tu página y Wrapped', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> },
   { id: 'soporte', label: 'Soporte', desc: 'Envianos un mensaje', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> },
 ]
@@ -165,8 +164,17 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
     navigate('/camaut/login')
   }
 
-  // Onboarding — camarero nuevo sin venue ni vinculación
-  if (!venueId && linkedVenues.length === 0) {
+  // Onboarding — camarero nuevo sin venue ni vinculación.
+  // Also check a localStorage flag set on first completion so the loop
+  // can't repeat if the profile query returns null on a re-login.
+  let alreadyOnboarded = false
+  try {
+    const raw = localStorage.getItem('sb-camaut-auth') || localStorage.getItem('sb-staff-auth')
+    const uid = raw ? JSON.parse(raw)?.user?.id : null
+    if (uid) alreadyOnboarded = localStorage.getItem(`camaut-onboarded-${uid}`) === '1'
+  } catch { /* ignore */ }
+
+  if (!venueId && linkedVenues.length === 0 && !alreadyOnboarded) {
     return (
       <CamautOnboardingPage
         staffName={staffName}
@@ -403,6 +411,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                   {micapyTab === 'estadisticas' && [
                     { id: 'indicadores', label: 'Indicadores' },
                     { id: 'encuesta', label: 'Encuesta' },
+                    { id: 'historial', label: 'Historial' },
                   ].map(s => (
                     <button key={s.id} onClick={() => setMicapySubTab(s.id)}
                       className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-colors ${micapySubTab === s.id ? 'border-[#008080] text-[#008080]' : 'border-transparent text-[#8896A5]'}`}>
@@ -426,6 +435,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                 {micapyTab === 'progreso' && micapySubTab === 'ranking' && <RankingMozos globalOnly />}
                 {micapyTab === 'estadisticas' && micapySubTab === 'indicadores' && <IndicadoresTab venueId={venueId} staffId={staffId} />}
                 {micapyTab === 'estadisticas' && micapySubTab === 'encuesta' && <EncuestaTab staffId={staffId} />}
+                {micapyTab === 'estadisticas' && micapySubTab === 'historial' && <HistorialTab staffId={staffId} venueId={venueId} />}
                 {micapyTab === 'social' && micapySubTab === 'pagina' && (
                   <div className="space-y-3">
                     <button
@@ -466,7 +476,6 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                     ))}
                   </div>
                 )}
-                {micapyTab === 'historial' && <HistorialTab staffId={staffId} venueId={venueId} />}
                 {micapyTab === 'vincular' && <VincularTab />}
                 {micapyTab === 'perfil' && micapySubTab === 'datos' && <CamautConfigPage key="perfil" embedded initialTab="perfil" />}
                 {micapyTab === 'perfil' && micapySubTab === 'pro' && (
