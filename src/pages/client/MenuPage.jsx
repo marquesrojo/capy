@@ -232,7 +232,7 @@ function ProductCard({ product, onAdd, onRemove, qty, accentBg = '#1A3A6B', acce
       {product.image_url && (
         <img src={product.image_url} alt={product.name} className="w-20 h-20 rounded-l-xl object-cover flex-shrink-0" />
       )}
-      <div className="flex-1 min-w-0 py-3 pr-3">
+      <div className="flex-1 min-w-0 py-3 px-3">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-semibold text-smoke-300 text-sm leading-tight">{product.name}</h3>
           <span className="font-mono text-sm whitespace-nowrap flex-shrink-0" style={{ color: accentBg }}>
