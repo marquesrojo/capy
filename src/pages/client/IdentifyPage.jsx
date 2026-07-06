@@ -35,11 +35,13 @@ export default function IdentifyPage() {
   const [topProducts, setTopProducts] = useState([])
 
   const [zones, setZones] = useState([])
+  const [pickedSector, setPickedSector] = useState(null)
   const [pickedZone, setPickedZone] = useState(null)
   const [showZonePicker, setShowZonePicker] = useState(false)
 
   const [showWaiterCall, setShowWaiterCall] = useState(false)
   const [selectedReason, setSelectedReason] = useState(null)
+  const [waiterSector, setWaiterSector] = useState(null)
   const [callLoading, setCallLoading] = useState(false)
   const [callSent, setCallSent] = useState(false)
 
@@ -79,7 +81,7 @@ export default function IdentifyPage() {
     if (!prefillZoneId) {
       supabaseCustomer
         .from('venue_zones')
-        .select('id, name, type')
+        .select('id, name, type, parent_zone_id')
         .eq('venue_id', venueId)
         .eq('is_active', true)
         .order('sort_order')
@@ -88,20 +90,36 @@ export default function IdentifyPage() {
     }
   }, [venueId])
 
-  function pickZone(zone) {
-    if (pickedZone?.id === zone.id) {
+  function pickSector(sector) {
+    if (pickedSector?.id === sector.id) {
+      setPickedSector(null)
       setPickedZone(null)
       setLocation(null)
-    } else {
-      setPickedZone(zone)
-      setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })
+      return
     }
+    setPickedSector(sector)
+    const hasMesas = zones.some(z => z.type === 'mesa' && z.parent_zone_id === sector.id)
+    if (!hasMesas) {
+      setPickedZone(sector)
+      setLocation({ type: sector.type, zoneId: sector.id, label: sector.name })
+      setShowZonePicker(false)
+    } else {
+      setPickedZone(null)
+      setLocation(null)
+    }
+  }
+
+  function pickMesa(mesa) {
+    setPickedZone(mesa)
+    setLocation({ type: mesa.type, zoneId: mesa.id, label: mesa.name })
+    setShowZonePicker(false)
   }
 
   async function openWaiterCall() {
     setShowWaiterCall(true)
     setCallSent(false)
     setSelectedReason(null)
+    setWaiterSector(null)
   }
 
   async function submitCall(zoneId, zoneName) {
@@ -139,9 +157,13 @@ export default function IdentifyPage() {
     return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(p)
   }
 
-  const mesas = zones.filter(z => z.type === 'mesa')
   const sectores = zones.filter(z => z.type === 'zona')
+  const allMesas = zones.filter(z => z.type === 'mesa')
   const retiro = zones.filter(z => z.type === 'retiro')
+  const sectorMesas = pickedSector
+    ? allMesas.filter(m => m.parent_zone_id === pickedSector.id)
+    : []
+  const orphanMesas = allMesas.filter(m => !m.parent_zone_id)
 
   return (
     <div className="min-h-screen bg-[#FAF9F6] flex flex-col pb-10">
@@ -217,23 +239,52 @@ export default function IdentifyPage() {
           {/* Expandable content */}
           {showZonePicker && (
             <div className="mt-2 bg-white rounded-2xl border border-black/[0.06] p-4 shadow-sm">
-              {mesas.length > 0 && (
+
+              {/* Step 1: Sectors */}
+              {sectores.length > 0 && (
                 <>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Mesas</p>
-                  <div className="grid grid-cols-5 gap-2 mb-4">
-                    {mesas.map(zone => {
-                      const active = pickedZone?.id === zone.id
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Sector</p>
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    {sectores.map(sector => {
+                      const active = pickedSector?.id === sector.id
                       return (
                         <button
-                          key={zone.id}
-                          onClick={() => { pickZone(zone); setShowZonePicker(false) }}
+                          key={sector.id}
+                          onClick={() => pickSector(sector)}
+                          className="rounded-xl py-2.5 px-1 text-xs font-bold text-center border-2 transition-all leading-tight"
+                          style={active
+                            ? { backgroundColor: selfColor, borderColor: selfColor, color: 'white' }
+                            : { backgroundColor: '#F0F4F8', borderColor: selfColor, color: selfColor }
+                          }
+                        >
+                          {sector.name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
+
+              {/* Step 2: Mesas within selected sector */}
+              {sectorMesas.length > 0 && (
+                <>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">
+                    Mesa — {pickedSector.name}
+                  </p>
+                  <div className="grid grid-cols-5 gap-2 mb-4">
+                    {sectorMesas.map(mesa => {
+                      const active = pickedZone?.id === mesa.id
+                      return (
+                        <button
+                          key={mesa.id}
+                          onClick={() => pickMesa(mesa)}
                           className="aspect-square rounded-full flex items-center justify-center text-sm font-black transition-all border-2"
                           style={active
                             ? { backgroundColor: selfColor, borderColor: selfColor, color: 'white' }
                             : { backgroundColor: '#F0F4F8', borderColor: selfColor, color: selfColor }
                           }
                         >
-                          {zoneShort(zone.name)}
+                          {zoneShort(mesa.name)}
                         </button>
                       )
                     })}
@@ -241,23 +292,24 @@ export default function IdentifyPage() {
                 </>
               )}
 
-              {sectores.length > 0 && (
+              {/* Mesas without a sector */}
+              {orphanMesas.length > 0 && (
                 <>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Sectores</p>
-                  <div className="grid grid-cols-3 gap-2 mb-4">
-                    {sectores.map(zone => {
-                      const active = pickedZone?.id === zone.id
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Mesas</p>
+                  <div className="grid grid-cols-5 gap-2 mb-4">
+                    {orphanMesas.map(mesa => {
+                      const active = pickedZone?.id === mesa.id
                       return (
                         <button
-                          key={zone.id}
-                          onClick={() => { pickZone(zone); setShowZonePicker(false) }}
-                          className="rounded-xl py-2.5 text-xs font-bold text-center border-2 transition-all"
+                          key={mesa.id}
+                          onClick={() => pickMesa(mesa)}
+                          className="aspect-square rounded-full flex items-center justify-center text-sm font-black transition-all border-2"
                           style={active
                             ? { backgroundColor: selfColor, borderColor: selfColor, color: 'white' }
                             : { backgroundColor: '#F0F4F8', borderColor: selfColor, color: selfColor }
                           }
                         >
-                          {zone.name}
+                          {zoneShort(mesa.name)}
                         </button>
                       )
                     })}
@@ -265,6 +317,7 @@ export default function IdentifyPage() {
                 </>
               )}
 
+              {/* Retiro */}
               {retiro.length > 0 && (
                 <>
                   <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Retiro</p>
@@ -274,7 +327,7 @@ export default function IdentifyPage() {
                       return (
                         <button
                           key={zone.id}
-                          onClick={() => { pickZone(zone); setShowZonePicker(false) }}
+                          onClick={() => { setPickedZone(zone); setLocation({ type: zone.type, zoneId: zone.id, label: zone.name }); setShowZonePicker(false) }}
                           className="rounded-xl py-2.5 text-xs font-bold text-center border-2 transition-all"
                           style={active
                             ? { backgroundColor: selfColor, borderColor: selfColor, color: 'white' }
@@ -291,7 +344,7 @@ export default function IdentifyPage() {
 
               {pickedZone && (
                 <button
-                  onClick={() => { setPickedZone(null); setLocation(null) }}
+                  onClick={() => { setPickedSector(null); setPickedZone(null); setLocation(null) }}
                   className="text-[#9DAAB8] text-xs underline w-full text-center mt-1"
                 >
                   Quitar selección
@@ -432,29 +485,76 @@ export default function IdentifyPage() {
                       </button>
                     ) : (
                       <>
-                        {mesas.length > 0 && (
-                          <div className="grid grid-cols-5 gap-2 mb-4">
-                            {mesas.map(zone => (
-                              <button key={zone.id} onClick={() => submitCall(zone.id, zone.name)}
-                                disabled={callLoading}
-                                className="aspect-square rounded-full flex items-center justify-center text-sm font-black border-2 disabled:opacity-50 bg-white transition-all"
-                                style={{ borderColor: waiterColor, color: waiterColor }}>
-                                {zoneShort(zone.name)}
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                        {/* Sector selector */}
                         {sectores.length > 0 && (
-                          <div className="grid grid-cols-3 gap-2">
-                            {sectores.map(zone => (
-                              <button key={zone.id} onClick={() => submitCall(zone.id, zone.name)}
-                                disabled={callLoading}
-                                className="rounded-xl py-2.5 text-xs font-bold border-2 disabled:opacity-50 bg-white"
-                                style={{ borderColor: waiterColor, color: waiterColor }}>
-                                {zone.name}
-                              </button>
-                            ))}
-                          </div>
+                          <>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Sector</p>
+                            <div className="grid grid-cols-3 gap-2 mb-4">
+                              {sectores.map(sector => {
+                                const hasMesas = allMesas.some(m => m.parent_zone_id === sector.id)
+                                const active = waiterSector?.id === sector.id
+                                return (
+                                  <button
+                                    key={sector.id}
+                                    disabled={callLoading}
+                                    onClick={() => {
+                                      if (!hasMesas) {
+                                        submitCall(sector.id, sector.name)
+                                      } else {
+                                        setWaiterSector(active ? null : sector)
+                                      }
+                                    }}
+                                    className="rounded-xl py-2.5 px-1 text-xs font-bold text-center border-2 disabled:opacity-50 transition-all leading-tight"
+                                    style={active
+                                      ? { backgroundColor: waiterColor, borderColor: waiterColor, color: 'white' }
+                                      : { backgroundColor: '#F8FAFB', borderColor: waiterColor, color: waiterColor }
+                                    }
+                                  >
+                                    {sector.name}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Mesa selector inside chosen sector */}
+                        {waiterSector && allMesas.filter(m => m.parent_zone_id === waiterSector.id).length > 0 && (
+                          <>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">
+                              Mesa — {waiterSector.name}
+                            </p>
+                            <div className="grid grid-cols-5 gap-2 mb-4">
+                              {allMesas.filter(m => m.parent_zone_id === waiterSector.id).map(mesa => (
+                                <button
+                                  key={mesa.id}
+                                  onClick={() => submitCall(mesa.id, mesa.name)}
+                                  disabled={callLoading}
+                                  className="aspect-square rounded-full flex items-center justify-center text-sm font-black border-2 disabled:opacity-50 transition-all"
+                                  style={{ backgroundColor: '#F8FAFB', borderColor: waiterColor, color: waiterColor }}
+                                >
+                                  {zoneShort(mesa.name)}
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
+
+                        {/* Orphan mesas (no sector) */}
+                        {orphanMesas.length > 0 && (
+                          <>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Mesas</p>
+                            <div className="grid grid-cols-5 gap-2 mb-4">
+                              {orphanMesas.map(mesa => (
+                                <button key={mesa.id} onClick={() => submitCall(mesa.id, mesa.name)}
+                                  disabled={callLoading}
+                                  className="aspect-square rounded-full flex items-center justify-center text-sm font-black border-2 disabled:opacity-50 bg-white transition-all"
+                                  style={{ borderColor: waiterColor, color: waiterColor }}>
+                                  {zoneShort(mesa.name)}
+                                </button>
+                              ))}
+                            </div>
+                          </>
                         )}
                       </>
                     )}
