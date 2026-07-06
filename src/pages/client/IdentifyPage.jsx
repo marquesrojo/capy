@@ -11,6 +11,13 @@ const WAITER_REASONS = [
   { id: 'otra_consulta', label: 'Otra consulta', icon: '💬' },
 ]
 
+// Extrae el número de un nombre como "Mesa 4" → "4", o devuelve las primeras 2 letras
+function zoneShort(name) {
+  const match = name.match(/\d+/)
+  if (match) return match[0]
+  return name.slice(0, 2).toUpperCase()
+}
+
 export default function IdentifyPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -18,8 +25,8 @@ export default function IdentifyPage() {
   const venueCtx = useVenueOptional()
   const venue = venueCtx?.venue
   const venueId = venue?.id || ACTIVE_VENUE_ID
-  const selfColor = venue?.landing_self_color || '#008080'
-  const waiterColor = venue?.landing_waiter_color || '#FF8C69'
+  const selfColor = venue?.landing_self_color || '#1A3A6B'
+  const waiterColor = venue?.landing_waiter_color || '#B22222'
   const { setLocation, setSessionId } = useCart()
 
   const [orderNumber, setOrderNumber] = useState('')
@@ -27,27 +34,20 @@ export default function IdentifyPage() {
   const [orderError, setOrderError] = useState('')
   const [topProducts, setTopProducts] = useState([])
 
-  // Zones for location picker (general QR)
   const [zones, setZones] = useState([])
-  const [zonesLoading, setZonesLoading] = useState(false)
-  const [pickedZone, setPickedZone] = useState(null) // { id, name, type }
-  const [showZonePicker, setShowZonePicker] = useState(false)
+  const [pickedZone, setPickedZone] = useState(null)
 
-  // Waiter call flow
   const [showWaiterCall, setShowWaiterCall] = useState(false)
   const [selectedReason, setSelectedReason] = useState(null)
   const [callLoading, setCallLoading] = useState(false)
   const [callSent, setCallSent] = useState(false)
 
-  // URL params from QR per-table
   const prefillZoneId = searchParams.get('zone_id')
   const prefillLabel = searchParams.get('location_label')
   const prefillType = searchParams.get('location_type') || 'zona'
   const prefillSession = searchParams.get('session_id')
-
   const decodedLabel = prefillLabel ? decodeURIComponent(prefillLabel) : null
 
-  // Active location: prefilled from URL or picked manually
   const activeZoneId = prefillZoneId || pickedZone?.id || null
   const activeLabel = decodedLabel || pickedZone?.name || null
 
@@ -60,9 +60,7 @@ export default function IdentifyPage() {
     if (prefillZoneId && prefillLabel) {
       setLocation({ type: prefillType, zoneId: prefillZoneId, label: decodedLabel })
     }
-    if (prefillSession) {
-      setSessionId(prefillSession)
-    }
+    if (prefillSession) setSessionId(prefillSession)
   }, [])
 
   useEffect(() => {
@@ -77,9 +75,7 @@ export default function IdentifyPage() {
       .limit(10)
       .then(({ data }) => setTopProducts(data || []))
 
-    // Load zones for general QR (no prefill)
     if (!prefillZoneId) {
-      setZonesLoading(true)
       supabaseCustomer
         .from('venue_zones')
         .select('id, name, type')
@@ -87,23 +83,18 @@ export default function IdentifyPage() {
         .eq('is_active', true)
         .order('sort_order')
         .order('name')
-        .then(({ data }) => {
-          setZones(data || [])
-          setZonesLoading(false)
-        })
+        .then(({ data }) => setZones(data || []))
     }
   }, [venueId])
 
   function pickZone(zone) {
-    setPickedZone(zone)
-    setShowZonePicker(false)
-    setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })
-  }
-
-  function clearPickedZone() {
-    setPickedZone(null)
-    setLocation(null)
-    setShowZonePicker(true)
+    if (pickedZone?.id === zone.id) {
+      setPickedZone(null)
+      setLocation(null)
+    } else {
+      setPickedZone(zone)
+      setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })
+    }
   }
 
   async function openWaiterCall() {
@@ -125,12 +116,6 @@ export default function IdentifyPage() {
     setCallSent(true)
   }
 
-  async function handleWaiterCallConfirm() {
-    if (activeZoneId && activeLabel) {
-      await submitCall(activeZoneId, activeLabel)
-    }
-  }
-
   async function handleFindOrder(e) {
     e.preventDefault()
     if (!orderNumber.trim()) return
@@ -145,139 +130,170 @@ export default function IdentifyPage() {
       .limit(1)
       .single()
     setFinding(false)
-    if (!data) {
-      setOrderError('No encontramos ese número. Verificá con el camarero.')
-      return
-    }
+    if (!data) { setOrderError('No encontramos ese número. Verificá con el camarero.'); return }
     navigate(`/pedido/${data.id}`)
+  }
+
+  function formatPrice(p) {
+    return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(p)
   }
 
   const mesas = zones.filter(z => z.type === 'mesa')
   const sectores = zones.filter(z => z.type === 'zona')
   const retiro = zones.filter(z => z.type === 'retiro')
 
-  // In the waiter drawer, we need zones split too — but zones are already loaded
-  const waiterNeedsZonePick = !activeZoneId && zones.length > 0
-
-  function formatPrice(p) {
-    return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(p)
-  }
-
   return (
-    <div className="min-h-screen bg-[#FAF9F6] flex flex-col">
+    <div className="min-h-screen bg-[#FAF9F6] flex flex-col pb-10">
 
-      {/* Header */}
-      <div className="pt-10 pb-6 px-5 text-center">
-        <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-white shadow-sm border border-black/5 p-2">
+      {/* ── Header: logo + nombre ── */}
+      <div className="pt-10 pb-5 px-6 text-center">
+        <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-white p-1.5 shadow-md border border-black/[0.06]">
           <img
             src={venue?.logo_url || '/icon-512.png'}
             alt={venue?.name || 'Capy'}
-            className="w-full h-full object-contain"
+            className="w-full h-full object-contain rounded-xl"
           />
         </div>
-        <h1 className="text-xl font-bold text-[#1A2332] tracking-tight">
+        <h1 className="text-3xl font-black text-[#1A2332] tracking-tight leading-none uppercase">
           {venue?.name || 'Bienvenido'}
         </h1>
-
-        {/* Location chip — prefilled or picked */}
-        {activeLabel ? (
-          <div className="inline-flex items-center gap-1.5 mt-2 bg-[#008080]/10 text-[#005f5f] text-xs font-semibold px-3 py-1.5 rounded-full">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+        {decodedLabel && (
+          <div className="inline-flex items-center gap-1.5 mt-3 px-3 py-1.5 rounded-full text-xs font-bold"
+            style={{ background: `${selfColor}18`, color: selfColor }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
             </svg>
-            {activeLabel}
-            {/* Allow changing if it was manually picked (not from URL) */}
-            {!prefillZoneId && (
-              <button onClick={clearPickedZone} className="ml-1 text-[#008080]/60 hover:text-[#008080] leading-none">×</button>
-            )}
+            {decodedLabel}
           </div>
-        ) : (
-          <p className="text-[#6B7A8D] text-sm mt-1">¿Cómo querés continuar?</p>
         )}
       </div>
 
-      {/* Main CTAs */}
-      <div className="px-5 space-y-3">
+      {/* ── CTAs lado a lado ── */}
+      <div className="px-5 grid grid-cols-2 gap-3">
         <button
           onClick={() => navigate(`${base}/carta`)}
           style={{ backgroundColor: selfColor }}
-          className="w-full text-white font-bold py-4 rounded-2xl text-base flex items-center justify-center gap-2.5 shadow-sm active:opacity-90"
+          className="rounded-2xl p-4 flex flex-col items-center justify-center gap-2.5 text-white active:opacity-85 shadow-sm min-h-[100px]"
         >
-          <span className="text-xl">🍽️</span>
-          Quiero pedir yo mismo
+          <span className="text-3xl leading-none">🍽️</span>
+          <span className="text-xs font-bold text-center leading-tight">Quiero pedir yo mismo</span>
         </button>
         <button
           onClick={openWaiterCall}
           style={{ backgroundColor: waiterColor }}
-          className="w-full text-white font-bold py-4 rounded-2xl text-base flex items-center justify-center gap-2.5 shadow-sm active:opacity-90"
+          className="rounded-2xl p-4 flex flex-col items-center justify-center gap-2.5 text-white active:opacity-85 shadow-sm min-h-[100px]"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 18h18"/>
-            <path d="M12 3a7 7 0 0 1 7 7v5H5v-5a7 7 0 0 1 7-7z"/>
-            <path d="M12 3V1.5"/>
-            <circle cx="12" cy="20" r="1.5"/>
-          </svg>
-          Quiero que me atienda un mozo
+          <span className="text-3xl leading-none">🔔</span>
+          <span className="text-xs font-bold text-center leading-tight">Quiero que me atienda un mozo</span>
         </button>
       </div>
 
-      {/* Location picker — general QR only (no prefill), optional */}
+      {/* ── Selector de mesa (QR general, sin prefill) ── */}
       {!prefillZoneId && zones.length > 0 && (
-        <div className="mt-5 mx-5 bg-white border border-black/[0.06] rounded-2xl overflow-hidden">
-          <button
-            onClick={() => setShowZonePicker(v => !v)}
-            className="w-full flex items-center justify-between px-4 py-3.5"
-          >
-            <div className="flex items-center gap-2">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B7A8D" strokeWidth="2.5">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-              </svg>
-              <span className="text-sm font-semibold text-[#1A2332]">
-                {pickedZone ? pickedZone.name : '¿En qué mesa estás?'}
-              </span>
-              {!pickedZone && (
-                <span className="text-xs text-[#9DAAB8] font-normal">(opcional)</span>
-              )}
-            </div>
-            <svg
-              width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9DAAB8" strokeWidth="2.5"
-              className={`transition-transform ${showZonePicker ? 'rotate-180' : ''}`}
-            >
-              <path d="M6 9l6 6 6-6"/>
-            </svg>
-          </button>
+        <div className="mt-5 px-5">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-[#9DAAB8]">¿En qué mesa estás?</p>
+            <span className="text-[10px] text-[#C0CBDA] font-medium">opcional</span>
+          </div>
 
-          {showZonePicker && !zonesLoading && (
-            <div className="px-4 pb-4 space-y-4 border-t border-black/[0.04] pt-3">
-              {mesas.length > 0 && (
-                <ZoneGroup label="Mesas" zones={mesas} selected={pickedZone?.id} onSelect={pickZone} />
-              )}
-              {sectores.length > 0 && (
-                <ZoneGroup label="Sectores" zones={sectores} selected={pickedZone?.id} onSelect={pickZone} />
-              )}
-              {retiro.length > 0 && (
-                <ZoneGroup label="Puntos de retiro" zones={retiro} selected={pickedZone?.id} onSelect={pickZone} />
-              )}
+          {mesas.length > 0 && (
+            <div className="grid grid-cols-5 gap-2 mb-3">
+              {mesas.map(zone => {
+                const active = pickedZone?.id === zone.id
+                return (
+                  <button
+                    key={zone.id}
+                    onClick={() => pickZone(zone)}
+                    className="flex flex-col items-center gap-1"
+                  >
+                    <div
+                      className="w-full aspect-square rounded-full flex items-center justify-center text-sm font-black transition-all border-2"
+                      style={active
+                        ? { backgroundColor: selfColor, borderColor: selfColor, color: 'white' }
+                        : { backgroundColor: 'white', borderColor: selfColor, color: selfColor }
+                      }
+                    >
+                      {zoneShort(zone.name)}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
+          {sectores.length > 0 && (
+            <>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Sectores</p>
+              <div className="grid grid-cols-4 gap-2 mb-3">
+                {sectores.map(zone => {
+                  const active = pickedZone?.id === zone.id
+                  return (
+                    <button
+                      key={zone.id}
+                      onClick={() => pickZone(zone)}
+                      className="rounded-xl py-2.5 text-xs font-bold text-center border-2 transition-all"
+                      style={active
+                        ? { backgroundColor: selfColor, borderColor: selfColor, color: 'white' }
+                        : { backgroundColor: 'white', borderColor: selfColor, color: selfColor }
+                      }
+                    >
+                      {zone.name}
+                    </button>
+                  )
+                })}
+              </div>
+            </>
+          )}
+
+          {retiro.length > 0 && (
+            <>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Retiro</p>
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                {retiro.map(zone => {
+                  const active = pickedZone?.id === zone.id
+                  return (
+                    <button
+                      key={zone.id}
+                      onClick={() => pickZone(zone)}
+                      className="rounded-xl py-2.5 text-xs font-bold text-center border-2 transition-all"
+                      style={active
+                        ? { backgroundColor: selfColor, borderColor: selfColor, color: 'white' }
+                        : { backgroundColor: 'white', borderColor: selfColor, color: selfColor }
+                      }
+                    >
+                      {zone.name}
+                    </button>
+                  )
+                })}
+              </div>
+            </>
+          )}
+
+          {pickedZone && (
+            <div className="flex items-center justify-between bg-white rounded-xl px-4 py-2.5 border border-black/[0.06]">
+              <span className="text-xs font-bold text-[#1A2332]">📍 {pickedZone.name} seleccionada</span>
+              <button onClick={() => { setPickedZone(null); setLocation(null) }}
+                className="text-[#9DAAB8] text-xs underline">cambiar</button>
             </div>
           )}
         </div>
       )}
 
-      {/* Sugerencias del chef */}
+      {/* ── Sugerencias del chef ── */}
       {topProducts.length > 0 && (
-        <div className="mt-6 px-5">
-          <p className="text-xs font-semibold text-[#9DAAB8] uppercase tracking-wider mb-3">Sugerencias del chef</p>
+        <div className="mt-7 px-5">
+          <p className="text-sm font-black uppercase tracking-wider text-[#1A2332] mb-3">Sugerencias del chef</p>
           <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide -mx-5 px-5">
             {topProducts.map(p => (
-              <div key={p.id} className="flex-shrink-0 w-32 bg-white rounded-2xl border border-black/5 overflow-hidden shadow-sm">
+              <div key={p.id} className="flex-shrink-0 w-36 bg-white rounded-2xl overflow-hidden shadow-sm border border-black/[0.05]">
                 {p.image_url ? (
-                  <img src={p.image_url} alt={p.name} className="w-full h-20 object-cover" />
+                  <img src={p.image_url} alt={p.name} className="w-full h-24 object-cover" />
                 ) : (
-                  <div className="w-full h-20 bg-[#F0F4F8] flex items-center justify-center text-3xl">🍴</div>
+                  <div className="w-full h-24 bg-[#F0F4F8] flex items-center justify-center text-3xl">🍴</div>
                 )}
-                <div className="p-2.5">
-                  <p className="text-[11px] font-semibold text-[#1A2332] leading-tight line-clamp-2">{p.name}</p>
-                  <p className="text-[11px] text-[#008080] font-bold mt-1">{formatPrice(p.price)}</p>
+                <div className="p-3">
+                  <p className="text-xs font-bold text-[#1A2332] leading-tight line-clamp-2 mb-1">{p.name}</p>
+                  <p className="text-sm font-black" style={{ color: selfColor }}>{formatPrice(p.price)}</p>
                 </div>
               </div>
             ))}
@@ -285,24 +301,25 @@ export default function IdentifyPage() {
         </div>
       )}
 
-      {/* Order tracking */}
-      <div className="mt-auto px-5 pb-10 pt-8">
+      {/* ── Seguimiento de pedido ── */}
+      <div className="mt-7 px-5">
         <div className="bg-white border border-black/[0.06] rounded-2xl p-4">
-          <p className="text-[#1A2332] font-semibold text-sm mb-0.5">¿Ya tenés un pedido?</p>
-          <p className="text-[#6B7A8D] text-xs mb-3">Ingresá el número que te dio el camarero</p>
+          <p className="text-[#1A2332] font-bold text-sm mb-0.5">¿Ya tenés un pedido?</p>
+          <p className="text-[#9DAAB8] text-xs mb-3">Ingresá el número que te dio el camarero</p>
           <form onSubmit={handleFindOrder} className="flex gap-2">
             <input
               type="number"
               value={orderNumber}
               onChange={e => setOrderNumber(e.target.value)}
               placeholder="Nº de pedido"
-              className="flex-1 bg-[#F0F4F8] border border-transparent text-center font-mono text-lg py-2.5 rounded-xl focus:outline-none focus:border-[#008080]/30 text-[#1A2332]"
+              className="flex-1 bg-[#F0F4F8] text-center font-mono text-lg py-2.5 rounded-xl focus:outline-none text-[#1A2332] border border-transparent focus:border-[#1A2332]/20"
               min="1"
             />
             <button
               type="submit"
               disabled={finding || !orderNumber.trim()}
-              className="bg-[#1A2332] disabled:opacity-40 text-white font-semibold px-4 rounded-xl text-sm"
+              style={{ backgroundColor: selfColor }}
+              className="disabled:opacity-40 text-white font-bold px-4 rounded-xl text-sm"
             >
               {finding ? '...' : 'Ver →'}
             </button>
@@ -311,25 +328,28 @@ export default function IdentifyPage() {
         </div>
       </div>
 
-      {/* Waiter call drawer */}
+      {/* ── Footer ── */}
+      <div className="mt-8 text-center">
+        <a href="https://capyapp.co" target="_blank" rel="noreferrer"
+          className="text-[10px] text-[#C0CBDA] hover:text-[#9DAAB8] transition-colors">
+          Desarrollado por Capy · capyapp.co
+        </a>
+      </div>
+
+      {/* ── Drawer: llamar al mozo ── */}
       {showWaiterCall && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end">
-          <div
-            className="absolute inset-0 bg-black/40"
-            onClick={() => !callLoading && setShowWaiterCall(false)}
-          />
+          <div className="absolute inset-0 bg-black/40" onClick={() => !callLoading && setShowWaiterCall(false)} />
           <div className="relative bg-white rounded-t-3xl px-5 pt-5 pb-10 max-h-[85vh] overflow-y-auto">
             {callSent ? (
               <div className="text-center py-8">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#FF8C69]/10 flex items-center justify-center text-3xl">
-                  🔔
-                </div>
-                <p className="text-[#1A2332] font-bold text-lg mb-1">¡Camarero en camino!</p>
-                <p className="text-[#6B7A8D] text-sm mb-6">Ya saben dónde estás.</p>
-                <button
-                  onClick={() => setShowWaiterCall(false)}
-                  className="bg-[#FF8C69] text-white font-bold py-3 px-8 rounded-2xl text-sm"
-                >
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center text-3xl"
+                  style={{ background: `${waiterColor}18` }}>🔔</div>
+                <p className="text-[#1A2332] font-black text-xl mb-1 uppercase">¡Camarero en camino!</p>
+                <p className="text-[#9DAAB8] text-sm mb-6">Ya saben dónde estás.</p>
+                <button onClick={() => setShowWaiterCall(false)}
+                  style={{ backgroundColor: waiterColor }}
+                  className="text-white font-bold py-3 px-8 rounded-2xl text-sm">
                   Cerrar
                 </button>
               </div>
@@ -337,83 +357,83 @@ export default function IdentifyPage() {
               <>
                 <div className="flex items-center justify-between mb-5">
                   <div>
-                    <h2 className="text-[#1A2332] font-bold text-lg">Llamar al mozo</h2>
-                    <p className="text-[#6B7A8D] text-sm">¿En qué te podemos ayudar?</p>
+                    <h2 className="text-[#1A2332] font-black text-xl uppercase">Llamar al mozo</h2>
+                    <p className="text-[#9DAAB8] text-sm">¿En qué te podemos ayudar?</p>
                   </div>
-                  <button
-                    onClick={() => !callLoading && setShowWaiterCall(false)}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F0F4F8] text-[#6B7A8D] text-xl leading-none"
-                  >
-                    ×
-                  </button>
+                  <button onClick={() => !callLoading && setShowWaiterCall(false)}
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F0F4F8] text-[#6B7A8D] text-xl">×</button>
                 </div>
 
-                {/* Reason grid */}
                 <div className="grid grid-cols-2 gap-2 mb-5">
                   {WAITER_REASONS.map(r => (
                     <button
                       key={r.id}
                       onClick={() => setSelectedReason(r.id === selectedReason ? null : r.id)}
-                      className={`p-3.5 rounded-2xl border text-left transition-all ${
-                        selectedReason === r.id
-                          ? 'border-[#FF8C69] bg-[#FFF3EF]'
-                          : 'border-[#E8EEF4] bg-[#F8FAFB]'
-                      }`}
+                      className="p-3.5 rounded-2xl border-2 text-left transition-all"
+                      style={selectedReason === r.id
+                        ? { borderColor: waiterColor, backgroundColor: `${waiterColor}12` }
+                        : { borderColor: '#E8EEF4', backgroundColor: '#F8FAFB' }
+                      }
                     >
                       <span className="text-xl block mb-1.5">{r.icon}</span>
-                      <span className={`text-xs font-semibold leading-tight block ${
-                        selectedReason === r.id ? 'text-[#c0603a]' : 'text-[#1A2332]'
-                      }`}>{r.label}</span>
+                      <span className="text-xs font-bold leading-tight block"
+                        style={{ color: selectedReason === r.id ? waiterColor : '#1A2332' }}>
+                        {r.label}
+                      </span>
                     </button>
                   ))}
                 </div>
 
-                {/* Location: prefilled or picked or zone selector */}
                 {activeZoneId ? (
                   <>
                     <div className="flex items-center gap-2 bg-[#F0F4F8] rounded-xl px-4 py-3 mb-4">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6B7A8D" strokeWidth="2.5">
-                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                      </svg>
-                      <span className="text-[#6B7A8D] text-sm">Ubicación:</span>
-                      <span className="text-[#1A2332] font-semibold text-sm">{activeLabel}</span>
+                      <span className="text-[#6B7A8D] text-sm">📍 Ubicación:</span>
+                      <span className="text-[#1A2332] font-bold text-sm">{activeLabel}</span>
                     </div>
-                    <button
-                      onClick={handleWaiterCallConfirm}
+                    <button onClick={async () => { await submitCall(activeZoneId, activeLabel) }}
                       disabled={callLoading}
                       style={{ backgroundColor: waiterColor }}
-                      className="w-full disabled:opacity-50 text-white font-bold py-4 rounded-2xl text-base"
-                    >
+                      className="w-full disabled:opacity-50 text-white font-black py-4 rounded-2xl text-base uppercase tracking-wide">
                       {callLoading ? 'Enviando...' : 'Llamar al mozo'}
                     </button>
                   </>
                 ) : (
-                  /* No location set — show zone picker inline */
                   <div>
-                    <p className="text-[#9DAAB8] text-xs font-semibold uppercase tracking-wider mb-3">¿Dónde estás?</p>
-                    {zonesLoading ? (
-                      <p className="text-[#6B7A8D] text-sm text-center py-4">Cargando...</p>
-                    ) : zones.length === 0 ? (
-                      /* No zones configured — call without location */
-                      <button
-                        onClick={() => submitCall(null, 'Sin especificar')}
+                    <p className="text-[#9DAAB8] text-xs font-bold uppercase tracking-wider mb-3">¿Dónde estás?</p>
+                    {zones.length === 0 ? (
+                      <button onClick={() => submitCall(null, 'Sin especificar')}
                         disabled={callLoading}
-                        className="w-full bg-[#FF8C69] disabled:opacity-50 text-white font-bold py-4 rounded-2xl text-base"
-                      >
+                        style={{ backgroundColor: waiterColor }}
+                        className="w-full disabled:opacity-50 text-white font-black py-4 rounded-2xl text-base uppercase">
                         {callLoading ? 'Enviando...' : 'Llamar al mozo'}
                       </button>
                     ) : (
-                      <div className="space-y-4">
+                      <>
                         {mesas.length > 0 && (
-                          <ZoneGroup label="Mesas" zones={mesas} onSelect={z => submitCall(z.id, z.name)} loading={callLoading} />
+                          <div className="grid grid-cols-5 gap-2 mb-4">
+                            {mesas.map(zone => (
+                              <button key={zone.id} onClick={() => submitCall(zone.id, zone.name)}
+                                disabled={callLoading}
+                                className="aspect-square rounded-full flex items-center justify-center text-sm font-black border-2 disabled:opacity-50 bg-white transition-all"
+                                style={{ borderColor: waiterColor, color: waiterColor }}>
+                                {zoneShort(zone.name)}
+                              </button>
+                            ))}
+                          </div>
                         )}
                         {sectores.length > 0 && (
-                          <ZoneGroup label="Sectores" zones={sectores} onSelect={z => submitCall(z.id, z.name)} loading={callLoading} />
+                          <div className="grid grid-cols-3 gap-2">
+                            {sectores.map(zone => (
+                              <button key={zone.id} onClick={() => submitCall(zone.id, zone.name)}
+                                disabled={callLoading}
+                                className="rounded-xl py-2.5 text-xs font-bold border-2 disabled:opacity-50 bg-white"
+                                style={{ borderColor: waiterColor, color: waiterColor }}>
+                                {zone.name}
+                              </button>
+                            ))}
+                          </div>
                         )}
-                        {retiro.length > 0 && (
-                          <ZoneGroup label="Puntos de retiro" zones={retiro} onSelect={z => submitCall(z.id, z.name)} loading={callLoading} />
-                        )}
-                      </div>
+                      </>
                     )}
                   </div>
                 )}
@@ -422,30 +442,6 @@ export default function IdentifyPage() {
           </div>
         </div>
       )}
-    </div>
-  )
-}
-
-function ZoneGroup({ label, zones, selected, onSelect, loading }) {
-  return (
-    <div>
-      <p className="text-[#9DAAB8] text-xs font-semibold uppercase tracking-wider mb-2">{label}</p>
-      <div className="grid grid-cols-3 gap-2">
-        {zones.map(zone => (
-          <button
-            key={zone.id}
-            onClick={() => onSelect(zone)}
-            disabled={loading}
-            className={`border rounded-xl py-3 px-2 text-center transition-colors disabled:opacity-50 ${
-              selected === zone.id
-                ? 'border-[#008080] bg-[#008080]/8 text-[#005f5f]'
-                : 'bg-[#F0F4F8] border-[#E0E8EF] text-[#1A2332]'
-            }`}
-          >
-            <span className="font-semibold text-sm">{zone.name}</span>
-          </button>
-        ))}
-      </div>
     </div>
   )
 }
