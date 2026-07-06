@@ -359,13 +359,13 @@ export default function IdentifyPage() {
       {topProducts.length > 0 && (
         <div className="mt-7 px-5">
           <p className="text-sm font-black uppercase tracking-wider text-[#1A2332] mb-3">Sugerencias del chef</p>
-          <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide -mx-5 px-5">
-            {topProducts.map(p => (
-              <div key={p.id} className="flex-shrink-0 w-36 bg-white rounded-2xl overflow-hidden shadow-sm border border-black/[0.05]">
+          <div className="grid grid-cols-2 gap-3">
+            {topProducts.slice(0, 4).map(p => (
+              <div key={p.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-black/[0.05]">
                 {p.image_url ? (
-                  <img src={p.image_url} alt={p.name} className="w-full h-24 object-cover" />
+                  <img src={p.image_url} alt={p.name} className="w-full h-28 object-cover" />
                 ) : (
-                  <div className="w-full h-24 bg-[#F0F4F8] flex items-center justify-center text-3xl">🍴</div>
+                  <div className="w-full h-28 bg-[#F0F4F8] flex items-center justify-center text-3xl">🍴</div>
                 )}
                 <div className="p-3">
                   <p className="text-xs font-bold text-[#1A2332] leading-tight line-clamp-2 mb-1">{p.name}</p>
