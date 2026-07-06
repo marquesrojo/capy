@@ -118,7 +118,12 @@ export default function BottomNav() {
           className="flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold tracking-wide transition-colors"
           style={{ color: waiterColor }}
         >
-          <span className="text-xl leading-none">🔔</span>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="4.5" r="1" fill="currentColor" stroke="none"/>
+            <path d="M6 16Q6 8.5 12 5.5Q18 8.5 18 16"/>
+            <path d="M4 16h16"/>
+            <path d="M9.5 19.5h5"/>
+          </svg>
           ATENCIÓN
         </button>
       </nav>
