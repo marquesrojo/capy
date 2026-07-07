@@ -39,6 +39,7 @@ export default function PublicOrderPage() {
   const [order, setOrder] = useState(null)
   const [items, setItems] = useState([])
   const [staff, setStaff] = useState(null)
+  const [venue, setVenue] = useState(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [calling, setCalling] = useState(false)
@@ -62,7 +63,7 @@ export default function PublicOrderPage() {
 
     const { data: orderData } = await supabasePublic
       .from('orders')
-      .select('id, status, location_label, total, daily_number, created_at, prep_time_minutes, prep_started_at, waiter_called_at, assigned_staff_id, payment_status, notes')
+      .select('id, status, location_label, total, daily_number, created_at, prep_time_minutes, prep_started_at, waiter_called_at, assigned_staff_id, payment_status, notes, venue_id, created_by_staff')
       .eq('id', id)
       .single()
 
@@ -77,15 +78,16 @@ export default function PublicOrderPage() {
     setItems(itemsData || [])
     setBillRequested(orderData.payment_status === 'cuenta_solicitada')
 
-    // Cargar info del camarero si está asignado
-    if (orderData.assigned_staff_id) {
-      const { data: staffData } = await supabasePublic
-        .from('staff_names')
-        .select('full_name, alias, alias_bancario')
-        .eq('id', orderData.assigned_staff_id)
-        .single()
-      setStaff(staffData)
-    }
+    const [staffRes, venueRes] = await Promise.all([
+      orderData.assigned_staff_id
+        ? supabasePublic.from('staff_names').select('full_name, alias, alias_bancario, avatar_url').eq('id', orderData.assigned_staff_id).single()
+        : Promise.resolve({ data: null }),
+      orderData.venue_id
+        ? supabasePublic.from('venues').select('name, logo_url').eq('id', orderData.venue_id).single()
+        : Promise.resolve({ data: null }),
+    ])
+    setStaff(staffRes.data)
+    setVenue(venueRes.data)
 
     setLoading(false)
     startPolling()
@@ -163,13 +165,22 @@ export default function PublicOrderPage() {
 
   return (
     <div className="min-h-screen bg-carbon-950 px-5 py-8 pb-16">
-      {/* Header */}
+      {/* Header — camaut orders show waiter photo, venue orders show venue logo */}
       <div className="text-center mb-6">
-        <img
-          src="https://ycgptakgpsvmstoftkdk.supabase.co/storage/v1/object/public/icons/icon-512.png"
-          alt="Capy" className="w-12 h-12 mx-auto mb-2 rounded-xl"
-        />
-        <p className="font-display text-2xl text-ember-500 tracking-wide">CAPY</p>
+        {order.created_by_staff && staff?.avatar_url ? (
+          <img src={staff.avatar_url} alt={staff.full_name} className="w-16 h-16 mx-auto mb-2 rounded-full object-cover border-2 border-carbon-700" />
+        ) : venue?.logo_url ? (
+          <img src={venue.logo_url} alt={venue.name} className="w-16 h-16 mx-auto mb-2 rounded-xl object-cover border border-carbon-700" />
+        ) : (
+          <div className="w-16 h-16 mx-auto mb-2 rounded-xl bg-carbon-800 flex items-center justify-center">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-smoke-400">
+              <path d="M3 11l19-9-9 19-2-8-8-2z"/>
+            </svg>
+          </div>
+        )}
+        <p className="font-display text-2xl text-ember-500 tracking-wide">
+          {order.created_by_staff && staff?.full_name ? staff.full_name.toUpperCase() : (venue?.name?.toUpperCase() || 'CAPY')}
+        </p>
       </div>
 
       {/* Estado */}
@@ -179,9 +190,9 @@ export default function PublicOrderPage() {
         <p className="text-smoke-500 text-xs mt-1">
           Pedido #{order.daily_number} · 📍 {order.location_label}
         </p>
-        {staff && (
-          <p className="text-smoke-500 text-xs mt-1">
-            🧑‍🍳 {staff.alias ? `@${staff.alias}` : staff.full_name}
+        {staff?.full_name && (
+          <p className="text-smoke-400 text-xs mt-1.5 font-medium">
+            🧑‍🍳 {staff.full_name}
           </p>
         )}
       </div>
