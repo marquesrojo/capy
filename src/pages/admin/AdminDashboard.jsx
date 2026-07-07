@@ -431,16 +431,13 @@ function AdminDashboardInner() {
               Superadmin
             </Link>
           )}
-          <Link to="/admin/historial" className="text-smoke-400 text-xs underline">
-            Historial
-          </Link>
           {profile?.role === 'camarero' && (
             <Link to="/admin/mi-turno" className="text-smoke-400 text-xs underline">
               Mi turno
             </Link>
           )}
           <Link to="/admin/configuracion" className="text-smoke-400 text-xs underline">
-            Configuración
+            Mi Local
           </Link>
           <button onClick={signOut} className="text-smoke-500 text-xs underline">
             Salir
