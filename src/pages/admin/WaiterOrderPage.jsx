@@ -56,18 +56,29 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
         setStep('choose_waiter')
       } else {
         // Buscar o crear el staff_name correspondiente a este perfil
+        const profileName = (profile?.full_name || '').trim()
         const existing = (staffRes.data || []).find(s =>
-          s.full_name.toLowerCase().trim() === (profile?.full_name || '').toLowerCase().trim()
+          s.full_name.toLowerCase().trim() === profileName.toLowerCase()
         )
         if (existing) {
           setSelectedStaff(existing)
         } else {
-          // Crear entrada en staff_names si no existe
-          const { data: created } = await supabaseStaff
+          // Double-check DB before creating to avoid duplicates on concurrent logins
+          const { data: dbCheck } = await supabaseStaff
             .from('staff_names')
-            .insert({ venue_id: activeVenueId, full_name: profile?.full_name || 'Camarero' })
-            .select().single()
-          if (created) setSelectedStaff(created)
+            .select('*')
+            .eq('venue_id', activeVenueId)
+            .ilike('full_name', profileName)
+            .maybeSingle()
+          if (dbCheck) {
+            setSelectedStaff(dbCheck)
+          } else {
+            const { data: created } = await supabaseStaff
+              .from('staff_names')
+              .insert({ venue_id: activeVenueId, full_name: profileName || 'Camarero' })
+              .select().single()
+            if (created) setSelectedStaff(created)
+          }
         }
         setStep('menu')
       }

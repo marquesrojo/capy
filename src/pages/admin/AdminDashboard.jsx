@@ -145,7 +145,14 @@ function AdminDashboardInner() {
       .eq('venue_id', venueId)
       .eq('is_active', true)
       .order('full_name')
-    setWaiters(data || [])
+    const seen = new Set()
+    const unique = (data || []).filter(w => {
+      const key = w.full_name.toLowerCase().trim()
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    setWaiters(unique)
   }
 
   async function addWaiter(name) {

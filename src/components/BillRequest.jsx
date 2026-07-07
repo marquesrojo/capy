@@ -4,7 +4,7 @@ import { formatPrice } from '../lib/utils'
 
 const MAX_PROOF_SIZE_MB = 8
 
-export default function BillRequest({ order, onUpdated }) {
+export default function BillRequest({ order, onUpdated, venueColor = '#002F6C' }) {
   const [mpEnabled, setMpEnabled] = useState(false)
   const [paymentMethods, setPaymentMethods] = useState([])
 
@@ -59,6 +59,7 @@ export default function BillRequest({ order, onUpdated }) {
       onUpdated={onUpdated}
       mpEnabled={mpEnabled}
       paymentMethods={paymentMethods}
+      venueColor={venueColor}
     />
   )
 }
@@ -77,7 +78,7 @@ function getMethodIcon(name) {
   return ICON.mp
 }
 
-function RequestBillForm({ order, onUpdated, mpEnabled, paymentMethods }) {
+function RequestBillForm({ order, onUpdated, mpEnabled, paymentMethods, venueColor = '#002F6C' }) {
   const [showOptions, setShowOptions] = useState(false)
   const [selectedMethod, setSelectedMethod] = useState(null)
   const [cashAmount, setCashAmount] = useState('')
@@ -162,7 +163,8 @@ function RequestBillForm({ order, onUpdated, mpEnabled, paymentMethods }) {
       <div className="mt-6">
         <button
           onClick={() => setShowOptions(true)}
-          className="w-full border border-coral-500 text-coral-500 font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2"
+          className="w-full font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2 border"
+          style={{ borderColor: venueColor, color: venueColor }}
         >
           {ICON.bill}
           La cuenta, por favor

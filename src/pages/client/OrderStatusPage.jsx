@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useOrderPolling } from '../../hooks/useOrderPolling'
 import { useTableSession } from '../../hooks/useTableSession'
-import { supabaseCustomer } from '../../lib/supabase'
+import { supabaseCustomer, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { formatPrice, STATUS_LABELS, STATUS_FLOW, PAYMENT_STATUS_LABELS, PAYMENT_STATUS_COLORS } from '../../lib/utils'
 import OrderFeedback from '../../components/OrderFeedback'
 import BillRequest from '../../components/BillRequest'
@@ -60,7 +60,13 @@ export default function OrderStatusPage() {
   const [cancelling, setCancelling] = useState(false)
   const [calling, setCalling] = useState(false)
   const [showQR, setShowQR] = useState(false)
+  const [venueColor, setVenueColor] = useState('#002F6C')
   const prevStatusRef = useState(null)
+
+  useEffect(() => {
+    supabaseCustomer.from('venues').select('header_bg_color').eq('id', ACTIVE_VENUE_ID).single()
+      .then(({ data }) => { if (data?.header_bg_color) setVenueColor(data.header_bg_color) })
+  }, [])
 
   function handleAddMore() {
     const params = new URLSearchParams({
@@ -178,9 +184,9 @@ export default function OrderStatusPage() {
       </Link>
       <div className="flex items-center justify-between mt-2">
         <div>
-          <h1 className="font-display text-3xl text-pucara-blue-500 tracking-wide">TU PEDIDO</h1>
+          <h1 className="font-display text-3xl tracking-wide" style={{ color: venueColor }}>TU PEDIDO</h1>
           {order.daily_number && (
-            <p className="text-smoke-500 text-xs mt-0.5">Número <span className="font-mono text-ember-500 font-semibold">#{order.daily_number}</span></p>
+            <p className="text-smoke-500 text-xs mt-0.5">Número <span className="font-mono font-semibold" style={{ color: venueColor }}>#{order.daily_number}</span></p>
           )}
           {order.is_addition && (
             <span className="text-xs bg-amber-500/15 border border-amber-500/40 text-amber-600 px-2 py-0.5 rounded-full">Adición</span>
@@ -273,22 +279,17 @@ export default function OrderStatusPage() {
               <div key={step} className="flex-1 flex flex-col items-center relative">
                 {i > 0 && (
                   <div
-                    className={`absolute right-1/2 top-2.5 h-0.5 w-full -z-10 ${
-                      i <= currentStepIndex ? 'bg-pucara-blue-500' : 'bg-carbon-700'
-                    }`}
+                    className={`absolute right-1/2 top-2.5 h-0.5 w-full -z-10 ${i <= currentStepIndex ? '' : 'bg-carbon-700'}`}
+                    style={i <= currentStepIndex ? { backgroundColor: venueColor } : {}}
                   />
                 )}
                 <div
-                  className={`w-5 h-5 rounded-full border-2 z-10 ${
-                    i <= currentStepIndex
-                      ? 'bg-pucara-blue-500 border-pucara-blue-500'
-                      : 'bg-carbon-900 border-carbon-700'
-                  }`}
+                  className={`w-5 h-5 rounded-full border-2 z-10 ${i <= currentStepIndex ? '' : 'bg-carbon-900 border-carbon-700'}`}
+                  style={i <= currentStepIndex ? { backgroundColor: venueColor, borderColor: venueColor } : {}}
                 />
                 <span
-                  className={`text-[10px] mt-2 text-center ${
-                    i <= currentStepIndex ? 'text-pucara-blue-400' : 'text-smoke-500'
-                  }`}
+                  className={`text-[10px] mt-2 text-center ${i <= currentStepIndex ? '' : 'text-smoke-500'}`}
+                  style={i <= currentStepIndex ? { color: venueColor } : {}}
                 >
                   {STATUS_LABELS[step]}
                 </span>
@@ -322,7 +323,7 @@ export default function OrderStatusPage() {
                 {activeItems.map(item => (
                   <div key={item.id} className="bg-carbon-900 border border-carbon-700 rounded-xl p-3 flex justify-between">
                     <span className="text-smoke-300 text-sm">{item.quantity}× {item.product_name}</span>
-                    <span className="font-mono text-pucara-blue-400 text-sm">{formatPrice(item.line_total)}</span>
+                    <span className="font-mono text-sm" style={{ color: venueColor }}>{formatPrice(item.line_total)}</span>
                   </div>
                 ))}
               </div>
@@ -331,7 +332,7 @@ export default function OrderStatusPage() {
 
           <div className="flex justify-between text-smoke-300 px-1 pt-1 border-t border-carbon-700">
             <span className="font-medium text-sm">Total de la visita</span>
-            <span className="font-mono text-pucara-blue-400">{formatPrice(total_spent)}</span>
+            <span className="font-mono" style={{ color: venueColor }}>{formatPrice(total_spent)}</span>
           </div>
         </div>
       ) : (
@@ -339,12 +340,12 @@ export default function OrderStatusPage() {
           {items.map(item => (
             <div key={item.id} className="bg-carbon-900 border border-carbon-700 rounded-xl p-3 flex justify-between">
               <span className="text-smoke-300 text-sm">{item.quantity}× {item.product_name}</span>
-              <span className="font-mono text-pucara-blue-400 text-sm">{formatPrice(item.line_total)}</span>
+              <span className="font-mono text-sm" style={{ color: venueColor }}>{formatPrice(item.line_total)}</span>
             </div>
           ))}
           <div className="flex justify-between text-smoke-300 px-1 pt-1">
             <span className="font-medium">Total</span>
-            <span className="font-mono text-pucara-blue-400">{formatPrice(order.total)}</span>
+            <span className="font-mono" style={{ color: venueColor }}>{formatPrice(order.total)}</span>
           </div>
         </div>
       )}
@@ -354,14 +355,15 @@ export default function OrderStatusPage() {
       {!isCancelado && order.session_id && (
         <button
           onClick={handleAddMore}
-          className="w-full mt-4 bg-pucara-blue-500 hover:bg-pucara-blue-600 text-white font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-2"
+          className="w-full mt-4 text-white font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-2"
+          style={{ backgroundColor: venueColor }}
         >
           + Agregar más ítems
         </button>
       )}
 
       {!isCancelado && (
-        <BillRequest order={order} onUpdated={updated => setOrder(prev => ({ ...prev, ...updated }))} />
+        <BillRequest order={order} onUpdated={updated => setOrder(prev => ({ ...prev, ...updated }))} venueColor={venueColor} />
       )}
 
       <div className="mt-4">
@@ -385,7 +387,8 @@ export default function OrderStatusPage() {
           <button
             onClick={handleCallWaiter}
             disabled={calling}
-            className="w-full border border-coral-500 text-coral-500 font-medium py-3.5 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full font-medium py-3.5 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-50 border"
+            style={{ borderColor: venueColor, color: venueColor }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>

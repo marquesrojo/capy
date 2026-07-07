@@ -42,15 +42,16 @@ export default function OrderConfirmedPage() {
     )
   }
 
-  const needsValidation = order?.status === 'pendiente_aprobacion'
   const isRetiro = order?.location_type === 'retiro'
-  const needsWhatsapp = (needsValidation || isRetiro) && venueWhatsapp
+  const isZona = order?.location_type === 'zona'
+  const needsWhatsapp = (isRetiro || isZona) && venueWhatsapp
 
   if (needsWhatsapp) {
     const ticketNum = order.daily_number ? `#${order.daily_number}` : `#${orderId.slice(0, 4).toUpperCase()}`
+    const who = customer?.full_name || 'un cliente'
     const message = isRetiro
-      ? `Hola! Soy ${customer?.full_name || 'un cliente'}, confirmo mi pedido de retiro ${ticketNum}`
-      : `Hola! Soy ${customer?.full_name || 'un cliente'}, valido mi pedido ${ticketNum} para ${order.location_label}`
+      ? `Hola! Soy ${who}, confirmo mi pedido de retiro ${ticketNum}`
+      : `Hola! Soy ${who}, confirmo mi pedido ${ticketNum} — estoy en ${order.location_label}`
     const waLink = `https://wa.me/${venueWhatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`
 
     return (
