@@ -60,7 +60,15 @@ function AdminDashboardInner() {
   const [hasLocations, setHasLocations] = useState(true)
   const [hasCamautStaff, setHasCamautStaff] = useState(true)
   const [waiterCalls, setWaiterCalls] = useState([])
+  const prevCallCount = useRef(0)
   const { signOut, profile, venueId, isSuperAdmin } = useAuth()
+
+  useEffect(() => {
+    if (waiterCalls.length > prevCallCount.current) {
+      playChime()
+    }
+    prevCallCount.current = waiterCalls.length
+  }, [waiterCalls.length])
 
   useEffect(() => {
     if (!venueId) return
@@ -71,6 +79,22 @@ function AdminDashboardInner() {
     loadOnboardingChecks()
     loadWaiterCalls()
   }, [venueId])
+
+  function playChime() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)()
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.frequency.setValueAtTime(880, ctx.currentTime)
+      osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.12)
+      gain.gain.setValueAtTime(0.3, ctx.currentTime)
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6)
+      osc.start(ctx.currentTime)
+      osc.stop(ctx.currentTime + 0.6)
+    } catch (e) {}
+  }
 
   async function loadOnboardingChecks() {
     const [prodRes, staffRes, zoneRes, camautRes] = await Promise.all([
@@ -483,32 +507,49 @@ function AdminDashboardInner() {
         </button>
       </div>
 
-      {waiterCalls.length > 0 && (
-        <div className="px-4 pt-4">
-          <p className="text-teal-400 text-xs font-semibold uppercase tracking-wide mb-2">
-            🔔 Llaman al camarero · {waiterCalls.length}
-          </p>
-          <div className="flex gap-3 overflow-x-auto pb-2">
-            {waiterCalls.map(call => (
-              <div
-                key={call.id}
-                className="min-w-[160px] bg-teal-500/10 border border-teal-500/40 rounded-xl p-3 flex-shrink-0"
-              >
-                <p className="text-teal-300 font-semibold text-sm mb-0.5">📍 {call.location_label}</p>
-                <p className="text-smoke-500 text-xs mb-2">
-                  {new Date(call.called_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-                </p>
-                <button
-                  onClick={() => dismissAnonCall(call.id)}
-                  className="text-smoke-400 text-xs underline"
-                >
-                  Atendido
-                </button>
-              </div>
-            ))}
+      <div className="px-4 pt-4">
+        <div className={`rounded-2xl border transition-colors ${
+          waiterCalls.length > 0
+            ? 'bg-teal-500/10 border-teal-500/40'
+            : 'bg-carbon-900 border-carbon-700'
+        }`}>
+          <div className="px-4 pt-3 pb-2 flex items-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              className={waiterCalls.length > 0 ? 'text-teal-400' : 'text-smoke-600'}>
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            <p className={`text-xs font-semibold uppercase tracking-wide ${
+              waiterCalls.length > 0 ? 'text-teal-400' : 'text-smoke-600'
+            }`}>
+              Solicitudes de atención{waiterCalls.length > 0 ? ` · ${waiterCalls.length}` : ''}
+            </p>
           </div>
+          {waiterCalls.length === 0 ? (
+            <p className="text-smoke-600 text-xs px-4 pb-3">Sin solicitudes pendientes</p>
+          ) : (
+            <div className="flex gap-3 overflow-x-auto px-4 pb-3">
+              {waiterCalls.map(call => (
+                <div
+                  key={call.id}
+                  className="min-w-[160px] bg-teal-500/10 border border-teal-500/30 rounded-xl p-3 flex-shrink-0"
+                >
+                  <p className="text-teal-300 font-semibold text-sm mb-0.5">📍 {call.location_label}</p>
+                  <p className="text-smoke-500 text-xs mb-2">
+                    {new Date(call.called_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                  <button
+                    onClick={() => dismissAnonCall(call.id)}
+                    className="text-smoke-400 text-xs underline"
+                  >
+                    Atendido
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {view !== 'cocina' && pendingProofOrders.length > 0 && (
         <div className="px-4 pt-4">

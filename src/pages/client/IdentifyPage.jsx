@@ -125,7 +125,8 @@ export default function IdentifyPage() {
   async function submitCall(zoneId, zoneName) {
     setCallLoading(true)
     const reason = WAITER_REASONS.find(r => r.id === selectedReason)
-    const locationLabel = reason ? `${zoneName} — ${reason.label}` : zoneName
+    const safeZone = zoneName || 'Sin especificar'
+    const locationLabel = reason ? `${safeZone} — ${reason.label}` : safeZone
     await supabaseCustomer.from('waiter_calls').insert({
       venue_id: venueId,
       zone_id: zoneId,
