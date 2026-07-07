@@ -40,12 +40,33 @@ export default function ClientAuthCallbackPage() {
       }
 
       if (code) {
-        const { error: authError } = await supabaseCustomer.auth.exchangeCodeForSession(code)
+        const { data: exchangeData, error: authError } = await supabaseCustomer.auth.exchangeCodeForSession(code)
         if (authError) {
           localStorage.removeItem('capy-customer-return-to')
           setErrorMsg(authError.message)
           setState('error')
           return
+        }
+
+        // If the Google account maps to a user with no customers record
+        // (e.g. a staff Google account used as a customer on the same Supabase
+        // project), the user has no saved name/whatsapp yet. Send them to the
+        // venue home — they'll be prompted to register when they place an order.
+        const userId = exchangeData?.session?.user?.id
+        if (userId) {
+          const { data: existing } = await supabaseCustomer
+            .from('customers')
+            .select('id')
+            .eq('id', userId)
+            .maybeSingle()
+          if (!existing) {
+            const fallback = localStorage.getItem('capy-customer-return-to') || '/identificacion'
+            localStorage.removeItem('capy-customer-return-to')
+            // Strip to venue root (e.g. /bravito/pedidos → /bravito)
+            const venueHome = fallback.replace(/\/(carta|pedidos|pedido\/.*)$/, '') || '/identificacion'
+            window.location.replace(venueHome)
+            return
+          }
         }
       }
       const returnTo = localStorage.getItem('capy-customer-return-to') || '/identificacion'
