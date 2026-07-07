@@ -162,12 +162,14 @@ export default function PublicOrderPage() {
   const statusInfo = STATUS_INFO[order.status] || STATUS_INFO.recibido
   const tipAmount = Math.round(order.total * tipPercent / 100)
   const perPerson = Math.ceil(order.total / splitPeople)
+  // Staff-placed orders (camaut / admin) have no customer_id; customer-placed orders do.
+  const isStaffOrder = !order.customer_id
 
   return (
     <div className="min-h-screen bg-carbon-950 px-5 py-8 pb-16">
-      {/* Header — camaut orders show waiter photo, venue orders show venue logo */}
+      {/* Header — staff-placed orders show waiter photo, customer orders show venue logo */}
       <div className="text-center mb-6">
-        {order.created_by_staff && staff?.avatar_url ? (
+        {isStaffOrder && staff?.avatar_url ? (
           <img src={staff.avatar_url} alt={staff.full_name} className="w-16 h-16 mx-auto mb-2 rounded-full object-cover border-2 border-carbon-700" />
         ) : venue?.logo_url ? (
           <img src={venue.logo_url} alt={venue.name} className="w-16 h-16 mx-auto mb-2 rounded-xl object-cover border border-carbon-700" />
@@ -179,7 +181,7 @@ export default function PublicOrderPage() {
           </div>
         )}
         <p className="font-display text-2xl text-ember-500 tracking-wide">
-          {order.created_by_staff && staff?.full_name ? staff.full_name.toUpperCase() : (venue?.name?.toUpperCase() || 'CAPY')}
+          {isStaffOrder && staff?.full_name ? staff.full_name.toUpperCase() : (venue?.name?.toUpperCase() || 'CAPY')}
         </p>
       </div>
 
