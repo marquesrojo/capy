@@ -92,6 +92,18 @@ export default function LocationsPage() {
     }
   }
 
+  async function reshapeZone(zone, shape) {
+    const { data } = await supabaseStaff
+      .from('venue_zones')
+      .update({ shape })
+      .eq('id', zone.id)
+      .select()
+      .single()
+    if (data) {
+      setZones(prev => prev.map(z => (z.id === zone.id ? data : z)))
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-carbon-950 flex items-center justify-center">
@@ -191,6 +203,7 @@ export default function LocationsPage() {
                     onRename={renameZone}
                     parentZones={activeTab === 'mesa' ? parentZonas : []}
                     onReassign={reassignZone}
+                    onReshape={activeTab === 'mesa' ? reshapeZone : null}
                   />
                 ))}
               </div>
@@ -202,7 +215,14 @@ export default function LocationsPage() {
   )
 }
 
-function ZoneRow({ zone, onToggle, onRename, parentZones = [], onReassign }) {
+const SHAPES = [
+  { id: 'cuadrada',    label: 'Cuad.',  icon: <rect x="3" y="3" width="18" height="18" rx="2"/> },
+  { id: 'redonda',     label: 'Red.',   icon: <circle cx="12" cy="12" r="9"/> },
+  { id: 'rectangular', label: 'Rect.',  icon: <rect x="2" y="6" width="20" height="12" rx="2"/> },
+  { id: 'barra',       label: 'Barra',  icon: <rect x="1" y="9" width="22" height="6" rx="1"/> },
+]
+
+function ZoneRow({ zone, onToggle, onRename, parentZones = [], onReassign, onReshape }) {
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(zone.name)
 
@@ -211,49 +231,75 @@ function ZoneRow({ zone, onToggle, onRename, parentZones = [], onReassign }) {
     onRename(zone, name)
   }
 
+  const shape = zone.shape || 'cuadrada'
+
   return (
     <div
-      className={`flex items-center justify-between bg-carbon-900 border rounded-xl px-4 py-3 gap-2 ${
+      className={`bg-carbon-900 border rounded-xl px-4 py-3 gap-2 ${
         zone.is_active ? 'border-carbon-700' : 'border-carbon-700 opacity-50'
       }`}
     >
-      {editing ? (
-        <input
-          type="text"
-          value={name}
-          onChange={e => setName(e.target.value)}
-          onBlur={handleBlur}
-          onKeyDown={e => e.key === 'Enter' && handleBlur()}
-          autoFocus
-          className="input flex-1"
-        />
-      ) : (
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <button onClick={() => setEditing(true)} className="text-smoke-300 text-sm text-left truncate">
-            {zone.name}
-          </button>
-          {parentZones.length > 0 && (
-            <select
-              value={zone.parent_zone_id || ''}
-              onChange={e => onReassign(zone, e.target.value || null)}
-              className="text-[10px] text-smoke-400 bg-carbon-800 border border-carbon-700 rounded-lg px-1.5 py-0.5 flex-shrink-0"
+      <div className="flex items-center justify-between gap-2">
+        {editing ? (
+          <input
+            type="text"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            onBlur={handleBlur}
+            onKeyDown={e => e.key === 'Enter' && handleBlur()}
+            autoFocus
+            className="input flex-1"
+          />
+        ) : (
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <button onClick={() => setEditing(true)} className="text-smoke-300 text-sm text-left truncate">
+              {zone.name}
+            </button>
+            {parentZones.length > 0 && (
+              <select
+                value={zone.parent_zone_id || ''}
+                onChange={e => onReassign(zone, e.target.value || null)}
+                className="text-[10px] text-smoke-400 bg-carbon-800 border border-carbon-700 rounded-lg px-1.5 py-0.5 flex-shrink-0"
+              >
+                <option value="">Sin zona</option>
+                {parentZones.map(z => <option key={z.id} value={z.id}>{z.name}</option>)}
+              </select>
+            )}
+          </div>
+        )}
+        <button
+          onClick={onToggle}
+          className={`text-xs font-medium px-2.5 py-1 rounded-full border flex-shrink-0 ${
+            zone.is_active
+              ? 'border-emerald-500/40 text-emerald-700'
+              : 'border-smoke-500/40 text-smoke-500'
+          }`}
+        >
+          {zone.is_active ? 'Activo' : 'Inactivo'}
+        </button>
+      </div>
+
+      {onReshape && (
+        <div className="flex gap-1.5 mt-2.5">
+          {SHAPES.map(s => (
+            <button
+              key={s.id}
+              onClick={() => onReshape(zone, s.id)}
+              title={s.id}
+              className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-[10px] font-medium transition-colors ${
+                shape === s.id
+                  ? 'bg-ember-500/15 border-ember-500/60 text-ember-500'
+                  : 'border-carbon-600 text-smoke-500 hover:border-carbon-400'
+              }`}
             >
-              <option value="">Sin zona</option>
-              {parentZones.map(z => <option key={z.id} value={z.id}>{z.name}</option>)}
-            </select>
-          )}
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                {s.icon}
+              </svg>
+              {s.label}
+            </button>
+          ))}
         </div>
       )}
-      <button
-        onClick={onToggle}
-        className={`text-xs font-medium px-2.5 py-1 rounded-full border flex-shrink-0 ${
-          zone.is_active
-            ? 'border-emerald-500/40 text-emerald-700'
-            : 'border-smoke-500/40 text-smoke-500'
-        }`}
-      >
-        {zone.is_active ? 'Activo' : 'Inactivo'}
-      </button>
     </div>
   )
 }

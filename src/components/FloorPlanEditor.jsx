@@ -1,6 +1,13 @@
 import { useState, useRef } from 'react'
 import { supabaseStaff } from '../lib/supabase'
 
+const SHAPE_STYLES = {
+  cuadrada:    { cls: 'w-10 h-10 rounded' },
+  redonda:     { cls: 'w-10 h-10 rounded-full' },
+  rectangular: { cls: 'w-14 h-9 rounded' },
+  barra:       { cls: 'w-20 h-6 rounded-sm' },
+}
+
 export default function FloorPlanEditor({ zones, parentZones = [], onSaved }) {
   const mesas = zones.filter(z => z.is_active)
   const hasZoneTabs = parentZones.length > 0
@@ -142,6 +149,7 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved }) {
           {positioned.map(zone => {
             const { x, y } = positions[zone.id]
             const active = dragging?.id === zone.id
+            const shapeStyle = SHAPE_STYLES[zone.shape || 'cuadrada']
             return (
               <div
                 key={zone.id}
@@ -150,13 +158,14 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved }) {
                 onMouseDown={e => startDrag(e, zone.id)}
                 onTouchStart={e => startDrag(e, zone.id)}
               >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center cursor-grab active:cursor-grabbing
-                  ${active
-                    ? 'bg-ember-500 border-2 border-ember-400 scale-110 shadow-lg'
-                    : 'bg-carbon-800 border-2 border-carbon-600 hover:border-carbon-400'
-                  }`}
+                <div
+                  className={`flex items-center justify-center cursor-grab active:cursor-grabbing border-2 ${shapeStyle.cls}
+                    ${active
+                      ? 'bg-ember-500 border-ember-400 scale-110 shadow-lg'
+                      : 'bg-carbon-800 border-carbon-600 hover:border-carbon-400'
+                    }`}
                 >
-                  <span className="text-[9px] font-semibold text-smoke-200 text-center leading-tight px-1 break-words w-full">
+                  <span className="text-[8px] font-semibold text-smoke-200 text-center leading-tight px-1 break-words w-full">
                     {zone.name}
                   </span>
                 </div>
