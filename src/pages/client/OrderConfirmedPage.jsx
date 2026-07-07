@@ -62,7 +62,14 @@ export default function OrderConfirmedPage() {
         <div className="w-full max-w-sm text-center">
           {isRetiro ? (
             <>
-              <div className="text-5xl mb-4">🛍️</div>
+              <div className="mb-4 flex justify-center">
+                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: accent }}>
+                  <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.12"/>
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
+                  <path d="M8 10V8a4 4 0 0 1 8 0v2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                  <rect x="6" y="10" width="12" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.8"/>
+                </svg>
+              </div>
               <h1 className="font-display text-3xl tracking-wide mb-2" style={{ color: accent }}>
                 PEDIDO LISTO
               </h1>
