@@ -62,6 +62,7 @@ function PrepTimer({ order }) {
 export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNewOrderForTable }) {
   const [ownOrders, setOwnOrders] = useState([])
   const [linkedOrders, setLinkedOrders] = useState([])
+  const [waiterCalls, setWaiterCalls] = useState([])
   const [menus, setMenus] = useState([])
   const [activeMenuFilter, setActiveMenuFilter] = useState('all')
   const [loading, setLoading] = useState(true)
@@ -158,6 +159,32 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
     await supabaseStaff.from('orders').update({ waiter_called_at: null }).eq('id', orderId)
     setOwnOrders(prev => prev.map(o => o.id === orderId ? { ...o, waiter_called_at: null } : o))
   }
+
+  async function loadWaiterCalls() {
+    if (!venueId) return
+    const { data } = await supabaseStaff
+      .from('waiter_calls')
+      .select('id, location_label, called_at')
+      .eq('venue_id', venueId)
+      .is('resolved_at', null)
+      .order('called_at', { ascending: true })
+    setWaiterCalls(data || [])
+  }
+
+  async function dismissAnonCall(callId) {
+    setWaiterCalls(prev => prev.filter(c => c.id !== callId))
+    await supabaseStaff.from('waiter_calls').update({ resolved_at: new Date().toISOString() }).eq('id', callId)
+  }
+
+  useEffect(() => {
+    if (!venueId) return
+    loadWaiterCalls()
+    const channel = supabaseStaff
+      .channel(`camaut-waiter-calls-${venueId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'waiter_calls', filter: `venue_id=eq.${venueId}` }, loadWaiterCalls)
+      .subscribe()
+    return () => supabaseStaff.removeChannel(channel)
+  }, [venueId])
 
   async function startTimer(orderId, mins) {
     const minutes = parseInt(mins)
@@ -311,6 +338,35 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
           >
             Cambiar
           </button>
+        </div>
+      )}
+
+      {/* Panel de llamadas anónimas (IdentifyPage) */}
+      {waiterCalls.length > 0 && activeTab === 'propio' && (
+        <div className="mx-4 mt-3 rounded-xl border bg-[#008080]/8 border-[#008080]/25 px-3 py-2">
+          <div className="flex items-center gap-1.5 mb-2">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#008080" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <p className="text-[#008080] text-xs font-semibold">Te llaman · {waiterCalls.length}</p>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {waiterCalls.map(call => {
+              const time = new Date(call.called_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
+              return (
+                <div key={call.id} className="flex items-center gap-2.5 bg-white border border-black/8 rounded-lg px-2.5 py-1.5 flex-shrink-0">
+                  <div className="min-w-0">
+                    <p className="text-[#1A2A3A] text-xs font-semibold leading-tight max-w-[130px] truncate">{call.location_label}</p>
+                    <p className="text-[#8896A5] text-[10px]">{time}</p>
+                  </div>
+                  <button
+                    onClick={() => dismissAnonCall(call.id)}
+                    className="flex-shrink-0 bg-[#008080] text-white text-[10px] font-bold px-2 py-1 rounded-md"
+                  >
+                    Atendido
+                  </button>
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
 
