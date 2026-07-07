@@ -10,9 +10,9 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
-  const { staff_id, title, body } = await req.json()
-  if (!staff_id) {
-    return new Response(JSON.stringify({ error: 'staff_id required' }), { status: 400, headers: corsHeaders })
+  const { staff_id, venue_id, title, body } = await req.json()
+  if (!staff_id && !venue_id) {
+    return new Response(JSON.stringify({ error: 'staff_id or venue_id required' }), { status: 400, headers: corsHeaders })
   }
 
   webpush.setVapidDetails(
@@ -26,12 +26,32 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   )
 
-  const { data: subs } = await supabase
-    .from('push_subscriptions')
-    .select('endpoint, p256dh, auth')
-    .eq('staff_id', staff_id)
+  let subs: { endpoint: string; p256dh: string; auth: string }[] = []
 
-  if (!subs?.length) {
+  if (staff_id) {
+    const { data } = await supabase
+      .from('push_subscriptions')
+      .select('endpoint, p256dh, auth')
+      .eq('staff_id', staff_id)
+    subs = data || []
+  } else {
+    // Notify all active staff at the venue
+    const { data: venueStaff } = await supabase
+      .from('venue_staff')
+      .select('staff_profile_id')
+      .eq('venue_id', venue_id)
+      .eq('status', 'active')
+    const staffIds = (venueStaff || []).map((s: { staff_profile_id: string }) => s.staff_profile_id)
+    if (staffIds.length > 0) {
+      const { data } = await supabase
+        .from('push_subscriptions')
+        .select('endpoint, p256dh, auth')
+        .in('staff_id', staffIds)
+      subs = data || []
+    }
+  }
+
+  if (!subs.length) {
     return new Response(JSON.stringify({ sent: 0 }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
