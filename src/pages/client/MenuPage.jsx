@@ -112,12 +112,11 @@ export default function MenuPage() {
               {location?.label && (
                 <button
                   onClick={() => setLocation(null)}
-                  className="flex items-center gap-1 mt-0.5"
-                  style={{ color: `${accentText}99` }}
+                  className="flex items-center gap-1.5 mt-1"
+                  style={{ color: accentText }}
                 >
-                  <span className="text-[10px]">{location.type === 'retiro' ? '🛍' : '📍'}</span>
-                  <span className="text-[10px] font-semibold">{location.label}</span>
-                  <span className="text-[10px] opacity-60">· cambiar</span>
+                  <span className="text-xs font-bold">{location.type === 'retiro' ? '🛍' : '📍'} {location.label}</span>
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full border leading-none" style={{ borderColor: `${accentText}50`, opacity: 0.8 }}>cambiar</span>
                 </button>
               )}
             </div>

@@ -473,7 +473,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
                         {!order.waiter_called_at && order.status === 'listo' && (
                           <p className="text-emerald-600 text-[10px] font-semibold mb-1">✓ Listo</p>
                         )}
-                        <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center justify-between mb-2">
                           <span className="font-mono text-[#008080] font-bold text-sm">
                             #{order.daily_number || order.id.slice(0, 4)}
                           </span>
@@ -489,7 +489,9 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
                             </button>
                           </div>
                         </div>
-                        <p className="text-[#8896A5] text-[10px] mb-1">📍 {order.location_label}</p>
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <span className="bg-[#008080]/10 text-[#006666] text-xs font-bold px-2 py-0.5 rounded-full">📍 {order.location_label}</span>
+                        </div>
 
                         {/* Items: collapsed = primeros 3, expanded = todos con notas */}
                         <div className="text-[#8896A5] text-[10px] space-y-0.5 mb-2">
@@ -617,7 +619,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
                             </button>
                           </div>
                         )}
-                        <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center justify-between mb-2">
                           <span className="font-mono text-[#008080] font-bold text-sm">
                             #{order.daily_number || order.id.slice(0, 4)}
                           </span>
@@ -625,7 +627,9 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
                             {Math.round((Date.now() - new Date(order.created_at).getTime()) / 60000)}m
                           </span>
                         </div>
-                        <p className="text-[#8896A5] text-[10px] mb-1">📍 {order.location_label}</p>
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <span className="bg-[#008080]/10 text-[#006666] text-xs font-bold px-2 py-0.5 rounded-full">📍 {order.location_label}</span>
+                        </div>
                         <div className="text-[#8896A5] text-[10px] space-y-0.5 mb-1">
                           {(order.order_items || []).slice(0, 3).map((item, i) => (
                             <p key={i}>{item.quantity}× {item.product_name}</p>
@@ -638,7 +642,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
                           <p className="text-emerald-600 text-[10px] font-semibold mt-1">✓ Listo para entregar</p>
                         )}
                         <div className="flex gap-1 mt-2">
-                          {order.assigned_staff_id === staffId ? (
+                          {staffId && order.assigned_staff_id === staffId ? (
                             <>
                               {PREV_STATUS[order.status] && (
                                 <button
