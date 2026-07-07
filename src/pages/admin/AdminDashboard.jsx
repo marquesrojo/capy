@@ -513,14 +513,14 @@ function AdminDashboardInner() {
         const active = total > 0
         return (
           <div className="px-4 pt-3">
-            <div className={`rounded-xl border px-3 py-2 transition-colors ${active ? 'bg-teal-500/10 border-teal-500/40' : 'bg-carbon-900 border-carbon-700'}`}>
+            <div className={`rounded-xl border px-3 py-2 transition-colors ${active ? 'bg-ember-500/8 border-ember-500/25' : 'bg-carbon-900 border-carbon-700'}`}>
               <div className="flex items-center gap-1.5 mb-1.5">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                  className={active ? 'text-teal-400' : 'text-smoke-600'}>
+                  className={active ? 'text-ember-400' : 'text-smoke-600'}>
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                   <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
-                <span className={`text-[10px] font-bold uppercase tracking-wider ${active ? 'text-teal-400' : 'text-smoke-600'}`}>
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${active ? 'text-ember-400' : 'text-smoke-600'}`}>
                   Atención{active ? ` · ${total}` : ''}
                 </span>
               </div>
@@ -529,21 +529,37 @@ function AdminDashboardInner() {
               ) : (
                 <div className="flex gap-2 overflow-x-auto pb-0.5">
                   {waiterCalls.map(call => (
-                    <div key={call.id} className="flex items-center gap-2 bg-teal-500/10 border border-teal-500/30 rounded-lg px-2.5 py-1.5 flex-shrink-0">
-                      <span className="text-teal-300 text-xs font-semibold">{call.location_label}</span>
-                      <span className="text-smoke-500 text-[10px]">
-                        {new Date(call.called_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                      <button onClick={() => dismissAnonCall(call.id)} className="text-teal-600 text-[10px] font-bold ml-0.5">✓</button>
+                    <div key={call.id} className="flex items-center gap-2.5 bg-carbon-800 border border-carbon-600 rounded-lg px-2.5 py-1.5 flex-shrink-0">
+                      <div className="min-w-0">
+                        <p className="text-smoke-100 text-xs font-semibold leading-tight max-w-[130px] truncate">{call.location_label}</p>
+                        <p className="text-smoke-500 text-[10px]">
+                          {new Date(call.called_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => dismissAnonCall(call.id)}
+                        className="flex-shrink-0 bg-ember-500 text-white text-[10px] font-bold px-2 py-1 rounded-md"
+                      >
+                        Atendido
+                      </button>
                     </div>
                   ))}
                   {orderCalls.map(order => (
-                    <div key={order.id} className="flex items-center gap-2 bg-teal-500/10 border border-teal-500/30 rounded-lg px-2.5 py-1.5 flex-shrink-0">
-                      <span className="text-teal-300 text-xs font-semibold">#{order.daily_number || order.id.slice(0,4).toUpperCase()} · {order.location_label}</span>
-                      <span className="text-smoke-500 text-[10px]">
-                        {new Date(order.waiter_called_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                      <button onClick={() => dismissWaiterCall(order.id)} className="text-teal-600 text-[10px] font-bold ml-0.5">✓</button>
+                    <div key={order.id} className="flex items-center gap-2.5 bg-carbon-800 border border-carbon-600 rounded-lg px-2.5 py-1.5 flex-shrink-0">
+                      <div className="min-w-0">
+                        <p className="text-smoke-100 text-xs font-semibold leading-tight max-w-[130px] truncate">
+                          #{order.daily_number || order.id.slice(0,4).toUpperCase()} · {order.location_label}
+                        </p>
+                        <p className="text-smoke-500 text-[10px]">
+                          {new Date(order.waiter_called_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => dismissWaiterCall(order.id)}
+                        className="flex-shrink-0 bg-ember-500 text-white text-[10px] font-bold px-2 py-1 rounded-md"
+                      >
+                        Atendido
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -843,13 +859,13 @@ function normalizePaymentMethod(method) {
 
 const METHOD_ALERT_STYLES = {
   efectivo: 'border-emerald-500/60 bg-emerald-500/10',
-  tarjeta: 'border-blue-500/60 bg-blue-500/10',
+  tarjeta: 'border-carbon-600 bg-carbon-800',
   transferencia: 'border-amber-500/60 bg-amber-500/10'
 }
 
 const METHOD_ALERT_TEXT = {
   efectivo: 'text-emerald-700',
-  tarjeta: 'text-blue-700',
+  tarjeta: 'text-smoke-300',
   transferencia: 'text-amber-700'
 }
 
@@ -1058,7 +1074,7 @@ function InPersonCard({ order, waiters, onConfirm, onAssignWaiter, compact }) {
 
   if (compact) {
     return (
-      <div className="bg-carbon-900 border border-blue-500/30 rounded-xl px-3 py-2.5">
+      <div className="bg-carbon-900 border border-carbon-700 rounded-xl px-3 py-2.5">
         <div className="flex items-center justify-between mb-1">
           <span className="font-mono text-ember-500 font-bold text-sm">
             #{order.daily_number || order.id.slice(0, 6)}
@@ -1066,7 +1082,7 @@ function InPersonCard({ order, waiters, onConfirm, onAssignWaiter, compact }) {
           <span className="text-smoke-500 text-xs">{elapsedMin}m</span>
         </div>
         <p className="text-smoke-400 text-xs mb-1">📍 {order.location_label}</p>
-        <p className="text-blue-700 text-xs mb-2">{methodLabel}</p>
+        <p className="text-smoke-400 text-xs mb-2">{methodLabel}</p>
         {normalizePaymentMethod(order.payment_method) === 'efectivo' && order.cash_amount && (
           <p className="text-emerald-700 text-xs mb-2">
             Vuelto {formatPrice(order.cash_amount - order.total)}
@@ -1086,14 +1102,14 @@ function InPersonCard({ order, waiters, onConfirm, onAssignWaiter, compact }) {
   }
 
   return (
-    <div className="flex-shrink-0 w-56 bg-carbon-900 border border-blue-500/40 rounded-2xl p-3">
+    <div className="flex-shrink-0 w-56 bg-carbon-900 border border-carbon-700 rounded-2xl p-3">
       <div className="flex items-center justify-between mb-2">
         <span className="font-mono text-ember-400 text-xs">{order.daily_number ? `#${order.daily_number}` : `#${order.id.slice(0, 6)}`}</span>
         <span className="text-smoke-500 text-xs">{elapsedMin} min</span>
       </div>
       <CustomerContact customer={order.customers} />
       <p className="text-smoke-300 text-sm font-medium mb-1">📍 {order.location_label}</p>
-      <p className="text-blue-700 text-xs mb-2">💳 Paga con {methodLabel}</p>
+      <p className="text-smoke-400 text-xs mb-2">💳 Paga con {methodLabel}</p>
       {normalizePaymentMethod(order.payment_method) === 'efectivo' && order.cash_amount && (
         <p className="text-emerald-700 text-xs mb-2">
           💵 Paga con {formatPrice(order.cash_amount)} · vuelto {formatPrice(order.cash_amount - order.total)}
