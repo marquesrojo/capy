@@ -124,13 +124,17 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
       linkedVenues.length > 0
         ? supabaseStaff
             .from('orders')
-            .select('id, daily_number, location_label, total, status, created_at, notes, prep_started_at, prep_time_minutes, waiter_called_at, order_items(product_name, quantity, unit_price, item_notes), venue_id')
+            .select('id, daily_number, location_label, total, status, created_at, notes, prep_started_at, prep_time_minutes, waiter_called_at, assigned_staff_id, menu_id, order_items(product_name, quantity, unit_price, item_notes), venue_id')
             .in('venue_id', linkedVenues.map(v => v.id))
             .neq('status', 'cancelado')
             .gte('created_at', todayStart.toISOString())
             .order('created_at', { ascending: false })
         : Promise.resolve({ data: [] }),
     ])
+
+    const linkedData = linkedRes.data || []
+    const claimedByMe = staffId ? linkedData.filter(o => o.assigned_staff_id === staffId) : []
+    setLinkedOrders(linkedData.filter(o => !staffId || o.assigned_staff_id !== staffId))
 
     if (res.success) {
       const own = res.ownOrders || []
@@ -149,9 +153,12 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
       }))
       const todayDelivered = deliveredRes.data || []
       const activeIds = new Set(activeOrders.map(o => o.id))
-      setOwnOrders([...activeOrders, ...todayDelivered.filter(o => !activeIds.has(o.id))])
+      setOwnOrders([
+        ...activeOrders,
+        ...todayDelivered.filter(o => !activeIds.has(o.id)),
+        ...claimedByMe,
+      ])
     }
-    setLinkedOrders(linkedRes.data || [])
     setLoading(false)
   }
 
@@ -166,6 +173,12 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
     await supabaseStaff.from('orders').update({ waiter_called_at: null }).eq('id', orderId)
     setOwnOrders(prev => prev.map(o => o.id === orderId ? { ...o, waiter_called_at: null } : o))
     setLinkedOrders(prev => prev.map(o => o.id === orderId ? { ...o, waiter_called_at: null } : o))
+  }
+
+  async function claimOrder(order) {
+    setLinkedOrders(prev => prev.filter(o => o.id !== order.id))
+    setOwnOrders(prev => [...prev, { ...order, assigned_staff_id: staffId }])
+    await supabaseStaff.from('orders').update({ assigned_staff_id: staffId }).eq('id', order.id)
   }
 
   async function loadWaiterCalls() {
@@ -643,6 +656,14 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
                           >
                             QR
                           </button>
+                          {staffId && order.status !== 'entregado' && (
+                            <button
+                              onClick={() => claimOrder(order)}
+                              className="flex-1 bg-[#008080] text-white text-[10px] py-1.5 rounded-lg font-semibold"
+                            >
+                              Tomar pedido
+                            </button>
+                          )}
                         </div>
                         <PrepTimer order={order} />
                       </div>
