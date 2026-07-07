@@ -122,13 +122,18 @@ export default function MenuPage() {
             </div>
           </div>
           {customer?.full_name && (
-            <button
-              onClick={async () => { await forgetCustomer(); navigate(base || '/identificacion') }}
-              className="text-[10px] font-semibold opacity-60"
-              style={{ color: accentText }}
-            >
-              No soy yo
-            </button>
+            <div className="text-right shrink-0">
+              <p className="text-[11px] font-semibold leading-none mb-0.5" style={{ color: accentText }}>
+                {customer.full_name}
+              </p>
+              <button
+                onClick={async () => { await forgetCustomer(); navigate(base || '/identificacion') }}
+                className="text-[10px] opacity-50 leading-none"
+                style={{ color: accentText }}
+              >
+                No soy yo
+              </button>
+            </div>
           )}
         </div>
 

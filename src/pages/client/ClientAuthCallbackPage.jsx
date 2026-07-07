@@ -15,7 +15,7 @@ function GoogleIcon() {
 
 export default function ClientAuthCallbackPage() {
   const [searchParams] = useSearchParams()
-  const [state, setState] = useState('loading') // 'loading' | 'retry' | 'error'
+  const [state, setState] = useState('loading') // 'loading' | 'success' | 'retry' | 'error'
   const [errorMsg, setErrorMsg] = useState('')
 
   useEffect(() => {
@@ -86,6 +86,7 @@ export default function ClientAuthCallbackPage() {
         // If the authenticated user has no customers record (first-time Google
         // user, or staff account used as customer), send them to the venue home
         // so they can register name/whatsapp when they place their first order.
+        let destination
         if (userId) {
           const { data: existing } = await supabaseCustomer
             .from('customers')
@@ -95,15 +96,17 @@ export default function ClientAuthCallbackPage() {
           if (!existing) {
             const fallback = localStorage.getItem('capy-customer-return-to') || '/identificacion'
             localStorage.removeItem('capy-customer-return-to')
-            const venueHome = fallback.replace(/\/(carta|pedidos|pedido\/.*)$/, '') || '/identificacion'
-            window.location.replace(venueHome)
-            return
+            destination = fallback.replace(/\/(carta|pedidos|pedido\/.*)$/, '') || '/identificacion'
           }
         }
+        if (!destination) {
+          destination = localStorage.getItem('capy-customer-return-to') || '/identificacion'
+          localStorage.removeItem('capy-customer-return-to')
+        }
 
-        const returnTo = localStorage.getItem('capy-customer-return-to') || '/identificacion'
-        localStorage.removeItem('capy-customer-return-to')
-        window.location.replace(returnTo)
+        setState('success')
+        await new Promise(r => setTimeout(r, 1200))
+        window.location.replace(destination)
       } catch (err) {
         localStorage.removeItem('capy-customer-return-to')
         setErrorMsg(err?.message || 'Error inesperado al verificar la cuenta')
@@ -130,6 +133,18 @@ export default function ClientAuthCallbackPage() {
           <>
             <div className="w-10 h-10 mx-auto mb-5 rounded-full border-2 border-[#1A2332]/10 border-t-[#1A2332] animate-spin" />
             <p className="text-[#9DAAB8] text-sm">Verificando cuenta...</p>
+          </>
+        )}
+
+        {state === 'success' && (
+          <>
+            <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-green-50 flex items-center justify-center">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
+            <p className="text-[#1A2332] text-sm font-semibold">¡Cuenta vinculada!</p>
+            <p className="text-[#9DAAB8] text-xs mt-1">Redirigiendo...</p>
           </>
         )}
 
