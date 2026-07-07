@@ -20,11 +20,18 @@ function GoogleIcon() {
 }
 
 export default function OrdersPage() {
-  const { customer, loading: customerLoading, isAnonymous, signInWithGoogle } = useCustomer()
+  const { customer, loading: customerLoading, isAnonymous, userEmail, signInWithGoogle, updateCustomer, forgetCustomer } = useCustomer()
   const navigate = useNavigate()
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [googleError, setGoogleError] = useState('')
+
+  // Profile editing state
+  const [editing, setEditing] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [editWhatsapp, setEditWhatsapp] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
 
   useEffect(() => {
     if (customerLoading) return
@@ -41,31 +48,127 @@ export default function OrdersPage() {
     else setLoading(false)
   }, [customer, customerLoading])
 
+  function startEdit() {
+    setEditName(customer?.full_name || '')
+    setEditWhatsapp(customer?.whatsapp || '')
+    setSaveError('')
+    setEditing(true)
+  }
+
+  async function saveEdit() {
+    setSaving(true)
+    setSaveError('')
+    const { error } = await updateCustomer(editName.trim(), editWhatsapp.trim())
+    setSaving(false)
+    if (error) { setSaveError(error.message); return }
+    setEditing(false)
+  }
+
   const activeOrders = orders.filter(o => ACTIVE_STATUSES.includes(o.status))
   const closedOrders = orders.filter(o => CLOSED_STATUSES.includes(o.status))
 
   return (
     <div className="min-h-screen bg-carbon-950 pb-24">
       <header className="px-5 pt-6 pb-4">
-        <h1 className="font-display text-3xl text-ember-500 tracking-wide">PEDIDOS</h1>
-        <p className="text-smoke-400 text-sm mt-1">Tus pedidos en este dispositivo</p>
+        <h1 className="font-display text-3xl text-ember-500 tracking-wide">CUENTA</h1>
       </header>
 
       <main className="px-5 space-y-6">
-        {isAnonymous && (
-          <div className="bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-4">
-            <p className="text-smoke-300 text-sm font-semibold mb-0.5">Guardá tu historial</p>
-            <p className="text-smoke-500 text-xs mb-3">Iniciá sesión con Google para acceder a tus pedidos desde cualquier dispositivo.</p>
-            <button
-              onClick={async () => { const r = await signInWithGoogle(window.location.pathname.replace(/\/pedidos$/, '') || '/identificacion'); if (r?.error) setGoogleError(r.error.message) }}
-              className="flex items-center gap-2.5 bg-white text-[#1A2332] font-semibold text-sm px-4 py-2.5 rounded-xl hover:bg-gray-50 transition-colors"
-            >
-              <GoogleIcon />
-              Continuar con Google
-            </button>
-            {googleError && <p className="text-red-500 text-xs mt-2">{googleError}</p>}
+        {/* Profile card */}
+        {customer && (
+          <div className="bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-4 space-y-3">
+            {editing ? (
+              <>
+                <div>
+                  <label className="text-smoke-500 text-[10px] font-bold uppercase tracking-wide block mb-1">Nombre</label>
+                  <input
+                    value={editName}
+                    onChange={e => setEditName(e.target.value)}
+                    className="w-full bg-carbon-950 border border-carbon-700 rounded-xl px-3 py-2 text-smoke-200 text-sm outline-none focus:border-ember-500"
+                    placeholder="Tu nombre"
+                  />
+                </div>
+                <div>
+                  <label className="text-smoke-500 text-[10px] font-bold uppercase tracking-wide block mb-1">WhatsApp</label>
+                  <input
+                    value={editWhatsapp}
+                    onChange={e => setEditWhatsapp(e.target.value)}
+                    className="w-full bg-carbon-950 border border-carbon-700 rounded-xl px-3 py-2 text-smoke-200 text-sm outline-none focus:border-ember-500"
+                    placeholder="+54 9 ..."
+                    type="tel"
+                  />
+                </div>
+                {saveError && <p className="text-red-500 text-xs">{saveError}</p>}
+                <div className="flex gap-2 pt-1">
+                  <button
+                    onClick={saveEdit}
+                    disabled={saving || !editName.trim()}
+                    className="flex-1 bg-ember-500 disabled:opacity-40 text-white font-bold text-sm py-2.5 rounded-xl"
+                  >
+                    {saving ? 'Guardando...' : 'Guardar'}
+                  </button>
+                  <button
+                    onClick={() => setEditing(false)}
+                    className="flex-1 bg-carbon-800 text-smoke-300 font-bold text-sm py-2.5 rounded-xl"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-smoke-200 font-semibold text-base leading-tight">{customer.full_name}</p>
+                    {customer.whatsapp && (
+                      <p className="text-smoke-500 text-xs mt-0.5">{customer.whatsapp}</p>
+                    )}
+                  </div>
+                  <button
+                    onClick={startEdit}
+                    className="text-ember-500 text-xs font-bold shrink-0 mt-0.5"
+                  >
+                    Editar
+                  </button>
+                </div>
+
+                {/* Google account status */}
+                {isAnonymous ? (
+                  <div className="border-t border-carbon-700 pt-3">
+                    <p className="text-smoke-500 text-xs mb-2">Vinculá Google para acceder desde cualquier dispositivo</p>
+                    <button
+                      onClick={async () => {
+                        const r = await signInWithGoogle(window.location.pathname.replace(/\/pedidos$/, '') || '/identificacion')
+                        if (r?.error) setGoogleError(r.error.message)
+                      }}
+                      className="flex items-center gap-2.5 bg-white text-[#1A2332] font-semibold text-sm px-4 py-2.5 rounded-xl"
+                    >
+                      <GoogleIcon />
+                      Vincular Google
+                    </button>
+                    {googleError && <p className="text-red-500 text-xs mt-2">{googleError}</p>}
+                  </div>
+                ) : (
+                  <div className="border-t border-carbon-700 pt-3 flex items-center gap-2">
+                    <GoogleIcon />
+                    <p className="text-smoke-400 text-xs">{userEmail}</p>
+                  </div>
+                )}
+
+                <div className="border-t border-carbon-700 pt-3">
+                  <button
+                    onClick={async () => { await forgetCustomer(); navigate('/identificacion') }}
+                    className="text-smoke-500 text-xs font-semibold"
+                  >
+                    Cerrar sesión
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
+
+        <p className="text-smoke-400 text-xs font-semibold uppercase tracking-wide -mb-3">Mis pedidos</p>
 
         {loading && <p className="text-smoke-500 text-sm text-center py-10">Cargando...</p>}
 

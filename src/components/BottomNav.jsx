@@ -77,7 +77,8 @@ export default function BottomNav() {
   const activeLabel = cartLocation?.label || null
 
   const isOnMenu = pathname.endsWith('/carta') || pathname === '/carta'
-  const isOnCart = pathname.includes('/pago') || pathname.includes('/pedidos') || pathname.includes('/ubicacion')
+  const isOnCart = pathname.includes('/pago') || pathname.includes('/ubicacion')
+  const isOnCuenta = pathname.includes('/pedidos') || pathname.includes('/pedido/')
 
   return (
     <>
@@ -125,6 +126,19 @@ export default function BottomNav() {
             <path d="M9.5 19.5h5"/>
           </svg>
           ATENCIÓN
+        </button>
+
+        {/* Cuenta */}
+        <button
+          onClick={() => navigate(`${base}/pedidos`)}
+          className="flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold tracking-wide transition-colors"
+          style={{ color: isOnCuenta ? selfColor : '#9DAAB8' }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="8" r="4"/>
+            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+          </svg>
+          CUENTA
         </button>
       </nav>
 

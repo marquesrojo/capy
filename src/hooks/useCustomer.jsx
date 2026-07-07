@@ -26,6 +26,7 @@ export function CustomerProvider({ children }) {
   const [loading, setLoading] = useState(true)
   const [hasSession, setHasSession] = useState(false)
   const [isAnonymous, setIsAnonymous] = useState(true)
+  const [userEmail, setUserEmail] = useState(null)
 
   useEffect(() => {
     async function init() {
@@ -50,6 +51,7 @@ export function CustomerProvider({ children }) {
       }
       setHasSession(true)
       setIsAnonymous(sessionData.session.user.is_anonymous ?? true)
+      setUserEmail(sessionData.session.user.email || null)
 
       // 2. Ver si ya completo nombre+whatsapp antes (registro en customers)
       const { data: existing } = await supabaseCustomer
@@ -84,9 +86,28 @@ export function CustomerProvider({ children }) {
   // "Olvidarse" en este dispositivo: cierra la sesion anonima actual.
   // La proxima vez que entre, se crea una sesion anonima nueva y se le
   // vuelve a pedir nombre+whatsapp.
+  async function updateCustomer(fullName, whatsapp) {
+    const { data: sessionData } = await supabaseCustomer.auth.getSession()
+    const userId = sessionData.session?.user?.id
+    if (!userId) return { error: new Error('Sin sesion activa') }
+
+    const { data, error } = await supabaseCustomer
+      .from('customers')
+      .update({ full_name: fullName, whatsapp })
+      .eq('id', userId)
+      .select()
+      .single()
+
+    if (error) return { error }
+    setCustomer(data)
+    return { data }
+  }
+
   async function forgetCustomer() {
     await supabaseCustomer.auth.signOut()
     setCustomer(null)
+    setUserEmail(null)
+    setIsAnonymous(true)
   }
 
   // Inicia sesion con Google. Si la sesion actual es anonima, vincula Google
@@ -121,7 +142,9 @@ export function CustomerProvider({ children }) {
     hasSession,
     isIdentified: !!customer,
     isAnonymous,
+    userEmail,
     registerCustomer,
+    updateCustomer,
     forgetCustomer,
     signInWithGoogle,
   }
