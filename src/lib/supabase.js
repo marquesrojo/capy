@@ -41,7 +41,8 @@ export const supabaseCustomer = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     autoRefreshToken: true,
     storageKey: 'sb-customer-auth',
-    detectSessionInUrl: false // nunca procesa tokens de email de URL (son del staff)
+    detectSessionInUrl: false, // nunca procesa tokens de email de URL (son del staff)
+    flowType: 'pkce',          // linkIdentity y signInWithOAuth usan PKCE → ?code= en callback
   }
 })
 

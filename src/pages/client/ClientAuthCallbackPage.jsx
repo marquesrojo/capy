@@ -20,58 +20,64 @@ export default function ClientAuthCallbackPage() {
 
   useEffect(() => {
     async function handle() {
-      const errorParam = searchParams.get('error')
-      const errorDesc = searchParams.get('error_description') || ''
-      const code = searchParams.get('code')
+      try {
+        const errorParam = searchParams.get('error')
+        const errorDesc = searchParams.get('error_description') || ''
+        const code = searchParams.get('code')
 
-      // Google account already belongs to a different Supabase user →
-      // show a button so the user can sign in to that existing account
-      // with an explicit tap (avoids programmatic redirect issues).
-      if (errorParam && errorDesc.toLowerCase().includes('already linked')) {
-        setState('retry')
-        return
-      }
+        // Google account already belongs to a different Supabase user →
+        // show a button so the user can sign in to that existing account
+        // with an explicit tap (avoids programmatic redirect issues).
+        if (errorParam && errorDesc.toLowerCase().includes('already linked')) {
+          setState('retry')
+          return
+        }
 
-      if (errorParam) {
-        localStorage.removeItem('capy-customer-return-to')
-        setErrorMsg(errorDesc || errorParam)
-        setState('error')
-        return
-      }
-
-      if (code) {
-        const { data: exchangeData, error: authError } = await supabaseCustomer.auth.exchangeCodeForSession(code)
-        if (authError) {
+        if (errorParam) {
           localStorage.removeItem('capy-customer-return-to')
-          setErrorMsg(authError.message)
+          setErrorMsg(errorDesc || errorParam)
           setState('error')
           return
         }
 
-        // If the Google account maps to a user with no customers record
-        // (e.g. a staff Google account used as a customer on the same Supabase
-        // project), the user has no saved name/whatsapp yet. Send them to the
-        // venue home — they'll be prompted to register when they place an order.
-        const userId = exchangeData?.session?.user?.id
-        if (userId) {
-          const { data: existing } = await supabaseCustomer
-            .from('customers')
-            .select('id')
-            .eq('id', userId)
-            .maybeSingle()
-          if (!existing) {
-            const fallback = localStorage.getItem('capy-customer-return-to') || '/identificacion'
+        if (code) {
+          const { data: exchangeData, error: authError } = await supabaseCustomer.auth.exchangeCodeForSession(code)
+          if (authError) {
             localStorage.removeItem('capy-customer-return-to')
-            // Strip to venue root (e.g. /bravito/pedidos → /bravito)
-            const venueHome = fallback.replace(/\/(carta|pedidos|pedido\/.*)$/, '') || '/identificacion'
-            window.location.replace(venueHome)
+            setErrorMsg(authError.message)
+            setState('error')
             return
           }
+
+          // If the Google account maps to a user with no customers record
+          // (e.g. a staff Google account used as a customer on the same Supabase
+          // project), the user has no saved name/whatsapp yet. Send them to the
+          // venue home — they'll be prompted to register when they place an order.
+          const userId = exchangeData?.session?.user?.id
+          if (userId) {
+            const { data: existing } = await supabaseCustomer
+              .from('customers')
+              .select('id')
+              .eq('id', userId)
+              .maybeSingle()
+            if (!existing) {
+              const fallback = localStorage.getItem('capy-customer-return-to') || '/identificacion'
+              localStorage.removeItem('capy-customer-return-to')
+              // Strip to venue root (e.g. /bravito/pedidos → /bravito)
+              const venueHome = fallback.replace(/\/(carta|pedidos|pedido\/.*)$/, '') || '/identificacion'
+              window.location.replace(venueHome)
+              return
+            }
+          }
         }
+        const returnTo = localStorage.getItem('capy-customer-return-to') || '/identificacion'
+        localStorage.removeItem('capy-customer-return-to')
+        window.location.replace(returnTo)
+      } catch (err) {
+        localStorage.removeItem('capy-customer-return-to')
+        setErrorMsg(err?.message || 'Error inesperado al verificar la cuenta')
+        setState('error')
       }
-      const returnTo = localStorage.getItem('capy-customer-return-to') || '/identificacion'
-      localStorage.removeItem('capy-customer-return-to')
-      window.location.replace(returnTo)
     }
     handle()
   }, [])
