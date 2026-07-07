@@ -8,16 +8,26 @@ export default function ClientAuthCallbackPage() {
 
   useEffect(() => {
     async function handle() {
-      // Detect OAuth error returned in URL params
       const errorParam = searchParams.get('error')
-      const errorDesc = searchParams.get('error_description')
+      const errorDesc = searchParams.get('error_description') || ''
+      const code = searchParams.get('code')
+
+      // "Identity already linked to another user" → the Google account belongs to a
+      // different Supabase user (either a returning customer from another device, or
+      // the same Google account used for staff). Fall back to regular OAuth so the
+      // user signs into that existing account instead.
+      if (errorParam && errorDesc.toLowerCase().includes('already linked')) {
+        const redirectTo = `${window.location.origin}/cliente/callback`
+        await supabaseCustomer.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } })
+        return
+      }
+
       if (errorParam) {
         localStorage.removeItem('capy-customer-return-to')
         setError(errorDesc || errorParam)
         return
       }
 
-      const code = searchParams.get('code')
       if (code) {
         const { error: authError } = await supabaseCustomer.auth.exchangeCodeForSession(code)
         if (authError) {
