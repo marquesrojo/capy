@@ -8,12 +8,21 @@ export default function ClientAuthCallbackPage() {
 
   useEffect(() => {
     async function handle() {
+      // Detect OAuth error returned in URL params
+      const errorParam = searchParams.get('error')
+      const errorDesc = searchParams.get('error_description')
+      if (errorParam) {
+        localStorage.removeItem('capy-customer-return-to')
+        setError(errorDesc || errorParam)
+        return
+      }
+
       const code = searchParams.get('code')
       if (code) {
         const { error: authError } = await supabaseCustomer.auth.exchangeCodeForSession(code)
         if (authError) {
+          localStorage.removeItem('capy-customer-return-to')
           setError(authError.message)
-          setTimeout(() => { window.location.replace('/identificacion') }, 3000)
           return
         }
       }
@@ -29,8 +38,14 @@ export default function ClientAuthCallbackPage() {
       <div className="text-center">
         {error ? (
           <>
-            <p className="text-red-600 text-sm mb-2">{error}</p>
-            <p className="text-[#9DAAB8] text-xs">Redirigiendo...</p>
+            <p className="text-red-500 text-sm font-semibold mb-2">Error al iniciar sesión</p>
+            <p className="text-[#9DAAB8] text-xs mb-4">{error}</p>
+            <button
+              onClick={() => window.location.replace('/identificacion')}
+              className="text-[#1A2332] text-sm font-semibold underline"
+            >
+              Volver
+            </button>
           </>
         ) : (
           <>
