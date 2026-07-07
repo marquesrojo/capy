@@ -245,9 +245,32 @@ function AdminDashboardInner() {
       })
 
       // Excluir pedidos cerrados: entregado + pagado = ya no aparecen en el panel
-      const openOrders = (boardRes.data || []).filter(o =>
+      let openOrders = (boardRes.data || []).filter(o =>
         !(o.status === 'entregado' && o.payment_status === 'aprobado')
       )
+
+      // Cuando el FK join de assigned_staff falla (camarero de otro venue),
+      // assigned_staff queda null aunque assigned_staff_id esté seteado.
+      // Hacemos un lookup separado para resolver esos IDs.
+      const unresolvedIds = [...new Set(
+        [...openOrders, ...(proofRes.data || []), ...inPersonOrders]
+          .filter(o => o.assigned_staff_id && !o.assigned_staff)
+          .map(o => o.assigned_staff_id)
+      )]
+      if (unresolvedIds.length > 0) {
+        const { data: crossStaff } = await supabaseStaff
+          .from('staff_names')
+          .select('id, full_name')
+          .in('id', unresolvedIds)
+        if (crossStaff?.length) {
+          const staffMap = Object.fromEntries(crossStaff.map(s => [s.id, s]))
+          const patch = o => o.assigned_staff_id && !o.assigned_staff && staffMap[o.assigned_staff_id]
+            ? { ...o, assigned_staff: staffMap[o.assigned_staff_id] }
+            : o
+          openOrders = openOrders.map(patch)
+        }
+      }
+
       setOrders(openOrders)
       setPendingProofOrders(proofRes.data || [])
       setPendingInPersonOrders(inPersonOrders)
@@ -974,6 +997,25 @@ function WaiterManager({ waiters, onAdd, onRemove }) {
 }
 
 function WaiterSelect({ order, waiters, onAssign }) {
+  const isLocalWaiter = !order.assigned_staff_id || waiters.some(w => w.id === order.assigned_staff_id)
+
+  if (!isLocalWaiter) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-smoke-300 bg-carbon-800 border border-carbon-700 rounded-full px-2.5 py-1">
+          🧑‍🍳 {order.assigned_staff?.full_name || 'Camarero asignado'}
+        </span>
+        <button
+          onClick={e => { e.stopPropagation(); onAssign(order.id, null) }}
+          className="text-smoke-500 text-xs hover:text-smoke-300"
+          title="Desasignar"
+        >
+          ✕
+        </button>
+      </div>
+    )
+  }
+
   return (
     <select
       value={order.assigned_staff_id || ''}
