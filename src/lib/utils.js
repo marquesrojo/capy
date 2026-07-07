@@ -1,3 +1,16 @@
+// Returns the color itself if dark enough to use as text/border on a light bg,
+// or a dark fallback when the venue's header color is too light (e.g. white).
+export function accentColor(color, fallback = '#1A3A6B') {
+  if (!color) return fallback
+  const hex = color.replace('#', '')
+  if (hex.length !== 6) return fallback
+  const r = parseInt(hex.slice(0, 2), 16)
+  const g = parseInt(hex.slice(2, 4), 16)
+  const b = parseInt(hex.slice(4, 6), 16)
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  return luminance > 0.75 ? fallback : color
+}
+
 export function formatPrice(value) {
   return new Intl.NumberFormat('es-AR', {
     style: 'currency',

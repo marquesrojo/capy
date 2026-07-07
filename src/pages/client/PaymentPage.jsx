@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabaseCustomer, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useCart } from '../../hooks/useCart'
 import { useCustomer } from '../../hooks/useCustomer'
-import { formatPrice } from '../../lib/utils'
+import { formatPrice, accentColor } from '../../lib/utils'
 import { useClientBase } from '../../hooks/useVenue'
 
 // Payment method chosen here is a PREFERENCE declared by the customer.
@@ -65,6 +65,8 @@ export default function PaymentPage() {
   }, [])
 
   if (!location || itemCount === 0) return null
+
+  const accent = accentColor(venueColor)
 
   async function handleConfirm() {
     setError('')
@@ -156,7 +158,7 @@ export default function PaymentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F0F4F8] pb-40" style={{ '--input-focus-color': venueColor }}>
+    <div className="min-h-screen bg-[#F0F4F8] pb-40" style={{ '--input-focus-color': accent }}>
       <header className="px-5 pt-6 pb-4" style={{ backgroundColor: venueColor }}>
         <h1 className="font-display text-3xl text-white tracking-wide">TU PEDIDO</h1>
         <p className="text-white/70 text-sm">📍 {location.label}</p>
@@ -183,13 +185,13 @@ export default function PaymentPage() {
                 <button
                   onClick={() => updateQuantity(index, item.quantity + 1)}
                   className="w-9 h-9 rounded-full text-white flex items-center justify-center text-lg font-bold active:opacity-70"
-                  style={{ backgroundColor: venueColor }}
+                  style={{ backgroundColor: accent }}
                 >
                   +
                 </button>
               </div>
               <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                <span className="font-mono font-semibold text-sm" style={{ color: venueColor }}>
+                <span className="font-mono font-semibold text-sm" style={{ color: accent }}>
                   {formatPrice(item.product.price * item.quantity)}
                 </span>
                 <button
@@ -206,7 +208,7 @@ export default function PaymentPage() {
         <button
           onClick={() => navigate(`${base}/carta?location_label=${encodeURIComponent(location.label)}&zone_id=${location.zoneId || ''}&location_type=${location.type || 'zona'}`)}
           className="w-full border-2 border-dashed text-sm font-semibold py-3 rounded-2xl"
-          style={{ borderColor: `${venueColor}50`, color: venueColor }}
+          style={{ borderColor: `${accent}50`, color: accent }}
         >
           + Agregar más ítems
         </button>
@@ -249,7 +251,7 @@ export default function PaymentPage() {
                     }}
                     className="text-xs px-2.5 py-1 rounded-full border transition-colors"
                     style={active
-                      ? { backgroundColor: venueColor, color: 'white', borderColor: venueColor }
+                      ? { backgroundColor: accent, color: 'white', borderColor: accent }
                       : { borderColor: '#D1D9E0', color: '#8896A5' }
                     }
                   >
@@ -274,7 +276,7 @@ export default function PaymentPage() {
                     onClick={() => setPaymentMethod(opt.id)}
                     className="px-4 py-2 rounded-full text-sm font-medium border transition-colors"
                     style={active
-                      ? { backgroundColor: venueColor, color: 'white', borderColor: venueColor }
+                      ? { backgroundColor: accent, color: 'white', borderColor: accent }
                       : { borderColor: '#D1D9E0', color: '#4A5568' }
                     }
                   >
@@ -291,13 +293,13 @@ export default function PaymentPage() {
         {error && <p className="text-red-600 text-sm">{error}</p>}
         <div className="flex items-center justify-between text-[#1A2332]">
           <span className="font-medium">Total</span>
-          <span className="font-mono font-bold text-lg" style={{ color: venueColor }}>{formatPrice(subtotal)}</span>
+          <span className="font-mono font-bold text-lg" style={{ color: accent }}>{formatPrice(subtotal)}</span>
         </div>
         <button
           onClick={handleConfirm}
           disabled={submitting}
           className="w-full disabled:opacity-50 text-white font-semibold py-4 rounded-xl"
-          style={{ backgroundColor: venueColor }}
+          style={{ backgroundColor: accent }}
         >
           {submitting ? 'Procesando...' : 'Confirmar pedido →'}
         </button>

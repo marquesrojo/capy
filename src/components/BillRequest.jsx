@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabaseCustomer, ACTIVE_VENUE_ID } from '../lib/supabase'
-import { formatPrice } from '../lib/utils'
+import { formatPrice, accentColor } from '../lib/utils'
 
 const MAX_PROOF_SIZE_MB = 8
 
@@ -79,6 +79,7 @@ function getMethodIcon(name) {
 }
 
 function RequestBillForm({ order, onUpdated, mpEnabled, paymentMethods, venueColor = '#002F6C' }) {
+  const accent = accentColor(venueColor)
   const [showOptions, setShowOptions] = useState(false)
   const [selectedMethod, setSelectedMethod] = useState(null)
   const [cashAmount, setCashAmount] = useState('')
@@ -164,7 +165,7 @@ function RequestBillForm({ order, onUpdated, mpEnabled, paymentMethods, venueCol
         <button
           onClick={() => setShowOptions(true)}
           className="w-full font-semibold py-3.5 rounded-xl flex items-center justify-center gap-2 border"
-          style={{ borderColor: venueColor, color: venueColor }}
+          style={{ borderColor: accent, color: accent }}
         >
           {ICON.bill}
           La cuenta, por favor

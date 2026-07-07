@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useOrderPolling } from '../../hooks/useOrderPolling'
 import { useTableSession } from '../../hooks/useTableSession'
 import { supabaseCustomer, ACTIVE_VENUE_ID } from '../../lib/supabase'
-import { formatPrice, STATUS_LABELS, STATUS_FLOW, PAYMENT_STATUS_LABELS, PAYMENT_STATUS_COLORS } from '../../lib/utils'
+import { formatPrice, accentColor, STATUS_LABELS, STATUS_FLOW, PAYMENT_STATUS_LABELS, PAYMENT_STATUS_COLORS } from '../../lib/utils'
 import OrderFeedback from '../../components/OrderFeedback'
 import BillRequest from '../../components/BillRequest'
 import SplitCalculator from '../../components/SplitCalculator'
@@ -65,7 +65,7 @@ export default function OrderStatusPage() {
 
   useEffect(() => {
     supabaseCustomer.from('venues').select('header_bg_color').eq('id', ACTIVE_VENUE_ID).single()
-      .then(({ data }) => { if (data?.header_bg_color) setVenueColor(data.header_bg_color) })
+      .then(({ data }) => { if (data?.header_bg_color) setVenueColor(accentColor(data.header_bg_color)) })
   }, [])
 
   function handleAddMore() {
