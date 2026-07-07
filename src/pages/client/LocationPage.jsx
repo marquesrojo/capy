@@ -3,10 +3,19 @@ import { useNavigate } from 'react-router-dom'
 import { supabaseCustomer, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useCart } from '../../hooks/useCart'
 import { useClientBase } from '../../hooks/useVenue'
+import { accentColor } from '../../lib/utils'
+
+function zoneShort(name) {
+  const match = name.match(/\d+/)
+  if (match) return match[0]
+  return name.slice(0, 2).toUpperCase()
+}
 
 export default function LocationPage() {
   const [zones, setZones] = useState([])
   const [loading, setLoading] = useState(true)
+  const [venueColor, setVenueColor] = useState('#1A3A6B')
+  const [pickedSector, setPickedSector] = useState(null)
   const { setLocation, itemCount } = useCart()
   const navigate = useNavigate()
   const base = useClientBase()
@@ -17,68 +26,122 @@ export default function LocationPage() {
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabaseCustomer
-        .from('venue_zones')
-        .select('*')
-        .eq('venue_id', ACTIVE_VENUE_ID)
-        .eq('is_active', true)
-        .order('sort_order')
-      setZones(data || [])
+      const [zonesRes, venueRes] = await Promise.all([
+        supabaseCustomer
+          .from('venue_zones')
+          .select('id, name, type, parent_zone_id')
+          .eq('venue_id', ACTIVE_VENUE_ID)
+          .eq('is_active', true)
+          .order('sort_order')
+          .order('name'),
+        supabaseCustomer
+          .from('venues')
+          .select('header_bg_color')
+          .eq('id', ACTIVE_VENUE_ID)
+          .single()
+      ])
+      setZones(zonesRes.data || [])
+      if (venueRes.data?.header_bg_color) setVenueColor(venueRes.data.header_bg_color)
       setLoading(false)
     }
     load()
   }, [])
 
   function chooseZone(zone) {
-    setLocation({
-      type: zone.type,
-      zoneId: zone.id,
-      label: zone.name
-    })
+    setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })
     navigate(`${base}/pago`)
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-carbon-950 flex items-center justify-center">
-        <p className="text-smoke-400 text-sm">Cargando...</p>
+      <div className="min-h-screen bg-[#FAF9F6] flex items-center justify-center">
+        <p className="text-[#9DAAB8] text-sm">Cargando...</p>
       </div>
     )
   }
 
-  const mesas = zones.filter(z => z.type === 'mesa')
+  const accent = accentColor(venueColor)
   const sectores = zones.filter(z => z.type === 'zona')
+  const allMesas = zones.filter(z => z.type === 'mesa')
   const retiro = zones.filter(z => z.type === 'retiro')
+  const sectorMesas = pickedSector ? allMesas.filter(m => m.parent_zone_id === pickedSector.id) : []
+  const orphanMesas = allMesas.filter(m => !m.parent_zone_id)
 
   return (
-    <div className="min-h-screen bg-carbon-950 pb-10">
-      <header className="px-5 pt-6 pb-4">
-        <h1 className="font-display text-3xl text-ember-500 tracking-wide">¿DÓNDE ESTÁS?</h1>
-        <p className="text-smoke-400 text-sm mt-1">Así sabemos a dónde llevar tu pedido</p>
+    <div className="min-h-screen bg-[#FAF9F6] pb-10">
+      <header className="px-5 pt-6 pb-5" style={{ backgroundColor: venueColor }}>
+        <h1 className="font-display text-3xl text-white tracking-wide">¿DÓNDE ESTÁS?</h1>
+        <p className="text-white/70 text-sm mt-1">Así sabemos a dónde llevar tu pedido</p>
       </header>
 
-      <div className="px-5 space-y-6">
-        {mesas.length > 0 && (
+      <div className="px-5 pt-5 space-y-6">
+
+        {sectores.length > 0 && (
           <div>
-            <p className="text-smoke-400 text-xs font-semibold uppercase tracking-wide mb-2">
-              Mesas — Restaurante / Bar
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">
+              {allMesas.length > 0 ? 'Sector' : 'Sectores'}
             </p>
-            <div className="space-y-2">
-              {mesas.map(zone => (
-                <ZoneButton key={zone.id} zone={zone} onClick={() => chooseZone(zone)} />
+            <div className="grid grid-cols-3 gap-2">
+              {sectores.map(sector => {
+                const hasMesas = allMesas.some(m => m.parent_zone_id === sector.id)
+                const active = pickedSector?.id === sector.id
+                return (
+                  <button
+                    key={sector.id}
+                    onClick={() => {
+                      if (!hasMesas) {
+                        chooseZone(sector)
+                      } else {
+                        setPickedSector(active ? null : sector)
+                      }
+                    }}
+                    className="rounded-xl py-3 px-1 text-xs font-bold text-center border-2 transition-all leading-tight"
+                    style={active
+                      ? { backgroundColor: accent, borderColor: accent, color: 'white' }
+                      : { backgroundColor: '#F0F4F8', borderColor: accent, color: accent }
+                    }
+                  >
+                    {sector.name}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {sectorMesas.length > 0 && (
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">
+              Mesa — {pickedSector.name}
+            </p>
+            <div className="grid grid-cols-5 gap-2">
+              {sectorMesas.map(mesa => (
+                <button
+                  key={mesa.id}
+                  onClick={() => chooseZone(mesa)}
+                  className="aspect-square rounded-full flex items-center justify-center text-sm font-black border-2 transition-all active:scale-95"
+                  style={{ backgroundColor: '#F0F4F8', borderColor: accent, color: accent }}
+                >
+                  {zoneShort(mesa.name)}
+                </button>
               ))}
             </div>
           </div>
         )}
 
-        {sectores.length > 0 && (
+        {orphanMesas.length > 0 && (
           <div>
-            <p className="text-smoke-400 text-xs font-semibold uppercase tracking-wide mb-2">
-              Sectores generales
-            </p>
-            <div className="space-y-2">
-              {sectores.map(zone => (
-                <ZoneButton key={zone.id} zone={zone} onClick={() => chooseZone(zone)} />
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Mesas</p>
+            <div className="grid grid-cols-5 gap-2">
+              {orphanMesas.map(mesa => (
+                <button
+                  key={mesa.id}
+                  onClick={() => chooseZone(mesa)}
+                  className="aspect-square rounded-full flex items-center justify-center text-sm font-black border-2 transition-all active:scale-95"
+                  style={{ backgroundColor: '#F0F4F8', borderColor: accent, color: accent }}
+                >
+                  {zoneShort(mesa.name)}
+                </button>
               ))}
             </div>
           </div>
@@ -86,35 +149,28 @@ export default function LocationPage() {
 
         {retiro.length > 0 && (
           <div>
-            <p className="text-smoke-400 text-xs font-semibold uppercase tracking-wide mb-2">
-              Voy a retirarlo yo mismo
-            </p>
-            <div className="space-y-2">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Retiro</p>
+            <div className="grid grid-cols-3 gap-2">
               {retiro.map(zone => (
-                <ZoneButton key={zone.id} zone={zone} onClick={() => chooseZone(zone)} />
+                <button
+                  key={zone.id}
+                  onClick={() => chooseZone(zone)}
+                  className="rounded-xl py-3 text-xs font-bold text-center border-2 transition-all active:scale-95"
+                  style={{ backgroundColor: '#F0F4F8', borderColor: accent, color: accent }}
+                >
+                  {zone.name}
+                </button>
               ))}
             </div>
           </div>
         )}
 
         {zones.length === 0 && (
-          <p className="text-smoke-500 text-sm text-center py-10">
+          <p className="text-[#9DAAB8] text-sm text-center py-10">
             No hay mesas ni sectores configurados todavía.
           </p>
         )}
       </div>
     </div>
-  )
-}
-
-function ZoneButton({ zone, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className="w-full bg-carbon-900 border border-carbon-700 hover:border-ember-500 rounded-2xl p-4 flex items-center justify-between text-left transition-colors"
-    >
-      <p className="text-smoke-300 font-medium">{zone.name}</p>
-      <span className="text-ember-500">→</span>
-    </button>
   )
 }

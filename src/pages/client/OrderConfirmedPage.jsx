@@ -113,7 +113,13 @@ export default function OrderConfirmedPage() {
   return (
     <div className="min-h-screen bg-carbon-950 flex items-center justify-center px-5">
       <div className="w-full max-w-sm text-center">
-        <div className="text-5xl mb-4">✅</div>
+        <div className="mb-4 flex justify-center">
+          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: accent }}>
+            <circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.12"/>
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
+            <polyline points="7.5 12 10.5 15 16.5 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
         <h1 className="font-display text-3xl tracking-wide mb-2" style={{ color: accent }}>
           ¡PEDIDO ENVIADO!
         </h1>
