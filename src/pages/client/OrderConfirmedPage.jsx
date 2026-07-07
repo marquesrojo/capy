@@ -129,7 +129,7 @@ export default function OrderConfirmedPage() {
               <p className="text-smoke-300 text-sm font-semibold mb-0.5">Guardá tu historial</p>
               <p className="text-smoke-500 text-xs mb-3">Con Google podés ver tus pedidos desde cualquier dispositivo.</p>
               <button
-                onClick={() => signInWithGoogle(`${base}/pedidos`)}
+                onClick={() => signInWithGoogle(base || '/identificacion')}
                 className="flex items-center gap-2.5 bg-white text-[#1A2332] font-semibold text-sm px-4 py-2.5 rounded-xl"
               >
                 <GoogleIcon />
@@ -180,7 +180,7 @@ export default function OrderConfirmedPage() {
             <p className="text-smoke-300 text-sm font-semibold mb-0.5">Guardá tu historial</p>
             <p className="text-smoke-500 text-xs mb-3">Con Google podés ver tus pedidos desde cualquier dispositivo.</p>
             <button
-              onClick={() => signInWithGoogle(`${base}/pedidos`)}
+              onClick={() => signInWithGoogle(base || '/identificacion')}
               className="flex items-center gap-2.5 bg-white text-[#1A2332] font-semibold text-sm px-4 py-2.5 rounded-xl"
             >
               <GoogleIcon />
