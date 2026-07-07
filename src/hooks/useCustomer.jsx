@@ -25,6 +25,7 @@ export function CustomerProvider({ children }) {
   const [customer, setCustomer] = useState(null)
   const [loading, setLoading] = useState(true)
   const [hasSession, setHasSession] = useState(false)
+  const [isAnonymous, setIsAnonymous] = useState(true)
 
   useEffect(() => {
     async function init() {
@@ -48,6 +49,7 @@ export function CustomerProvider({ children }) {
         return
       }
       setHasSession(true)
+      setIsAnonymous(sessionData.session.user.is_anonymous ?? true)
 
       // 2. Ver si ya completo nombre+whatsapp antes (registro en customers)
       const { data: existing } = await supabaseCustomer
@@ -87,13 +89,30 @@ export function CustomerProvider({ children }) {
     setCustomer(null)
   }
 
+  // Inicia sesion con Google. Si la sesion actual es anonima, vincula Google
+  // al mismo UID (preserva pedidos). Si no hay sesion anonima (ej. nuevo
+  // dispositivo), usa OAuth normal para recuperar la cuenta previamente vinculada.
+  async function signInWithGoogle(returnTo) {
+    const redirectTo = `${window.location.origin}/cliente/callback`
+    if (returnTo) localStorage.setItem('capy-customer-return-to', returnTo)
+
+    const { data: { session } } = await supabaseCustomer.auth.getSession()
+    if (session?.user?.is_anonymous) {
+      await supabaseCustomer.auth.linkIdentity({ provider: 'google', options: { redirectTo } })
+    } else {
+      await supabaseCustomer.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } })
+    }
+  }
+
   const value = {
     customer,
     loading,
     hasSession,
     isIdentified: !!customer,
+    isAnonymous,
     registerCustomer,
-    forgetCustomer
+    forgetCustomer,
+    signInWithGoogle,
   }
 
   return <CustomerContext.Provider value={value}>{children}</CustomerContext.Provider>

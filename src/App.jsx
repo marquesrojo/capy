@@ -45,6 +45,7 @@ import TerminosPage from './pages/camaut/TerminosPage'
 import WaiterPublicPage from './pages/camaut/WaiterPublicPage'
 import SuperAdminPage from './pages/admin/SuperAdminPage'
 import WaiterCVPage from './pages/camaut/WaiterCVPage'
+import ClientAuthCallbackPage from './pages/client/ClientAuthCallbackPage'
 
 function VenueGuard() {
   const { loading, notFound } = useVenue()
@@ -295,6 +296,7 @@ export default function App() {
 
               <Route path="/pedido-pagado" element={<MercadoPagoReturnPage />} />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
+              <Route path="/cliente/callback" element={<ClientAuthCallbackPage />} />
               <Route path="/ver-pedido/:id" element={<PublicOrderPage />} />
               <Route path="/camaut" element={<CamautLandingPage />} />
               <Route path="/camaut/registro" element={<CamautRegisterPage />} />
