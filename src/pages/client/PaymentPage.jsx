@@ -153,7 +153,7 @@ export default function PaymentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F0F4F8] pb-40">
+    <div className="min-h-screen bg-[#F0F4F8] pb-40" style={{ '--input-focus-color': venueColor }}>
       <header className="px-5 pt-6 pb-4" style={{ backgroundColor: venueColor }}>
         <h1 className="font-display text-3xl text-white tracking-wide">TU PEDIDO</h1>
         <p className="text-white/70 text-sm">📍 {location.label}</p>

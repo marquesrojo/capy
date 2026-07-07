@@ -35,7 +35,7 @@ body {
 }
 
 .input:focus {
-  border-color: #E8772A;
+  border-color: var(--input-focus-color, #E8772A);
   outline: none;
 }
 
