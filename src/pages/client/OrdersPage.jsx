@@ -24,6 +24,7 @@ export default function OrdersPage() {
   const navigate = useNavigate()
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
+  const [googleError, setGoogleError] = useState('')
 
   useEffect(() => {
     if (customerLoading) return
@@ -56,12 +57,13 @@ export default function OrdersPage() {
             <p className="text-smoke-300 text-sm font-semibold mb-0.5">Guardá tu historial</p>
             <p className="text-smoke-500 text-xs mb-3">Iniciá sesión con Google para acceder a tus pedidos desde cualquier dispositivo.</p>
             <button
-              onClick={() => signInWithGoogle(window.location.pathname.replace(/\/pedidos$/, '') || '/identificacion')}
+              onClick={async () => { const r = await signInWithGoogle(window.location.pathname.replace(/\/pedidos$/, '') || '/identificacion'); if (r?.error) setGoogleError(r.error.message) }}
               className="flex items-center gap-2.5 bg-white text-[#1A2332] font-semibold text-sm px-4 py-2.5 rounded-xl hover:bg-gray-50 transition-colors"
             >
               <GoogleIcon />
               Continuar con Google
             </button>
+            {googleError && <p className="text-red-500 text-xs mt-2">{googleError}</p>}
           </div>
         )}
 

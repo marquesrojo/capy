@@ -25,6 +25,7 @@ export default function OrderConfirmedPage() {
   const [venueWhatsapp, setVenueWhatsapp] = useState(null)
   const [accent, setAccent] = useState('#1A3A6B')
   const [loading, setLoading] = useState(true)
+  const [googleError, setGoogleError] = useState('')
 
   useEffect(() => {
     async function load() {
@@ -129,12 +130,13 @@ export default function OrderConfirmedPage() {
               <p className="text-smoke-300 text-sm font-semibold mb-0.5">Guardá tu historial</p>
               <p className="text-smoke-500 text-xs mb-3">Con Google podés ver tus pedidos desde cualquier dispositivo.</p>
               <button
-                onClick={() => signInWithGoogle(base || '/identificacion')}
+                onClick={async () => { const r = await signInWithGoogle(base || '/identificacion'); if (r?.error) setGoogleError(r.error.message) }}
                 className="flex items-center gap-2.5 bg-white text-[#1A2332] font-semibold text-sm px-4 py-2.5 rounded-xl"
               >
                 <GoogleIcon />
                 Continuar con Google
               </button>
+              {googleError && <p className="text-red-500 text-xs mt-2">{googleError}</p>}
             </div>
           )}
         </div>
@@ -180,12 +182,13 @@ export default function OrderConfirmedPage() {
             <p className="text-smoke-300 text-sm font-semibold mb-0.5">Guardá tu historial</p>
             <p className="text-smoke-500 text-xs mb-3">Con Google podés ver tus pedidos desde cualquier dispositivo.</p>
             <button
-              onClick={() => signInWithGoogle(base || '/identificacion')}
+              onClick={async () => { const r = await signInWithGoogle(base || '/identificacion'); if (r?.error) setGoogleError(r.error.message) }}
               className="flex items-center gap-2.5 bg-white text-[#1A2332] font-semibold text-sm px-4 py-2.5 rounded-xl"
             >
               <GoogleIcon />
               Continuar con Google
             </button>
+            {googleError && <p className="text-red-500 text-xs mt-2">{googleError}</p>}
           </div>
         )}
 

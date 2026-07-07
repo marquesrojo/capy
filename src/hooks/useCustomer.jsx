@@ -97,10 +97,21 @@ export function CustomerProvider({ children }) {
     if (returnTo) localStorage.setItem('capy-customer-return-to', returnTo)
 
     const { data: { session } } = await supabaseCustomer.auth.getSession()
+
     if (session?.user?.is_anonymous) {
-      await supabaseCustomer.auth.linkIdentity({ provider: 'google', options: { redirectTo } })
+      const { error } = await supabaseCustomer.auth.linkIdentity({ provider: 'google', options: { redirectTo } })
+      if (error) {
+        console.error('[signInWithGoogle] linkIdentity error:', error)
+        localStorage.removeItem('capy-customer-return-to')
+        return { error }
+      }
     } else {
-      await supabaseCustomer.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } })
+      const { error } = await supabaseCustomer.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } })
+      if (error) {
+        console.error('[signInWithGoogle] signInWithOAuth error:', error)
+        localStorage.removeItem('capy-customer-return-to')
+        return { error }
+      }
     }
   }
 

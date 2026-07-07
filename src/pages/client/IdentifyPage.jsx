@@ -41,6 +41,7 @@ export default function IdentifyPage() {
   const waiterColor = venue?.landing_waiter_color || '#B22222'
   const { setLocation, setSessionId, addItem } = useCart()
   const { isAnonymous, signInWithGoogle } = useCustomer()
+  const [googleError, setGoogleError] = useState('')
 
   const [orderNumber, setOrderNumber] = useState('')
   const [finding, setFinding] = useState(false)
@@ -441,12 +442,13 @@ export default function IdentifyPage() {
             <p className="text-[#1A2332] font-bold text-sm mb-0.5">Guardá tu historial</p>
             <p className="text-[#9DAAB8] text-xs mb-3">Iniciá sesión con Google para ver tus pedidos desde cualquier dispositivo.</p>
             <button
-              onClick={() => signInWithGoogle(window.location.pathname)}
+              onClick={async () => { const r = await signInWithGoogle(window.location.pathname); if (r?.error) setGoogleError(r.error.message) }}
               className="w-full flex items-center justify-center gap-2.5 bg-[#F8FAFB] border border-black/[0.08] text-[#1A2332] font-semibold text-sm px-4 py-3 rounded-xl hover:bg-[#F0F4F8] transition-colors"
             >
               <GoogleIcon />
               Continuar con Google
             </button>
+            {googleError && <p className="text-red-600 text-xs mt-2 text-center">{googleError}</p>}
           </div>
         </div>
       )}
