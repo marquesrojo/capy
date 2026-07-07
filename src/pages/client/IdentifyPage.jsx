@@ -179,7 +179,7 @@ export default function IdentifyPage() {
     <div className="min-h-screen bg-[#FAF9F6] flex flex-col pb-10">
 
       {/* ── Header: logo + nombre ── */}
-      <div className="pt-10 pb-5 px-6 text-center">
+      <div className="pb-5 px-6 text-center" style={{ paddingTop: 'max(2.5rem, env(safe-area-inset-top))' }}>
         <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-white p-1.5 shadow-md border border-black/[0.06]">
           <img
             src={venue?.logo_url || '/icon-512.png'}

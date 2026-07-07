@@ -454,7 +454,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
 
   // PASO 1 — Carta
   return (
-    <div className="flex-1 min-h-0 flex flex-col bg-[#F0F4F8]">
+    <div className="flex-1 min-h-0 flex flex-col bg-[#F0F4F8]" style={{ minHeight: '420px' }}>
 
       {/* Indicador de carta activa */}
       {linkedVenues.length > 0 && (
@@ -630,7 +630,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
         </div>
       ) : (
         /* Sidebar + productos */
-        <div className="flex-1 overflow-hidden flex">
+        <div className="flex-1 overflow-hidden flex" style={{ minHeight: '160px' }}>
           {/* Sidebar de categorías */}
           <div className="w-[96px] flex-shrink-0 bg-[#E4EBF0] overflow-y-auto scrollbar-hide">
             {filteredCategories.map(cat => (

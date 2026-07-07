@@ -219,9 +219,9 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
   }
 
   return (
-    <div className="h-screen flex flex-col bg-[#F0F4F8]">
+    <div className="flex flex-col bg-[#F0F4F8]" style={{ height: '100dvh' }}>
       {/* Header */}
-      <div className="bg-white border-b border-black/8 px-5 pt-4 pb-0 shadow-sm flex-shrink-0">
+      <div className="bg-white border-b border-black/8 px-5 pb-0 shadow-sm flex-shrink-0" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-full bg-[#008080] flex items-center justify-center text-white font-bold text-base flex-shrink-0">
