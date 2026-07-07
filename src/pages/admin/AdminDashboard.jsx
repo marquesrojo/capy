@@ -64,11 +64,11 @@ function AdminDashboardInner() {
   const { signOut, profile, venueId, isSuperAdmin } = useAuth()
 
   useEffect(() => {
-    if (waiterCalls.length > prevCallCount.current) {
-      playChime()
-    }
-    prevCallCount.current = waiterCalls.length
-  }, [waiterCalls.length])
+    const orderCalls = orders.filter(o => o.waiter_called_at).length
+    const total = waiterCalls.length + orderCalls
+    if (total > prevCallCount.current) playChime()
+    prevCallCount.current = total
+  }, [waiterCalls.length, orders])
 
   useEffect(() => {
     if (!venueId) return
@@ -507,49 +507,51 @@ function AdminDashboardInner() {
         </button>
       </div>
 
-      <div className="px-4 pt-4">
-        <div className={`rounded-2xl border transition-colors ${
-          waiterCalls.length > 0
-            ? 'bg-teal-500/10 border-teal-500/40'
-            : 'bg-carbon-900 border-carbon-700'
-        }`}>
-          <div className="px-4 pt-3 pb-2 flex items-center gap-2">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-              className={waiterCalls.length > 0 ? 'text-teal-400' : 'text-smoke-600'}>
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
-            <p className={`text-xs font-semibold uppercase tracking-wide ${
-              waiterCalls.length > 0 ? 'text-teal-400' : 'text-smoke-600'
-            }`}>
-              Solicitudes de atención{waiterCalls.length > 0 ? ` · ${waiterCalls.length}` : ''}
-            </p>
-          </div>
-          {waiterCalls.length === 0 ? (
-            <p className="text-smoke-600 text-xs px-4 pb-3">Sin solicitudes pendientes</p>
-          ) : (
-            <div className="flex gap-3 overflow-x-auto px-4 pb-3">
-              {waiterCalls.map(call => (
-                <div
-                  key={call.id}
-                  className="min-w-[160px] bg-teal-500/10 border border-teal-500/30 rounded-xl p-3 flex-shrink-0"
-                >
-                  <p className="text-teal-300 font-semibold text-sm mb-0.5">📍 {call.location_label}</p>
-                  <p className="text-smoke-500 text-xs mb-2">
-                    {new Date(call.called_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                  <button
-                    onClick={() => dismissAnonCall(call.id)}
-                    className="text-smoke-400 text-xs underline"
-                  >
-                    Atendido
-                  </button>
+      {(() => {
+        const orderCalls = orders.filter(o => o.waiter_called_at)
+        const total = waiterCalls.length + orderCalls.length
+        const active = total > 0
+        return (
+          <div className="px-4 pt-3">
+            <div className={`rounded-xl border px-3 py-2 transition-colors ${active ? 'bg-teal-500/10 border-teal-500/40' : 'bg-carbon-900 border-carbon-700'}`}>
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                  className={active ? 'text-teal-400' : 'text-smoke-600'}>
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${active ? 'text-teal-400' : 'text-smoke-600'}`}>
+                  Atención{active ? ` · ${total}` : ''}
+                </span>
+              </div>
+              {!active ? (
+                <p className="text-smoke-600 text-[10px]">Sin solicitudes</p>
+              ) : (
+                <div className="flex gap-2 overflow-x-auto pb-0.5">
+                  {waiterCalls.map(call => (
+                    <div key={call.id} className="flex items-center gap-2 bg-teal-500/10 border border-teal-500/30 rounded-lg px-2.5 py-1.5 flex-shrink-0">
+                      <span className="text-teal-300 text-xs font-semibold">{call.location_label}</span>
+                      <span className="text-smoke-500 text-[10px]">
+                        {new Date(call.called_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      <button onClick={() => dismissAnonCall(call.id)} className="text-teal-600 text-[10px] font-bold ml-0.5">✓</button>
+                    </div>
+                  ))}
+                  {orderCalls.map(order => (
+                    <div key={order.id} className="flex items-center gap-2 bg-teal-500/10 border border-teal-500/30 rounded-lg px-2.5 py-1.5 flex-shrink-0">
+                      <span className="text-teal-300 text-xs font-semibold">#{order.daily_number || order.id.slice(0,4).toUpperCase()} · {order.location_label}</span>
+                      <span className="text-smoke-500 text-[10px]">
+                        {new Date(order.waiter_called_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      <button onClick={() => dismissWaiterCall(order.id)} className="text-teal-600 text-[10px] font-bold ml-0.5">✓</button>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
-          )}
-        </div>
-      </div>
+          </div>
+        )
+      })()}
 
       {view !== 'cocina' && pendingProofOrders.length > 0 && (
         <div className="px-4 pt-4">
