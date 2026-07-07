@@ -47,13 +47,16 @@ export default function PaymentPage() {
           .order('sort_order'),
         supabaseCustomer
           .from('venues')
-          .select('header_bg_color')
+          .select('header_bg_color, mp_enabled')
           .eq('id', ACTIVE_VENUE_ID)
           .single()
       ])
-      if (methodsRes.data?.length) {
-        setPaymentOptions(methodsRes.data)
-        setPaymentMethod(methodsRes.data[0].id)
+      const dbMethods = methodsRes.data || []
+      const mpEntry = venueRes.data?.mp_enabled ? [{ id: 'mercadopago', name: 'Mercado Pago' }] : []
+      const allMethods = [...mpEntry, ...dbMethods]
+      if (allMethods.length) {
+        setPaymentOptions(allMethods)
+        setPaymentMethod(allMethods[0].id)
       }
       setQuickNotes(notesRes.data || [])
       if (venueRes.data?.header_bg_color) setVenueColor(venueRes.data.header_bg_color)
