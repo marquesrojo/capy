@@ -149,14 +149,21 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
   useEffect(() => {
     if (!venueId) return
     async function checkCalls() {
-      const { count } = await supabaseStaff
-        .from('orders')
-        .select('id', { count: 'exact', head: true })
-        .eq('venue_id', venueId)
-        .not('waiter_called_at', 'is', null)
-        .neq('status', 'entregado')
-        .neq('status', 'cancelado')
-      setWaiterCallCount(count || 0)
+      const [{ count: orderCount }, { count: anonCount }] = await Promise.all([
+        supabaseStaff
+          .from('orders')
+          .select('id', { count: 'exact', head: true })
+          .eq('venue_id', venueId)
+          .not('waiter_called_at', 'is', null)
+          .neq('status', 'entregado')
+          .neq('status', 'cancelado'),
+        supabaseStaff
+          .from('waiter_calls')
+          .select('id', { count: 'exact', head: true })
+          .eq('venue_id', venueId)
+          .is('resolved_at', null),
+      ])
+      setWaiterCallCount((orderCount || 0) + (anonCount || 0))
     }
     checkCalls()
     const t = setInterval(checkCalls, 8000)
