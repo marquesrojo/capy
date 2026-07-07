@@ -21,14 +21,21 @@ export default function ClientAuthCallbackPage() {
   useEffect(() => {
     async function handle() {
       try {
+        // Query-string params (PKCE flow: ?code=... or ?error=...)
         const errorParam = searchParams.get('error')
         const errorDesc = searchParams.get('error_description') || ''
         const code = searchParams.get('code')
 
-        // Google account already belongs to a different Supabase user →
-        // show a button so the user can sign in to that existing account
-        // with an explicit tap (avoids programmatic redirect issues).
-        if (errorParam && errorDesc.toLowerCase().includes('already linked')) {
+        // Hash-fragment params (implicit flow fallback: #access_token=... or #error=...)
+        const hashParams = new URLSearchParams(window.location.hash.slice(1))
+        const hashError = hashParams.get('error') || ''
+        const hashErrorDesc = hashParams.get('error_description') || ''
+        const hashAccessToken = hashParams.get('access_token') || ''
+        const hashRefreshToken = hashParams.get('refresh_token') || ''
+
+        // ── Error handling ──────────────────────────────────────────────
+        const anyErrorDesc = errorDesc || hashErrorDesc
+        if ((errorParam || hashError) && anyErrorDesc.toLowerCase().includes('already linked')) {
           setState('retry')
           return
         }
@@ -40,36 +47,60 @@ export default function ClientAuthCallbackPage() {
           return
         }
 
+        if (hashError) {
+          localStorage.removeItem('capy-customer-return-to')
+          setErrorMsg(hashErrorDesc || hashError)
+          setState('error')
+          return
+        }
+
+        // ── Session establishment ────────────────────────────────────────
+        let userId = null
+
         if (code) {
-          const { data: exchangeData, error: authError } = await supabaseCustomer.auth.exchangeCodeForSession(code)
+          // PKCE flow
+          const { data, error: authError } = await supabaseCustomer.auth.exchangeCodeForSession(code)
           if (authError) {
             localStorage.removeItem('capy-customer-return-to')
             setErrorMsg(authError.message)
             setState('error')
             return
           }
+          userId = data?.session?.user?.id
+        } else if (hashAccessToken && hashRefreshToken) {
+          // Implicit flow fallback (linkIdentity in some Supabase configs returns tokens in hash)
+          const { data, error: sessionError } = await supabaseCustomer.auth.setSession({
+            access_token: hashAccessToken,
+            refresh_token: hashRefreshToken,
+          })
+          if (sessionError) {
+            localStorage.removeItem('capy-customer-return-to')
+            setErrorMsg(sessionError.message)
+            setState('error')
+            return
+          }
+          userId = data?.session?.user?.id
+        }
 
-          // If the Google account maps to a user with no customers record
-          // (e.g. a staff Google account used as a customer on the same Supabase
-          // project), the user has no saved name/whatsapp yet. Send them to the
-          // venue home — they'll be prompted to register when they place an order.
-          const userId = exchangeData?.session?.user?.id
-          if (userId) {
-            const { data: existing } = await supabaseCustomer
-              .from('customers')
-              .select('id')
-              .eq('id', userId)
-              .maybeSingle()
-            if (!existing) {
-              const fallback = localStorage.getItem('capy-customer-return-to') || '/identificacion'
-              localStorage.removeItem('capy-customer-return-to')
-              // Strip to venue root (e.g. /bravito/pedidos → /bravito)
-              const venueHome = fallback.replace(/\/(carta|pedidos|pedido\/.*)$/, '') || '/identificacion'
-              window.location.replace(venueHome)
-              return
-            }
+        // ── Redirect ─────────────────────────────────────────────────────
+        // If the authenticated user has no customers record (first-time Google
+        // user, or staff account used as customer), send them to the venue home
+        // so they can register name/whatsapp when they place their first order.
+        if (userId) {
+          const { data: existing } = await supabaseCustomer
+            .from('customers')
+            .select('id')
+            .eq('id', userId)
+            .maybeSingle()
+          if (!existing) {
+            const fallback = localStorage.getItem('capy-customer-return-to') || '/identificacion'
+            localStorage.removeItem('capy-customer-return-to')
+            const venueHome = fallback.replace(/\/(carta|pedidos|pedido\/.*)$/, '') || '/identificacion'
+            window.location.replace(venueHome)
+            return
           }
         }
+
         const returnTo = localStorage.getItem('capy-customer-return-to') || '/identificacion'
         localStorage.removeItem('capy-customer-return-to')
         window.location.replace(returnTo)
