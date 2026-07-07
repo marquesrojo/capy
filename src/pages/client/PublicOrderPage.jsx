@@ -183,6 +183,9 @@ export default function PublicOrderPage() {
         <p className="font-display text-2xl text-ember-500 tracking-wide">
           {isStaffOrder && staff?.full_name ? staff.full_name.toUpperCase() : (venue?.name?.toUpperCase() || 'CAPY')}
         </p>
+        {isStaffOrder && staff?.bio && (
+          <p className="text-smoke-400 text-xs mt-1.5 italic px-4">{staff.bio}</p>
+        )}
       </div>
 
       {/* Estado */}
@@ -192,13 +195,10 @@ export default function PublicOrderPage() {
         <p className="text-smoke-500 text-xs mt-1">
           Pedido #{order.daily_number} · 📍 {order.location_label}
         </p>
-        {staff?.full_name && (
+        {staff?.full_name && !isStaffOrder && (
           <p className="text-smoke-400 text-xs mt-1.5 font-medium">
             🧑‍🍳 {staff.full_name}
           </p>
-        )}
-        {staff?.bio && (
-          <p className="text-smoke-500 text-xs mt-1 italic px-2">{staff.bio}</p>
         )}
       </div>
 
