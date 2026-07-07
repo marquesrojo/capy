@@ -132,9 +132,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
         : Promise.resolve({ data: [] }),
     ])
 
-    const linkedData = linkedRes.data || []
-    const claimedByMe = staffId ? linkedData.filter(o => o.assigned_staff_id === staffId) : []
-    setLinkedOrders(linkedData.filter(o => !staffId || o.assigned_staff_id !== staffId))
+    setLinkedOrders(linkedRes.data || [])
 
     if (res.success) {
       const own = res.ownOrders || []
@@ -153,17 +151,15 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
       }))
       const todayDelivered = deliveredRes.data || []
       const activeIds = new Set(activeOrders.map(o => o.id))
-      setOwnOrders([
-        ...activeOrders,
-        ...todayDelivered.filter(o => !activeIds.has(o.id)),
-        ...claimedByMe,
-      ])
+      setOwnOrders([...activeOrders, ...todayDelivered.filter(o => !activeIds.has(o.id))])
     }
     setLoading(false)
   }
 
   async function updateStatus(orderId, newStatus) {
-    setOwnOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o))
+    const patch = o => o.id === orderId ? { ...o, status: newStatus } : o
+    setOwnOrders(prev => prev.map(patch))
+    setLinkedOrders(prev => prev.map(patch))
     const { error } = await supabaseStaff.from('orders').update({ status: newStatus }).eq('id', orderId)
     if (error) console.error('[updateStatus] DB error:', error.message)
     loadOrders()
@@ -175,10 +171,9 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
     setLinkedOrders(prev => prev.map(o => o.id === orderId ? { ...o, waiter_called_at: null } : o))
   }
 
-  async function claimOrder(order) {
-    setLinkedOrders(prev => prev.filter(o => o.id !== order.id))
-    setOwnOrders(prev => [...prev, { ...order, assigned_staff_id: staffId }])
-    await supabaseStaff.from('orders').update({ assigned_staff_id: staffId }).eq('id', order.id)
+  async function claimOrder(orderId) {
+    setLinkedOrders(prev => prev.map(o => o.id === orderId ? { ...o, assigned_staff_id: staffId } : o))
+    await supabaseStaff.from('orders').update({ assigned_staff_id: staffId }).eq('id', orderId)
   }
 
   async function loadWaiterCalls() {
@@ -210,17 +205,18 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
   async function startTimer(orderId, mins) {
     const minutes = parseInt(mins)
     if (!minutes || minutes < 1) return
-    const order = ownOrders.find(o => o.id === orderId)
+    const order = ownOrders.find(o => o.id === orderId) || linkedOrders.find(o => o.id === orderId)
     const toPrep = order && ['recibido', 'pendiente_aprobacion'].includes(order.status)
+    const timerPatch = o => o.id === orderId
+      ? { ...o, prep_started_at: new Date().toISOString(), prep_time_minutes: minutes, ...(toPrep ? { status: 'en_preparacion' } : {}) }
+      : o
     await supabaseStaff.from('orders').update({
       prep_started_at: new Date().toISOString(),
       prep_time_minutes: minutes,
       ...(toPrep ? { status: 'en_preparacion' } : {})
     }).eq('id', orderId)
-    setOwnOrders(prev => prev.map(o => o.id === orderId
-      ? { ...o, prep_started_at: new Date().toISOString(), prep_time_minutes: minutes, ...(toPrep ? { status: 'en_preparacion' } : {}) }
-      : o
-    ))
+    setOwnOrders(prev => prev.map(timerPatch))
+    setLinkedOrders(prev => prev.map(timerPatch))
     setTimerModal(null)
   }
 
@@ -642,27 +638,57 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
                           <p className="text-emerald-600 text-[10px] font-semibold mt-1">✓ Listo para entregar</p>
                         )}
                         <div className="flex gap-1 mt-2">
-                          {(order.status === 'en_preparacion' || order.status === 'listo') && (
-                            <button
-                              onClick={() => { setTimerModal(order.id); setTimerMins('15') }}
-                              className="border border-[#008080] bg-[#008080]/10 text-[#008080] text-[10px] px-2 py-1.5 rounded-lg font-semibold"
-                            >
-                              ⏱
-                            </button>
-                          )}
-                          <button
-                            onClick={() => setQrModal(order.id)}
-                            className="border border-[#008080] bg-[#008080]/10 text-[#008080] text-[10px] px-2 py-1.5 rounded-lg font-semibold"
-                          >
-                            QR
-                          </button>
-                          {staffId && order.status !== 'entregado' && (
-                            <button
-                              onClick={() => claimOrder(order)}
-                              className="flex-1 bg-[#008080] text-white text-[10px] py-1.5 rounded-lg font-semibold"
-                            >
-                              Tomar pedido
-                            </button>
+                          {order.assigned_staff_id === staffId ? (
+                            <>
+                              {PREV_STATUS[order.status] && (
+                                <button
+                                  onClick={() => updateStatus(order.id, PREV_STATUS[order.status])}
+                                  className="border border-black/10 text-[#8896A5] text-[10px] py-1.5 px-2 rounded-lg"
+                                >
+                                  ↺
+                                </button>
+                              )}
+                              {['recibido', 'pendiente_aprobacion', 'en_preparacion'].includes(order.status) && (
+                                <button
+                                  onClick={() => { setTimerModal(order.id); setTimerMins('15') }}
+                                  className="border border-[#008080] bg-[#008080]/10 text-[#008080] text-[10px] px-2 py-1.5 rounded-lg font-semibold"
+                                >
+                                  ⏱
+                                </button>
+                              )}
+                              <button
+                                onClick={() => setQrModal(order.id)}
+                                className="border border-[#008080] bg-[#008080]/10 text-[#008080] text-[10px] px-2 py-1.5 rounded-lg font-semibold"
+                              >
+                                QR
+                              </button>
+                              {NEXT_STATUS[order.status] && (
+                                <button
+                                  onClick={() => updateStatus(order.id, NEXT_STATUS[order.status])}
+                                  className="flex-1 bg-[#008080] text-white text-[10px] py-1.5 rounded-lg font-semibold"
+                                >
+                                  {order.status === 'recibido' || order.status === 'pendiente_aprobacion' ? 'Preparar' :
+                                   order.status === 'en_preparacion' ? 'Listo ✓' : 'Entregar'}
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => setQrModal(order.id)}
+                                className="border border-[#008080] bg-[#008080]/10 text-[#008080] text-[10px] px-2 py-1.5 rounded-lg font-semibold"
+                              >
+                                QR
+                              </button>
+                              {staffId && order.status !== 'entregado' && (
+                                <button
+                                  onClick={() => claimOrder(order.id)}
+                                  className="flex-1 bg-[#008080] text-white text-[10px] py-1.5 rounded-lg font-semibold"
+                                >
+                                  Tomar pedido
+                                </button>
+                              )}
+                            </>
                           )}
                         </div>
                         <PrepTimer order={order} />
