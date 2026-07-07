@@ -80,10 +80,10 @@ export default function PublicOrderPage() {
 
     const [staffRes, venueRes] = await Promise.all([
       orderData.assigned_staff_id
-        ? supabasePublic.from('staff_names').select('full_name, alias, alias_bancario, avatar_url').eq('id', orderData.assigned_staff_id).single()
+        ? supabaseCustomer.from('staff_names').select('full_name, alias, alias_bancario, avatar_url, bio').eq('id', orderData.assigned_staff_id).single()
         : Promise.resolve({ data: null }),
       orderData.venue_id
-        ? supabasePublic.from('venues').select('name, logo_url').eq('id', orderData.venue_id).single()
+        ? supabaseCustomer.from('venues').select('name, logo_url').eq('id', orderData.venue_id).single()
         : Promise.resolve({ data: null }),
     ])
     setStaff(staffRes.data)
@@ -194,6 +194,9 @@ export default function PublicOrderPage() {
           <p className="text-smoke-400 text-xs mt-1.5 font-medium">
             🧑‍🍳 {staff.full_name}
           </p>
+        )}
+        {staff?.bio && (
+          <p className="text-smoke-500 text-xs mt-1 italic px-2">{staff.bio}</p>
         )}
       </div>
 
