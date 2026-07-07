@@ -341,34 +341,50 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
         </div>
       )}
 
-      {/* Panel de llamadas anónimas (IdentifyPage) */}
-      {waiterCalls.length > 0 && activeTab === 'propio' && (
-        <div className="mx-4 mt-3 rounded-xl border bg-[#008080]/8 border-[#008080]/25 px-3 py-2">
-          <div className="flex items-center gap-1.5 mb-2">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#008080" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            <p className="text-[#008080] text-xs font-semibold">Te llaman · {waiterCalls.length}</p>
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {waiterCalls.map(call => {
-              const time = new Date(call.called_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
-              return (
-                <div key={call.id} className="flex items-center gap-2.5 bg-white border border-black/8 rounded-lg px-2.5 py-1.5 flex-shrink-0">
-                  <div className="min-w-0">
-                    <p className="text-[#1A2A3A] text-xs font-semibold leading-tight max-w-[130px] truncate">{call.location_label}</p>
-                    <p className="text-[#8896A5] text-[10px]">{time}</p>
+      {/* Panel de atención unificado: llamadas de pedido + llamadas anónimas */}
+      {activeTab === 'propio' && (() => {
+        const orderCalls = ownOrders.filter(o => o.waiter_called_at).map(o => ({
+          key: `order-${o.id}`,
+          label: o.location_label,
+          time: o.waiter_called_at,
+          dismiss: () => clearWaiterCall(o.id),
+        }))
+        const anonCalls = waiterCalls.map(c => ({
+          key: `anon-${c.id}`,
+          label: c.location_label,
+          time: c.called_at,
+          dismiss: () => dismissAnonCall(c.id),
+        }))
+        const allCalls = [...orderCalls, ...anonCalls]
+        if (allCalls.length === 0) return null
+        return (
+          <div className="mx-4 mt-3 rounded-xl border bg-[#008080]/8 border-[#008080]/25 px-3 py-2">
+            <div className="flex items-center gap-1.5 mb-2">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#008080" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <p className="text-[#008080] text-xs font-semibold">Te llaman · {allCalls.length}</p>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {allCalls.map(call => {
+                const time = new Date(call.time).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
+                return (
+                  <div key={call.key} className="flex items-center gap-2.5 bg-white border border-black/8 rounded-lg px-2.5 py-1.5 flex-shrink-0">
+                    <div className="min-w-0">
+                      <p className="text-[#1A2A3A] text-xs font-semibold leading-tight max-w-[130px] truncate">{call.label}</p>
+                      <p className="text-[#8896A5] text-[10px]">{time}</p>
+                    </div>
+                    <button
+                      onClick={call.dismiss}
+                      className="flex-shrink-0 bg-[#008080] text-white text-[10px] font-bold px-2 py-1 rounded-md"
+                    >
+                      Atendido
+                    </button>
                   </div>
-                  <button
-                    onClick={() => dismissAnonCall(call.id)}
-                    className="flex-shrink-0 bg-[#008080] text-white text-[10px] font-bold px-2 py-1 rounded-md"
-                  >
-                    Atendido
-                  </button>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* Kanban propio — editable */}
       {activeTab === 'propio' && (
