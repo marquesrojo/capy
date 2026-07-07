@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { supabaseCustomer, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useCustomer } from '../../hooks/useCustomer'
 import { useClientBase } from '../../hooks/useVenue'
+import { accentColor } from '../../lib/utils'
 
 export default function OrderConfirmedPage() {
   const { orderId } = useParams()
@@ -11,6 +12,7 @@ export default function OrderConfirmedPage() {
   const { customer } = useCustomer()
   const [order, setOrder] = useState(null)
   const [venueWhatsapp, setVenueWhatsapp] = useState(null)
+  const [accent, setAccent] = useState('#1A3A6B')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -23,12 +25,13 @@ export default function OrderConfirmedPage() {
           .single(),
         supabaseCustomer
           .from('venues')
-          .select('whatsapp_number')
+          .select('whatsapp_number, header_bg_color')
           .eq('id', ACTIVE_VENUE_ID)
           .single()
       ])
       setOrder(orderRes.data)
       setVenueWhatsapp(venueRes.data?.whatsapp_number)
+      if (venueRes.data?.header_bg_color) setAccent(accentColor(venueRes.data.header_bg_color))
       setLoading(false)
     }
     load()
@@ -60,12 +63,12 @@ export default function OrderConfirmedPage() {
           {isRetiro ? (
             <>
               <div className="text-5xl mb-4">🛍️</div>
-              <h1 className="font-display text-3xl text-ember-500 tracking-wide mb-2">
+              <h1 className="font-display text-3xl tracking-wide mb-2" style={{ color: accent }}>
                 PEDIDO LISTO
               </h1>
               <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5 mb-5">
                 <p className="text-smoke-500 text-xs mb-1">Tu número de retiro</p>
-                <p className="font-display text-5xl text-ember-500 tracking-wider">{ticketNum}</p>
+                <p className="font-display text-5xl tracking-wider" style={{ color: accent }}>{ticketNum}</p>
                 <p className="text-smoke-500 text-xs mt-2">{order.location_label}</p>
               </div>
               <p className="text-smoke-300 text-sm mb-6">
@@ -75,7 +78,7 @@ export default function OrderConfirmedPage() {
           ) : (
             <>
               <div className="text-5xl mb-4">📲</div>
-              <h1 className="font-display text-3xl text-ember-500 tracking-wide mb-2">
+              <h1 className="font-display text-3xl tracking-wide mb-2" style={{ color: accent }}>
                 FALTA VALIDAR
               </h1>
               <p className="text-smoke-300 text-sm mb-8">
@@ -111,7 +114,7 @@ export default function OrderConfirmedPage() {
     <div className="min-h-screen bg-carbon-950 flex items-center justify-center px-5">
       <div className="w-full max-w-sm text-center">
         <div className="text-5xl mb-4">✅</div>
-        <h1 className="font-display text-3xl text-ember-500 tracking-wide mb-2">
+        <h1 className="font-display text-3xl tracking-wide mb-2" style={{ color: accent }}>
           ¡PEDIDO ENVIADO!
         </h1>
         <p className="text-smoke-300 text-sm mb-8">
@@ -121,7 +124,8 @@ export default function OrderConfirmedPage() {
         <div className="space-y-3">
           <button
             onClick={() => navigate(`${base}/pedidos`)}
-            className="w-full bg-ember-500 hover:bg-ember-600 text-white font-semibold py-3.5 rounded-xl"
+            className="w-full text-white font-semibold py-3.5 rounded-xl"
+            style={{ backgroundColor: accent }}
           >
             Ver mis pedidos
           </button>
