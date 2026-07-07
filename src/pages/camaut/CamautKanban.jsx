@@ -99,8 +99,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
     const todayStart = new Date()
     todayStart.setHours(0, 0, 0, 0)
 
-    // Fetch active orders from edge fn + today's delivered orders from Supabase in parallel
-    const [res, deliveredRes] = await Promise.all([
+    const [res, deliveredRes, linkedRes] = await Promise.all([
       fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/camaut-orders`, {
         method: 'POST',
         headers: {
@@ -121,7 +120,16 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
             .eq('status', 'entregado')
             .gte('created_at', todayStart.toISOString())
             .order('created_at', { ascending: false })
-        : Promise.resolve({ data: [] })
+        : Promise.resolve({ data: [] }),
+      linkedVenues.length > 0
+        ? supabaseStaff
+            .from('orders')
+            .select('id, daily_number, location_label, total, status, created_at, notes, prep_started_at, prep_time_minutes, waiter_called_at, order_items(product_name, quantity, unit_price, item_notes), venue_id')
+            .in('venue_id', linkedVenues.map(v => v.id))
+            .neq('status', 'cancelado')
+            .gte('created_at', todayStart.toISOString())
+            .order('created_at', { ascending: false })
+        : Promise.resolve({ data: [] }),
     ])
 
     if (res.success) {
@@ -141,10 +149,9 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
       }))
       const todayDelivered = deliveredRes.data || []
       const activeIds = new Set(activeOrders.map(o => o.id))
-      // Merge active orders with today's delivered (server is the source of truth — no local state needed)
       setOwnOrders([...activeOrders, ...todayDelivered.filter(o => !activeIds.has(o.id))])
-      setLinkedOrders(res.linkedOrders || [])
     }
+    setLinkedOrders(linkedRes.data || [])
     setLoading(false)
   }
 
@@ -158,6 +165,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
   async function clearWaiterCall(orderId) {
     await supabaseStaff.from('orders').update({ waiter_called_at: null }).eq('id', orderId)
     setOwnOrders(prev => prev.map(o => o.id === orderId ? { ...o, waiter_called_at: null } : o))
+    setLinkedOrders(prev => prev.map(o => o.id === orderId ? { ...o, waiter_called_at: null } : o))
   }
 
   async function loadWaiterCalls() {
@@ -342,19 +350,26 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
       )}
 
       {/* Panel de atención unificado: llamadas de pedido + llamadas anónimas */}
-      {activeTab === 'propio' && (() => {
-        const orderCalls = ownOrders.filter(o => o.waiter_called_at).map(o => ({
-          key: `order-${o.id}`,
-          label: o.location_label,
-          time: o.waiter_called_at,
-          dismiss: () => clearWaiterCall(o.id),
-        }))
-        const anonCalls = waiterCalls.map(c => ({
+      {(() => {
+        const orderCalls = activeTab === 'propio'
+          ? ownOrders.filter(o => o.waiter_called_at).map(o => ({
+              key: `order-${o.id}`,
+              label: o.location_label,
+              time: o.waiter_called_at,
+              dismiss: () => clearWaiterCall(o.id),
+            }))
+          : linkedOrders.filter(o => o.venue_id === activeTab && o.waiter_called_at).map(o => ({
+              key: `order-${o.id}`,
+              label: o.location_label,
+              time: o.waiter_called_at,
+              dismiss: () => clearWaiterCall(o.id),
+            }))
+        const anonCalls = activeTab === 'propio' ? waiterCalls.map(c => ({
           key: `anon-${c.id}`,
           label: c.location_label,
           time: c.called_at,
           dismiss: () => dismissAnonCall(c.id),
-        }))
+        })) : []
         const allCalls = [...orderCalls, ...anonCalls]
         if (allCalls.length === 0) return null
         return (
@@ -580,8 +595,19 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
                   <div className="space-y-2">
                     {colOrders.map(order => (
                       <div key={order.id} className={`bg-white rounded-xl p-3 border shadow-sm ${
-                        order.status === 'listo' ? 'border-emerald-300' : 'border-black/5'
+                        order.waiter_called_at ? 'border-amber-400' : order.status === 'listo' ? 'border-emerald-300' : 'border-black/5'
                       }`}>
+                        {order.waiter_called_at && (
+                          <div className="flex items-center justify-between -mx-3 -mt-3 mb-2 px-3 pt-2 pb-1.5 bg-amber-50 rounded-t-xl border-b border-amber-200">
+                            <p className="text-amber-700 text-[10px] font-semibold">🔔 Te está llamando</p>
+                            <button
+                              onClick={() => clearWaiterCall(order.id)}
+                              className="text-[9px] font-bold text-amber-700 border border-amber-300 bg-white px-1.5 py-0.5 rounded-lg"
+                            >
+                              Ya voy
+                            </button>
+                          </div>
+                        )}
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-mono text-[#008080] font-bold text-sm">
                             #{order.daily_number || order.id.slice(0, 4)}
