@@ -202,25 +202,23 @@ export default function IdentifyPage() {
   return (
     <div className="min-h-screen bg-[#FAF9F6] flex flex-col pb-10">
 
-      {/* ── Header: logo + nombre (con banner de fondo si existe) ── */}
+      {/* ── Hero: banner + logo + nombre ── */}
       <div
-        className="relative overflow-hidden pb-6 px-6 text-center"
+        className="relative overflow-hidden"
         style={{
+          minHeight: 280,
           paddingTop: 'max(2.5rem, env(safe-area-inset-top))',
+          paddingBottom: '4rem',
           ...(venue?.banner_url ? {
             backgroundImage: `url(${venue.banner_url})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-          } : {}),
+          } : { backgroundColor: '#1A2332' }),
         }}
       >
-        {/* Overlay de contraste cuando hay banner */}
-        {venue?.banner_url && (
-          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/55 pointer-events-none" />
-        )}
-
-        <div className="relative z-10">
-          <div className={`w-20 h-20 mx-auto mb-4 rounded-2xl p-1.5 shadow-md ${venue?.banner_url ? 'bg-white/90' : 'bg-white border border-black/[0.06]'}`}>
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/20 to-black/70 pointer-events-none" />
+        <div className="relative z-10 px-6 text-center">
+          <div className="w-20 h-20 mx-auto mb-3 rounded-2xl bg-white/95 p-1.5 shadow-lg">
             <img
               src={venue?.logo_url || '/icon-512.png'}
               alt={venue?.name || 'Capy'}
@@ -228,20 +226,14 @@ export default function IdentifyPage() {
             />
           </div>
           <h1
-            className="text-3xl font-black tracking-tight leading-none uppercase"
-            style={venue?.banner_url
-              ? { color: '#FFFFFF', textShadow: '0 1px 8px rgba(0,0,0,0.6)' }
-              : { color: '#1A2332' }
-            }
+            className="text-3xl font-black tracking-tight leading-tight uppercase"
+            style={{ color: '#FFFFFF', textShadow: '0 2px 12px rgba(0,0,0,0.7)' }}
           >
             {venue?.name || 'Bienvenido'}
           </h1>
           {decodedLabel && (
-            <div className="inline-flex items-center gap-1.5 mt-3 px-3 py-1.5 rounded-full text-xs font-bold"
-              style={venue?.banner_url
-                ? { background: 'rgba(255,255,255,0.2)', color: '#FFFFFF' }
-                : { background: `${selfColor}18`, color: selfColor }
-              }>
+            <div className="inline-flex items-center gap-1.5 mt-2.5 px-3 py-1.5 rounded-full text-xs font-bold"
+              style={{ background: 'rgba(255,255,255,0.2)', color: '#FFFFFF', backdropFilter: 'blur(4px)' }}>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
               </svg>
@@ -251,32 +243,50 @@ export default function IdentifyPage() {
         </div>
       </div>
 
-      {/* ── CTAs lado a lado ── */}
-      <div className="px-5 grid grid-cols-2 gap-3">
+      {/* ── CTAs flotantes que solapan el hero ── */}
+      <div className="px-4 -mt-10 relative z-20 space-y-3">
         <button
           onClick={() => navigate(`${base}/carta`)}
+          className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl shadow-lg active:scale-[0.98] transition-transform"
           style={{ backgroundColor: selfColor }}
-          className="rounded-2xl p-4 flex flex-col items-center justify-center gap-2.5 text-white active:opacity-85 shadow-sm min-h-[100px]"
         >
-          <UtensilsIcon size={30} />
-          <span className="text-xs font-bold text-center leading-tight">Quiero pedir yo mismo</span>
+          <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+            <UtensilsIcon size={22} className="text-white" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-white font-black text-sm leading-tight">Quiero pedir yo mismo</p>
+            <p className="text-white/70 text-xs mt-0.5">Ver la carta y hacer mi pedido</p>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeOpacity="0.6">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
         </button>
+
         <button
           onClick={openWaiterCall}
-          style={{ backgroundColor: waiterColor }}
-          className="rounded-2xl p-4 flex flex-col items-center justify-center gap-2.5 text-white active:opacity-85 shadow-sm min-h-[100px]"
+          className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl shadow-md border active:scale-[0.98] transition-transform bg-white"
+          style={{ borderColor: `${waiterColor}30` }}
         >
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: `${waiterColor}15` }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={waiterColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+          </div>
+          <div className="flex-1 text-left">
+            <p className="font-black text-sm leading-tight" style={{ color: waiterColor }}>Llamar al mozo</p>
+            <p className="text-[#9DAAB8] text-xs mt-0.5">Un camarero viene a tu mesa</p>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={waiterColor} strokeWidth="2.5" strokeOpacity="0.5">
+            <polyline points="9 18 15 12 9 6"/>
           </svg>
-          <span className="text-xs font-bold text-center leading-tight">Quiero que me atienda un camarero/a</span>
         </button>
       </div>
 
       {/* ── Selector de mesa/sector (QR general, sin prefill) ── */}
       {!prefillZoneId && zones.length > 0 && (
-        <div className="mt-5 px-5">
+        <div className="mt-4 px-4">
           {/* Toggle row */}
           <button
             onClick={() => setShowZonePicker(v => !v)}
@@ -420,7 +430,7 @@ export default function IdentifyPage() {
 
       {/* ── Sugerencias del chef ── */}
       {topProducts.length > 0 && (
-        <div className="mt-7 px-5">
+        <div className="mt-7 px-4">
           <p className="text-sm font-black uppercase tracking-wider text-[#1A2332] mb-3">Sugerencias del chef</p>
           <div className="grid grid-cols-2 gap-3">
             {topProducts.slice(0, 4).map(p => (
@@ -445,7 +455,7 @@ export default function IdentifyPage() {
       )}
 
       {/* ── Seguimiento de pedido ── */}
-      <div className="mt-7 px-5">
+      <div className="mt-7 px-4">
         <div className="bg-white border border-black/[0.06] rounded-2xl p-4">
           <p className="text-[#1A2332] font-bold text-sm mb-0.5">¿Ya tenés un pedido?</p>
           <p className="text-[#9DAAB8] text-xs mb-3">Ingresá el número que te dio el camarero</p>
@@ -472,7 +482,7 @@ export default function IdentifyPage() {
       </div>
 
       {/* ── Google login / perfil ── */}
-      <div className="mt-6 px-5">
+      <div className="mt-6 px-4">
         {isAnonymous ? (
           <div className="bg-white border border-black/[0.06] rounded-2xl p-4">
             <button
