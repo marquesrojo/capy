@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import ColorPicker from '../../components/ColorPicker'
-import { RankIcon, RANK_COLORS, DEFAULT_RANKS, PaperclipIcon, UtensilsIcon, BellIcon } from '../../components/Icons'
+import { PaperclipIcon, UtensilsIcon, BellIcon } from '../../components/Icons'
 
 const MAX_LOGO_SIZE_MB = 4
 
@@ -20,7 +20,6 @@ export default function VenueSettingsPage() {
   const [landingSelfColor, setLandingSelfColor] = useState('#008080')
   const [landingWaiterColor, setLandingWaiterColor] = useState('#FF8C69')
   const [instagram, setInstagram] = useState('')
-  const [rankConfig, setRankConfig] = useState(DEFAULT_RANKS.map(r => ({ ...r })))
   const [activePicker, setActivePicker] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -51,7 +50,6 @@ export default function VenueSettingsPage() {
         if (opt?.landing_self_color) setLandingSelfColor(opt.landing_self_color)
         if (opt?.landing_waiter_color) setLandingWaiterColor(opt.landing_waiter_color)
         if (opt?.instagram_handle) setInstagram(opt.instagram_handle)
-        if (opt?.customer_rank_config?.length) setRankConfig(opt.customer_rank_config)
       } catch (_) {}
 
       setLoading(false)
@@ -67,10 +65,6 @@ export default function VenueSettingsPage() {
     setError('')
     setLogoFile(file)
     setLogoPreview(URL.createObjectURL(file))
-  }
-
-  function updateRank(index, field, value) {
-    setRankConfig(prev => prev.map((r, i) => i === index ? { ...r, [field]: value } : r))
   }
 
   async function handleSave() {
@@ -112,7 +106,6 @@ export default function VenueSettingsPage() {
             landing_self_color: landingSelfColor,
             landing_waiter_color: landingWaiterColor,
             instagram_handle: instagram.trim() || null,
-            customer_rank_config: rankConfig,
           })
           .eq('id', venueId)
       } catch (_) {}
@@ -317,58 +310,6 @@ export default function VenueSettingsPage() {
               placeholder="pucararesto"
               className="input flex-1"
             />
-          </div>
-        </div>
-
-        {/* Programa de rangos */}
-        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
-          <p className="text-smoke-300 font-medium text-sm mb-1">Programa de rangos</p>
-          <p className="text-smoke-500 text-xs mb-4">
-            Los clientes suben de rango según cuántos pedidos hacen en el mes. Personalizá el nombre y premio de cada nivel.
-          </p>
-          <div className="space-y-4">
-            {rankConfig.map((rank, i) => (
-              <div key={rank.level} className="rounded-xl p-3 border" style={{ borderColor: `${RANK_COLORS[rank.level]}40`, backgroundColor: `${RANK_COLORS[rank.level]}08` }}>
-                <div className="flex items-center gap-2 mb-3">
-                  <RankIcon level={rank.level} size={16} style={{ color: RANK_COLORS[rank.level] }} />
-                  <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: RANK_COLORS[rank.level] }}>
-                    Nivel {rank.level}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-2 mb-2">
-                  <div>
-                    <label className="text-smoke-500 text-[10px] block mb-1">Nombre</label>
-                    <input
-                      value={rank.name}
-                      onChange={e => updateRank(i, 'name', e.target.value)}
-                      className="input text-xs w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-smoke-500 text-[10px] block mb-1">
-                      {rank.level === 1 ? 'Desde (siempre 0)' : 'Pedidos mínimos'}
-                    </label>
-                    <input
-                      type="number"
-                      value={rank.min_orders}
-                      onChange={e => updateRank(i, 'min_orders', parseInt(e.target.value) || 0)}
-                      className="input text-xs w-full"
-                      min="0"
-                      disabled={rank.level === 1}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-smoke-500 text-[10px] block mb-1">Premio / beneficio (opcional)</label>
-                  <input
-                    value={rank.prize || ''}
-                    onChange={e => updateRank(i, 'prize', e.target.value || null)}
-                    placeholder="Ej: 10% de descuento, postre de regalo..."
-                    className="input text-xs w-full"
-                  />
-                </div>
-              </div>
-            ))}
           </div>
         </div>
 

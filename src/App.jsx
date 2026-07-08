@@ -25,6 +25,7 @@ import UsersPage from './pages/admin/UsersPage'
 import ConfigPage from './pages/admin/ConfigPage'
 import PaymentMethodsPage from './pages/admin/PaymentMethodsPage'
 import VenueSettingsPage from './pages/admin/VenueSettingsPage'
+import RankConfigPage from './pages/admin/RankConfigPage'
 import KpisPage from './pages/admin/KpisPage'
 import WaiterModePage from './pages/admin/WaiterModePage'
 import WaitersPage from './pages/admin/WaitersPage'
@@ -251,6 +252,14 @@ export default function App() {
                 element={
                   <RequireStaff>
                     <VenueSettingsPage />
+                  </RequireStaff>
+                }
+              />
+              <Route
+                path="/admin/rangos"
+                element={
+                  <RequireStaff>
+                    <RankConfigPage />
                   </RequireStaff>
                 }
               />
