@@ -114,24 +114,27 @@ export default function MenuPage() {
               </svg>
               {(categories.find(c => c.id === activeCategory)?.name || 'VER').slice(0, 5).toUpperCase()}
             </button>
-            {venueLogo && (
-              <img src={venueLogo} alt={venueName} className="w-9 h-9 rounded-xl object-cover border border-white/20 flex-shrink-0" />
-            )}
-            <div>
+            <div
+              onClick={() => navigate(base || '/')}
+              className="flex items-center gap-2 cursor-pointer active:opacity-70"
+            >
+              {venueLogo && (
+                <img src={venueLogo} alt={venueName} className="w-9 h-9 rounded-xl object-cover border border-white/20 flex-shrink-0" />
+              )}
               <h1 className="font-display text-2xl tracking-wide leading-none" style={{ color: accentText }}>
                 {venueName ? venueName.toUpperCase() : 'CARTA'}
               </h1>
-              {location?.label && (
-                <button
-                  onClick={() => setLocation(null)}
-                  className="flex items-center gap-1.5 mt-1"
-                  style={{ color: accentText }}
-                >
-                  <span className="text-xs font-bold">{location.type === 'retiro' ? '🛍' : '📍'} {location.label}</span>
-                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full border leading-none" style={{ borderColor: `${accentText}50`, opacity: 0.8 }}>cambiar</span>
-                </button>
-              )}
             </div>
+            {location?.label && (
+              <button
+                onClick={() => setLocation(null)}
+                className="flex items-center gap-1.5"
+                style={{ color: accentText }}
+              >
+                <span className="text-xs font-bold">{location.type === 'retiro' ? '🛍' : '📍'} {location.label}</span>
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full border leading-none" style={{ borderColor: `${accentText}50`, opacity: 0.8 }}>cambiar</span>
+              </button>
+            )}
           </div>
           {customer?.full_name ? (
             <div className="text-right shrink-0">

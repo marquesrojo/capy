@@ -18,6 +18,7 @@ export default function VenueSettingsPage() {
   const [kitchenAlias, setKitchenAlias] = useState('')
   const [landingSelfColor, setLandingSelfColor] = useState('#008080')
   const [landingWaiterColor, setLandingWaiterColor] = useState('#FF8C69')
+  const [instagram, setInstagram] = useState('')
   const [activePicker, setActivePicker] = useState(null) // 'bg' | 'text' | 'self' | 'waiter' | null
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -43,11 +44,12 @@ export default function VenueSettingsPage() {
       try {
         const { data: colors } = await supabaseStaff
           .from('venues')
-          .select('landing_self_color, landing_waiter_color')
+          .select('landing_self_color, landing_waiter_color, instagram_handle')
           .eq('id', venueId)
           .single()
         if (colors?.landing_self_color) setLandingSelfColor(colors.landing_self_color)
         if (colors?.landing_waiter_color) setLandingWaiterColor(colors.landing_waiter_color)
+        if (colors?.instagram_handle) setInstagram(colors.instagram_handle)
       } catch (_) {}
 
       setLoading(false)
@@ -120,7 +122,11 @@ export default function VenueSettingsPage() {
       try {
         await supabaseStaff
           .from('venues')
-          .update({ landing_self_color: landingSelfColor, landing_waiter_color: landingWaiterColor })
+          .update({
+            landing_self_color: landingSelfColor,
+            landing_waiter_color: landingWaiterColor,
+            instagram_handle: instagram.trim() || null,
+          })
           .eq('id', venueId)
       } catch (_) {}
 
@@ -322,6 +328,23 @@ export default function VenueSettingsPage() {
             placeholder="5491123456789"
             className="input w-full"
           />
+        </div>
+
+        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
+          <p className="text-smoke-300 font-medium text-sm mb-1">Instagram</p>
+          <p className="text-smoke-500 text-xs mb-4">
+            Solo el usuario, sin @. Ej: <span className="font-mono">pucararesto</span>
+          </p>
+          <div className="flex items-center gap-2">
+            <span className="text-smoke-500 text-sm">@</span>
+            <input
+              type="text"
+              value={instagram}
+              onChange={e => setInstagram(e.target.value.replace(/^@/, ''))}
+              placeholder="pucararesto"
+              className="input flex-1"
+            />
+          </div>
         </div>
 
         {error && <p className="text-red-700 text-xs px-1">{error}</p>}

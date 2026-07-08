@@ -466,11 +466,37 @@ export default function IdentifyPage() {
       </div>
 
       {/* ── Footer ── */}
-      <div className="mt-8 text-center">
-        <a href="https://capyapp.co" target="_blank" rel="noreferrer"
-          className="text-[10px] text-[#C0CBDA] hover:text-[#9DAAB8] transition-colors">
-          Desarrollado por Capy · capyapp.co
-        </a>
+      <div className="mt-8 text-center space-y-3">
+        {venue?.instagram_handle && (
+          <a
+            href={`https://instagram.com/${venue.instagram_handle}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-black/[0.08] bg-white shadow-sm text-sm font-semibold text-[#1A2332] hover:bg-[#F0F4F8] transition-colors"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5" stroke="url(#ig)" strokeWidth="2"/>
+              <circle cx="12" cy="12" r="4" stroke="url(#ig)" strokeWidth="2"/>
+              <circle cx="17.5" cy="6.5" r="1" fill="url(#ig)"/>
+              <defs>
+                <linearGradient id="ig" x1="2" y1="22" x2="22" y2="2" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stopColor="#f09433"/>
+                  <stop offset="25%" stopColor="#e6683c"/>
+                  <stop offset="50%" stopColor="#dc2743"/>
+                  <stop offset="75%" stopColor="#cc2366"/>
+                  <stop offset="100%" stopColor="#bc1888"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            @{venue.instagram_handle}
+          </a>
+        )}
+        <div>
+          <a href="https://capyapp.co" target="_blank" rel="noreferrer"
+            className="text-[10px] text-[#C0CBDA] hover:text-[#9DAAB8] transition-colors">
+            Desarrollado por Capy · capyapp.co
+          </a>
+        </div>
       </div>
 
       {/* ── Drawer: llamar al mozo ── */}
