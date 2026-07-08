@@ -440,7 +440,7 @@ export default function IdentifyPage() {
         {isAnonymous ? (
           <div className="bg-white border border-black/[0.06] rounded-2xl p-4">
             <button
-              onClick={async () => { const r = await loginWithGoogle(`${base}/pedidos`); if (r?.error) setGoogleError(r.error.message) }}
+              onClick={async () => { const r = await loginWithGoogle(`${base}/carta`); if (r?.error) setGoogleError(r.error.message) }}
               className="w-full flex items-center justify-center gap-2.5 bg-[#F8FAFB] border border-black/[0.08] text-[#1A2332] font-semibold text-sm px-4 py-3 rounded-xl hover:bg-[#F0F4F8] transition-colors"
             >
               <GoogleIcon />
