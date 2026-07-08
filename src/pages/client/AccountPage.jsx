@@ -9,8 +9,6 @@ import { MedalIcon, RankIcon, RANK_COLORS, DEFAULT_RANKS } from '../../component
 
 const CONDICIONES_IVA = ['Consumidor Final', 'Responsable Inscripto', 'Monotributista', 'Exento']
 
-const CONDICIONES_IVA = ['Consumidor Final', 'Responsable Inscripto', 'Monotributista', 'Exento']
-
 function GoogleIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24">
