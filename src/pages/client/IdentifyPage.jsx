@@ -202,27 +202,53 @@ export default function IdentifyPage() {
   return (
     <div className="min-h-screen bg-[#FAF9F6] flex flex-col pb-10">
 
-      {/* ── Header: logo + nombre ── */}
-      <div className="pb-5 px-6 text-center" style={{ paddingTop: 'max(2.5rem, env(safe-area-inset-top))' }}>
-        <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-white p-1.5 shadow-md border border-black/[0.06]">
-          <img
-            src={venue?.logo_url || '/icon-512.png'}
-            alt={venue?.name || 'Capy'}
-            className="w-full h-full object-contain rounded-xl"
-          />
-        </div>
-        <h1 className="text-3xl font-black text-[#1A2332] tracking-tight leading-none uppercase">
-          {venue?.name || 'Bienvenido'}
-        </h1>
-        {decodedLabel && (
-          <div className="inline-flex items-center gap-1.5 mt-3 px-3 py-1.5 rounded-full text-xs font-bold"
-            style={{ background: `${selfColor}18`, color: selfColor }}>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-            </svg>
-            {decodedLabel}
-          </div>
+      {/* ── Header: logo + nombre (con banner de fondo si existe) ── */}
+      <div
+        className="relative overflow-hidden pb-6 px-6 text-center"
+        style={{
+          paddingTop: 'max(2.5rem, env(safe-area-inset-top))',
+          ...(venue?.banner_url ? {
+            backgroundImage: `url(${venue.banner_url})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          } : {}),
+        }}
+      >
+        {/* Overlay de contraste cuando hay banner */}
+        {venue?.banner_url && (
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/55 pointer-events-none" />
         )}
+
+        <div className="relative z-10">
+          <div className={`w-20 h-20 mx-auto mb-4 rounded-2xl p-1.5 shadow-md ${venue?.banner_url ? 'bg-white/90' : 'bg-white border border-black/[0.06]'}`}>
+            <img
+              src={venue?.logo_url || '/icon-512.png'}
+              alt={venue?.name || 'Capy'}
+              className="w-full h-full object-contain rounded-xl"
+            />
+          </div>
+          <h1
+            className="text-3xl font-black tracking-tight leading-none uppercase"
+            style={venue?.banner_url
+              ? { color: '#FFFFFF', textShadow: '0 1px 8px rgba(0,0,0,0.6)' }
+              : { color: '#1A2332' }
+            }
+          >
+            {venue?.name || 'Bienvenido'}
+          </h1>
+          {decodedLabel && (
+            <div className="inline-flex items-center gap-1.5 mt-3 px-3 py-1.5 rounded-full text-xs font-bold"
+              style={venue?.banner_url
+                ? { background: 'rgba(255,255,255,0.2)', color: '#FFFFFF' }
+                : { background: `${selfColor}18`, color: selfColor }
+              }>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              </svg>
+              {decodedLabel}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── CTAs lado a lado ── */}
@@ -389,17 +415,6 @@ export default function IdentifyPage() {
               )}
             </div>
           )}
-        </div>
-      )}
-
-      {/* ── Banner foto de portada ── */}
-      {venue?.banner_url && (
-        <div className="mt-5 overflow-hidden" style={{ height: 180 }}>
-          <img
-            src={venue.banner_url}
-            alt=""
-            className="w-full h-full object-cover"
-          />
         </div>
       )}
 
