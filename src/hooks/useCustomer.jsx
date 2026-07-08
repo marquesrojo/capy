@@ -136,6 +136,19 @@ export function CustomerProvider({ children }) {
     }
   }
 
+  // Login directo con Google (siempre OAuth, sin linkIdentity).
+  // Usar desde la home donde queremos recuperar una cuenta existente,
+  // no vincular al anonimo actual.
+  async function loginWithGoogle(returnTo) {
+    const redirectTo = `${window.location.origin}/cliente/callback`
+    if (returnTo) localStorage.setItem('capy-customer-return-to', returnTo)
+    const { error } = await supabaseCustomer.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } })
+    if (error) {
+      localStorage.removeItem('capy-customer-return-to')
+      return { error }
+    }
+  }
+
   const value = {
     customer,
     loading,
@@ -147,6 +160,7 @@ export function CustomerProvider({ children }) {
     updateCustomer,
     forgetCustomer,
     signInWithGoogle,
+    loginWithGoogle,
   }
 
   return <CustomerContext.Provider value={value}>{children}</CustomerContext.Provider>
