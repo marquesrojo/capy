@@ -13,7 +13,7 @@ import { useClientBase } from '../../hooks/useVenue'
 
 export default function PaymentPage() {
   const { items, subtotal, location, updateQuantity, clearCart, itemCount, sessionId, setSessionId } = useCart()
-  const { customer, registerCustomer } = useCustomer()
+  const { customer } = useCustomer()
   const navigate = useNavigate()
   const base = useClientBase()
   const [submitting, setSubmitting] = useState(false)
@@ -21,14 +21,14 @@ export default function PaymentPage() {
   const [notes, setNotes] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('')
   const [paymentOptions, setPaymentOptions] = useState([])
-  const [guestName, setGuestName] = useState('')
   const [quickNotes, setQuickNotes] = useState([])
   const [venueColor, setVenueColor] = useState('#1A3A6B')
 
   useEffect(() => {
     if (itemCount === 0) navigate(`${base}/carta`)
     if (!location) navigate(`${base}/ubicacion`)
-  }, [itemCount, location, navigate])
+    if (!customer) navigate(base || '/identificacion')
+  }, [itemCount, location, customer, navigate])
 
   useEffect(() => {
     async function loadData() {
@@ -70,26 +70,7 @@ export default function PaymentPage() {
 
   async function handleConfirm() {
     setError('')
-
-    let activeCustomer = customer
-    if (!activeCustomer) {
-      if (!guestName.trim()) {
-        setError('Contanos tu nombre para continuar.')
-        return
-      }
-      setSubmitting(true)
-      const { data: sessionData } = await supabaseCustomer.auth.getSession()
-      if (!sessionData.session) {
-        await supabaseCustomer.auth.signInAnonymously()
-      }
-      const { data, error: registerError } = await registerCustomer(guestName.trim(), null)
-      if (registerError) {
-        setError(`Error al guardar tus datos: ${registerError?.message || JSON.stringify(registerError)}`)
-        setSubmitting(false)
-        return
-      }
-      activeCustomer = data
-    }
+    if (!customer) return
 
     setSubmitting(true)
 
@@ -100,7 +81,7 @@ export default function PaymentPage() {
           .from('table_sessions')
           .insert({
             venue_id: ACTIVE_VENUE_ID,
-            customer_id: activeCustomer.id,
+            customer_id: customer.id,
             zone_id: location.zoneId || null,
             location_label: location.label,
             location_type: location.type
@@ -116,7 +97,7 @@ export default function PaymentPage() {
         .from('orders')
         .insert({
           venue_id: ACTIVE_VENUE_ID,
-          customer_id: activeCustomer.id,
+          customer_id: customer.id,
           status: 'pendiente_aprobacion',
           location_type: location.type,
           zone_id: location.zoneId,
@@ -212,19 +193,6 @@ export default function PaymentPage() {
         >
           + Agregar más ítems
         </button>
-
-        {!customer && (
-          <div className="bg-white border border-black/[0.06] rounded-2xl p-4 shadow-sm space-y-2">
-            <p className="text-[#1A2332] text-sm font-medium">¿Cómo te llamás?</p>
-            <input
-              type="text"
-              value={guestName}
-              onChange={e => setGuestName(e.target.value)}
-              placeholder="Tu nombre"
-              className="input"
-            />
-          </div>
-        )}
 
         <label className="block">
           <span className="text-smoke-500 text-xs mb-1.5 block">Notas para tu pedido (opcional)</span>
