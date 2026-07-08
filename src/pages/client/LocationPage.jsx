@@ -16,6 +16,8 @@ export default function LocationPage() {
   const [loading, setLoading] = useState(true)
   const [venueColor, setVenueColor] = useState('#1A3A6B')
   const [pickedSector, setPickedSector] = useState(null)
+  const [retiroExternoEnabled, setRetiroExternoEnabled] = useState(false)
+  const [deliveryEnabled, setDeliveryEnabled] = useState(false)
   const { setLocation, itemCount } = useCart()
   const navigate = useNavigate()
   const base = useClientBase()
@@ -36,12 +38,14 @@ export default function LocationPage() {
           .order('name'),
         supabaseCustomer
           .from('venues')
-          .select('header_bg_color')
+          .select('header_bg_color, retiro_externo_enabled, delivery_enabled')
           .eq('id', ACTIVE_VENUE_ID)
           .single()
       ])
       setZones(zonesRes.data || [])
       if (venueRes.data?.header_bg_color) setVenueColor(venueRes.data.header_bg_color)
+      if (venueRes.data?.retiro_externo_enabled) setRetiroExternoEnabled(true)
+      if (venueRes.data?.delivery_enabled) setDeliveryEnabled(true)
       setLoading(false)
     }
     load()
@@ -165,10 +169,42 @@ export default function LocationPage() {
           </div>
         )}
 
-        {zones.length === 0 && (
+        {zones.length === 0 && !retiroExternoEnabled && !deliveryEnabled && (
           <p className="text-[#9DAAB8] text-sm text-center py-10">
             No hay mesas ni sectores configurados todavía.
           </p>
+        )}
+
+        {(retiroExternoEnabled || deliveryEnabled) && (
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Para llevar</p>
+            <div className={`grid gap-2 ${retiroExternoEnabled && deliveryEnabled ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              {retiroExternoEnabled && (
+                <button
+                  onClick={() => { setLocation({ type: 'retiro_externo', label: 'Retiro en local' }); navigate(`${base}/pago`) }}
+                  className="rounded-xl py-3.5 px-3 text-sm font-bold text-center border-2 transition-all active:scale-95 flex items-center justify-center gap-2"
+                  style={{ backgroundColor: '#F0F4F8', borderColor: accent, color: accent }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
+                  </svg>
+                  Retiro en local
+                </button>
+              )}
+              {deliveryEnabled && (
+                <button
+                  onClick={() => { setLocation({ type: 'delivery', label: 'Delivery' }); navigate(`${base}/pago`) }}
+                  className="rounded-xl py-3.5 px-3 text-sm font-bold text-center border-2 transition-all active:scale-95 flex items-center justify-center gap-2"
+                  style={{ backgroundColor: '#F0F4F8', borderColor: accent, color: accent }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+                  </svg>
+                  Delivery
+                </button>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>

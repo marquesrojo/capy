@@ -45,6 +45,8 @@ export default function IdentifyPage() {
   const [googleError, setGoogleError] = useState('')
 
   const [instagramHandle, setInstagramHandle] = useState('')
+  const [retiroExternoEnabled, setRetiroExternoEnabled] = useState(false)
+  const [deliveryEnabled, setDeliveryEnabled] = useState(false)
   const [orderNumber, setOrderNumber] = useState('')
   const [finding, setFinding] = useState(false)
   const [orderError, setOrderError] = useState('')
@@ -107,10 +109,14 @@ export default function IdentifyPage() {
 
     supabaseCustomer
       .from('venues')
-      .select('instagram_handle')
+      .select('instagram_handle, retiro_externo_enabled, delivery_enabled')
       .eq('id', venueId)
       .single()
-      .then(({ data }) => { if (data?.instagram_handle) setInstagramHandle(data.instagram_handle) })
+      .then(({ data }) => {
+        if (data?.instagram_handle) setInstagramHandle(data.instagram_handle)
+        if (data?.retiro_externo_enabled) setRetiroExternoEnabled(true)
+        if (data?.delivery_enabled) setDeliveryEnabled(true)
+      })
       .catch(() => {})
   }, [venueId])
 
@@ -425,6 +431,43 @@ export default function IdentifyPage() {
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Pedido para llevar (retiro externo / delivery) ── */}
+      {(retiroExternoEnabled || deliveryEnabled) && (
+        <div className="mt-4 px-4">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2.5 px-1">Pedido para llevar</p>
+          <div className={`grid gap-3 ${retiroExternoEnabled && deliveryEnabled ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            {retiroExternoEnabled && (
+              <button
+                onClick={() => { setLocation({ type: 'retiro_externo', label: 'Retiro en local' }); navigate(`${base}/carta`) }}
+                className="bg-white border border-black/[0.06] rounded-2xl p-4 text-left shadow-sm active:scale-[0.97] transition-transform"
+              >
+                <div className="w-10 h-10 rounded-xl mb-2.5 flex items-center justify-center" style={{ backgroundColor: `${selfColor}15` }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={selfColor} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
+                  </svg>
+                </div>
+                <p className="text-[#1A2332] font-bold text-sm leading-tight">Retiro en local</p>
+                <p className="text-[#9DAAB8] text-xs mt-0.5">Pedí online y pasá a buscar</p>
+              </button>
+            )}
+            {deliveryEnabled && (
+              <button
+                onClick={() => { setLocation({ type: 'delivery', label: 'Delivery' }); navigate(`${base}/carta`) }}
+                className="bg-white border border-black/[0.06] rounded-2xl p-4 text-left shadow-sm active:scale-[0.97] transition-transform"
+              >
+                <div className="w-10 h-10 rounded-xl mb-2.5 flex items-center justify-center" style={{ backgroundColor: `${selfColor}15` }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={selfColor} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+                  </svg>
+                </div>
+                <p className="text-[#1A2332] font-bold text-sm leading-tight">Delivery</p>
+                <p className="text-[#9DAAB8] text-xs mt-0.5">Lo llevamos a tu domicilio</p>
+              </button>
+            )}
+          </div>
         </div>
       )}
 
