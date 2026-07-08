@@ -20,6 +20,9 @@ export default function VenueSettingsPage() {
   const [landingSelfColor, setLandingSelfColor] = useState('#008080')
   const [landingWaiterColor, setLandingWaiterColor] = useState('#FF8C69')
   const [instagram, setInstagram] = useState('')
+  const [bannerUrl, setBannerUrl] = useState('')
+  const [bannerFile, setBannerFile] = useState(null)
+  const [bannerPreview, setBannerPreview] = useState(null)
   const [activePicker, setActivePicker] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -44,18 +47,29 @@ export default function VenueSettingsPage() {
       try {
         const { data: opt } = await supabaseStaff
           .from('venues')
-          .select('landing_self_color, landing_waiter_color, instagram_handle, customer_rank_config')
+          .select('landing_self_color, landing_waiter_color, instagram_handle, banner_url')
           .eq('id', venueId)
           .single()
         if (opt?.landing_self_color) setLandingSelfColor(opt.landing_self_color)
         if (opt?.landing_waiter_color) setLandingWaiterColor(opt.landing_waiter_color)
         if (opt?.instagram_handle) setInstagram(opt.instagram_handle)
+        if (opt?.banner_url) setBannerUrl(opt.banner_url)
       } catch (_) {}
 
       setLoading(false)
     }
     load()
   }, [venueId])
+
+  function handleBannerChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) { setError('El banner debe ser una imagen.'); return }
+    if (file.size > MAX_LOGO_SIZE_MB * 1024 * 1024) { setError(`La imagen no puede pesar más de ${MAX_LOGO_SIZE_MB}MB.`); return }
+    setError('')
+    setBannerFile(file)
+    setBannerPreview(URL.createObjectURL(file))
+  }
 
   function handleLogoChange(e) {
     const file = e.target.files?.[0]
@@ -99,6 +113,18 @@ export default function VenueSettingsPage() {
         .eq('id', venueId)
       if (updateError) throw updateError
 
+      let finalBannerUrl = bannerUrl
+      if (bannerFile) {
+        const ext = bannerFile.name.split('.').pop()
+        const path = `${venueId}/banner.${ext}`
+        const { error: uploadError } = await supabaseStaff.storage
+          .from('venue-assets')
+          .upload(path, bannerFile, { upsert: true })
+        if (uploadError) throw uploadError
+        const { data: publicUrlData } = supabaseStaff.storage.from('venue-assets').getPublicUrl(path)
+        finalBannerUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`
+      }
+
       try {
         await supabaseStaff
           .from('venues')
@@ -106,6 +132,7 @@ export default function VenueSettingsPage() {
             landing_self_color: landingSelfColor,
             landing_waiter_color: landingWaiterColor,
             instagram_handle: instagram.trim() || null,
+            banner_url: finalBannerUrl || null,
           })
           .eq('id', venueId)
       } catch (_) {}
@@ -113,6 +140,9 @@ export default function VenueSettingsPage() {
       setLogoUrl(finalLogoUrl)
       setLogoFile(null)
       setLogoPreview(null)
+      setBannerUrl(finalBannerUrl)
+      setBannerFile(null)
+      setBannerPreview(null)
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)
     } catch (err) {
@@ -175,6 +205,39 @@ export default function VenueSettingsPage() {
               <PaperclipIcon size={16} />
               <span>Subir logo</span>
               <input type="file" accept="image/*" onChange={handleLogoChange} className="hidden" />
+            </label>
+          )}
+        </div>
+
+        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
+          <p className="text-smoke-300 font-medium text-sm mb-1">Foto de portada</p>
+          <p className="text-smoke-500 text-xs mb-4">
+            Imagen panorámica que aparece en la carta, debajo del nombre del local y sobre los productos. Recomendado: imagen apaisada (ej. 1200×400 px).
+          </p>
+          {(bannerPreview || bannerUrl) ? (
+            <div className="mb-3 space-y-2">
+              <img
+                src={bannerPreview || bannerUrl}
+                alt="Foto de portada"
+                className="w-full h-32 rounded-xl object-cover border border-carbon-700"
+              />
+              <label className="text-smoke-400 text-xs underline cursor-pointer block">
+                Cambiar foto de portada
+                <input type="file" accept="image/*" onChange={handleBannerChange} className="hidden" />
+              </label>
+              <button
+                type="button"
+                onClick={() => { setBannerUrl(''); setBannerFile(null); setBannerPreview(null) }}
+                className="text-red-500 text-xs underline"
+              >
+                Quitar foto de portada
+              </button>
+            </div>
+          ) : (
+            <label className="flex items-center justify-center gap-2 border border-dashed border-carbon-600 rounded-xl py-6 text-smoke-400 text-sm cursor-pointer">
+              <PaperclipIcon size={16} />
+              <span>Subir foto de portada</span>
+              <input type="file" accept="image/*" onChange={handleBannerChange} className="hidden" />
             </label>
           )}
         </div>
