@@ -25,6 +25,8 @@ export default function PaymentPage() {
   const [guestName, setGuestName] = useState('')
   const [quickNotes, setQuickNotes] = useState([])
   const [venueColor, setVenueColor] = useState('#1A3A6B')
+  const [pickupTime, setPickupTime] = useState('')
+  const [deliveryAddress, setDeliveryAddress] = useState('')
 
   useEffect(() => {
     if (itemCount === 0) navigate(`${base}/carta`)
@@ -69,8 +71,30 @@ export default function PaymentPage() {
 
   const accent = accentColor(venueColor)
 
+  function buildLocationLabel() {
+    if (location.type === 'retiro_externo') return `Retiro · ${pickupTime}`
+    if (location.type === 'delivery') return `Delivery · ${deliveryAddress.trim()}`
+    return location.label
+  }
+
+  function buildPickupISO(timeStr) {
+    if (!timeStr) return null
+    const [h, m] = timeStr.split(':').map(Number)
+    const d = new Date()
+    d.setHours(h, m, 0, 0)
+    return d.toISOString()
+  }
+
   async function handleConfirm() {
     setError('')
+    if (location.type === 'retiro_externo' && !pickupTime) {
+      setError('Indicá a qué hora pasás a buscar tu pedido.')
+      return
+    }
+    if (location.type === 'delivery' && !deliveryAddress.trim()) {
+      setError('Ingresá la dirección de entrega.')
+      return
+    }
 
     let activeCustomer = customer
     if (!activeCustomer) {
@@ -91,6 +115,8 @@ export default function PaymentPage() {
     setSubmitting(true)
 
     try {
+      const locationLabel = buildLocationLabel()
+
       let activeSessionId = sessionId
       if (!activeSessionId) {
         const { data: session, error: sessionError } = await supabaseCustomer
@@ -99,7 +125,7 @@ export default function PaymentPage() {
             venue_id: ACTIVE_VENUE_ID,
             customer_id: activeCustomer.id,
             zone_id: location.zoneId || null,
-            location_label: location.label,
+            location_label: locationLabel,
             location_type: location.type
           })
           .select()
@@ -116,10 +142,12 @@ export default function PaymentPage() {
           customer_id: activeCustomer.id,
           status: 'pendiente_aprobacion',
           location_type: location.type,
-          zone_id: location.zoneId,
+          zone_id: location.zoneId || null,
           map_x: location.mapX,
           map_y: location.mapY,
-          location_label: location.label,
+          location_label: locationLabel,
+          pickup_time: buildPickupISO(pickupTime),
+          delivery_address: location.type === 'delivery' ? deliveryAddress.trim() : null,
           notes,
           subtotal,
           total: subtotal,
@@ -218,6 +246,31 @@ export default function PaymentPage() {
               value={guestName}
               onChange={e => setGuestName(e.target.value)}
               placeholder="Tu nombre"
+              className="input"
+            />
+          </div>
+        )}
+
+        {location.type === 'retiro_externo' && (
+          <div className="bg-white border border-black/[0.06] rounded-2xl p-4 shadow-sm space-y-2">
+            <p className="text-[#1A2332] text-sm font-medium">¿A qué hora venís a buscar?</p>
+            <input
+              type="time"
+              value={pickupTime}
+              onChange={e => setPickupTime(e.target.value)}
+              className="input text-lg font-mono text-center"
+            />
+          </div>
+        )}
+
+        {location.type === 'delivery' && (
+          <div className="bg-white border border-black/[0.06] rounded-2xl p-4 shadow-sm space-y-2">
+            <p className="text-[#1A2332] text-sm font-medium">¿A qué dirección lo llevamos?</p>
+            <input
+              type="text"
+              value={deliveryAddress}
+              onChange={e => setDeliveryAddress(e.target.value)}
+              placeholder="Calle, número, piso, depto..."
               className="input"
             />
           </div>

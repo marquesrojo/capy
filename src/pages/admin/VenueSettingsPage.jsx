@@ -23,6 +23,8 @@ export default function VenueSettingsPage() {
   const [bannerUrl, setBannerUrl] = useState('')
   const [bannerFile, setBannerFile] = useState(null)
   const [bannerPreview, setBannerPreview] = useState(null)
+  const [retiroExternoEnabled, setRetiroExternoEnabled] = useState(false)
+  const [deliveryEnabled, setDeliveryEnabled] = useState(false)
   const [activePicker, setActivePicker] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -47,13 +49,15 @@ export default function VenueSettingsPage() {
       try {
         const { data: opt } = await supabaseStaff
           .from('venues')
-          .select('landing_self_color, landing_waiter_color, instagram_handle, banner_url')
+          .select('landing_self_color, landing_waiter_color, instagram_handle, banner_url, retiro_externo_enabled, delivery_enabled')
           .eq('id', venueId)
           .single()
         if (opt?.landing_self_color) setLandingSelfColor(opt.landing_self_color)
         if (opt?.landing_waiter_color) setLandingWaiterColor(opt.landing_waiter_color)
         if (opt?.instagram_handle) setInstagram(opt.instagram_handle)
         if (opt?.banner_url) setBannerUrl(opt.banner_url)
+        if (opt?.retiro_externo_enabled) setRetiroExternoEnabled(true)
+        if (opt?.delivery_enabled) setDeliveryEnabled(true)
       } catch (_) {}
 
       setLoading(false)
@@ -133,6 +137,8 @@ export default function VenueSettingsPage() {
             landing_waiter_color: landingWaiterColor,
             instagram_handle: instagram.trim() || null,
             banner_url: finalBannerUrl || null,
+            retiro_externo_enabled: retiroExternoEnabled,
+            delivery_enabled: deliveryEnabled,
           })
           .eq('id', venueId)
       } catch (_) {}
@@ -386,6 +392,41 @@ export default function VenueSettingsPage() {
             placeholder="Ej: cocina.pucara"
             className="input text-sm"
           />
+        </div>
+
+        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
+          <p className="text-smoke-300 font-medium text-sm mb-1">Pedidos desde afuera</p>
+          <p className="text-smoke-500 text-xs mb-4">
+            Permitís que tus clientes pidan sin estar en el local. Aparece como opción en la página del local.
+          </p>
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setRetiroExternoEnabled(v => !v)}
+              className="w-full flex items-center justify-between bg-carbon-800 rounded-xl px-4 py-3"
+            >
+              <div className="text-left">
+                <p className="text-smoke-200 font-semibold text-sm">Retiro en local</p>
+                <p className="text-smoke-500 text-xs mt-0.5">El cliente pide online y pasa a buscar</p>
+              </div>
+              <div className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${retiroExternoEnabled ? 'bg-ember-500' : 'bg-carbon-600'}`}>
+                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${retiroExternoEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeliveryEnabled(v => !v)}
+              className="w-full flex items-center justify-between bg-carbon-800 rounded-xl px-4 py-3"
+            >
+              <div className="text-left">
+                <p className="text-smoke-200 font-semibold text-sm">Delivery</p>
+                <p className="text-smoke-500 text-xs mt-0.5">El cliente pide online y recibe en su domicilio</p>
+              </div>
+              <div className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${deliveryEnabled ? 'bg-ember-500' : 'bg-carbon-600'}`}>
+                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${deliveryEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              </div>
+            </button>
+          </div>
         </div>
 
         {error && <p className="text-red-700 text-xs px-1">{error}</p>}

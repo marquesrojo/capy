@@ -43,6 +43,7 @@ export default function AccountPage() {
 
   // Ranking
   const [rankConfig, setRankConfig] = useState(DEFAULT_RANKS)
+  const [ranksEnabled, setRanksEnabled] = useState(true)
   const [monthlyOrders, setMonthlyOrders] = useState(0)
   const [rankLoading, setRankLoading] = useState(true)
 
@@ -120,10 +121,11 @@ export default function AccountPage() {
       try {
         const { data } = await supabaseCustomer
           .from('venues')
-          .select('customer_rank_config')
+          .select('customer_rank_config, customer_ranks_enabled')
           .eq('id', venueId)
           .single()
         if (data?.customer_rank_config?.length) setRankConfig(data.customer_rank_config)
+        if (data?.customer_ranks_enabled === false) setRanksEnabled(false)
       } catch (_) {}
 
       try {
@@ -310,7 +312,7 @@ export default function AccountPage() {
         )}
 
         {/* Rank card */}
-        {!rankLoading && currentRank && venueId && (
+        {!rankLoading && ranksEnabled && currentRank && venueId && (
           <div
             className="bg-carbon-900 rounded-2xl px-4 py-4 space-y-4"
             style={{ border: `1.5px solid ${currentRank.color}50` }}

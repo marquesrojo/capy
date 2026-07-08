@@ -7,6 +7,7 @@ import { RankIcon, RANK_COLORS, DEFAULT_RANKS } from '../../components/Icons'
 export default function RankConfigPage() {
   const { venueId } = useAuth()
   const [rankConfig, setRankConfig] = useState(DEFAULT_RANKS.map(r => ({ ...r })))
+  const [ranksEnabled, setRanksEnabled] = useState(true)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -17,10 +18,11 @@ export default function RankConfigPage() {
     async function load() {
       const { data } = await supabaseStaff
         .from('venues')
-        .select('customer_rank_config')
+        .select('customer_rank_config, customer_ranks_enabled')
         .eq('id', venueId)
         .single()
       if (data?.customer_rank_config?.length) setRankConfig(data.customer_rank_config)
+      if (data?.customer_ranks_enabled === false) setRanksEnabled(false)
       setLoading(false)
     }
     load()
@@ -37,7 +39,7 @@ export default function RankConfigPage() {
     try {
       const { error: err } = await supabaseStaff
         .from('venues')
-        .update({ customer_rank_config: rankConfig })
+        .update({ customer_rank_config: rankConfig, customer_ranks_enabled: ranksEnabled })
         .eq('id', venueId)
       if (err) throw err
       setSaved(true)
@@ -67,11 +69,27 @@ export default function RankConfigPage() {
       </header>
 
       <main className="px-5 mt-4 space-y-4">
+        {/* Enable/disable toggle */}
+        <button
+          onClick={() => setRanksEnabled(v => !v)}
+          className="w-full flex items-center justify-between bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-3.5"
+        >
+          <div className="text-left">
+            <p className="text-smoke-200 font-semibold text-sm">Programa de rangos</p>
+            <p className="text-smoke-500 text-xs mt-0.5">
+              {ranksEnabled ? 'Activo — visible para tus clientes' : 'Desactivado — no se muestra a los clientes'}
+            </p>
+          </div>
+          <div className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${ranksEnabled ? 'bg-ember-500' : 'bg-carbon-600'}`}>
+            <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${ranksEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+          </div>
+        </button>
+
         <p className="text-smoke-500 text-xs">
           El rango se calcula según el promedio mensual de pedidos de los últimos 3 meses. Personalizá el nombre y premio de cada nivel.
         </p>
 
-        <div className="space-y-4">
+        <div className={`space-y-4 ${!ranksEnabled ? 'opacity-40 pointer-events-none select-none' : ''}`}>
           {rankConfig.map((rank, i) => (
             <div
               key={rank.level}
