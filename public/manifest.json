@@ -1,6 +1,6 @@
 {
-  "name": "Camaut",
-  "short_name": "Camaut",
+  "name": "Capy Camarero",
+  "short_name": "Capy Camarero",
   "description": "La app para camareros",
   "start_url": "/camaut/app",
   "display": "standalone",
