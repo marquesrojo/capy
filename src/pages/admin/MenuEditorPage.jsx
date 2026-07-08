@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice } from '../../lib/utils'
-import { CameraIcon, StarIcon } from '../../components/Icons'
+import { CameraIcon, StarIcon, DIETARY_TAGS } from '../../components/Icons'
 
 const KIND_LABELS = { bebida: 'Bebida', comida: 'Comida', otro: 'Otro' }
 const KIND_COLORS = {
@@ -207,6 +207,7 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
   const [price, setPrice] = useState(String(product.price))
   const [description, setDescription] = useState(product.description || '')
   const [categoryId, setCategoryId] = useState(product.category_id)
+  const [dietaryTags, setDietaryTags] = useState(product.dietary_tags || [])
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -241,6 +242,7 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
       description: description.trim() || null,
       category_id: categoryId,
       image_url: imageUrl,
+      dietary_tags: dietaryTags,
     }
     await supabaseStaff.from('products').update(updates).eq('id', product.id)
     onSave({ ...product, ...updates })
@@ -285,8 +287,28 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
         <select className="input" value={categoryId} onChange={e => setCategoryId(e.target.value)}>
           {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
+        <div>
+          <p className="text-smoke-500 text-[10px] uppercase tracking-wide mb-1.5">Apto para</p>
+          <div className="flex flex-wrap gap-2">
+            {DIETARY_TAGS.map(tag => {
+              const active = dietaryTags.includes(tag.id)
+              return (
+                <button
+                  key={tag.id}
+                  type="button"
+                  onClick={() => setDietaryTags(prev => active ? prev.filter(t => t !== tag.id) : [...prev, tag.id])}
+                  className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                    active ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300' : 'border-carbon-600 text-smoke-500'
+                  }`}
+                >
+                  <tag.Icon size={12} /> {tag.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
         <div className="flex gap-2">
-          <button onClick={() => { setEditing(false); setImageFile(null); setImagePreview(null) }}
+          <button onClick={() => { setEditing(false); setImageFile(null); setImagePreview(null); setDietaryTags(product.dietary_tags || []) }}
             className="flex-1 border border-carbon-700 text-smoke-400 py-2 rounded-xl text-xs">
             Cancelar
           </button>
@@ -315,7 +337,13 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
 
       <div className="min-w-0 flex-1">
         <p className="text-smoke-300 text-sm font-medium truncate">{product.name}</p>
-        <p className="font-mono text-ember-400 text-xs">{formatPrice(product.price)}</p>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <p className="font-mono text-ember-400 text-xs">{formatPrice(product.price)}</p>
+          {(product.dietary_tags || []).map(t => {
+            const tag = DIETARY_TAGS.find(d => d.id === t)
+            return tag ? <span key={t} className="text-[11px]" title={tag.label}>{tag.emoji}</span> : null
+          })}
+        </div>
       </div>
 
       <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -406,6 +434,7 @@ function NewProductForm({ venueId, categories, onClose, onCreated }) {
   const [price, setPrice] = useState('')
   const [categoryId, setCategoryId] = useState(categories[0]?.id || '')
   const [description, setDescription] = useState('')
+  const [dietaryTags, setDietaryTags] = useState([])
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -423,7 +452,7 @@ function NewProductForm({ venueId, categories, onClose, onCreated }) {
     setSaving(true)
     const { data: newProduct } = await supabaseStaff
       .from('products')
-      .insert({ venue_id: venueId, category_id: categoryId, name, description, price: Number(price) })
+      .insert({ venue_id: venueId, category_id: categoryId, name, description, price: Number(price), dietary_tags: dietaryTags })
       .select('id')
       .single()
 
@@ -468,6 +497,26 @@ function NewProductForm({ venueId, categories, onClose, onCreated }) {
           <option key={c.id} value={c.id}>{c.name} ({KIND_LABELS[c.kind] || 'Otro'})</option>
         ))}
       </select>
+      <div>
+        <p className="text-smoke-500 text-[10px] uppercase tracking-wide mb-1.5">Apto para</p>
+        <div className="flex flex-wrap gap-2">
+          {DIETARY_TAGS.map(tag => {
+            const active = dietaryTags.includes(tag.id)
+            return (
+              <button
+                key={tag.id}
+                type="button"
+                onClick={() => setDietaryTags(prev => active ? prev.filter(t => t !== tag.id) : [...prev, tag.id])}
+                className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                  active ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300' : 'border-carbon-600 text-smoke-500'
+                }`}
+              >
+                {tag.emoji} {tag.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
       <div className="flex gap-2">
         <button type="button" onClick={onClose} className="flex-1 border border-carbon-700 text-smoke-400 py-2.5 rounded-xl text-sm">
           Cancelar

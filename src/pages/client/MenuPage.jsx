@@ -6,7 +6,7 @@ import { useCustomer } from '../../hooks/useCustomer'
 import { formatPrice } from '../../lib/utils'
 import BottomNav from '../../components/BottomNav'
 import { useClientBase, useVenueOptional } from '../../hooks/useVenue'
-import { PinIcon, SunIcon, ShoppingBagIcon, ClockIcon, XIcon } from '../../components/Icons'
+import { PinIcon, SunIcon, ShoppingBagIcon, ClockIcon, XIcon, DIETARY_TAGS } from '../../components/Icons'
 
 export default function MenuPage() {
   const [categories, setCategories] = useState([])
@@ -98,6 +98,11 @@ export default function MenuPage() {
   const contentAccentText = lumOf(contentAccent) > 0.179 ? '#1A2332' : '#FFFFFF'
 
   const dailySpecials = products.filter(p => p.is_daily_special && p.is_available)
+
+  const customerDietaryPrefs = customer?.dietary_prefs || []
+  const paraVos = customerDietaryPrefs.length > 0
+    ? products.filter(p => p.is_available && (p.dietary_tags || []).some(t => customerDietaryPrefs.includes(t)))
+    : []
 
   const visibleProducts = activeCategory
     ? products
@@ -229,7 +234,8 @@ export default function MenuPage() {
           ) : searchResults.map(product => (
             <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu}
               qty={items.find(i => i.product.id === product.id)?.quantity || 0}
-              accentBg={contentAccent} accentText={contentAccentText} />
+              accentBg={contentAccent} accentText={contentAccentText}
+              customerPrefs={customerDietaryPrefs} />
           ))}
         </div>
       ) : (
@@ -243,7 +249,24 @@ export default function MenuPage() {
               {dailySpecials.map(product => (
                 <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu}
                   qty={items.find(i => i.product.id === product.id)?.quantity || 0}
-                  accentBg={contentAccent} accentText={contentAccentText} isDaily />
+                  accentBg={contentAccent} accentText={contentAccentText} isDaily
+                  customerPrefs={customerDietaryPrefs} />
+              ))}
+              <div className="border-t border-black/[0.06] mt-3 mb-1" />
+            </div>
+          )}
+          {paraVos.length > 0 && !activeCategory && (
+            <div className="mb-1">
+              <div className="flex items-center gap-2 px-1 mb-2">
+                <span className="text-[11px] font-black uppercase tracking-wider flex items-center gap-1 text-emerald-600">
+                  ✨ Para vos
+                </span>
+              </div>
+              {paraVos.map(product => (
+                <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu}
+                  qty={items.find(i => i.product.id === product.id)?.quantity || 0}
+                  accentBg={contentAccent} accentText={contentAccentText}
+                  customerPrefs={customerDietaryPrefs} />
               ))}
               <div className="border-t border-black/[0.06] mt-3 mb-1" />
             </div>
@@ -251,9 +274,10 @@ export default function MenuPage() {
           {visibleProducts.map(product => (
             <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu}
               qty={items.find(i => i.product.id === product.id)?.quantity || 0}
-              accentBg={contentAccent} accentText={contentAccentText} />
+              accentBg={contentAccent} accentText={contentAccentText}
+              customerPrefs={customerDietaryPrefs} />
           ))}
-          {visibleProducts.length === 0 && dailySpecials.length === 0 && (
+          {visibleProducts.length === 0 && dailySpecials.length === 0 && paraVos.length === 0 && (
             <p className="text-smoke-500 text-sm text-center py-10">Sin productos en esta categoría.</p>
           )}
         </div>
@@ -306,11 +330,13 @@ export default function MenuPage() {
   )
 }
 
-function ProductCard({ product, onAdd, onRemove, qty, accentBg = '#1A3A6B', accentText = '#FFFFFF', isDaily = false }) {
+function ProductCard({ product, onAdd, onRemove, qty, accentBg = '#1A3A6B', accentText = '#FFFFFF', isDaily = false, customerPrefs = [] }) {
+  const tags = (product.dietary_tags || []).map(id => DIETARY_TAGS.find(t => t.id === id)).filter(Boolean)
+  const matchesPrefs = customerPrefs.length > 0 && tags.some(t => customerPrefs.includes(t.id))
   return (
     <div className={`bg-white rounded-xl flex gap-3 transition-colors ${
       product.is_available ? 'shadow-sm' : 'opacity-50'
-    }`} style={{ border: isDaily ? `1.5px solid ${accentBg}40` : '1px solid rgba(0,0,0,0.05)' }}>
+    }`} style={{ border: matchesPrefs ? '1.5px solid #22c55e80' : isDaily ? `1.5px solid ${accentBg}40` : '1px solid rgba(0,0,0,0.05)' }}>
       {product.image_url && (
         <div className="relative flex-shrink-0">
           <img src={product.image_url} alt={product.name} className="w-24 h-24 rounded-l-xl object-cover" />
@@ -335,6 +361,17 @@ function ProductCard({ product, onAdd, onRemove, qty, accentBg = '#1A3A6B', acce
         </div>
         {product.description && (
           <p className="text-smoke-500 text-xs mt-1 line-clamp-3">{product.description}</p>
+        )}
+        {tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1.5">
+            {tags.map(tag => (
+              <span key={tag.id} className={`inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+                customerPrefs.includes(tag.id) ? 'bg-emerald-50 text-emerald-600' : 'bg-[#F0F4F8] text-smoke-500'
+              }`}>
+                <tag.Icon size={9} /> {tag.label}
+              </span>
+            ))}
+          </div>
         )}
         <div className="mt-2.5">
           {!product.is_available ? (

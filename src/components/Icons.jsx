@@ -351,6 +351,51 @@ export const RANK_COLORS = {
   4: '#E15C23',
 }
 
+// ── Dietary tag icons ────────────────────────────────────────────────────────
+function DietLeaf({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2C8 7 5 11 5 15a7 7 0 0014 0c0-4-3-8-7-13z"/>
+      <path d="M12 22v-6"/>
+    </svg>
+  )
+}
+function DietSprout({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22V11"/>
+      <path d="M12 11C12 7 8 5 5 6c0 3 3 6 7 5"/>
+      <path d="M12 11C12 7 16 5 19 6c0 3-3 6-7 5"/>
+    </svg>
+  )
+}
+function DietGrainOff({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 4v13"/>
+      <path d="M9 7l3-1.5L15 7"/>
+      <path d="M9 11l3-1.5L15 11"/>
+      <path d="M9 15l2-1"/>
+      <path d="M4 20L20 4"/>
+    </svg>
+  )
+}
+function DietMilkOff({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2L7.5 10a6 6 0 1 0 9 0L12 2z"/>
+      <path d="M8.5 15.5l7-7"/>
+    </svg>
+  )
+}
+
+export const DIETARY_TAGS = [
+  { id: 'vegano',      label: 'Vegano',      Icon: DietLeaf },
+  { id: 'vegetariano', label: 'Vegetariano', Icon: DietSprout },
+  { id: 'sin_tacc',    label: 'Sin TACC',    Icon: DietGrainOff },
+  { id: 'sin_lactosa', label: 'Sin lactosa', Icon: DietMilkOff },
+]
+
 export const DEFAULT_RANKS = [
   { level: 1, name: 'Cliente Inicial', min_orders: 0, prize: null },
   { level: 2, name: 'Foodie Recurrente', min_orders: 3, prize: null },

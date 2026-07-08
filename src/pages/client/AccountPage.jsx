@@ -5,7 +5,7 @@ import { useClientBase, useVenueOptional } from '../../hooks/useVenue'
 import { useCart } from '../../hooks/useCart'
 import { supabaseCustomer } from '../../lib/supabase'
 import BottomNav from '../../components/BottomNav'
-import { MedalIcon, RankIcon, RANK_COLORS, DEFAULT_RANKS } from '../../components/Icons'
+import { MedalIcon, RankIcon, RANK_COLORS, DEFAULT_RANKS, DIETARY_TAGS } from '../../components/Icons'
 
 const CONDICIONES_IVA = ['Consumidor Final', 'Responsable Inscripto', 'Monotributista', 'Exento']
 
@@ -55,6 +55,9 @@ export default function AccountPage() {
   const [billingSaving, setBillingSaving] = useState(false)
   const [billingError, setBillingError] = useState('')
   const [billingSaved, setBillingSaved] = useState(false)
+
+  // Dietary preferences
+  const [dietaryPrefs, setDietaryPrefs] = useState([])
 
   // Load top 3 most ordered products
   useEffect(() => {
@@ -144,13 +147,14 @@ export default function AccountPage() {
     loadRank()
   }, [customer?.id, venueId])
 
-  // Pre-fill billing from customer data
+  // Pre-fill billing and dietary prefs from customer data
   useEffect(() => {
     if (customer) {
       setRazonSocial(customer.razon_social || '')
       setCuitDni(customer.cuit_dni || '')
       setCondicionIva(customer.condicion_iva || '')
       setEmailFacturacion(customer.email_facturacion || '')
+      setDietaryPrefs(customer.dietary_prefs || [])
     }
   }, [customer])
 
@@ -179,6 +183,18 @@ export default function AccountPage() {
     if (error) { setBillingError(error.message); return }
     setBillingSaved(true)
     setTimeout(() => setBillingSaved(false), 3000)
+  }
+
+  async function toggleDietaryPref(tagId) {
+    const next = dietaryPrefs.includes(tagId)
+      ? dietaryPrefs.filter(t => t !== tagId)
+      : [...dietaryPrefs, tagId]
+    setDietaryPrefs(next)
+    const { data: sessionData } = await supabaseCustomer.auth.getSession()
+    const userId = sessionData.session?.user?.id
+    if (userId) {
+      await supabaseCustomer.from('customers').update({ dietary_prefs: next }).eq('id', userId)
+    }
   }
 
   function handleQuickAdd(item) {
@@ -428,6 +444,32 @@ export default function AccountPage() {
               ))}
             </div>
             <p className="text-smoke-600 text-[10px] mt-3">Agregá directo al carrito desde acá</p>
+          </div>
+        )}
+
+        {/* Preferencias alimentarias */}
+        {customer && (
+          <div className="bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-4">
+            <p className="text-smoke-200 font-semibold text-sm mb-1">Mis preferencias</p>
+            <p className="text-smoke-500 text-xs mb-3">Activá las que apliquen y te destacaremos los platos compatibles en la carta.</p>
+            <div className="flex flex-wrap gap-2">
+              {DIETARY_TAGS.map(tag => {
+                const active = dietaryPrefs.includes(tag.id)
+                return (
+                  <button
+                    key={tag.id}
+                    onClick={() => toggleDietaryPref(tag.id)}
+                    className={`flex items-center gap-1.5 text-sm px-3 py-2 rounded-full border transition-colors ${
+                      active
+                        ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300'
+                        : 'border-carbon-600 text-smoke-400'
+                    }`}
+                  >
+                    <tag.Icon size={14} /> {tag.label}
+                  </button>
+                )
+              })}
+            </div>
           </div>
         )}
 
