@@ -43,6 +43,7 @@ export default function IdentifyPage() {
   const { customer, isAnonymous, loginWithGoogle } = useCustomer()
   const [googleError, setGoogleError] = useState('')
 
+  const [instagramHandle, setInstagramHandle] = useState('')
   const [orderNumber, setOrderNumber] = useState('')
   const [finding, setFinding] = useState(false)
   const [orderError, setOrderError] = useState('')
@@ -102,6 +103,14 @@ export default function IdentifyPage() {
         .order('name')
         .then(({ data }) => setZones(data || []))
     }
+
+    supabaseCustomer
+      .from('venues')
+      .select('instagram_handle')
+      .eq('id', venueId)
+      .single()
+      .then(({ data }) => { if (data?.instagram_handle) setInstagramHandle(data.instagram_handle) })
+      .catch(() => {})
   }, [venueId])
 
   function pickSector(sector) {
@@ -467,9 +476,9 @@ export default function IdentifyPage() {
 
       {/* ── Footer ── */}
       <div className="mt-8 text-center space-y-3">
-        {venue?.instagram_handle && (
+        {instagramHandle && (
           <a
-            href={`https://instagram.com/${venue.instagram_handle}`}
+            href={`https://instagram.com/${instagramHandle}`}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-black/[0.08] bg-white shadow-sm text-sm font-semibold text-[#1A2332] hover:bg-[#F0F4F8] transition-colors"
@@ -488,7 +497,7 @@ export default function IdentifyPage() {
                 </linearGradient>
               </defs>
             </svg>
-            @{venue.instagram_handle}
+            @{instagramHandle}
           </a>
         )}
         <div>
