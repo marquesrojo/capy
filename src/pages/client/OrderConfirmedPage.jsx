@@ -130,7 +130,7 @@ export default function OrderConfirmedPage() {
               <p className="text-smoke-300 text-sm font-semibold mb-0.5">Guardá tu historial</p>
               <p className="text-smoke-500 text-xs mb-3">Con Google podés ver tus pedidos desde cualquier dispositivo.</p>
               <button
-                onClick={async () => { const r = await signInWithGoogle(base || '/identificacion'); if (r?.error) setGoogleError(r.error.message) }}
+                onClick={async () => { const r = await signInWithGoogle(`${base}/pedidos` || '/pedidos'); if (r?.error) setGoogleError(r.error.message) }}
                 className="flex items-center gap-2.5 bg-white text-[#1A2332] font-semibold text-sm px-4 py-2.5 rounded-xl"
               >
                 <GoogleIcon />
@@ -182,7 +182,7 @@ export default function OrderConfirmedPage() {
             <p className="text-smoke-300 text-sm font-semibold mb-0.5">Guardá tu historial</p>
             <p className="text-smoke-500 text-xs mb-3">Con Google podés ver tus pedidos desde cualquier dispositivo.</p>
             <button
-              onClick={async () => { const r = await signInWithGoogle(base || '/identificacion'); if (r?.error) setGoogleError(r.error.message) }}
+              onClick={async () => { const r = await signInWithGoogle(`${base}/pedidos` || '/pedidos'); if (r?.error) setGoogleError(r.error.message) }}
               className="flex items-center gap-2.5 bg-white text-[#1A2332] font-semibold text-sm px-4 py-2.5 rounded-xl"
             >
               <GoogleIcon />
