@@ -13,7 +13,7 @@ import { useClientBase } from '../../hooks/useVenue'
 
 export default function PaymentPage() {
   const { items, subtotal, location, updateQuantity, clearCart, itemCount, sessionId, setSessionId } = useCart()
-  const { customer } = useCustomer()
+  const { customer, loading: customerLoading } = useCustomer()
   const navigate = useNavigate()
   const base = useClientBase()
   const [submitting, setSubmitting] = useState(false)
@@ -27,8 +27,11 @@ export default function PaymentPage() {
   useEffect(() => {
     if (itemCount === 0) navigate(`${base}/carta`)
     if (!location) navigate(`${base}/ubicacion`)
-    if (!customer) navigate(base || '/identificacion')
-  }, [itemCount, location, customer, navigate])
+  }, [itemCount, location, navigate])
+
+  useEffect(() => {
+    if (!customerLoading && !customer) navigate(base || '/identificacion')
+  }, [customerLoading, customer, navigate])
 
   useEffect(() => {
     async function loadData() {
