@@ -460,12 +460,12 @@ export default function IdentifyPage() {
           </div>
         ) : customer ? (
           <button
-            onClick={() => navigate(`${base}/pedidos`)}
+            onClick={() => navigate(`${base}/cuenta`)}
             className="w-full flex items-center justify-between bg-white border border-black/[0.06] rounded-2xl px-4 py-3 shadow-sm"
           >
             <div className="text-left">
               <p className="text-[#1A2332] font-semibold text-sm">{customer.full_name}</p>
-              <p className="text-[#9DAAB8] text-xs">Ver mis pedidos →</p>
+              <p className="text-[#9DAAB8] text-xs">Mi cuenta →</p>
             </div>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9DAAB8" strokeWidth="2.5">
               <polyline points="9 18 15 12 9 6"/>
