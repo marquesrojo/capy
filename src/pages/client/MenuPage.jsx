@@ -159,13 +159,13 @@ export default function MenuPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowCategorySheet(true)}
-            className="flex-shrink-0 flex flex-col items-center justify-center gap-0.5 w-9 h-9 rounded-xl text-[9px] font-bold leading-none"
+            className="flex-shrink-0 flex items-center justify-center gap-1.5 h-9 w-[88px] rounded-xl text-[10px] font-bold leading-none"
             style={{ backgroundColor: `${accentText}20`, color: accentText }}
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
               <line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="9" y1="18" x2="15" y2="18"/>
             </svg>
-            {(categories.find(c => c.id === activeCategory)?.name || 'VER').slice(0, 5).toUpperCase()}
+            <span className="truncate">{(categories.find(c => c.id === activeCategory)?.name || 'Categoría').slice(0, 8)}</span>
           </button>
           <div className="relative flex-1">
             <input
