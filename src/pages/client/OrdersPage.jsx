@@ -4,6 +4,7 @@ import { supabaseCustomer } from '../../lib/supabase'
 import { useCustomer } from '../../hooks/useCustomer'
 import { formatPrice, STATUS_LABELS, STATUS_COLORS } from '../../lib/utils'
 import BottomNav from '../../components/BottomNav'
+import { PinIcon } from '../../components/Icons'
 
 const ACTIVE_STATUSES = ['pendiente_aprobacion', 'pendiente_pago', 'recibido', 'en_preparacion', 'listo']
 const CLOSED_STATUSES = ['entregado', 'cancelado']
@@ -106,7 +107,7 @@ function OrderRow({ order, onClick }) {
             {STATUS_LABELS[order.status]}
           </span>
         </div>
-        <p className="text-smoke-300 text-sm font-medium">📍 {order.location_label}</p>
+        <p className="text-smoke-300 text-sm font-medium flex items-center gap-1"><PinIcon size={14} /> {order.location_label}</p>
         <p className="text-smoke-500 text-xs mt-0.5">{dateLabel} · {timeLabel}</p>
       </div>
       <span className="font-mono text-ember-400 text-sm whitespace-nowrap ml-3">

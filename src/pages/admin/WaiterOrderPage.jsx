@@ -3,6 +3,7 @@ import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice } from '../../lib/utils'
 import FloorPlanViewer from '../../components/FloorPlanViewer'
+import { ChefHatIcon, CheckCircleIcon, FileTextIcon } from '../../components/Icons'
 
 // Pantalla de toma de pedido para camareros.
 // - Si el perfil es "cuenta compartida" (is_shared_account = true), pide
@@ -210,7 +211,9 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
 
     return (
       <div className="px-5 py-10 text-center">
-        <p className="text-3xl mb-3">✅</p>
+        <div className="w-12 h-12 mx-auto mb-3 flex items-center justify-center">
+          <CheckCircleIcon size={40} className="text-[#008080]" />
+        </div>
         <p className="text-[#1A2A3A] font-semibold text-lg mb-1">¡Pedido enviado a cocina!</p>
         {lastOrder?.order?.daily_number && (
           <div className="my-4 bg-white border border-black/10 rounded-2xl py-4 px-6 inline-block">
@@ -297,7 +300,7 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
       {/* Header con camarero seleccionado y ubicación */}
       <div className="px-4 pt-3 pb-2 border-b border-black/10 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-[#8896A5] text-xs">🧑‍🍳</span>
+          <ChefHatIcon size={14} className="text-[#8896A5]" />
           <span className="text-[#3A4A5A] text-xs font-medium">{selectedStaff?.full_name || 'Sin asignar'}</span>
           {profile?.is_shared_account && (
             <button
@@ -317,7 +320,7 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
             }}
             className="input text-xs py-1 max-w-[120px]"
           >
-            <option value="">📍 Elegir mesa...</option>
+            <option value="">Elegir mesa...</option>
             {zones.map(z => (
               <option key={z.id} value={z.id}>{z.name}</option>
             ))}
@@ -391,9 +394,9 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
                     </button>
                     <button
                       onClick={() => setActiveNoteProduct(isNoteOpen ? null : product.id)}
-                      className="w-8 h-8 border border-black/10 text-[#8896A5] rounded-full text-xs flex items-center justify-center"
+                      className="w-8 h-8 border border-black/10 text-[#8896A5] rounded-full flex items-center justify-center"
                     >
-                      📝
+                      <FileTextIcon size={14} />
                     </button>
                   </div>
                 )}

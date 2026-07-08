@@ -4,6 +4,7 @@ import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice, STATUS_LABELS, STATUS_COLORS } from '../../lib/utils'
 import FloorPlanViewer from '../../components/FloorPlanViewer'
+import { UtensilsIcon, UsersIcon, PinIcon, PhoneIcon, FileTextIcon, ChefHatIcon, BellIcon, CreditCardIcon, ClockIcon } from '../../components/Icons'
 
 const BOARD_COLUMNS = ['recibido', 'en_preparacion', 'entregado']
 const PROOF_BUCKET = 'payment-proofs'
@@ -463,7 +464,7 @@ function AdminDashboardInner() {
         <div className="px-4 pt-4 space-y-2">
           {!hasProducts && (
             <OnboardingAlert
-              icon="🍽️"
+              Icon={UtensilsIcon}
               title="Agregá productos a tu carta"
               description="Sin productos, los clientes no pueden hacer pedidos."
               linkTo="/admin/carta"
@@ -472,7 +473,7 @@ function AdminDashboardInner() {
           )}
           {!hasStaff && (
             <OnboardingAlert
-              icon="👥"
+              Icon={UsersIcon}
               title="Agregá al menos un camarero"
               description="Los camareros reciben y entregan los pedidos en mesa."
               linkTo="/admin/camareros"
@@ -481,7 +482,7 @@ function AdminDashboardInner() {
           )}
           {!hasLocations && (
             <OnboardingAlert
-              icon="📍"
+              Icon={PinIcon}
               title="Configurá las ubicaciones del local"
               description="Sin ubicaciones, los clientes no pueden indicar dónde están."
               linkTo="/admin/ubicaciones"
@@ -490,7 +491,7 @@ function AdminDashboardInner() {
           )}
           {!hasCamautStaff && (
             <OnboardingAlert
-              icon="📲"
+              Icon={PhoneIcon}
               title="Vinculá el camaut con tu local"
               description="Los camareros instalan el camaut y escanean el QR de este panel para empezar a operar."
               linkTo="/admin/qr"
@@ -741,8 +742,8 @@ function CocinaView({ orders, categories, onUpdateStatus, onRefresh }) {
 
               {/* Notas generales */}
               {order.notes && (
-                <p className="text-amber-600 text-xs italic mb-2 border-l-2 border-amber-500/40 pl-2">
-                  📝 {order.notes}
+                <p className="text-amber-600 text-xs italic mb-2 border-l-2 border-amber-500/40 pl-2 flex items-center gap-1">
+                  <FileTextIcon size={12} /> {order.notes}
                 </p>
               )}
 
@@ -769,7 +770,7 @@ function CocinaView({ orders, categories, onUpdateStatus, onRefresh }) {
                   </div>
                 </div>
               ) : (
-                <p className="text-smoke-500 text-[10px] mb-2">⏱ {order.prep_time_minutes} min estimados</p>
+                <p className="text-smoke-500 text-[10px] mb-2 flex items-center gap-0.5"><ClockIcon size={11} /> {order.prep_time_minutes} min estimados</p>
               )}
 
               {/* Botón Listo */}
@@ -839,7 +840,7 @@ function SalonView({ orders, zones, venueId }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {Object.entries(grouped).map(([location, locationOrders]) => (
             <div key={location} className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4">
-              <p className="text-smoke-300 font-medium text-sm mb-3">📍 {location}</p>
+              <p className="text-smoke-300 font-medium text-sm mb-3 flex items-center gap-1"><PinIcon size={14} /> {location}</p>
               <div className="space-y-2">
                 {locationOrders.map(order => (
                   <SalonOrderRow key={order.id} order={order} />
@@ -890,9 +891,9 @@ const METHOD_ALERT_TEXT = {
 }
 
 const METHOD_ALERT_LABELS = {
-  efectivo: '💵 Pidió la cuenta — cobrar en efectivo',
-  tarjeta: '💳 Pidió la cuenta — cobrar con posnet/QR',
-  transferencia: '🧾 Comprobante por revisar'
+  efectivo: 'Pidió la cuenta — cobrar en efectivo',
+  tarjeta: 'Pidió la cuenta — cobrar con posnet/QR',
+  transferencia: 'Comprobante por revisar'
 }
 
 function SalonOrderRow({ order }) {
@@ -913,7 +914,7 @@ function SalonOrderRow({ order }) {
       </div>
       {isAlert && (
         <p className={`text-xs font-semibold mt-1 ${METHOD_ALERT_TEXT[normalizePaymentMethod(order.payment_method)]}`}>
-          {METHOD_ALERT_LABELS[normalizePaymentMethod(order.payment_method)] || '🧾 Pidió la cuenta'}
+          {METHOD_ALERT_LABELS[normalizePaymentMethod(order.payment_method)] || 'Pidió la cuenta'}
         </p>
       )}
       {order.payment_status === 'cuenta_solicitada' &&
@@ -924,7 +925,7 @@ function SalonOrderRow({ order }) {
           </p>
         )}
       {order.assigned_staff?.full_name && (
-        <p className="text-smoke-500 text-xs mt-1">🧑‍🍳 {order.assigned_staff.full_name}</p>
+        <p className="text-smoke-500 text-xs mt-1 flex items-center gap-1"><ChefHatIcon size={12} /> {order.assigned_staff.full_name}</p>
       )}
     </div>
   )
@@ -999,8 +1000,8 @@ function WaiterSelect({ order, waiters, onAssign }) {
   if (!isLocalWaiter) {
     return (
       <div className="flex items-center gap-2">
-        <span className="text-xs text-smoke-300 bg-carbon-800 border border-carbon-700 rounded-full px-2.5 py-1">
-          🧑‍🍳 {order.assigned_staff?.full_name || 'Camarero asignado'}
+        <span className="text-xs text-smoke-300 bg-carbon-800 border border-carbon-700 rounded-full px-2.5 py-1 flex items-center gap-1">
+          <ChefHatIcon size={12} /> {order.assigned_staff?.full_name || 'Camarero asignado'}
         </span>
         <button
           onClick={e => { e.stopPropagation(); onAssign(order.id, null) }}
@@ -1064,7 +1065,7 @@ function ProofCard({ order, proofUrl, onConfirm, onReject }) {
         <span className="font-mono text-smoke-300 text-xs">{formatPrice(order.total)}</span>
       </div>
       <CustomerContact customer={order.customers} />
-      <p className="text-smoke-300 text-xs mb-2">📍 {order.location_label}</p>
+      <p className="text-smoke-300 text-xs mb-2 flex items-center gap-1"><PinIcon size={12} /> {order.location_label}</p>
 
       {proofUrl ? (
         <button onClick={() => setExpanded(true)} className="block w-full">
@@ -1120,7 +1121,7 @@ function InPersonCard({ order, waiters, onConfirm, onAssignWaiter, compact }) {
           </span>
           <span className="text-smoke-500 text-xs">{elapsedMin}m</span>
         </div>
-        <p className="text-smoke-400 text-xs mb-1">📍 {order.location_label}</p>
+        <p className="text-smoke-400 text-xs mb-1 flex items-center gap-1"><PinIcon size={12} /> {order.location_label}</p>
         <p className="text-smoke-400 text-xs mb-2">{methodLabel}</p>
         {normalizePaymentMethod(order.payment_method) === 'efectivo' && order.cash_amount && (
           <p className="text-emerald-700 text-xs mb-2">
@@ -1147,11 +1148,11 @@ function InPersonCard({ order, waiters, onConfirm, onAssignWaiter, compact }) {
         <span className="text-smoke-500 text-xs">{elapsedMin} min</span>
       </div>
       <CustomerContact customer={order.customers} />
-      <p className="text-smoke-300 text-sm font-medium mb-1">📍 {order.location_label}</p>
-      <p className="text-smoke-400 text-xs mb-2">💳 Paga con {methodLabel}</p>
+      <p className="text-smoke-300 text-sm font-medium mb-1 flex items-center gap-1"><PinIcon size={14} /> {order.location_label}</p>
+      <p className="text-smoke-400 text-xs mb-2 flex items-center gap-1"><CreditCardIcon size={12} /> Paga con {methodLabel}</p>
       {normalizePaymentMethod(order.payment_method) === 'efectivo' && order.cash_amount && (
-        <p className="text-emerald-700 text-xs mb-2">
-          💵 Paga con {formatPrice(order.cash_amount)} · vuelto {formatPrice(order.cash_amount - order.total)}
+        <p className="text-emerald-700 text-xs mb-2 flex items-center gap-1">
+          <CreditCardIcon size={12} /> Paga con {formatPrice(order.cash_amount)} · vuelto {formatPrice(order.cash_amount - order.total)}
         </p>
       )}
 
@@ -1254,7 +1255,7 @@ function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssi
                       {(order.payment_method || '').toLowerCase().includes('mercado') ? 'Mercado Pago' : order.payment_method}
                     </span>
                   </div>
-                  <p className="text-smoke-400 text-xs">📍 {order.location_label}</p>
+                  <p className="text-smoke-400 text-xs flex items-center gap-1"><PinIcon size={12} /> {order.location_label}</p>
                   <p className="font-mono text-smoke-300 text-sm mt-1">{formatPrice(order.total)}</p>
                 </div>
               ))}
@@ -1304,7 +1305,7 @@ function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCal
       )}
       {order.status === 'pendiente_aprobacion' && (
         <div className="flex items-center gap-1.5 mb-2 bg-amber-500/10 border border-amber-500/30 rounded-lg px-2.5 py-1.5">
-          <span className="text-amber-500 text-xs font-semibold">⏳ Pendiente de aprobar</span>
+          <span className="text-amber-500 text-xs font-semibold flex items-center gap-1"><ClockIcon size={12} /> Pendiente de aprobar</span>
         </div>
       )}
       <div className="flex items-center justify-between mb-2">
@@ -1318,7 +1319,7 @@ function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCal
 
       {order.created_by_staff ? (
         <div className="flex items-center gap-2 mb-2 bg-carbon-800 rounded-lg px-2.5 py-1.5">
-          <span className="text-smoke-400 text-xs">🧑‍🍳</span>
+          <ChefHatIcon size={13} className="text-smoke-400" />
           <span className="text-smoke-300 text-xs font-medium">
             Tomado por {order.assigned_staff?.full_name || 'camarero'}
           </span>
@@ -1329,7 +1330,7 @@ function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCal
 
       {order.waiter_called_at && (
         <div className="flex items-center justify-between mb-2 bg-amber-500/10 border border-amber-500/40 rounded-lg px-2.5 py-1.5">
-          <span className="text-amber-700 text-xs font-semibold">🔔 Te están llamando</span>
+          <span className="text-amber-700 text-xs font-semibold flex items-center gap-1"><BellIcon size={12} /> Te están llamando</span>
           <button
             onClick={() => onDismissCall(order.id)}
             className="text-smoke-500 text-[10px] underline"
@@ -1339,7 +1340,7 @@ function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCal
         </div>
       )}
 
-      <p className="text-smoke-300 text-sm font-medium mb-2">📍 {order.location_label}</p>
+      <p className="text-smoke-300 text-sm font-medium mb-2 flex items-center gap-1"><PinIcon size={14} /> {order.location_label}</p>
 
       {/* Selector de camarero expandible */}
       <div className="mb-2">
@@ -1428,7 +1429,7 @@ function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCal
             <p className="font-bold text-smoke-200 text-lg mb-1">
               #{order.daily_number || order.id.slice(0, 6)}
             </p>
-            <p className="text-smoke-500 text-xs mb-4">📍 {order.location_label}</p>
+            <p className="text-smoke-500 text-xs mb-4 flex items-center justify-center gap-1"><PinIcon size={12} /> {order.location_label}</p>
             <KanbanQRCode orderId={order.id} />
             <p className="text-smoke-500 text-xs mt-3">El cliente escanea y sigue su pedido</p>
             <button
@@ -1444,11 +1445,11 @@ function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCal
   )
 }
 
-function OnboardingAlert({ icon, title, description, linkTo, linkLabel }) {
+function OnboardingAlert({ Icon, title, description, linkTo, linkLabel }) {
   return (
     <div className="bg-amber-500/10 border border-amber-500/40 rounded-2xl p-4 flex items-center justify-between gap-3">
       <div className="flex items-start gap-3">
-        <span className="text-xl flex-shrink-0">{icon}</span>
+        <span className="flex-shrink-0 text-amber-700"><Icon size={20} /></span>
         <div>
           <p className="text-amber-700 font-semibold text-sm">{title}</p>
           <p className="text-smoke-500 text-xs mt-0.5">{description}</p>

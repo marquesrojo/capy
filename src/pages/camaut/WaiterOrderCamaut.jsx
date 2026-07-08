@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import QRCode from 'qrcode'
 import { supabaseStaff } from '../../lib/supabase'
+import { PinIcon } from '../../components/Icons'
 import { formatPrice } from '../../lib/utils'
 import { awardXP } from '../../lib/xpUtils'
 import FloorPlanViewer from '../../components/FloorPlanViewer'
@@ -215,8 +216,8 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
           </svg>
         </div>
         <p className="font-bold text-[#1A2A3A] text-xl mb-0.5">¡Pedido enviado!</p>
-        <p className="text-[#8896A5] text-sm mb-0.5">
-          #{lastOrder.order?.daily_number} · 📍 {lastOrder.location}
+        <p className="text-[#8896A5] text-sm mb-0.5 flex items-center gap-1">
+          #{lastOrder.order?.daily_number} · <PinIcon size={11} /> {lastOrder.location}
         </p>
         <p className="font-mono font-bold text-[#008080] text-lg mb-5">{formatPrice(lastOrder.total)}</p>
 
@@ -421,7 +422,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
           {/* Resumen */}
           <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
             <div className="flex justify-between text-sm">
-              <span className="text-[#8896A5]">📍 {locationLabel}</span>
+              <span className="text-[#8896A5] flex items-center gap-1"><PinIcon size={11} /> {locationLabel}</span>
               <span className="font-mono font-bold text-[#008080]">{formatPrice(total)}</span>
             </div>
           </div>
@@ -531,7 +532,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
                 className="w-full flex items-center justify-between bg-white border border-black/10 rounded-xl px-4 py-3 text-sm mb-2"
               >
                 <span className={`font-semibold ${selectedZone ? 'text-[#008080]' : 'text-[#3A4A5A]'}`}>
-                  {selectedZone ? `📍 ${selectedZone.name}` : 'Seleccionar mesa'}
+                  {selectedZone ? <><PinIcon size={11} /> {selectedZone.name}</> : 'Seleccionar mesa'}
                 </span>
                 <span className="text-[#8896A5] text-xs">{showMap ? 'Ocultar ↑' : 'Ver mapa ↓'}</span>
               </button>
@@ -886,7 +887,7 @@ function CartaVacia({ venueId, onProductsCreated }) {
           </svg>
         </div>
         <p className="font-bold text-[#1A2A3A] text-xl mb-1">¡Pedido enviado!</p>
-        <p className="text-[#8896A5] text-sm mb-1">#{lastOrder.order?.daily_number} · 📍 {lastOrder.location}</p>
+        <p className="text-[#8896A5] text-sm mb-1 flex items-center gap-1">#{lastOrder.order?.daily_number} · <PinIcon size={11} /> {lastOrder.location}</p>
         <p className="font-mono font-bold text-[#008080] text-lg mb-2">{formatPrice(lastOrder.total)}</p>
         <p className="text-[#8896A5] text-xs mb-6">Los productos quedaron guardados en tu carta.</p>
         <button

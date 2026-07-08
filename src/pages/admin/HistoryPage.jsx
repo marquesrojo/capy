@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice, STATUS_LABELS, STATUS_COLORS, PAYMENT_STATUS_LABELS } from '../../lib/utils'
+import { PinIcon } from '../../components/Icons'
 
 export default function HistoryPage() {
   const { profile, venueId } = useAuth()
@@ -141,7 +142,7 @@ export default function HistoryPage() {
                   {order.customers?.full_name && (
                     <span className="text-smoke-300">{order.customers.full_name} · </span>
                   )}
-                  📍 {order.location_label} · {new Date(order.created_at).toLocaleString('es-AR')}
+                  <PinIcon size={12} className="inline-block align-middle mr-0.5" /> {order.location_label} · {new Date(order.created_at).toLocaleString('es-AR')}
                 </p>
               </div>
               <span className="font-mono text-smoke-300 text-sm">{formatPrice(order.total)}</span>

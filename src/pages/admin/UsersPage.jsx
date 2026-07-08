@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabaseStaff } from '../../lib/supabase'
+import { UsersIcon } from '../../components/Icons'
 
 const ROLE_LABELS = { admin: 'Administrador', camarero: 'Camarero' }
 
@@ -236,7 +237,7 @@ function UserRow({ user, onUpdated }) {
         <p className="text-smoke-300 text-sm font-medium">{user.full_name}</p>
         <p className="text-smoke-500 text-xs mt-0.5">{new Date(user.created_at).toLocaleDateString('es-AR')}</p>
         {user.is_shared_account && (
-          <p className="text-blue-700 text-[10px] mt-0.5">👥 Cuenta compartida (toma de pedido)</p>
+          <p className="text-blue-700 text-[10px] mt-0.5 flex items-center gap-1"><UsersIcon size={11} /> Cuenta compartida (toma de pedido)</p>
         )}
       </div>
       <div className="flex items-center gap-3">

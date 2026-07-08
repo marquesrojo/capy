@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabaseCustomer, ACTIVE_VENUE_ID } from '../lib/supabase'
 import { formatPrice, accentColor } from '../lib/utils'
+import { PaperclipIcon } from './Icons'
 
 const MAX_PROOF_SIZE_MB = 8
 
@@ -334,7 +335,7 @@ function UploadProof({ order, onUpdated }) {
 
       {!proofPreview ? (
         <label className="flex items-center justify-center gap-2 border border-dashed border-carbon-600 rounded-xl py-6 text-smoke-400 text-sm cursor-pointer">
-          <span>📎 Adjuntar foto del comprobante</span>
+          <span className="flex items-center gap-1.5"><PaperclipIcon size={15} /> Adjuntar foto del comprobante</span>
           <input type="file" accept="image/*" onChange={handleProofChange} className="hidden" />
         </label>
       ) : (

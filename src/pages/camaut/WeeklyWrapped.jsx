@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import QRCode from 'qrcode'
 import html2canvas from 'html2canvas'
 import { supabaseStaff } from '../../lib/supabase'
+import { StarIcon, PhoneIcon, ClockIcon } from '../../components/Icons'
 import { getWeeklyWrappedData } from '../../lib/weeklyWrapped'
 
 const DURATION = 6000
@@ -228,7 +229,7 @@ function RatingsCard({ data }) {
           <p className="wpop font-black leading-none" style={{ fontSize: 'clamp(4.5rem,22vw,8rem)' }}>
             {ratings.fiveStarPct}%
           </p>
-          <p className="wup2 text-white/80 text-lg font-semibold">cinco estrellas ⭐</p>
+          <p className="wup2 text-white/80 text-lg font-semibold flex items-center gap-1.5">cinco estrellas <StarIcon size={16} /></p>
           <p className="wup2 text-white/50 text-sm">{ratings.total} {ratings.total === 1 ? 'opinión' : 'opiniones'} este período</p>
           {ratings.bestComment && (
             <div className="wup3 bg-white/15 rounded-2xl px-5 py-4 mt-2 max-w-xs mx-auto">
@@ -299,7 +300,7 @@ function SummaryCard({ data, qrUrl, staffName, staffAvatarUrl, venueNames }) {
         {ratings.total > 0 ? (
           <div className="bg-white/15 backdrop-blur-sm rounded-2xl px-4 py-3 text-left">
             <p className="text-white font-black leading-none" style={{ fontSize: 'clamp(1.8rem,9vw,2.8rem)' }}>{ratings.fiveStarPct}%</p>
-            <p className="text-white/55 text-xs mt-1">cinco ⭐</p>
+            <p className="text-white/55 text-xs mt-1 flex items-center gap-1">cinco <StarIcon size={10} /></p>
           </div>
         ) : (
           <div className="bg-white/15 backdrop-blur-sm rounded-2xl px-4 py-3 text-left">
@@ -344,7 +345,7 @@ function ShareCard({ qrUrl, profileUrl, onExport, ready }) {
           disabled={!ready}
           className="w-full bg-white text-teal-900 font-bold py-4 rounded-2xl text-base active:scale-95 transition-transform disabled:opacity-40"
         >
-          {ready ? '📲 Compartir / Guardar' : '⏳'}
+          {ready ? <span className="flex items-center justify-center gap-2"><PhoneIcon size={16} /> Compartir / Guardar</span> : <ClockIcon size={20} />}
         </button>
       </div>
     </div>

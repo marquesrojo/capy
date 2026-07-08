@@ -2,15 +2,17 @@ import { useEffect, useRef, useState } from 'react'
 import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice, STATUS_LABELS } from '../../lib/utils'
+import { ClockIcon, InboxIcon, ChefHatIcon, CheckCircleIcon, PinIcon, BellIcon } from '../../components/Icons'
 
 const ACTIVE_STATUSES = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo']
 const EDITABLE_STATUSES = ['recibido', 'en_preparacion']
 
-const STATUS_EMOJI = {
-  pendiente_aprobacion: '⏳',
-  recibido: '📥',
-  en_preparacion: '👨‍🍳',
-  listo: '✅'
+function StatusIcon({ status, size = 14 }) {
+  if (status === 'pendiente_aprobacion') return <ClockIcon size={size} className="text-amber-500" />
+  if (status === 'recibido') return <InboxIcon size={size} className="text-blue-500" />
+  if (status === 'en_preparacion') return <ChefHatIcon size={size} className="text-[#008080]" />
+  if (status === 'listo') return <CheckCircleIcon size={size} className="text-emerald-500" />
+  return null
 }
 
 export default function WaiterTrackingPage({ venueId: propVenueId }) {
@@ -142,7 +144,7 @@ export default function WaiterTrackingPage({ venueId: propVenueId }) {
             <p className="font-bold text-[#1A2A3A] text-lg mb-1">
               #{qrOrder.daily_number || qrOrder.id.slice(0, 6)}
             </p>
-            <p className="text-[#8896A5] text-xs mb-4">📍 {qrOrder.location_label}</p>
+            <p className="text-[#8896A5] text-xs mb-4 flex items-center justify-center gap-1"><PinIcon size={12} /> {qrOrder.location_label}</p>
             <OrderQRCode orderId={qrOrder.id} />
             <p className="text-[#8896A5] text-xs mt-3">El cliente escanea y sigue su pedido</p>
             <button
@@ -157,7 +159,7 @@ export default function WaiterTrackingPage({ venueId: propVenueId }) {
       {Object.entries(grouped).map(([status, items]) => (
         <div key={status}>
           <div className="flex items-center gap-2 mb-2">
-            <span>{STATUS_EMOJI[status]}</span>
+            <StatusIcon status={status} />
             <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide">
               {STATUS_LABELS[status]} · {items.length}
             </p>
@@ -173,7 +175,7 @@ export default function WaiterTrackingPage({ venueId: propVenueId }) {
                       <span className="font-mono text-[#008080] font-bold text-sm">
                         #{order.daily_number || order.id.slice(0, 6)}
                       </span>
-                      <span className="text-[#8896A5] text-xs">📍 {order.location_label}</span>
+                      <span className="text-[#8896A5] text-xs flex items-center gap-0.5"><PinIcon size={12} /> {order.location_label}</span>
                     </div>
                     <span className={`text-xs ${elapsedMin > 15 ? 'text-red-600' : 'text-[#8896A5]'}`}>
                       {elapsedMin} min
@@ -182,7 +184,7 @@ export default function WaiterTrackingPage({ venueId: propVenueId }) {
 
                   {order.waiter_called_at && (
                     <div className="flex items-center justify-between mb-1.5 bg-[#008080]/10 rounded-lg px-2 py-1">
-                      <span className="text-[#008080] text-xs font-semibold">🔔 Te están llamando</span>
+                      <span className="text-[#008080] text-xs font-semibold flex items-center gap-1"><BellIcon size={12} /> Te están llamando</span>
                       <button onClick={() => dismissCall(order.id)} className="text-[#8896A5] text-[10px] underline">
                         Atendido
                       </button>
@@ -201,7 +203,7 @@ export default function WaiterTrackingPage({ venueId: propVenueId }) {
                     <span className="font-mono text-[#1A2A3A] text-sm font-semibold">{formatPrice(order.total)}</span>
                     <div className="flex items-center gap-2">
                       {order.assigned_staff?.full_name ? (
-                        <span className="text-[#8896A5] text-[10px]">🧑‍🍳 {order.assigned_staff.full_name}</span>
+                        <span className="text-[#8896A5] text-[10px] flex items-center gap-0.5"><ChefHatIcon size={12} /> {order.assigned_staff.full_name}</span>
                       ) : (
                         <button
                           onClick={() => setAssigningOrder(order.id)}
@@ -372,7 +374,7 @@ function EditOrderPage({ order, onClose, venueId: propVenueId }) {
         <p className="font-bold text-[#1A2A3A] text-sm">
           Editando #{order.daily_number || order.id.slice(0, 6)}
         </p>
-        <p className="text-[#8896A5] text-xs">📍 {order.location_label}</p>
+        <p className="text-[#8896A5] text-xs flex items-center gap-1"><PinIcon size={12} /> {order.location_label}</p>
       </div>
 
       <div className="px-4 py-4 space-y-3">

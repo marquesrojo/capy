@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import QRCode from 'qrcode'
 import { formatPrice } from '../../lib/utils'
 import { supabaseStaff } from '../../lib/supabase'
+import { BellIcon, PinIcon, FileTextIcon } from '../../components/Icons'
 
 const COLUMNS = [
   { id: 'recibido', label: 'Recibido', statuses: ['recibido', 'pendiente_aprobacion'] },
@@ -461,7 +462,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
                       }`}>
                         {order.waiter_called_at && (
                           <div className="flex items-center justify-between -mx-3 -mt-3 mb-2 px-3 pt-2 pb-1.5 bg-amber-50 rounded-t-xl border-b border-amber-200">
-                            <p className="text-amber-700 text-[10px] font-semibold">🔔 Te está llamando</p>
+                            <p className="text-amber-700 text-[10px] font-semibold flex items-center gap-1"><BellIcon size={10} /> Te está llamando</p>
                             <button
                               onClick={() => clearWaiterCall(order.id)}
                               className="text-[9px] font-bold text-amber-700 border border-amber-300 bg-white px-1.5 py-0.5 rounded-lg"
@@ -490,7 +491,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
                           </div>
                         </div>
                         <div className="flex items-center gap-1.5 mb-2">
-                          <span className="bg-[#008080]/10 text-[#006666] text-xs font-bold px-2 py-0.5 rounded-full">📍 {order.location_label}</span>
+                          <span className="bg-[#008080]/10 text-[#006666] text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1"><PinIcon size={11} /> {order.location_label}</span>
                         </div>
 
                         {/* Items: collapsed = primeros 3, expanded = todos con notas */}
@@ -506,8 +507,8 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
                                 </div>
                               ))}
                               {order.notes && (
-                                <p className="text-amber-600 italic border-l-2 border-amber-400/40 pl-2 mt-1">
-                                  📝 {order.notes}
+                                <p className="text-amber-600 italic border-l-2 border-amber-400/40 pl-2 mt-1 flex items-center gap-1">
+                                  <FileTextIcon size={10} /> {order.notes}
                                 </p>
                               )}
                             </>
@@ -610,7 +611,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
                       }`}>
                         {order.waiter_called_at && (
                           <div className="flex items-center justify-between -mx-3 -mt-3 mb-2 px-3 pt-2 pb-1.5 bg-amber-50 rounded-t-xl border-b border-amber-200">
-                            <p className="text-amber-700 text-[10px] font-semibold">🔔 Te está llamando</p>
+                            <p className="text-amber-700 text-[10px] font-semibold flex items-center gap-1"><BellIcon size={10} /> Te está llamando</p>
                             <button
                               onClick={() => clearWaiterCall(order.id)}
                               className="text-[9px] font-bold text-amber-700 border border-amber-300 bg-white px-1.5 py-0.5 rounded-lg"
@@ -628,7 +629,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5 mb-2">
-                          <span className="bg-[#008080]/10 text-[#006666] text-xs font-bold px-2 py-0.5 rounded-full">📍 {order.location_label}</span>
+                          <span className="bg-[#008080]/10 text-[#006666] text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1"><PinIcon size={11} /> {order.location_label}</span>
                         </div>
                         <div className="text-[#8896A5] text-[10px] space-y-0.5 mb-1">
                           {(order.order_items || []).slice(0, 3).map((item, i) => (

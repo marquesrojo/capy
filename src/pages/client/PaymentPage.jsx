@@ -5,6 +5,7 @@ import { useCart } from '../../hooks/useCart'
 import { useCustomer } from '../../hooks/useCustomer'
 import { formatPrice, accentColor } from '../../lib/utils'
 import { useClientBase } from '../../hooks/useVenue'
+import { PinIcon } from '../../components/Icons'
 
 // Payment method chosen here is a PREFERENCE declared by the customer.
 // No payment action is triggered. The order goes to 'recibido' and follows
@@ -157,7 +158,7 @@ export default function PaymentPage() {
     <div className="min-h-screen bg-[#F0F4F8] pb-40" style={{ '--input-focus-color': accent }}>
       <header className="px-5 pt-6 pb-4" style={{ backgroundColor: venueColor }}>
         <h1 className="font-display text-3xl text-white tracking-wide">TU PEDIDO</h1>
-        <p className="text-white/70 text-sm">📍 {location.label}</p>
+        <p className="text-white/70 text-sm flex items-center gap-1"><PinIcon size={14} /> {location.label}</p>
       </header>
 
       <main className="px-5 pt-4 space-y-3">

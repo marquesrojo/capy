@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice } from '../../lib/utils'
+import { CameraIcon, StarIcon } from '../../components/Icons'
 
 const KIND_LABELS = { bebida: 'Bebida', comida: 'Comida', otro: 'Otro' }
 const KIND_COLORS = {
@@ -273,7 +274,7 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
           {displayImg ? (
             <img src={displayImg} alt="" className="w-full h-full object-cover" />
           ) : (
-            <span className="text-smoke-500 text-xs">📷 Agregar foto</span>
+            <span className="text-smoke-500 text-xs flex items-center gap-1.5"><CameraIcon size={14} /> Agregar foto</span>
           )}
         </div>
         <input ref={imgInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
@@ -308,7 +309,7 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
         {product.image_url ? (
           <img src={product.image_url} alt="" className="w-full h-full object-cover" />
         ) : (
-          <span className="text-smoke-600 text-lg">📷</span>
+          <CameraIcon size={20} className="text-smoke-600" />
         )}
       </div>
 
@@ -330,9 +331,9 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
         <button
           onClick={toggleFeatured}
           title={product.is_featured ? 'Quitar destacado' : 'Marcar como destacado'}
-          className={`text-base leading-none transition-opacity ${product.is_featured ? 'opacity-100' : 'opacity-25 hover:opacity-60'}`}
+          className={`leading-none transition-opacity ${product.is_featured ? 'text-amber-400 opacity-100' : 'text-smoke-500 opacity-25 hover:opacity-60'}`}
         >
-          ⭐
+          <StarIcon size={18} />
         </button>
         <button
           onClick={onToggle}
@@ -454,7 +455,7 @@ function NewProductForm({ venueId, categories, onClose, onCreated }) {
         {imagePreview ? (
           <img src={imagePreview} alt="" className="w-full h-full object-cover" />
         ) : (
-          <span className="text-smoke-500 text-xs">📷 Foto del producto (opcional)</span>
+          <span className="text-smoke-500 text-xs flex items-center gap-1.5"><CameraIcon size={14} /> Foto del producto (opcional)</span>
         )}
       </div>
       <input ref={imgInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />

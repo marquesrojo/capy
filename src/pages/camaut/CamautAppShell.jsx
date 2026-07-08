@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabaseCamaut, supabaseStaff } from '../../lib/supabase'
+import { PinIcon, BoltIcon, CalendarIcon } from '../../components/Icons'
 import { formatPrice } from '../../lib/utils'
 import FloorPlanViewer from '../../components/FloorPlanViewer'
 import { getLevel, getXPProgress } from '../../lib/xpUtils'
@@ -282,7 +283,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
           onClick={openWrapped}
           className="w-full bg-amber-400 text-white text-xs font-bold py-2.5 px-4 flex items-center justify-between"
         >
-          <span>⚡ Tu Weekly Wrapped está listo</span>
+          <span className="flex items-center gap-1.5"><BoltIcon size={12} /> Tu Weekly Wrapped está listo</span>
           <span className="text-white/80">Ver →</span>
         </button>
       )}
@@ -369,9 +370,9 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
           >
             <p className="font-bold text-[#1A2A3A] text-base mb-4">Elegí tu Wrapped</p>
             {[
-              { id: 'week', label: '⚡ Esta semana', desc: 'Desde el lunes hasta hoy' },
-              { id: 'month', label: '📅 Este mes', desc: new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }) },
-              { id: 'year', label: '🗓️ Este año', desc: String(new Date().getFullYear()) },
+              { id: 'week', Icon: BoltIcon, label: 'Esta semana', desc: 'Desde el lunes hasta hoy' },
+              { id: 'month', Icon: CalendarIcon, label: 'Este mes', desc: new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }) },
+              { id: 'year', Icon: CalendarIcon, label: 'Este año', desc: String(new Date().getFullYear()) },
             ].map(p => (
               <button
                 key={p.id}
@@ -383,7 +384,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                 className="w-full bg-[#F0F4F8] rounded-2xl px-4 py-3.5 text-left flex items-center justify-between active:scale-95 transition-transform"
               >
                 <div>
-                  <p className="font-bold text-[#1A2A3A] text-sm">{p.label}</p>
+                  <p className="font-bold text-[#1A2A3A] text-sm flex items-center gap-1.5"><p.Icon size={13} /> {p.label}</p>
                   <p className="text-[#8896A5] text-xs mt-0.5">{p.desc}</p>
                 </div>
                 <span className="text-[#008080] font-bold">→</span>
@@ -587,14 +588,14 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                 {micapyTab === 'social' && micapySubTab === 'wrapped' && (
                   <div className="space-y-3">
                     {[
-                      { id: 'week', label: '⚡ Esta semana', desc: 'Desde el lunes hasta hoy' },
-                      { id: 'month', label: '📅 Este mes', desc: new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }) },
-                      { id: 'year', label: '🗓️ Este año', desc: String(new Date().getFullYear()) },
+                      { id: 'week', Icon: BoltIcon, label: 'Esta semana', desc: 'Desde el lunes hasta hoy' },
+                      { id: 'month', Icon: CalendarIcon, label: 'Este mes', desc: new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }) },
+                      { id: 'year', Icon: CalendarIcon, label: 'Este año', desc: String(new Date().getFullYear()) },
                     ].map(p => (
                       <button key={p.id} onClick={() => { setWrappedPeriod(p.id); openWrapped() }}
                         className="w-full bg-white rounded-2xl px-4 py-3.5 text-left flex items-center justify-between border border-black/5 shadow-sm active:scale-95 transition-transform">
                         <div>
-                          <p className="font-bold text-[#1A2A3A] text-sm">{p.label}</p>
+                          <p className="font-bold text-[#1A2A3A] text-sm flex items-center gap-1.5"><p.Icon size={13} /> {p.label}</p>
                           <p className="text-[#8896A5] text-xs mt-0.5">{p.desc}</p>
                         </div>
                         <span className="text-[#008080] font-bold">→</span>
@@ -1381,7 +1382,7 @@ function HistorialTab({ staffId, venueId }) {
               <span className="font-mono font-bold text-[#1A2A3A] text-sm">{formatPrice(order.total)}</span>
             </div>
             <div className="flex items-center justify-between mt-1">
-              <p className="text-[#8896A5] text-xs">📍 {order.location_label}</p>
+              <p className="text-[#8896A5] text-xs flex items-center gap-1"><PinIcon size={11} /> {order.location_label}</p>
               <p className="text-[#B0BEC5] text-xs">{fmtDate(order.created_at)}</p>
             </div>
             {isExpanded && items.length > 0 && (

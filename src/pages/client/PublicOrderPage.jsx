@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { formatPrice } from '../../lib/utils'
 import OrderFeedback from '../../components/OrderFeedback'
 import { supabaseCustomer } from '../../lib/supabase'
+import { SearchIcon, PinIcon, ChefHatIcon, FileTextIcon } from '../../components/Icons'
 
 const supabasePublic = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -153,7 +154,9 @@ export default function PublicOrderPage() {
 
   if (notFound) return (
     <div className="min-h-screen bg-carbon-950 flex flex-col items-center justify-center px-6 text-center">
-      <p className="text-4xl mb-4">🔍</p>
+      <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center rounded-full bg-carbon-900">
+        <SearchIcon size={32} className="text-smoke-400" />
+      </div>
       <p className="text-smoke-200 font-bold text-lg mb-2">Pedido no encontrado</p>
       <p className="text-smoke-500 text-sm">El link puede haber expirado.</p>
     </div>
@@ -192,12 +195,12 @@ export default function PublicOrderPage() {
       <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5 text-center mb-4">
         <div className="flex justify-center mb-2">{statusInfo.icon}</div>
         <p className={`font-bold text-lg ${statusInfo.color}`}>{statusInfo.label}</p>
-        <p className="text-smoke-500 text-xs mt-1">
-          Pedido #{order.daily_number} · 📍 {order.location_label}
+        <p className="text-smoke-500 text-xs mt-1 flex items-center justify-center gap-1">
+          Pedido #{order.daily_number} · <PinIcon size={11} /> {order.location_label}
         </p>
         {staff?.full_name && !isStaffOrder && (
-          <p className="text-smoke-400 text-xs mt-1.5 font-medium">
-            🧑‍🍳 {staff.full_name}
+          <p className="text-smoke-400 text-xs mt-1.5 font-medium flex items-center justify-center gap-1">
+            <ChefHatIcon size={13} /> {staff.full_name}
           </p>
         )}
       </div>
@@ -238,7 +241,7 @@ export default function PublicOrderPage() {
         </div>
         {order.notes && (
           <div className="px-4 py-3 border-t border-carbon-700">
-            <p className="text-smoke-500 text-xs italic">📝 {order.notes}</p>
+            <p className="text-smoke-500 text-xs italic flex items-center gap-1"><FileTextIcon size={12} /> {order.notes}</p>
           </div>
         )}
         <div className="px-4 py-3 border-t border-carbon-700 flex justify-between">
