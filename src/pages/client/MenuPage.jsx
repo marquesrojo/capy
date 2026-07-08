@@ -12,6 +12,7 @@ export default function MenuPage() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState(null)
+  const [showCategorySheet, setShowCategorySheet] = useState(false)
   const [search, setSearch] = useState('')
   const [highDemand, setHighDemand] = useState(false)
   const [venueName, setVenueName] = useState('')
@@ -151,22 +152,34 @@ export default function MenuPage() {
           ) : null}
         </div>
 
-        {/* Search */}
-        <div className="relative">
-          <input
-            type="search"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar en la carta..."
-            className="w-full border-0 rounded-xl px-9 py-2 text-sm bg-white/20 text-white placeholder:text-white/50 outline-none focus:bg-white/30"
-            style={{ color: accentText }}
-          />
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 opacity-60" style={{ color: accentText }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35" strokeLinecap="round"/>
-          </svg>
-          {search && (
-            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-sm opacity-60" style={{ color: accentText }}>✕</button>
-          )}
+        {/* Search + Category filter */}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <input
+              type="search"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar en la carta..."
+              className="w-full border-0 rounded-xl px-9 py-2 text-sm bg-white/20 placeholder:text-white/50 outline-none focus:bg-white/30"
+              style={{ color: accentText }}
+            />
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 opacity-60" style={{ color: accentText }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35" strokeLinecap="round"/>
+            </svg>
+            {search && (
+              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-sm opacity-60" style={{ color: accentText }}>✕</button>
+            )}
+          </div>
+          <button
+            onClick={() => setShowCategorySheet(true)}
+            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold"
+            style={{ backgroundColor: `${accentText}20`, color: accentText }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="9" y1="18" x2="15" y2="18"/>
+            </svg>
+            {categories.find(c => c.id === activeCategory)?.name || 'Categoría'}
+          </button>
         </div>
       </header>
 
@@ -182,48 +195,46 @@ export default function MenuPage() {
           ))}
         </div>
       ) : (
-        /* Sidebar + products */
-        <div className="flex-1 overflow-hidden flex">
-          {/* Category sidebar */}
-          <div className="w-[96px] flex-shrink-0 overflow-y-auto scrollbar-hide pb-16"
-            style={{ backgroundColor: `${accentBg}18` }}>
-            {categories.map(cat => {
-              const active = activeCategory === cat.id
-              return (
+        /* Full-width product list */
+        <div className="flex-1 overflow-y-auto pt-2 pb-36 px-3 space-y-2">
+          {visibleProducts.map(product => (
+            <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu}
+              qty={items.find(i => i.product.id === product.id)?.quantity || 0}
+              accentBg={accentBg} accentText={accentText} />
+          ))}
+          {visibleProducts.length === 0 && (
+            <p className="text-smoke-500 text-sm text-center py-10">Sin productos en esta categoría.</p>
+          )}
+        </div>
+      )}
+
+      {/* Category bottom sheet */}
+      {showCategorySheet && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowCategorySheet(false)} />
+          <div className="relative bg-white rounded-t-3xl px-5 pt-5 pb-10">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-[#1A2332] font-black text-xl uppercase">Categorías</h2>
+              <button
+                onClick={() => setShowCategorySheet(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F0F4F8] text-[#6B7A8D] text-xl"
+              >×</button>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {categories.map(cat => (
                 <button
                   key={cat.id}
-                  onClick={() => setActiveCategory(cat.id)}
-                  className="w-full py-1.5 pl-0 pr-1.5 flex justify-end"
+                  onClick={() => { setActiveCategory(cat.id); setShowCategorySheet(false) }}
+                  className="py-3 px-2 rounded-xl text-sm font-semibold text-center border-2 transition-all leading-tight"
+                  style={activeCategory === cat.id
+                    ? { backgroundColor: accentBg, borderColor: accentBg, color: accentText }
+                    : { backgroundColor: '#F8FAFB', borderColor: '#E8EEF4', color: '#1A2332' }
+                  }
                 >
-                  <div
-                    className="w-[86px] py-3 px-2 rounded-r-xl flex flex-col items-center gap-0.5 text-center border-l-[3px] transition-all"
-                    style={active
-                      ? { borderColor: accentBg, backgroundColor: 'white' }
-                      : { borderColor: 'transparent' }
-                    }
-                  >
-                    <span
-                      className={`text-[11px] leading-tight break-words w-full ${active ? 'font-bold' : 'font-medium'}`}
-                      style={{ color: active ? accentBg : '#8896A5' }}
-                    >
-                      {cat.name}
-                    </span>
-                  </div>
+                  {cat.name}
                 </button>
-              )
-            })}
-          </div>
-
-          {/* Product list */}
-          <div className="flex-1 overflow-y-auto pt-2 pb-36 px-2.5 space-y-2">
-            {visibleProducts.map(product => (
-              <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu}
-                qty={items.find(i => i.product.id === product.id)?.quantity || 0}
-                accentBg={accentBg} accentText={accentText} />
-            ))}
-            {visibleProducts.length === 0 && (
-              <p className="text-smoke-500 text-sm text-center py-10">Sin productos en esta categoría.</p>
-            )}
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -250,7 +261,7 @@ function ProductCard({ product, onAdd, onRemove, qty, accentBg = '#1A3A6B', acce
       product.is_available ? 'border-black/5 shadow-sm' : 'border-black/5 opacity-50'
     }`}>
       {product.image_url && (
-        <img src={product.image_url} alt={product.name} className="w-20 h-20 rounded-l-xl object-cover flex-shrink-0" />
+        <img src={product.image_url} alt={product.name} className="w-24 h-24 rounded-l-xl object-cover flex-shrink-0" />
       )}
       <div className="flex-1 min-w-0 py-3 px-3">
         <div className="flex items-start justify-between gap-2">
@@ -260,7 +271,7 @@ function ProductCard({ product, onAdd, onRemove, qty, accentBg = '#1A3A6B', acce
           </span>
         </div>
         {product.description && (
-          <p className="text-smoke-500 text-xs mt-1 line-clamp-2">{product.description}</p>
+          <p className="text-smoke-500 text-xs mt-1 line-clamp-3">{product.description}</p>
         )}
         <div className="mt-2.5">
           {!product.is_available ? (

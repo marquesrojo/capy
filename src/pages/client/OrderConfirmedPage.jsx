@@ -175,6 +175,12 @@ export default function OrderConfirmedPage() {
           >
             Seguir pidiendo
           </button>
+          <button
+            onClick={() => navigate(`/pedido/${orderId}`)}
+            className="w-full border border-carbon-700 text-smoke-300 font-medium py-3.5 rounded-xl"
+          >
+            Ver detalle del pedido
+          </button>
         </div>
 
         {isAnonymous && (
@@ -191,13 +197,6 @@ export default function OrderConfirmedPage() {
             {googleError && <p className="text-red-500 text-xs mt-2">{googleError}</p>}
           </div>
         )}
-
-        <button
-          onClick={() => navigate(`/pedido/${orderId}`)}
-          className="text-smoke-500 text-xs underline mt-6"
-        >
-          Ver detalle de este pedido
-        </button>
       </div>
     </div>
   )
