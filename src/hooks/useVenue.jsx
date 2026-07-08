@@ -27,6 +27,7 @@ export function VenueProvider({ children }) {
         } else {
           setVenue(data)
           setActiveVenueId(data.id)
+          localStorage.setItem('capy-last-venue-slug', data.slug)
         }
         setLoading(false)
       })

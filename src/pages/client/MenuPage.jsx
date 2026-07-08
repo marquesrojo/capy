@@ -5,7 +5,7 @@ import { useCart } from '../../hooks/useCart'
 import { useCustomer } from '../../hooks/useCustomer'
 import { formatPrice } from '../../lib/utils'
 import BottomNav from '../../components/BottomNav'
-import { useClientBase } from '../../hooks/useVenue'
+import { useClientBase, useVenueOptional } from '../../hooks/useVenue'
 import { PinIcon, SunIcon, ShoppingBagIcon, ClockIcon, XIcon } from '../../components/Icons'
 
 export default function MenuPage() {
@@ -25,7 +25,19 @@ export default function MenuPage() {
   const { customer, isAnonymous, forgetCustomer, loginWithGoogle } = useCustomer()
   const navigate = useNavigate()
   const base = useClientBase()
+  const venueCtx = useVenueOptional()
   const headerRef = useRef(null)
+
+  // Si estamos en la ruta legacy /carta sin VenueProvider y hay un slug guardado,
+  // redirigir a /r/slug/carta para cargar el venue correcto.
+  useEffect(() => {
+    if (!venueCtx) {
+      const lastSlug = localStorage.getItem('capy-last-venue-slug')
+      if (lastSlug) {
+        navigate(`/r/${lastSlug}/carta`, { replace: true })
+      }
+    }
+  }, [])
 
   useEffect(() => {
     const sid = searchParams.get('session_id')
