@@ -68,7 +68,7 @@ export default function RankConfigPage() {
 
       <main className="px-5 mt-4 space-y-4">
         <p className="text-smoke-500 text-xs">
-          Los clientes suben de rango según cuántos pedidos hacen en el mes. Personalizá el nombre y premio de cada nivel.
+          El rango se calcula según el promedio mensual de pedidos de los últimos 3 meses. Personalizá el nombre y premio de cada nivel.
         </p>
 
         <div className="space-y-4">
@@ -95,7 +95,7 @@ export default function RankConfigPage() {
                 </div>
                 <div>
                   <label className="text-smoke-500 text-[10px] block mb-1">
-                    {rank.level === 1 ? 'Desde (siempre 0)' : 'Pedidos mínimos'}
+                    {rank.level === 1 ? 'Desde (siempre 0)' : 'Prom. mensual mínimo'}
                   </label>
                   <input
                     type="number"

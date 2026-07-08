@@ -109,7 +109,7 @@ export default function AccountPage() {
     loadTop3()
   }, [customer?.id])
 
-  // Load rank config and monthly order count
+  // Load rank config and 3-month average order count
   useEffect(() => {
     if (!customer?.id || !venueId) { setRankLoading(false); return }
     async function loadRank() {
@@ -123,7 +123,9 @@ export default function AccountPage() {
       } catch (_) {}
 
       try {
+        // Start of 3 months ago (1st of that month)
         const start = new Date()
+        start.setMonth(start.getMonth() - 3)
         start.setDate(1)
         start.setHours(0, 0, 0, 0)
         const { count } = await supabaseCustomer
@@ -133,7 +135,7 @@ export default function AccountPage() {
           .eq('venue_id', venueId)
           .gte('created_at', start.toISOString())
           .neq('status', 'cancelado')
-        setMonthlyOrders(count || 0)
+        setMonthlyOrders(Math.round((count || 0) / 3))
       } catch (_) {}
 
       setRankLoading(false)
@@ -304,7 +306,7 @@ export default function AccountPage() {
                 <RankIcon level={currentRank.level} size={22} style={{ color: currentRank.color }} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-smoke-500 text-[10px] font-bold uppercase tracking-widest">Tu rango este mes</p>
+                <p className="text-smoke-500 text-[10px] font-bold uppercase tracking-widest">Tu rango</p>
                 <p className="font-bold text-base leading-tight" style={{ color: currentRank.color }}>
                   {currentRank.name}
                 </p>
@@ -324,13 +326,13 @@ export default function AccountPage() {
                   />
                 </div>
                 <div className="flex justify-between text-[10px]">
-                  <span className="text-smoke-600">{monthlyOrders} pedido{monthlyOrders !== 1 ? 's' : ''} este mes</span>
+                  <span className="text-smoke-600">{monthlyOrders} prom. mensual (últ. 3 meses)</span>
                   <span className="text-smoke-500">{nextRank.min_orders} → <span style={{ color: nextRank.color }}>{nextRank.name}</span></span>
                 </div>
               </div>
             ) : (
               <p className="text-[11px] font-semibold" style={{ color: currentRank.color }}>
-                Nivel máximo del mes — {monthlyOrders} pedidos
+                Nivel máximo — {monthlyOrders} prom. mensual
               </p>
             )}
 
