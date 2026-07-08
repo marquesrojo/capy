@@ -88,6 +88,9 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
   const [installPrompt, setInstallPrompt] = useState(window._pwaInstallPrompt || null)
   const [appInstalled, setAppInstalled] = useState(false)
   const [showInstallModal, setShowInstallModal] = useState(false)
+  const [installBannerDismissed, setInstallBannerDismissed] = useState(
+    () => sessionStorage.getItem('camaut-install-dismissed') === '1'
+  )
 
   useEffect(() => {
     const onPrompt = e => { e.preventDefault(); window._pwaInstallPrompt = e; setInstallPrompt(e) }
@@ -99,6 +102,13 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
       window.removeEventListener('appinstalled', onInstalled)
     }
   }, [])
+
+  function dismissInstallBanner() {
+    sessionStorage.setItem('camaut-install-dismissed', '1')
+    setInstallBannerDismissed(true)
+  }
+
+  const showInstallBanner = !isStandalone && !appInstalled && !installBannerDismissed
 
   const [gsState, setGsState] = useState(() => {
     const saved = localStorage.getItem('camaut-getting-started')
@@ -286,6 +296,37 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
           <span className="flex items-center gap-1.5"><BoltIcon size={12} /> Tu Weekly Wrapped está listo</span>
           <span className="text-white/80">Ver →</span>
         </button>
+      )}
+
+      {/* Install reminder — once per session, dismissible with X */}
+      {showInstallBanner && (
+        <div className="mx-3 mt-3 bg-[#E8F5F5] border border-[#008080]/20 rounded-2xl px-4 py-3 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-[#008080]/15 flex items-center justify-center flex-shrink-0 text-[#008080]">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 16V4"/><path d="M8 12l4 4 4-4"/><rect x="3" y="18" width="18" height="3" rx="1.5"/>
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[#1A2A3A] font-semibold text-sm leading-tight">Instalá la app</p>
+            <p className="text-[#5A8A8A] text-xs mt-0.5">Recibí notificaciones de pedidos en tu celu</p>
+          </div>
+          {isIOS ? (
+            <button
+              onClick={() => setShowInstallModal(true)}
+              className="text-[#008080] text-xs font-bold flex-shrink-0 bg-white px-3 py-1.5 rounded-lg border border-[#008080]/20"
+            >
+              Cómo →
+            </button>
+          ) : installPrompt ? (
+            <button
+              onClick={() => installPrompt.prompt()}
+              className="text-[#008080] text-xs font-bold flex-shrink-0 bg-white px-3 py-1.5 rounded-lg border border-[#008080]/20"
+            >
+              Instalar →
+            </button>
+          ) : null}
+          <button onClick={dismissInstallBanner} className="text-[#A0B4B4] text-xl leading-none flex-shrink-0 ml-1">×</button>
+        </div>
       )}
 
       {/* Primeros pasos */}

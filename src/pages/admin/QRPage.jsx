@@ -64,6 +64,8 @@ export default function QRPage() {
 
               {inviteCode && <InviteQRCode code={inviteCode} />}
 
+              <ShareInviteButton code={inviteCode} />
+
               <button
                 onClick={regenerateCode}
                 className="w-full mt-3 border border-carbon-700 text-smoke-400 text-sm py-3 rounded-xl"
@@ -110,6 +112,37 @@ export default function QRPage() {
         )}
       </div>
     </div>
+  )
+}
+
+function ShareInviteButton({ code }) {
+  const [copied, setCopied] = useState(false)
+  const url = `https://capyapp.co/camaut/vincular?code=${code}`
+  const text = `Sumate al equipo con Capy Camarero 🤙\nInstalá la app y usá el código ${code}:`
+
+  async function handleShare() {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Capy Camarero', text, url })
+        return
+      } catch {}
+    }
+    await navigator.clipboard.writeText(`${text}\n${url}`)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2500)
+  }
+
+  return (
+    <button
+      onClick={handleShare}
+      className="w-full mt-3 bg-ember-500 text-white font-semibold text-sm py-3.5 rounded-xl flex items-center justify-center gap-2"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+        <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/>
+      </svg>
+      {copied ? '¡Enlace copiado!' : 'Compartir invitación'}
+    </button>
   )
 }
 

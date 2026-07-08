@@ -2,6 +2,87 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabaseCamaut, supabaseStaff } from '../../lib/supabase'
 
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent.toLowerCase())
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || !!window.navigator.standalone
+
+function InstallBanner() {
+  const [prompt, setPrompt] = useState(window._pwaInstallPrompt || null)
+  const [installed, setInstalled] = useState(false)
+  const [showIOSSteps, setShowIOSSteps] = useState(false)
+
+  useEffect(() => {
+    const onPrompt = e => { e.preventDefault(); window._pwaInstallPrompt = e; setPrompt(e) }
+    const onInstalled = () => { setInstalled(true); window._pwaInstallPrompt = null; setPrompt(null) }
+    window.addEventListener('beforeinstallprompt', onPrompt)
+    window.addEventListener('appinstalled', onInstalled)
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onPrompt)
+      window.removeEventListener('appinstalled', onInstalled)
+    }
+  }, [])
+
+  if (isStandalone || installed) return (
+    <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl px-4 py-3 flex items-center gap-3 mb-6">
+      <span className="text-emerald-600 font-bold text-sm">✓ App instalada</span>
+      <span className="text-smoke-500 text-xs">Ya podés recibir notificaciones</span>
+    </div>
+  )
+
+  if (isIOS) return (
+    <div className="bg-carbon-900 border border-ember-500/30 rounded-2xl px-4 py-4 mb-6">
+      <button onClick={() => setShowIOSSteps(s => !s)} className="w-full flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-ember-500/10 flex items-center justify-center text-ember-500 flex-shrink-0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 16V4"/><path d="M8 12l4 4 4-4"/><rect x="3" y="18" width="18" height="3" rx="1.5"/>
+            </svg>
+          </div>
+          <div className="text-left">
+            <p className="text-smoke-200 font-semibold text-sm">Instalá Capy en tu iPhone</p>
+            <p className="text-smoke-500 text-xs">Para recibir notificaciones de pedidos</p>
+          </div>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className={`text-smoke-500 transition-transform ${showIOSSteps ? 'rotate-180' : ''}`}>
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+      {showIOSSteps && (
+        <div className="mt-3 space-y-2 pl-12">
+          {[
+            'Tocá el botón Compartir en Safari',
+            'Deslizá y tocá "Agregar a pantalla de inicio"',
+            'Confirmá tocando "Agregar"',
+          ].map((step, i) => (
+            <p key={i} className="text-smoke-400 text-xs">
+              <span className="text-ember-500 font-bold mr-1">{i + 1}.</span>{step}
+            </p>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+
+  if (prompt) return (
+    <button
+      onClick={() => prompt.prompt()}
+      className="w-full flex items-center gap-3 bg-carbon-900 border border-ember-500/30 rounded-2xl px-4 py-3.5 text-left mb-6"
+    >
+      <div className="w-9 h-9 rounded-xl bg-ember-500/10 flex items-center justify-center text-ember-500 flex-shrink-0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 16V4"/><path d="M8 12l4 4 4-4"/><rect x="3" y="18" width="18" height="3" rx="1.5"/>
+        </svg>
+      </div>
+      <div className="flex-1">
+        <p className="text-smoke-200 font-semibold text-sm">Instalá Capy Camarero</p>
+        <p className="text-smoke-500 text-xs">Acceso directo y notificaciones de pedidos</p>
+      </div>
+      <span className="text-ember-500 font-bold text-sm flex-shrink-0">Instalar →</span>
+    </button>
+  )
+
+  return null
+}
+
 export default function CamautVincularPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -177,6 +258,8 @@ export default function CamautVincularPage() {
   return (
     <div className="min-h-screen bg-carbon-950 px-5 py-10 flex flex-col">
       <button onClick={() => navigate('/camaut/app')} className="text-smoke-500 text-sm mb-8">← Volver</button>
+
+      <InstallBanner />
 
       <div className="text-center mb-8">
         <div className="w-14 h-14 rounded-2xl bg-ember-500/10 border border-ember-500/20 flex items-center justify-center mx-auto mb-4">
