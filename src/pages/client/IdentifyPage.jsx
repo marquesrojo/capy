@@ -40,7 +40,7 @@ export default function IdentifyPage() {
   const selfColor = venue?.landing_self_color || '#1A3A6B'
   const waiterColor = venue?.landing_waiter_color || '#B22222'
   const { setLocation, setSessionId, addItem } = useCart()
-  const { isAnonymous, signInWithGoogle } = useCustomer()
+  const { customer, isAnonymous, signInWithGoogle } = useCustomer()
   const [googleError, setGoogleError] = useState('')
 
   const [orderNumber, setOrderNumber] = useState('')
@@ -435,14 +435,14 @@ export default function IdentifyPage() {
         </div>
       </div>
 
-      {/* ── Google login ── */}
-      {isAnonymous && (
-        <div className="mt-6 px-5">
+      {/* ── Google login / perfil ── */}
+      <div className="mt-6 px-5">
+        {isAnonymous ? (
           <div className="bg-white border border-black/[0.06] rounded-2xl p-4">
-            <p className="text-[#1A2332] font-bold text-sm mb-0.5">Guardá tu historial</p>
-            <p className="text-[#9DAAB8] text-xs mb-3">Iniciá sesión con Google para ver tus pedidos desde cualquier dispositivo.</p>
+            <p className="text-[#1A2332] font-bold text-sm mb-0.5">¿Ya tenés cuenta?</p>
+            <p className="text-[#9DAAB8] text-xs mb-3">Iniciá sesión para ver tu historial de pedidos.</p>
             <button
-              onClick={async () => { const r = await signInWithGoogle(window.location.pathname); if (r?.error) setGoogleError(r.error.message) }}
+              onClick={async () => { const r = await signInWithGoogle(`${base}/pedidos`); if (r?.error) setGoogleError(r.error.message) }}
               className="w-full flex items-center justify-center gap-2.5 bg-[#F8FAFB] border border-black/[0.08] text-[#1A2332] font-semibold text-sm px-4 py-3 rounded-xl hover:bg-[#F0F4F8] transition-colors"
             >
               <GoogleIcon />
@@ -450,8 +450,21 @@ export default function IdentifyPage() {
             </button>
             {googleError && <p className="text-red-600 text-xs mt-2 text-center">{googleError}</p>}
           </div>
-        </div>
-      )}
+        ) : customer ? (
+          <button
+            onClick={() => navigate(`${base}/pedidos`)}
+            className="w-full flex items-center justify-between bg-white border border-black/[0.06] rounded-2xl px-4 py-3 shadow-sm"
+          >
+            <div className="text-left">
+              <p className="text-[#1A2332] font-semibold text-sm">{customer.full_name}</p>
+              <p className="text-[#9DAAB8] text-xs">Ver mis pedidos →</p>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9DAAB8" strokeWidth="2.5">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+        ) : null}
+      </div>
 
       {/* ── Footer ── */}
       <div className="mt-8 text-center">
