@@ -80,6 +80,23 @@ export default function MenuPage() {
   const accentBg = headerBgColor || '#1A3A6B'
   const accentText = headerTextColor || '#FFFFFF'
 
+  // Color seguro para usar sobre fondos blancos (tarjetas, content area).
+  // Si accentBg tiene ≥3:1 contraste sobre blanco lo usamos; si no, probamos
+  // accentText; si tampoco, caemos a un gris oscuro neutro.
+  function lumOf(hex) {
+    try {
+      const r = parseInt(hex.slice(1,3),16)/255, g = parseInt(hex.slice(3,5),16)/255, b = parseInt(hex.slice(5,7),16)/255
+      const lin = c => c <= 0.03928 ? c/12.92 : ((c+0.055)/1.055)**2.4
+      return 0.2126*lin(r) + 0.7152*lin(g) + 0.0722*lin(b)
+    } catch { return 1 }
+  }
+  function contrastOnWhite(hex) { return 1.05 / (lumOf(hex) + 0.05) }
+  const contentAccent = contrastOnWhite(accentBg) >= 3 ? accentBg
+    : contrastOnWhite(accentText) >= 3 ? accentText
+    : '#1A2332'
+  // Texto sobre contentAccent: blanco si es oscuro, oscuro si es claro
+  const contentAccentText = lumOf(contentAccent) > 0.179 ? '#1A2332' : '#FFFFFF'
+
   const dailySpecials = products.filter(p => p.is_daily_special && p.is_available)
 
   const visibleProducts = activeCategory
@@ -212,7 +229,7 @@ export default function MenuPage() {
           ) : searchResults.map(product => (
             <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu}
               qty={items.find(i => i.product.id === product.id)?.quantity || 0}
-              accentBg={accentBg} accentText={accentText} />
+              accentBg={contentAccent} accentText={contentAccentText} />
           ))}
         </div>
       ) : (
@@ -221,12 +238,12 @@ export default function MenuPage() {
           {dailySpecials.length > 0 && (
             <div className="mb-1">
               <div className="flex items-center gap-2 px-1 mb-2">
-                <span className="text-[11px] font-black uppercase tracking-wider flex items-center gap-1" style={{ color: accentBg }}><SunIcon size={13} /> Plato del día</span>
+                <span className="text-[11px] font-black uppercase tracking-wider flex items-center gap-1" style={{ color: contentAccent }}><SunIcon size={13} /> Plato del día</span>
               </div>
               {dailySpecials.map(product => (
                 <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu}
                   qty={items.find(i => i.product.id === product.id)?.quantity || 0}
-                  accentBg={accentBg} accentText={accentText} isDaily />
+                  accentBg={contentAccent} accentText={contentAccentText} isDaily />
               ))}
               <div className="border-t border-black/[0.06] mt-3 mb-1" />
             </div>
@@ -234,7 +251,7 @@ export default function MenuPage() {
           {visibleProducts.map(product => (
             <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu}
               qty={items.find(i => i.product.id === product.id)?.quantity || 0}
-              accentBg={accentBg} accentText={accentText} />
+              accentBg={contentAccent} accentText={contentAccentText} />
           ))}
           {visibleProducts.length === 0 && dailySpecials.length === 0 && (
             <p className="text-smoke-500 text-sm text-center py-10">Sin productos en esta categoría.</p>
@@ -261,7 +278,7 @@ export default function MenuPage() {
                   onClick={() => { setActiveCategory(cat.id); setShowCategorySheet(false) }}
                   className="py-3 px-2 rounded-xl text-sm font-semibold text-center border-2 transition-all leading-tight"
                   style={activeCategory === cat.id
-                    ? { backgroundColor: accentBg, borderColor: accentBg, color: accentText }
+                    ? { backgroundColor: contentAccent, borderColor: contentAccent, color: contentAccentText }
                     : { backgroundColor: '#F8FAFB', borderColor: '#E8EEF4', color: '#1A2332' }
                   }
                 >
@@ -277,7 +294,7 @@ export default function MenuPage() {
         <button
           onClick={() => navigate(location ? `${base}/pago` : `${base}/ubicacion`)}
           className="fixed bottom-20 left-4 right-4 rounded-2xl py-4 px-5 flex items-center justify-between shadow-lg font-semibold z-20 active:opacity-90"
-          style={{ backgroundColor: accentBg, color: accentText }}
+          style={{ backgroundColor: contentAccent, color: contentAccentText }}
         >
           <span>{itemCount} {itemCount === 1 ? 'item' : 'items'}</span>
           <span>{formatPrice(subtotal)} · {location ? 'Confirmar →' : 'Continuar →'}</span>
