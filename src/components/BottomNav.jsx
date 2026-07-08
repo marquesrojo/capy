@@ -77,8 +77,8 @@ export default function BottomNav() {
   const activeLabel = cartLocation?.label || null
 
   const isOnMenu = pathname.endsWith('/carta') || pathname === '/carta'
-  const isOnCart = pathname.includes('/pago') || pathname.includes('/ubicacion')
-  const isOnCuenta = pathname.includes('/pedidos') || pathname.includes('/pedido/')
+  const isOnCart = pathname.includes('/pago') || pathname.includes('/ubicacion') || pathname.includes('/pedidos') || pathname.includes('/pedido/')
+  const isOnCuenta = pathname.endsWith('/cuenta')
 
   return (
     <>
@@ -95,9 +95,8 @@ export default function BottomNav() {
 
         {/* Mi Pedido */}
         <button
-          onClick={() => itemCount > 0 && navigate(`${base}/pago`)}
-          disabled={itemCount === 0}
-          className="flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold tracking-wide transition-colors disabled:opacity-30"
+          onClick={() => navigate(itemCount > 0 ? `${base}/pago` : `${base}/pedidos`)}
+          className="flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold tracking-wide transition-colors"
           style={{ color: isOnCart ? selfColor : '#9DAAB8' }}
         >
           <div className="relative">
@@ -131,7 +130,7 @@ export default function BottomNav() {
 
         {/* Cuenta */}
         <button
-          onClick={() => navigate(`${base}/pedidos`)}
+          onClick={() => navigate(`${base}/cuenta`)}
           className="flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold tracking-wide transition-colors"
           style={{ color: isOnCuenta ? selfColor : '#9DAAB8' }}
         >

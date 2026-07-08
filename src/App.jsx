@@ -46,6 +46,7 @@ import WaiterPublicPage from './pages/camaut/WaiterPublicPage'
 import SuperAdminPage from './pages/admin/SuperAdminPage'
 import WaiterCVPage from './pages/camaut/WaiterCVPage'
 import ClientAuthCallbackPage from './pages/client/ClientAuthCallbackPage'
+import AccountPage from './pages/client/AccountPage'
 
 function VenueGuard() {
   const { loading, notFound } = useVenue()
@@ -120,6 +121,14 @@ export default function App() {
                   </RequireCustomer>
                 }
               />
+              <Route
+                path="/cuenta"
+                element={
+                  <RequireCustomer>
+                    <AccountPage />
+                  </RequireCustomer>
+                }
+              />
               <Route path="/pedido-enviado/:orderId" element={<OrderConfirmedPage />} />
               <Route path="/pedido/:orderId" element={<OrderStatusPage />} />
 
@@ -155,6 +164,14 @@ export default function App() {
                   element={
                     <RequireCustomer>
                       <PaymentPage />
+                    </RequireCustomer>
+                  }
+                />
+                <Route
+                  path="cuenta"
+                  element={
+                    <RequireCustomer>
+                      <AccountPage />
                     </RequireCustomer>
                   }
                 />
