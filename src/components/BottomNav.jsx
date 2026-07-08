@@ -95,8 +95,9 @@ export default function BottomNav() {
 
         {/* Mi Pedido */}
         <button
-          onClick={() => navigate(itemCount > 0 ? `${base}/pago` : `${base}/pedidos`)}
-          className="flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold tracking-wide transition-colors"
+          onClick={() => itemCount > 0 && navigate(`${base}/pago`)}
+          disabled={itemCount === 0}
+          className="flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold tracking-wide transition-colors disabled:opacity-30"
           style={{ color: isOnCart ? selfColor : '#9DAAB8' }}
         >
           <div className="relative">

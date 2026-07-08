@@ -5,7 +5,7 @@ import { useCustomer } from '../../hooks/useCustomer'
 import { formatPrice, STATUS_LABELS, STATUS_COLORS } from '../../lib/utils'
 import BottomNav from '../../components/BottomNav'
 
-const ACTIVE_STATUSES = ['pendiente_pago', 'recibido', 'en_preparacion', 'listo']
+const ACTIVE_STATUSES = ['pendiente_aprobacion', 'pendiente_pago', 'recibido', 'en_preparacion', 'listo']
 const CLOSED_STATUSES = ['entregado', 'cancelado']
 
 function GoogleIcon() {
