@@ -58,13 +58,14 @@ export default function AccountPage() {
 
   // Load top 3 most ordered products
   useEffect(() => {
-    if (!customer?.id) { setTop3Loading(false); return }
+    if (!customer?.id || !venueId) { setTop3Loading(false); return }
     async function loadTop3() {
       try {
         const { data: orders } = await supabaseCustomer
           .from('orders')
           .select('id')
           .eq('customer_id', customer.id)
+          .eq('venue_id', venueId)
 
         if (!orders?.length) { setTop3Loading(false); return }
 
@@ -107,7 +108,7 @@ export default function AccountPage() {
       setTop3Loading(false)
     }
     loadTop3()
-  }, [customer?.id])
+  }, [customer?.id, venueId])
 
   // Load rank config and 3-month average order count
   useEffect(() => {
