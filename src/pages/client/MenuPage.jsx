@@ -103,6 +103,17 @@ export default function MenuPage() {
       >
         <div className="flex items-center justify-between mb-2.5">
           <div className="flex items-center gap-2.5">
+            {/* Category filter button — same line as logo */}
+            <button
+              onClick={() => setShowCategorySheet(true)}
+              className="flex-shrink-0 flex flex-col items-center justify-center gap-0.5 w-9 h-9 rounded-xl text-[9px] font-bold leading-none"
+              style={{ backgroundColor: `${accentText}20`, color: accentText }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                <line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="9" y1="18" x2="15" y2="18"/>
+              </svg>
+              {(categories.find(c => c.id === activeCategory)?.name || 'VER').slice(0, 5).toUpperCase()}
+            </button>
             {venueLogo && (
               <img src={venueLogo} alt={venueName} className="w-9 h-9 rounded-xl object-cover border border-white/20 flex-shrink-0" />
             )}
@@ -152,34 +163,22 @@ export default function MenuPage() {
           ) : null}
         </div>
 
-        {/* Search + Category filter */}
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <input
-              type="search"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Buscar en la carta..."
-              className="w-full border-0 rounded-xl px-9 py-2 text-sm bg-white/20 placeholder:text-white/50 outline-none focus:bg-white/30"
-              style={{ color: accentText }}
-            />
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 opacity-60" style={{ color: accentText }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35" strokeLinecap="round"/>
-            </svg>
-            {search && (
-              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-sm opacity-60" style={{ color: accentText }}>✕</button>
-            )}
-          </div>
-          <button
-            onClick={() => setShowCategorySheet(true)}
-            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold"
-            style={{ backgroundColor: `${accentText}20`, color: accentText }}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-              <line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="9" y1="18" x2="15" y2="18"/>
-            </svg>
-            {categories.find(c => c.id === activeCategory)?.name || 'Categoría'}
-          </button>
+        {/* Search — full width */}
+        <div className="relative">
+          <input
+            type="search"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Buscar en la carta..."
+            className="w-full border-0 rounded-xl px-9 py-2 text-sm bg-white/20 placeholder:text-white/50 outline-none focus:bg-white/30"
+            style={{ color: accentText }}
+          />
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 opacity-60" style={{ color: accentText }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35" strokeLinecap="round"/>
+          </svg>
+          {search && (
+            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-sm opacity-60" style={{ color: accentText }}>✕</button>
+          )}
         </div>
       </header>
 
