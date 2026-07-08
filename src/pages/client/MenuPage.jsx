@@ -67,6 +67,8 @@ export default function MenuPage() {
   const accentBg = headerBgColor || '#1A3A6B'
   const accentText = headerTextColor || '#FFFFFF'
 
+  const dailySpecials = products.filter(p => p.is_daily_special && p.is_available)
+
   const visibleProducts = activeCategory
     ? products
         .filter(p => p.category_id === activeCategory)
@@ -200,12 +202,25 @@ export default function MenuPage() {
       ) : (
         /* Full-width product list */
         <div className="flex-1 overflow-y-auto pt-2 pb-36 px-3 space-y-2">
+          {dailySpecials.length > 0 && (
+            <div className="mb-1">
+              <div className="flex items-center gap-2 px-1 mb-2">
+                <span className="text-[11px] font-black uppercase tracking-wider" style={{ color: accentBg }}>☀️ Plato del día</span>
+              </div>
+              {dailySpecials.map(product => (
+                <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu}
+                  qty={items.find(i => i.product.id === product.id)?.quantity || 0}
+                  accentBg={accentBg} accentText={accentText} isDaily />
+              ))}
+              <div className="border-t border-black/[0.06] mt-3 mb-1" />
+            </div>
+          )}
           {visibleProducts.map(product => (
             <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu}
               qty={items.find(i => i.product.id === product.id)?.quantity || 0}
               accentBg={accentBg} accentText={accentText} />
           ))}
-          {visibleProducts.length === 0 && (
+          {visibleProducts.length === 0 && dailySpecials.length === 0 && (
             <p className="text-smoke-500 text-sm text-center py-10">Sin productos en esta categoría.</p>
           )}
         </div>
@@ -258,15 +273,27 @@ export default function MenuPage() {
   )
 }
 
-function ProductCard({ product, onAdd, onRemove, qty, accentBg = '#1A3A6B', accentText = '#FFFFFF' }) {
+function ProductCard({ product, onAdd, onRemove, qty, accentBg = '#1A3A6B', accentText = '#FFFFFF', isDaily = false }) {
   return (
-    <div className={`bg-white border rounded-xl flex gap-3 transition-colors ${
-      product.is_available ? 'border-black/5 shadow-sm' : 'border-black/5 opacity-50'
-    }`}>
+    <div className={`bg-white rounded-xl flex gap-3 transition-colors ${
+      product.is_available ? 'shadow-sm' : 'opacity-50'
+    }`} style={{ border: isDaily ? `1.5px solid ${accentBg}40` : '1px solid rgba(0,0,0,0.05)' }}>
       {product.image_url && (
-        <img src={product.image_url} alt={product.name} className="w-24 h-24 rounded-l-xl object-cover flex-shrink-0" />
+        <div className="relative flex-shrink-0">
+          <img src={product.image_url} alt={product.name} className="w-24 h-24 rounded-l-xl object-cover" />
+          {isDaily && (
+            <span className="absolute top-1.5 left-1.5 text-[10px] font-black px-1.5 py-0.5 rounded-full leading-none" style={{ backgroundColor: accentBg, color: accentText }}>
+              ☀️ HOY
+            </span>
+          )}
+        </div>
       )}
       <div className="flex-1 min-w-0 py-3 px-3">
+        {isDaily && !product.image_url && (
+          <span className="inline-flex items-center text-[10px] font-black px-1.5 py-0.5 rounded-full leading-none mb-1.5" style={{ backgroundColor: accentBg, color: accentText }}>
+            ☀️ HOY
+          </span>
+        )}
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-semibold text-smoke-300 text-sm leading-tight">{product.name}</h3>
           <span className="font-mono text-sm whitespace-nowrap flex-shrink-0" style={{ color: accentBg }}>

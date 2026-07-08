@@ -255,6 +255,12 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
     onSave({ ...product, is_featured: next })
   }
 
+  async function toggleDailySpecial() {
+    const next = !product.is_daily_special
+    await supabaseStaff.from('products').update({ is_daily_special: next }).eq('id', product.id)
+    onSave({ ...product, is_daily_special: next })
+  }
+
   if (editing) {
     const displayImg = imagePreview || product.image_url
     return (
@@ -312,6 +318,14 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
       </div>
 
       <div className="flex items-center gap-1.5 flex-shrink-0">
+        {/* Daily special toggle */}
+        <button
+          onClick={toggleDailySpecial}
+          title={product.is_daily_special ? 'Quitar plato del día' : 'Marcar como plato del día'}
+          className={`text-base leading-none transition-opacity ${product.is_daily_special ? 'opacity-100' : 'opacity-25 hover:opacity-60'}`}
+        >
+          ☀️
+        </button>
         {/* Featured toggle */}
         <button
           onClick={toggleFeatured}
