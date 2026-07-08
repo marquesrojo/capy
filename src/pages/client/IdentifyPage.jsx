@@ -392,6 +392,17 @@ export default function IdentifyPage() {
         </div>
       )}
 
+      {/* ── Banner foto de portada ── */}
+      {venue?.banner_url && (
+        <div className="mt-5 overflow-hidden" style={{ height: 180 }}>
+          <img
+            src={venue.banner_url}
+            alt=""
+            className="w-full h-full object-cover"
+          />
+        </div>
+      )}
+
       {/* ── Sugerencias del chef ── */}
       {topProducts.length > 0 && (
         <div className="mt-7 px-5">

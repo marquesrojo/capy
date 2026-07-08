@@ -20,7 +20,6 @@ export default function MenuPage() {
   const [venueLogo, setVenueLogo] = useState('')
   const [headerBgColor, setHeaderBgColor] = useState('')
   const [headerTextColor, setHeaderTextColor] = useState('#FFFFFF')
-  const [venueBanner, setVenueBanner] = useState('')
   const { items, addItem, updateQuantity, itemCount, subtotal, location, setLocation, setSessionId } = useCart()
   const [searchParams] = useSearchParams()
   const { customer, isAnonymous, forgetCustomer, loginWithGoogle } = useCustomer()
@@ -56,7 +55,7 @@ export default function MenuPage() {
       const [catRes, prodRes, venueRes] = await Promise.all([
         supabaseCustomer.from('categories').select('*').eq('venue_id', ACTIVE_VENUE_ID).eq('is_active', true).order('sort_order'),
         supabaseCustomer.from('products').select('*').eq('venue_id', ACTIVE_VENUE_ID).order('sort_order'),
-        supabaseCustomer.from('venues').select('high_demand, name, logo_url, header_bg_color, header_text_color, banner_url').eq('id', ACTIVE_VENUE_ID).single(),
+        supabaseCustomer.from('venues').select('high_demand, name, logo_url, header_bg_color, header_text_color').eq('id', ACTIVE_VENUE_ID).single(),
       ])
       setCategories(catRes.data || [])
       setProducts(prodRes.data || [])
@@ -67,7 +66,6 @@ export default function MenuPage() {
         setVenueLogo(venueRes.data.logo_url)
         if (venueRes.data.header_bg_color) setHeaderBgColor(venueRes.data.header_bg_color)
         if (venueRes.data.header_text_color) setHeaderTextColor(venueRes.data.header_text_color)
-        if (venueRes.data.banner_url) setVenueBanner(venueRes.data.banner_url)
       }
       setLoading(false)
     }
@@ -174,17 +172,6 @@ export default function MenuPage() {
             </button>
           ) : null}
         </div>
-
-        {/* Banner image */}
-        {venueBanner && (
-          <div className="mx-[-16px] mt-2 mb-2.5 overflow-hidden" style={{ height: 160 }}>
-            <img
-              src={venueBanner}
-              alt=""
-              className="w-full h-full object-cover"
-            />
-          </div>
-        )}
 
         {/* Search + Category filter */}
         <div className="flex items-center gap-2">

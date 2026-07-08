@@ -17,7 +17,7 @@ export function VenueProvider({ children }) {
 
     supabaseCustomer
       .from('venues')
-      .select('id, name, logo_url, header_bg_color, header_text_color, slug, landing_self_color, landing_waiter_color')
+      .select('id, name, logo_url, header_bg_color, header_text_color, slug, landing_self_color, landing_waiter_color, banner_url')
       .eq('slug', slug)
       .eq('is_active', true)
       .single()
