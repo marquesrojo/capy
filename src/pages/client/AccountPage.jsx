@@ -1,8 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCustomer } from '../../hooks/useCustomer'
 import { useClientBase } from '../../hooks/useVenue'
+import { useCart } from '../../hooks/useCart'
+import { supabaseCustomer } from '../../lib/supabase'
 import BottomNav from '../../components/BottomNav'
+
+const MEDALS = ['🥇', '🥈', '🥉']
+const CONDICIONES_IVA = ['Consumidor Final', 'Responsable Inscripto', 'Monotributista', 'Exento']
 
 function GoogleIcon() {
   return (
@@ -16,16 +21,94 @@ function GoogleIcon() {
 }
 
 export default function AccountPage() {
-  const { customer, isAnonymous, userEmail, signInWithGoogle, updateCustomer, forgetCustomer } = useCustomer()
+  const { customer, isAnonymous, userEmail, signInWithGoogle, updateCustomer, saveBilling, forgetCustomer } = useCustomer()
   const navigate = useNavigate()
   const base = useClientBase()
+  const { addItem } = useCart()
 
+  // Profile edit
   const [editing, setEditing] = useState(false)
   const [editName, setEditName] = useState('')
   const [editWhatsapp, setEditWhatsapp] = useState('')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [googleError, setGoogleError] = useState('')
+
+  // Top 3
+  const [top3, setTop3] = useState([])
+  const [top3Loading, setTop3Loading] = useState(true)
+  const [addedId, setAddedId] = useState(null)
+
+  // Billing
+  const [billingOpen, setBillingOpen] = useState(false)
+  const [razonSocial, setRazonSocial] = useState('')
+  const [cuitDni, setCuitDni] = useState('')
+  const [condicionIva, setCondicionIva] = useState('')
+  const [emailFacturacion, setEmailFacturacion] = useState('')
+  const [billingSaving, setBillingSaving] = useState(false)
+  const [billingError, setBillingError] = useState('')
+  const [billingSaved, setBillingSaved] = useState(false)
+
+  useEffect(() => {
+    if (!customer?.id) { setTop3Loading(false); return }
+    async function loadTop3() {
+      try {
+        const { data: orders } = await supabaseCustomer
+          .from('orders')
+          .select('id')
+          .eq('customer_id', customer.id)
+
+        if (!orders?.length) { setTop3Loading(false); return }
+
+        const { data: orderItems } = await supabaseCustomer
+          .from('order_items')
+          .select('product_id, product_name, quantity')
+          .in('order_id', orders.map(o => o.id))
+
+        if (!orderItems?.length) { setTop3Loading(false); return }
+
+        const map = {}
+        for (const item of orderItems) {
+          if (!map[item.product_id]) {
+            map[item.product_id] = { product_id: item.product_id, product_name: item.product_name, total: 0 }
+          }
+          map[item.product_id].total += item.quantity
+        }
+
+        const ranked = Object.values(map).sort((a, b) => b.total - a.total).slice(0, 3)
+        const productIds = ranked.map(r => r.product_id).filter(Boolean)
+
+        if (productIds.length) {
+          const { data: products } = await supabaseCustomer
+            .from('products')
+            .select('id, name, price, image_url')
+            .in('id', productIds)
+
+          const enriched = ranked.map(r => ({
+            ...r,
+            ...(products?.find(p => p.id === r.product_id) || {}),
+            id: r.product_id,
+          }))
+          setTop3(enriched)
+        } else {
+          setTop3(ranked)
+        }
+      } catch (e) {
+        console.error('top3:', e)
+      }
+      setTop3Loading(false)
+    }
+    loadTop3()
+  }, [customer?.id])
+
+  useEffect(() => {
+    if (customer) {
+      setRazonSocial(customer.razon_social || '')
+      setCuitDni(customer.cuit_dni || '')
+      setCondicionIva(customer.condicion_iva || '')
+      setEmailFacturacion(customer.email_facturacion || '')
+    }
+  }, [customer])
 
   function startEdit() {
     setEditName(customer?.full_name || '')
@@ -41,6 +124,23 @@ export default function AccountPage() {
     setSaving(false)
     if (error) { setSaveError(error.message); return }
     setEditing(false)
+  }
+
+  async function saveBillingData() {
+    setBillingSaving(true)
+    setBillingError('')
+    setBillingSaved(false)
+    const { error } = await saveBilling({ razonSocial, cuitDni, condicionIva, emailFacturacion })
+    setBillingSaving(false)
+    if (error) { setBillingError(error.message); return }
+    setBillingSaved(true)
+    setTimeout(() => setBillingSaved(false), 3000)
+  }
+
+  function handleQuickAdd(item) {
+    addItem({ id: item.id, name: item.name || item.product_name, price: item.price || 0 })
+    setAddedId(item.id)
+    setTimeout(() => setAddedId(null), 1500)
   }
 
   return (
@@ -128,13 +228,128 @@ export default function AccountPage() {
 
                 <div className="border-t border-carbon-700 pt-3">
                   <button
-                    onClick={async () => { await forgetCustomer(); navigate(base || '/identificacion') }}
+                    onClick={async () => { await forgetCustomer(); navigate(base || '/') }}
                     className="text-smoke-500 text-xs font-semibold"
                   >
                     Cerrar sesión
                   </button>
                 </div>
               </>
+            )}
+          </div>
+        )}
+
+        {/* Top 3 favoritos */}
+        {!top3Loading && top3.length > 0 && (
+          <div className="bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-4">
+            <h2 className="text-smoke-400 text-[10px] font-bold uppercase tracking-widest mb-3">Tus favoritos</h2>
+            <div className="space-y-3">
+              {top3.map((item, i) => (
+                <div key={item.product_id} className="flex items-center gap-3">
+                  <span className="text-xl w-7 text-center shrink-0">{MEDALS[i]}</span>
+                  {item.image_url ? (
+                    <img src={item.image_url} alt={item.name} className="w-11 h-11 rounded-xl object-cover shrink-0" />
+                  ) : (
+                    <div className="w-11 h-11 rounded-xl bg-carbon-800 shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-smoke-200 text-sm font-semibold leading-tight truncate">
+                      {item.name || item.product_name}
+                    </p>
+                    <p className="text-smoke-500 text-xs">Pedido {item.total}×</p>
+                  </div>
+                  <button
+                    onClick={() => handleQuickAdd(item)}
+                    className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center font-bold text-lg transition-all"
+                    style={{
+                      backgroundColor: addedId === item.id ? '#22c55e' : '#e15c23',
+                      color: '#fff',
+                    }}
+                  >
+                    {addedId === item.id ? '✓' : '+'}
+                  </button>
+                </div>
+              ))}
+            </div>
+            <p className="text-smoke-600 text-[10px] mt-3">
+              Agregá directo al carrito desde acá
+            </p>
+          </div>
+        )}
+
+        {/* Datos de facturación */}
+        {customer && (
+          <div className="bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-4">
+            <button
+              onClick={() => setBillingOpen(o => !o)}
+              className="w-full flex items-center justify-between"
+            >
+              <div>
+                <p className="text-smoke-200 font-semibold text-sm text-left">Datos de facturación</p>
+                {customer.razon_social && !billingOpen && (
+                  <p className="text-smoke-500 text-xs mt-0.5 text-left">{customer.razon_social}</p>
+                )}
+              </div>
+              <svg
+                width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+                className={`text-smoke-500 transition-transform shrink-0 ${billingOpen ? 'rotate-180' : ''}`}
+              >
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+
+            {billingOpen && (
+              <div className="mt-4 space-y-3">
+                <div>
+                  <label className="text-smoke-500 text-[10px] font-bold uppercase tracking-wide block mb-1">Razón Social</label>
+                  <input
+                    value={razonSocial}
+                    onChange={e => setRazonSocial(e.target.value)}
+                    placeholder="Nombre o empresa"
+                    className="w-full bg-carbon-950 border border-carbon-700 rounded-xl px-3 py-2 text-smoke-200 text-sm outline-none focus:border-ember-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-smoke-500 text-[10px] font-bold uppercase tracking-wide block mb-1">CUIT / DNI</label>
+                  <input
+                    value={cuitDni}
+                    onChange={e => setCuitDni(e.target.value)}
+                    placeholder="20-12345678-9"
+                    className="w-full bg-carbon-950 border border-carbon-700 rounded-xl px-3 py-2 text-smoke-200 text-sm outline-none focus:border-ember-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-smoke-500 text-[10px] font-bold uppercase tracking-wide block mb-1">Condición IVA</label>
+                  <select
+                    value={condicionIva}
+                    onChange={e => setCondicionIva(e.target.value)}
+                    className="w-full bg-carbon-950 border border-carbon-700 rounded-xl px-3 py-2 text-smoke-200 text-sm outline-none focus:border-ember-500"
+                  >
+                    <option value="">Seleccionar...</option>
+                    {CONDICIONES_IVA.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-smoke-500 text-[10px] font-bold uppercase tracking-wide block mb-1">Email de facturación</label>
+                  <input
+                    value={emailFacturacion}
+                    onChange={e => setEmailFacturacion(e.target.value)}
+                    placeholder="facturas@email.com"
+                    type="email"
+                    className="w-full bg-carbon-950 border border-carbon-700 rounded-xl px-3 py-2 text-smoke-200 text-sm outline-none focus:border-ember-500"
+                  />
+                </div>
+                {billingError && <p className="text-red-500 text-xs">{billingError}</p>}
+                <button
+                  onClick={saveBillingData}
+                  disabled={billingSaving}
+                  className="w-full font-bold text-sm py-2.5 rounded-xl transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: billingSaved ? '#22c55e' : '#e15c23', color: '#fff' }}
+                >
+                  {billingSaving ? 'Guardando...' : billingSaved ? '✓ Guardado' : 'Guardar datos'}
+                </button>
+              </div>
             )}
           </div>
         )}

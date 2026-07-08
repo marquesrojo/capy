@@ -103,6 +103,28 @@ export function CustomerProvider({ children }) {
     return { data }
   }
 
+  async function saveBilling({ razonSocial, cuitDni, condicionIva, emailFacturacion }) {
+    const { data: sessionData } = await supabaseCustomer.auth.getSession()
+    const userId = sessionData.session?.user?.id
+    if (!userId) return { error: new Error('Sin sesion activa') }
+
+    const { data, error } = await supabaseCustomer
+      .from('customers')
+      .update({
+        razon_social: razonSocial?.trim() || null,
+        cuit_dni: cuitDni?.trim() || null,
+        condicion_iva: condicionIva || null,
+        email_facturacion: emailFacturacion?.trim() || null,
+      })
+      .eq('id', userId)
+      .select()
+      .single()
+
+    if (error) return { error }
+    setCustomer(data)
+    return { data }
+  }
+
   async function forgetCustomer() {
     await supabaseCustomer.auth.signOut()
     setCustomer(null)
@@ -158,6 +180,7 @@ export function CustomerProvider({ children }) {
     userEmail,
     registerCustomer,
     updateCustomer,
+    saveBilling,
     forgetCustomer,
     signInWithGoogle,
     loginWithGoogle,
