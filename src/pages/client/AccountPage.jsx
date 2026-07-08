@@ -295,10 +295,11 @@ export default function AccountPage() {
         {/* Rank card */}
         {!rankLoading && currentRank && venueId && (
           <div
-            className="bg-carbon-900 rounded-2xl px-4 py-4"
+            className="bg-carbon-900 rounded-2xl px-4 py-4 space-y-4"
             style={{ border: `1.5px solid ${currentRank.color}50` }}
           >
-            <div className="flex items-center gap-3 mb-3">
+            {/* Current rank header */}
+            <div className="flex items-center gap-3">
               <div
                 className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
                 style={{ backgroundColor: `${currentRank.color}20` }}
@@ -311,9 +312,9 @@ export default function AccountPage() {
                   {currentRank.name}
                 </p>
               </div>
-              <span className="text-smoke-500 text-xs shrink-0">{monthlyOrders} ped.</span>
             </div>
 
+            {/* Progress bar */}
             {nextRank ? (
               <div>
                 <div className="w-full bg-carbon-700 rounded-full h-1.5 mb-1.5">
@@ -326,7 +327,7 @@ export default function AccountPage() {
                   />
                 </div>
                 <div className="flex justify-between text-[10px]">
-                  <span className="text-smoke-600">{monthlyOrders} prom. mensual (últ. 3 meses)</span>
+                  <span className="text-smoke-600">{monthlyOrders} prom./mes (últ. 3 meses)</span>
                   <span className="text-smoke-500">{nextRank.min_orders} → <span style={{ color: nextRank.color }}>{nextRank.name}</span></span>
                 </div>
               </div>
@@ -336,16 +337,54 @@ export default function AccountPage() {
               </p>
             )}
 
+            {/* Current rank prize */}
             {currentRank.prize && (
               <div
-                className="mt-3 px-3 py-2 rounded-xl"
+                className="px-3 py-2 rounded-xl"
                 style={{ backgroundColor: `${currentRank.color}18` }}
               >
                 <p className="text-[11px] font-semibold" style={{ color: currentRank.color }}>
-                  Tu beneficio: {currentRank.prize}
+                  Tu beneficio actual: {currentRank.prize}
                 </p>
               </div>
             )}
+
+            {/* All ranks table */}
+            <div>
+              <p className="text-smoke-500 text-[10px] font-bold uppercase tracking-widest mb-2">Programa de rangos</p>
+              <div className="space-y-1.5">
+                {[...rankConfig].sort((a, b) => a.min_orders - b.min_orders).map(rank => {
+                  const isCurrent = rank.level === currentRank.level
+                  const color = RANK_COLORS[rank.level]
+                  return (
+                    <div
+                      key={rank.level}
+                      className="flex items-start gap-2.5 rounded-xl px-3 py-2"
+                      style={{
+                        backgroundColor: isCurrent ? `${color}15` : 'transparent',
+                        border: isCurrent ? `1px solid ${color}40` : '1px solid transparent',
+                      }}
+                    >
+                      <RankIcon level={rank.level} size={14} style={{ color, marginTop: 1, flexShrink: 0 }} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[11px] font-bold" style={{ color }}>{rank.name}</span>
+                          {rank.level === 1
+                            ? <span className="text-smoke-600 text-[10px]">desde el primer pedido</span>
+                            : <span className="text-smoke-600 text-[10px]">{rank.min_orders}+ pedidos/mes</span>
+                          }
+                          {isCurrent && <span className="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `${color}30`, color }}>Actual</span>}
+                        </div>
+                        {rank.prize && (
+                          <p className="text-smoke-400 text-[10px] mt-0.5">{rank.prize}</p>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <p className="text-smoke-600 text-[10px] mt-2">El rango se calcula con el promedio de pedidos de tus últimos 3 meses.</p>
+            </div>
           </div>
         )}
 
