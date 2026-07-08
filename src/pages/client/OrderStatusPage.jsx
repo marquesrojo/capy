@@ -8,6 +8,7 @@ import OrderFeedback from '../../components/OrderFeedback'
 import BillRequest from '../../components/BillRequest'
 import SplitCalculator from '../../components/SplitCalculator'
 import { useClientBase } from '../../hooks/useVenue'
+import { PinIcon, ChefHatIcon, ClockIcon } from '../../components/Icons'
 
 function PrepCountdown({ prepStartedAt, prepTimeMinutes }) {
   const [remaining, setRemaining] = useState(null)
@@ -34,7 +35,7 @@ function PrepCountdown({ prepStartedAt, prepTimeMinutes }) {
 
   return (
     <div className={`rounded-2xl p-4 border ${isDone ? 'bg-emerald-500/10 border-emerald-500/40' : 'bg-carbon-900 border-carbon-700'}`}>
-      <p className="text-smoke-400 text-xs mb-2">⏱ Tiempo estimado de preparación</p>
+      <p className="text-smoke-400 text-xs mb-2 flex items-center gap-1"><ClockIcon size={12} /> Tiempo estimado de preparación</p>
       <div className="flex items-center justify-between mb-3">
         <p className={`font-mono text-3xl font-bold ${isDone ? 'text-emerald-600' : 'text-ember-500'}`}>
           {isDone ? '¡Listo pronto!' : `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`}
@@ -237,9 +238,9 @@ export default function OrderStatusPage() {
           </div>
         </div>
       )}
-      <p className="text-smoke-400 text-sm mt-1">📍 {order.location_label}</p>
+      <p className="text-smoke-400 text-sm mt-1 flex items-center gap-1"><PinIcon size={14} /> {order.location_label}</p>
       {order.assigned_staff?.full_name && (
-        <p className="text-smoke-500 text-xs mt-1">🧑‍🍳 Te atiende {order.assigned_staff.full_name}</p>
+        <p className="text-smoke-500 text-xs mt-1 flex items-center gap-1"><ChefHatIcon size={13} /> Te atiende {order.assigned_staff.full_name}</p>
       )}
 
       {order.status === 'en_preparacion' && order.prep_started_at && order.prep_time_minutes && (
@@ -268,7 +269,7 @@ export default function OrderStatusPage() {
       {!isCancelado && order.location_type === 'retiro' && order.status === 'listo' && (
         <div className="mt-6 bg-emerald-500/10 border border-emerald-500/40 rounded-2xl p-5 text-center">
           <p className="text-emerald-700 font-semibold text-lg">¡Ya podés venir a buscarlo!</p>
-          <p className="text-smoke-400 text-xs mt-1">📍 {order.location_label}</p>
+          <p className="text-smoke-400 text-xs mt-1 flex items-center justify-center gap-1"><PinIcon size={12} /> {order.location_label}</p>
         </div>
       )}
 

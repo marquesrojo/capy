@@ -6,6 +6,7 @@ import { useCustomer } from '../../hooks/useCustomer'
 import { formatPrice } from '../../lib/utils'
 import BottomNav from '../../components/BottomNav'
 import { useClientBase } from '../../hooks/useVenue'
+import { PinIcon, SunIcon, ShoppingBagIcon, ClockIcon, XIcon } from '../../components/Icons'
 
 export default function MenuPage() {
   const [categories, setCategories] = useState([])
@@ -94,7 +95,7 @@ export default function MenuPage() {
     <div className="h-screen flex flex-col bg-[#F0F4F8] overflow-hidden">
       {highDemand && (
         <div className="flex-shrink-0 bg-red-500/15 border-b border-red-500/30 px-5 py-2 text-center">
-          <p className="text-red-700 text-sm font-medium">⏳ Alta demanda — puede haber demora. ¡Gracias por tu paciencia!</p>
+          <p className="text-red-700 text-sm font-medium flex items-center justify-center gap-1.5"><ClockIcon size={14} /> Alta demanda — puede haber demora. ¡Gracias por tu paciencia!</p>
         </div>
       )}
 
@@ -115,17 +116,20 @@ export default function MenuPage() {
               <h1 className="font-display text-2xl tracking-wide leading-none" style={{ color: accentText }}>
                 {venueName ? venueName.toUpperCase() : 'CARTA'}
               </h1>
+              {location?.label && (
+                <button
+                  onClick={() => setLocation(null)}
+                  className="flex items-center gap-1.5 mt-1"
+                  style={{ color: accentText }}
+                >
+                  <span className="text-xs font-bold flex items-center gap-1">
+                    {location.type === 'retiro' ? <ShoppingBagIcon size={12} /> : <PinIcon size={12} />}
+                    {location.label}
+                  </span>
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full border leading-none" style={{ borderColor: `${accentText}50`, opacity: 0.8 }}>cambiar</span>
+                </button>
+              )}
             </div>
-            {location?.label && (
-              <button
-                onClick={() => setLocation(null)}
-                className="flex items-center gap-1.5"
-                style={{ color: accentText }}
-              >
-                <span className="text-xs font-bold">{location.type === 'retiro' ? '🛍' : '📍'} {location.label}</span>
-                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full border leading-none" style={{ borderColor: `${accentText}50`, opacity: 0.8 }}>cambiar</span>
-              </button>
-            )}
           </div>
           {customer?.full_name ? (
             <div className="text-right shrink-0">
@@ -182,7 +186,7 @@ export default function MenuPage() {
               <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35" strokeLinecap="round"/>
             </svg>
             {search && (
-              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-sm opacity-60" style={{ color: accentText }}>✕</button>
+              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 opacity-60" style={{ color: accentText }}><XIcon size={14} /></button>
             )}
           </div>
         </div>
@@ -205,7 +209,7 @@ export default function MenuPage() {
           {dailySpecials.length > 0 && (
             <div className="mb-1">
               <div className="flex items-center gap-2 px-1 mb-2">
-                <span className="text-[11px] font-black uppercase tracking-wider" style={{ color: accentBg }}>☀️ Plato del día</span>
+                <span className="text-[11px] font-black uppercase tracking-wider flex items-center gap-1" style={{ color: accentBg }}><SunIcon size={13} /> Plato del día</span>
               </div>
               {dailySpecials.map(product => (
                 <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu}
@@ -235,8 +239,8 @@ export default function MenuPage() {
               <h2 className="text-[#1A2332] font-black text-xl uppercase">Categorías</h2>
               <button
                 onClick={() => setShowCategorySheet(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F0F4F8] text-[#6B7A8D] text-xl"
-              >×</button>
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F0F4F8] text-[#6B7A8D]"
+              ><XIcon size={16} /></button>
             </div>
             <div className="grid grid-cols-3 gap-2">
               {categories.map(cat => (
@@ -282,16 +286,16 @@ function ProductCard({ product, onAdd, onRemove, qty, accentBg = '#1A3A6B', acce
         <div className="relative flex-shrink-0">
           <img src={product.image_url} alt={product.name} className="w-24 h-24 rounded-l-xl object-cover" />
           {isDaily && (
-            <span className="absolute top-1.5 left-1.5 text-[10px] font-black px-1.5 py-0.5 rounded-full leading-none" style={{ backgroundColor: accentBg, color: accentText }}>
-              ☀️ HOY
+            <span className="absolute top-1.5 left-1.5 text-[10px] font-black px-1.5 py-0.5 rounded-full leading-none flex items-center gap-0.5" style={{ backgroundColor: accentBg, color: accentText }}>
+              <SunIcon size={9} /> HOY
             </span>
           )}
         </div>
       )}
       <div className="flex-1 min-w-0 py-3 px-3">
         {isDaily && !product.image_url && (
-          <span className="inline-flex items-center text-[10px] font-black px-1.5 py-0.5 rounded-full leading-none mb-1.5" style={{ backgroundColor: accentBg, color: accentText }}>
-            ☀️ HOY
+          <span className="inline-flex items-center gap-0.5 text-[10px] font-black px-1.5 py-0.5 rounded-full leading-none mb-1.5" style={{ backgroundColor: accentBg, color: accentText }}>
+            <SunIcon size={9} /> HOY
           </span>
         )}
         <div className="flex items-start justify-between gap-2">

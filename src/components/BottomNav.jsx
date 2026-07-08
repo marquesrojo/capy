@@ -3,12 +3,23 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useClientBase, useVenueOptional } from '../hooks/useVenue'
 import { useCart } from '../hooks/useCart'
 import { supabaseCustomer, ACTIVE_VENUE_ID } from '../lib/supabase'
+import {
+  UtensilsIcon,
+  ReceiptIcon,
+  BellIcon,
+  PinIcon,
+  ClipboardIcon,
+  HelpCircleIcon,
+  FileTextIcon,
+  MessageIcon,
+  XIcon,
+} from './Icons'
 
 const WAITER_REASONS = [
-  { id: 'tomar_pedido', label: 'Tomar mi pedido', icon: '📋' },
-  { id: 'consulta_carta', label: 'Consulta sobre la carta', icon: '❓' },
-  { id: 'traer_cuenta', label: 'Traer la cuenta', icon: '🧾' },
-  { id: 'otra_consulta', label: 'Otra consulta', icon: '💬' },
+  { id: 'tomar_pedido', label: 'Tomar mi pedido', Icon: ClipboardIcon },
+  { id: 'consulta_carta', label: 'Consulta sobre la carta', Icon: HelpCircleIcon },
+  { id: 'traer_cuenta', label: 'Traer la cuenta', Icon: FileTextIcon },
+  { id: 'otra_consulta', label: 'Otra consulta', Icon: MessageIcon },
 ]
 
 function zoneShort(name) {
@@ -89,7 +100,7 @@ export default function BottomNav() {
           className="flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold tracking-wide transition-colors"
           style={({ isActive }) => ({ color: isActive ? selfColor : '#9DAAB8' })}
         >
-          <span className="text-xl leading-none">🍽️</span>
+          <UtensilsIcon size={20} />
           CARTA
         </NavLink>
 
@@ -100,7 +111,7 @@ export default function BottomNav() {
           style={{ color: isOnCart ? selfColor : '#9DAAB8' }}
         >
           <div className="relative">
-            <span className="text-xl leading-none">🧾</span>
+            <ReceiptIcon size={20} />
             {itemCount > 0 && (
               <span
                 className="absolute -top-1.5 -right-2.5 min-w-[17px] h-[17px] rounded-full text-white text-[9px] font-black flex items-center justify-center px-0.5"
@@ -149,8 +160,10 @@ export default function BottomNav() {
           <div className="relative bg-white rounded-t-3xl px-5 pt-5 pb-10 max-h-[85vh] overflow-y-auto">
             {callSent ? (
               <div className="text-center py-8">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center text-3xl"
-                  style={{ background: `${waiterColor}18` }}>🔔</div>
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center"
+                  style={{ background: `${waiterColor}18` }}>
+                  <BellIcon size={32} style={{ color: waiterColor }} />
+                </div>
                 <p className="text-[#1A2332] font-black text-xl mb-1 uppercase">¡Camarero/a en camino!</p>
                 <p className="text-[#9DAAB8] text-sm mb-6">Ya saben dónde estás.</p>
                 <button
@@ -170,8 +183,10 @@ export default function BottomNav() {
                   </div>
                   <button
                     onClick={() => !callLoading && setShowWaiter(false)}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F0F4F8] text-[#6B7A8D] text-xl"
-                  >×</button>
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F0F4F8] text-[#6B7A8D]"
+                  >
+                    <XIcon size={16} />
+                  </button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 mb-5">
@@ -185,7 +200,9 @@ export default function BottomNav() {
                         : { borderColor: '#E8EEF4', backgroundColor: '#F8FAFB' }
                       }
                     >
-                      <span className="text-xl block mb-1.5">{r.icon}</span>
+                      <span className="block mb-1.5" style={{ color: selectedReason === r.id ? waiterColor : '#6B7A8D' }}>
+                        <r.Icon size={22} />
+                      </span>
                       <span className="text-xs font-bold leading-tight block"
                         style={{ color: selectedReason === r.id ? waiterColor : '#1A2332' }}>
                         {r.label}
@@ -197,7 +214,7 @@ export default function BottomNav() {
                 {activeZoneId ? (
                   <>
                     <div className="flex items-center gap-2 bg-[#F0F4F8] rounded-xl px-4 py-3 mb-4">
-                      <span className="text-[#6B7A8D] text-sm">📍</span>
+                      <PinIcon size={16} className="text-[#6B7A8D] flex-shrink-0" />
                       <span className="text-[#1A2332] font-bold text-sm">{activeLabel}</span>
                     </div>
                     <button

@@ -4,12 +4,13 @@ import { supabaseCustomer, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useClientBase, useVenueOptional } from '../../hooks/useVenue'
 import { useCart } from '../../hooks/useCart'
 import { useCustomer } from '../../hooks/useCustomer'
+import { ClipboardIcon, HelpCircleIcon, FileTextIcon, MessageIcon, PinIcon, UtensilsIcon, XIcon } from '../../components/Icons'
 
 const WAITER_REASONS = [
-  { id: 'tomar_pedido', label: 'Tomar mi pedido', icon: '📋' },
-  { id: 'consulta_carta', label: 'Consulta sobre la carta', icon: '❓' },
-  { id: 'traer_cuenta', label: 'Traer la cuenta', icon: '🧾' },
-  { id: 'otra_consulta', label: 'Otra consulta', icon: '💬' },
+  { id: 'tomar_pedido', label: 'Tomar mi pedido', Icon: ClipboardIcon },
+  { id: 'consulta_carta', label: 'Consulta sobre la carta', Icon: HelpCircleIcon },
+  { id: 'traer_cuenta', label: 'Traer la cuenta', Icon: FileTextIcon },
+  { id: 'otra_consulta', label: 'Otra consulta', Icon: MessageIcon },
 ]
 
 // Extrae el número de un nombre como "Mesa 4" → "4", o devuelve las primeras 2 letras
@@ -231,7 +232,7 @@ export default function IdentifyPage() {
           style={{ backgroundColor: selfColor }}
           className="rounded-2xl p-4 flex flex-col items-center justify-center gap-2.5 text-white active:opacity-85 shadow-sm min-h-[100px]"
         >
-          <span className="text-3xl leading-none">🍽️</span>
+          <UtensilsIcon size={30} />
           <span className="text-xs font-bold text-center leading-tight">Quiero pedir yo mismo</span>
         </button>
         <button
@@ -256,7 +257,7 @@ export default function IdentifyPage() {
             className="w-full flex items-center justify-between bg-white rounded-2xl px-4 py-3 border border-black/[0.06] shadow-sm active:opacity-80"
           >
             <div className="flex items-center gap-2">
-              <span className="text-base">📍</span>
+              <PinIcon size={16} className="text-[#6B7A8D] flex-shrink-0" />
               {pickedZone ? (
                 <span className="text-sm font-bold text-[#1A2332]">{pickedZone.name}</span>
               ) : (
@@ -405,7 +406,7 @@ export default function IdentifyPage() {
                 {p.image_url ? (
                   <img src={p.image_url} alt={p.name} className="w-full h-28 object-cover" />
                 ) : (
-                  <div className="w-full h-28 bg-[#F0F4F8] flex items-center justify-center text-3xl">🍴</div>
+                  <div className="w-full h-28 bg-[#F0F4F8] flex items-center justify-center text-[#C0CBDA]"><UtensilsIcon size={32} /></div>
                 )}
                 <div className="p-3">
                   <p className="text-xs font-bold text-[#1A2332] leading-tight line-clamp-2 mb-1">{p.name}</p>
@@ -538,7 +539,7 @@ export default function IdentifyPage() {
                     <p className="text-[#9DAAB8] text-sm">¿En qué te podemos ayudar?</p>
                   </div>
                   <button onClick={() => !callLoading && setShowWaiterCall(false)}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F0F4F8] text-[#6B7A8D] text-xl">×</button>
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F0F4F8] text-[#6B7A8D]"><XIcon size={16} /></button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 mb-5">
@@ -552,7 +553,9 @@ export default function IdentifyPage() {
                         : { borderColor: '#E8EEF4', backgroundColor: '#F8FAFB' }
                       }
                     >
-                      <span className="text-xl block mb-1.5">{r.icon}</span>
+                      <span className="block mb-1.5" style={{ color: selectedReason === r.id ? waiterColor : '#6B7A8D' }}>
+                        <r.Icon size={22} />
+                      </span>
                       <span className="text-xs font-bold leading-tight block"
                         style={{ color: selectedReason === r.id ? waiterColor : '#1A2332' }}>
                         {r.label}
@@ -564,7 +567,7 @@ export default function IdentifyPage() {
                 {activeZoneId ? (
                   <>
                     <div className="flex items-center gap-2 bg-[#F0F4F8] rounded-xl px-4 py-3 mb-4">
-                      <span className="text-[#6B7A8D] text-sm">📍 Ubicación:</span>
+                      <PinIcon size={16} className="text-[#6B7A8D] flex-shrink-0" />
                       <span className="text-[#1A2332] font-bold text-sm">{activeLabel}</span>
                     </div>
                     <button onClick={async () => { await submitCall(activeZoneId, activeLabel) }}

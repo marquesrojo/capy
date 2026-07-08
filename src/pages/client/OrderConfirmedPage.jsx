@@ -4,6 +4,7 @@ import { supabaseCustomer, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useCustomer } from '../../hooks/useCustomer'
 import { useClientBase } from '../../hooks/useVenue'
 import { accentColor } from '../../lib/utils'
+import { PhoneIcon } from '../../components/Icons'
 
 function GoogleIcon() {
   return (
@@ -96,7 +97,9 @@ export default function OrderConfirmedPage() {
             </>
           ) : (
             <>
-              <div className="text-5xl mb-4">📲</div>
+              <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center rounded-full" style={{ backgroundColor: `${accent}18`, color: accent }}>
+                <PhoneIcon size={28} />
+              </div>
               <h1 className="font-display text-3xl tracking-wide mb-2" style={{ color: accent }}>
                 FALTA VALIDAR
               </h1>

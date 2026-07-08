@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { supabaseCustomer } from '../../lib/supabase'
+import { CheckCircleIcon, ClockIcon, XCircleIcon, AlertIcon } from '../../components/Icons'
 
 export default function MercadoPagoReturnPage() {
   const [searchParams] = useSearchParams()
@@ -48,28 +49,36 @@ export default function MercadoPagoReturnPage() {
         )}
         {status === 'success' && (
           <>
-            <p className="text-5xl mb-4">✅</p>
+            <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center rounded-full bg-emerald-500/15">
+              <CheckCircleIcon size={36} className="text-emerald-500" />
+            </div>
             <p className="text-smoke-200 font-semibold text-xl mb-2">¡Pago recibido!</p>
             <p className="text-smoke-400 text-sm">Tu pedido está confirmado. Te redirigimos...</p>
           </>
         )}
         {status === 'pending' && (
           <>
-            <p className="text-5xl mb-4">⏳</p>
+            <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center rounded-full bg-amber-500/15">
+              <ClockIcon size={36} className="text-amber-500" />
+            </div>
             <p className="text-smoke-200 font-semibold text-xl mb-2">Pago en proceso</p>
             <p className="text-smoke-400 text-sm">Tu pago está siendo procesado. Te avisamos cuando se confirme.</p>
           </>
         )}
         {status === 'failure' && (
           <>
-            <p className="text-5xl mb-4">❌</p>
+            <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center rounded-full bg-red-500/15">
+              <XCircleIcon size={36} className="text-red-500" />
+            </div>
             <p className="text-smoke-200 font-semibold text-xl mb-2">Pago no completado</p>
             <p className="text-smoke-400 text-sm">Podés intentar de nuevo o elegir otro método de pago.</p>
           </>
         )}
         {status === 'error' && (
           <>
-            <p className="text-5xl mb-4">⚠️</p>
+            <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center rounded-full bg-amber-500/15">
+              <AlertIcon size={36} className="text-amber-500" />
+            </div>
             <p className="text-smoke-200 font-semibold text-xl mb-2">Algo salió mal</p>
             <p className="text-smoke-400 text-sm">No pudimos identificar tu pedido.</p>
           </>

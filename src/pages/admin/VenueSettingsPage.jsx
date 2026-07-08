@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import ColorPicker from '../../components/ColorPicker'
+import { RankIcon, RANK_COLORS, DEFAULT_RANKS, PaperclipIcon, UtensilsIcon, BellIcon } from '../../components/Icons'
 
 const MAX_LOGO_SIZE_MB = 4
 
@@ -19,7 +20,8 @@ export default function VenueSettingsPage() {
   const [landingSelfColor, setLandingSelfColor] = useState('#008080')
   const [landingWaiterColor, setLandingWaiterColor] = useState('#FF8C69')
   const [instagram, setInstagram] = useState('')
-  const [activePicker, setActivePicker] = useState(null) // 'bg' | 'text' | 'self' | 'waiter' | null
+  const [rankConfig, setRankConfig] = useState(DEFAULT_RANKS.map(r => ({ ...r })))
+  const [activePicker, setActivePicker] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -40,16 +42,16 @@ export default function VenueSettingsPage() {
       if (data?.header_text_color) setHeaderTextColor(data.header_text_color)
       if (data?.kitchen_alias) setKitchenAlias(data.kitchen_alias)
 
-      // Columnas opcionales — solo disponibles después de la migración SQL
       try {
-        const { data: colors } = await supabaseStaff
+        const { data: opt } = await supabaseStaff
           .from('venues')
-          .select('landing_self_color, landing_waiter_color, instagram_handle')
+          .select('landing_self_color, landing_waiter_color, instagram_handle, customer_rank_config')
           .eq('id', venueId)
           .single()
-        if (colors?.landing_self_color) setLandingSelfColor(colors.landing_self_color)
-        if (colors?.landing_waiter_color) setLandingWaiterColor(colors.landing_waiter_color)
-        if (colors?.instagram_handle) setInstagram(colors.instagram_handle)
+        if (opt?.landing_self_color) setLandingSelfColor(opt.landing_self_color)
+        if (opt?.landing_waiter_color) setLandingWaiterColor(opt.landing_waiter_color)
+        if (opt?.instagram_handle) setInstagram(opt.instagram_handle)
+        if (opt?.customer_rank_config?.length) setRankConfig(opt.customer_rank_config)
       } catch (_) {}
 
       setLoading(false)
@@ -60,34 +62,25 @@ export default function VenueSettingsPage() {
   function handleLogoChange(e) {
     const file = e.target.files?.[0]
     if (!file) return
-
-    if (!file.type.startsWith('image/')) {
-      setError('El logo debe ser una imagen.')
-      return
-    }
-    if (file.size > MAX_LOGO_SIZE_MB * 1024 * 1024) {
-      setError(`La imagen no puede pesar más de ${MAX_LOGO_SIZE_MB}MB.`)
-      return
-    }
-
+    if (!file.type.startsWith('image/')) { setError('El logo debe ser una imagen.'); return }
+    if (file.size > MAX_LOGO_SIZE_MB * 1024 * 1024) { setError(`La imagen no puede pesar más de ${MAX_LOGO_SIZE_MB}MB.`); return }
     setError('')
     setLogoFile(file)
     setLogoPreview(URL.createObjectURL(file))
   }
 
-  async function handleSave() {
-    if (!name.trim()) {
-      setError('El nombre del local no puede estar vacío.')
-      return
-    }
+  function updateRank(index, field, value) {
+    setRankConfig(prev => prev.map((r, i) => i === index ? { ...r, [field]: value } : r))
+  }
 
+  async function handleSave() {
+    if (!name.trim()) { setError('El nombre del local no puede estar vacío.'); return }
     setSaving(true)
     setSaved(false)
     setError('')
 
     try {
       let finalLogoUrl = logoUrl
-
       if (logoFile) {
         const ext = logoFile.name.split('.').pop()
         const path = `${venueId}/logo.${ext}`
@@ -95,12 +88,7 @@ export default function VenueSettingsPage() {
           .from('venue-assets')
           .upload(path, logoFile, { upsert: true })
         if (uploadError) throw uploadError
-
-        const { data: publicUrlData } = supabaseStaff.storage
-          .from('venue-assets')
-          .getPublicUrl(path)
-        // Le agregamos un parametro de cache-busting para que el navegador
-        // no siga mostrando el logo viejo cacheado tras actualizarlo
+        const { data: publicUrlData } = supabaseStaff.storage.from('venue-assets').getPublicUrl(path)
         finalLogoUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`
       }
 
@@ -115,10 +103,8 @@ export default function VenueSettingsPage() {
           kitchen_alias: kitchenAlias.trim() || null,
         })
         .eq('id', venueId)
-
       if (updateError) throw updateError
 
-      // Columnas opcionales — silencioso si todavía no existe la migración SQL
       try {
         await supabaseStaff
           .from('venues')
@@ -126,6 +112,7 @@ export default function VenueSettingsPage() {
             landing_self_color: landingSelfColor,
             landing_waiter_color: landingWaiterColor,
             instagram_handle: instagram.trim() || null,
+            customer_rank_config: rankConfig,
           })
           .eq('id', venueId)
       } catch (_) {}
@@ -182,14 +169,9 @@ export default function VenueSettingsPage() {
           <p className="text-smoke-500 text-xs mb-4">
             Se muestra al lado del nombre en la carta. Recomendado: imagen cuadrada.
           </p>
-
           {displayLogo ? (
             <div className="flex items-center gap-4 mb-3">
-              <img
-                src={displayLogo}
-                alt="Logo del local"
-                className="w-16 h-16 rounded-xl object-cover border border-carbon-700"
-              />
+              <img src={displayLogo} alt="Logo del local" className="w-16 h-16 rounded-xl object-cover border border-carbon-700" />
               <label className="text-smoke-400 text-xs underline cursor-pointer">
                 Cambiar logo
                 <input type="file" accept="image/*" onChange={handleLogoChange} className="hidden" />
@@ -197,7 +179,8 @@ export default function VenueSettingsPage() {
             </div>
           ) : (
             <label className="flex items-center justify-center gap-2 border border-dashed border-carbon-600 rounded-xl py-6 text-smoke-400 text-sm cursor-pointer">
-              <span>📎 Subir logo</span>
+              <PaperclipIcon size={16} />
+              <span>Subir logo</span>
               <input type="file" accept="image/*" onChange={handleLogoChange} className="hidden" />
             </label>
           )}
@@ -208,14 +191,11 @@ export default function VenueSettingsPage() {
           <p className="text-smoke-500 text-xs mb-4">
             Fondo y texto del encabezado que aparece en la carta de tus clientes y en todas las pantallas del panel.
           </p>
-
           <div className="flex gap-4 mb-4">
             <button
               type="button"
               onClick={() => setActivePicker(activePicker === 'bg' ? null : 'bg')}
-              className={`flex-1 flex items-center gap-2 rounded-lg px-2 py-1.5 border ${
-                activePicker === 'bg' ? 'border-ember-500 bg-carbon-800' : 'border-carbon-700 bg-carbon-800'
-              }`}
+              className={`flex-1 flex items-center gap-2 rounded-lg px-2 py-1.5 border ${activePicker === 'bg' ? 'border-ember-500 bg-carbon-800' : 'border-carbon-700 bg-carbon-800'}`}
             >
               <div className="w-8 h-8 rounded border border-carbon-600 flex-shrink-0" style={{ backgroundColor: headerBgColor }} />
               <div className="text-left">
@@ -226,9 +206,7 @@ export default function VenueSettingsPage() {
             <button
               type="button"
               onClick={() => setActivePicker(activePicker === 'text' ? null : 'text')}
-              className={`flex-1 flex items-center gap-2 rounded-lg px-2 py-1.5 border ${
-                activePicker === 'text' ? 'border-ember-500 bg-carbon-800' : 'border-carbon-700 bg-carbon-800'
-              }`}
+              className={`flex-1 flex items-center gap-2 rounded-lg px-2 py-1.5 border ${activePicker === 'text' ? 'border-ember-500 bg-carbon-800' : 'border-carbon-700 bg-carbon-800'}`}
             >
               <div className="w-8 h-8 rounded border border-carbon-600 flex-shrink-0" style={{ backgroundColor: headerTextColor }} />
               <div className="text-left">
@@ -237,7 +215,6 @@ export default function VenueSettingsPage() {
               </div>
             </button>
           </div>
-
           {activePicker === 'bg' && (
             <div className="mb-4 bg-carbon-800 rounded-xl p-3">
               <ColorPicker value={headerBgColor} onChange={setHeaderBgColor} />
@@ -248,15 +225,12 @@ export default function VenueSettingsPage() {
               <ColorPicker value={headerTextColor} onChange={setHeaderTextColor} />
             </div>
           )}
-
           <p className="text-smoke-500 text-xs mb-1.5">Vista previa</p>
           <div
             className="rounded-lg px-4 py-3 flex items-center gap-2.5 border border-carbon-700"
             style={{ backgroundColor: headerBgColor }}
           >
-            {displayLogo && (
-              <img src={displayLogo} alt="" className="w-6 h-6 rounded object-cover" />
-            )}
+            {displayLogo && <img src={displayLogo} alt="" className="w-6 h-6 rounded object-cover" />}
             <span className="text-xs font-bold tracking-wide" style={{ color: headerTextColor }}>
               {name ? name.toUpperCase() : 'NOMBRE DEL LOCAL'}
             </span>
@@ -268,7 +242,6 @@ export default function VenueSettingsPage() {
           <p className="text-smoke-500 text-xs mb-4">
             Botones que el cliente ve al escanear el QR del local.
           </p>
-
           <div className="flex gap-3 mb-4">
             <button
               type="button"
@@ -293,7 +266,6 @@ export default function VenueSettingsPage() {
               </div>
             </button>
           </div>
-
           {activePicker === 'self' && (
             <div className="mb-4 bg-carbon-800 rounded-xl p-3">
               <ColorPicker value={landingSelfColor} onChange={setLandingSelfColor} />
@@ -304,14 +276,15 @@ export default function VenueSettingsPage() {
               <ColorPicker value={landingWaiterColor} onChange={setLandingWaiterColor} />
             </div>
           )}
-
           <p className="text-smoke-500 text-xs mb-2">Vista previa</p>
           <div className="space-y-2">
             <div className="w-full py-3 rounded-xl flex items-center justify-center gap-2" style={{ backgroundColor: landingSelfColor }}>
-              <span className="text-white font-semibold text-sm">🍽️ Quiero pedir yo mismo</span>
+              <UtensilsIcon size={16} className="text-white" />
+              <span className="text-white font-semibold text-sm">Quiero pedir yo mismo</span>
             </div>
             <div className="w-full py-3 rounded-xl flex items-center justify-center gap-2" style={{ backgroundColor: landingWaiterColor }}>
-              <span className="text-white font-semibold text-sm">🔔 Quiero que me atienda un mozo</span>
+              <BellIcon size={16} className="text-white" />
+              <span className="text-white font-semibold text-sm">Quiero que me atienda un mozo</span>
             </div>
           </div>
         </div>
@@ -347,7 +320,58 @@ export default function VenueSettingsPage() {
           </div>
         </div>
 
-        {error && <p className="text-red-700 text-xs px-1">{error}</p>}
+        {/* Programa de rangos */}
+        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
+          <p className="text-smoke-300 font-medium text-sm mb-1">Programa de rangos</p>
+          <p className="text-smoke-500 text-xs mb-4">
+            Los clientes suben de rango según cuántos pedidos hacen en el mes. Personalizá el nombre y premio de cada nivel.
+          </p>
+          <div className="space-y-4">
+            {rankConfig.map((rank, i) => (
+              <div key={rank.level} className="rounded-xl p-3 border" style={{ borderColor: `${RANK_COLORS[rank.level]}40`, backgroundColor: `${RANK_COLORS[rank.level]}08` }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <RankIcon level={rank.level} size={16} style={{ color: RANK_COLORS[rank.level] }} />
+                  <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: RANK_COLORS[rank.level] }}>
+                    Nivel {rank.level}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <div>
+                    <label className="text-smoke-500 text-[10px] block mb-1">Nombre</label>
+                    <input
+                      value={rank.name}
+                      onChange={e => updateRank(i, 'name', e.target.value)}
+                      className="input text-xs w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-smoke-500 text-[10px] block mb-1">
+                      {rank.level === 1 ? 'Desde (siempre 0)' : 'Pedidos mínimos'}
+                    </label>
+                    <input
+                      type="number"
+                      value={rank.min_orders}
+                      onChange={e => updateRank(i, 'min_orders', parseInt(e.target.value) || 0)}
+                      className="input text-xs w-full"
+                      min="0"
+                      disabled={rank.level === 1}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-smoke-500 text-[10px] block mb-1">Premio / beneficio (opcional)</label>
+                  <input
+                    value={rank.prize || ''}
+                    onChange={e => updateRank(i, 'prize', e.target.value || null)}
+                    placeholder="Ej: 10% de descuento, postre de regalo..."
+                    className="input text-xs w-full"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
           <p className="text-smoke-300 font-medium text-sm mb-1">Alias de propina — Cocina</p>
           <p className="text-smoke-500 text-xs mb-3">Aparece en la encuesta cuando el cliente califica 4 o 5 estrellas</p>
@@ -360,6 +384,7 @@ export default function VenueSettingsPage() {
           />
         </div>
 
+        {error && <p className="text-red-700 text-xs px-1">{error}</p>}
         {saved && <p className="text-emerald-700 text-xs px-1">Guardado.</p>}
 
         <button

@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCustomer } from '../../hooks/useCustomer'
-import { useClientBase } from '../../hooks/useVenue'
+import { useClientBase, useVenueOptional } from '../../hooks/useVenue'
 import { useCart } from '../../hooks/useCart'
 import { supabaseCustomer } from '../../lib/supabase'
 import BottomNav from '../../components/BottomNav'
+import { MedalIcon, RankIcon, RANK_COLORS, DEFAULT_RANKS } from '../../components/Icons'
 
-const MEDALS = ['🥇', '🥈', '🥉']
+const CONDICIONES_IVA = ['Consumidor Final', 'Responsable Inscripto', 'Monotributista', 'Exento']
+
 const CONDICIONES_IVA = ['Consumidor Final', 'Responsable Inscripto', 'Monotributista', 'Exento']
 
 function GoogleIcon() {
@@ -24,6 +26,8 @@ export default function AccountPage() {
   const { customer, isAnonymous, userEmail, signInWithGoogle, updateCustomer, saveBilling, forgetCustomer } = useCustomer()
   const navigate = useNavigate()
   const base = useClientBase()
+  const venueCtx = useVenueOptional()
+  const venueId = venueCtx?.venue?.id
   const { addItem } = useCart()
 
   // Profile edit
@@ -39,6 +43,11 @@ export default function AccountPage() {
   const [top3Loading, setTop3Loading] = useState(true)
   const [addedId, setAddedId] = useState(null)
 
+  // Ranking
+  const [rankConfig, setRankConfig] = useState(DEFAULT_RANKS)
+  const [monthlyOrders, setMonthlyOrders] = useState(0)
+  const [rankLoading, setRankLoading] = useState(true)
+
   // Billing
   const [billingOpen, setBillingOpen] = useState(false)
   const [razonSocial, setRazonSocial] = useState('')
@@ -49,6 +58,7 @@ export default function AccountPage() {
   const [billingError, setBillingError] = useState('')
   const [billingSaved, setBillingSaved] = useState(false)
 
+  // Load top 3 most ordered products
   useEffect(() => {
     if (!customer?.id) { setTop3Loading(false); return }
     async function loadTop3() {
@@ -86,12 +96,12 @@ export default function AccountPage() {
 
           const enriched = ranked.map(r => ({
             ...r,
-            ...(products?.find(p => p.id === r.product_id) || {}),
             id: r.product_id,
+            ...(products?.find(p => p.id === r.product_id) || {}),
           }))
           setTop3(enriched)
         } else {
-          setTop3(ranked)
+          setTop3(ranked.map(r => ({ ...r, id: r.product_id })))
         }
       } catch (e) {
         console.error('top3:', e)
@@ -101,6 +111,39 @@ export default function AccountPage() {
     loadTop3()
   }, [customer?.id])
 
+  // Load rank config and monthly order count
+  useEffect(() => {
+    if (!customer?.id || !venueId) { setRankLoading(false); return }
+    async function loadRank() {
+      try {
+        const { data } = await supabaseCustomer
+          .from('venues')
+          .select('customer_rank_config')
+          .eq('id', venueId)
+          .single()
+        if (data?.customer_rank_config?.length) setRankConfig(data.customer_rank_config)
+      } catch (_) {}
+
+      try {
+        const start = new Date()
+        start.setDate(1)
+        start.setHours(0, 0, 0, 0)
+        const { count } = await supabaseCustomer
+          .from('orders')
+          .select('id', { count: 'exact', head: true })
+          .eq('customer_id', customer.id)
+          .eq('venue_id', venueId)
+          .gte('created_at', start.toISOString())
+          .neq('status', 'cancelado')
+        setMonthlyOrders(count || 0)
+      } catch (_) {}
+
+      setRankLoading(false)
+    }
+    loadRank()
+  }, [customer?.id, venueId])
+
+  // Pre-fill billing from customer data
   useEffect(() => {
     if (customer) {
       setRazonSocial(customer.razon_social || '')
@@ -143,6 +186,15 @@ export default function AccountPage() {
     setTimeout(() => setAddedId(null), 1500)
   }
 
+  // Rank calculation
+  const sortedRanks = [...rankConfig].sort((a, b) => b.min_orders - a.min_orders)
+  const currentRankData = sortedRanks.find(r => monthlyOrders >= r.min_orders) || rankConfig[0]
+  const currentRank = currentRankData ? { ...currentRankData, color: RANK_COLORS[currentRankData.level] } : null
+  const nextRankData = currentRank
+    ? [...rankConfig].sort((a, b) => a.min_orders - b.min_orders).find(r => r.min_orders > currentRank.min_orders)
+    : null
+  const nextRank = nextRankData ? { ...nextRankData, color: RANK_COLORS[nextRankData.level] } : null
+
   return (
     <div className="min-h-screen bg-carbon-950 pb-24">
       <header className="px-5 pt-6 pb-4">
@@ -150,6 +202,7 @@ export default function AccountPage() {
       </header>
 
       <main className="px-5 space-y-4">
+        {/* Profile card */}
         {customer && (
           <div className="bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-4 space-y-3">
             {editing ? (
@@ -239,6 +292,63 @@ export default function AccountPage() {
           </div>
         )}
 
+        {/* Rank card */}
+        {!rankLoading && currentRank && venueId && (
+          <div
+            className="bg-carbon-900 rounded-2xl px-4 py-4"
+            style={{ border: `1.5px solid ${currentRank.color}50` }}
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div
+                className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+                style={{ backgroundColor: `${currentRank.color}20` }}
+              >
+                <RankIcon level={currentRank.level} size={22} style={{ color: currentRank.color }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-smoke-500 text-[10px] font-bold uppercase tracking-widest">Tu rango este mes</p>
+                <p className="font-bold text-base leading-tight" style={{ color: currentRank.color }}>
+                  {currentRank.name}
+                </p>
+              </div>
+              <span className="text-smoke-500 text-xs shrink-0">{monthlyOrders} ped.</span>
+            </div>
+
+            {nextRank ? (
+              <div>
+                <div className="w-full bg-carbon-700 rounded-full h-1.5 mb-1.5">
+                  <div
+                    className="h-1.5 rounded-full transition-all duration-700"
+                    style={{
+                      width: `${Math.min(100, (monthlyOrders / nextRank.min_orders) * 100)}%`,
+                      backgroundColor: currentRank.color,
+                    }}
+                  />
+                </div>
+                <div className="flex justify-between text-[10px]">
+                  <span className="text-smoke-600">{monthlyOrders} pedido{monthlyOrders !== 1 ? 's' : ''} este mes</span>
+                  <span className="text-smoke-500">{nextRank.min_orders} → <span style={{ color: nextRank.color }}>{nextRank.name}</span></span>
+                </div>
+              </div>
+            ) : (
+              <p className="text-[11px] font-semibold" style={{ color: currentRank.color }}>
+                Nivel máximo del mes — {monthlyOrders} pedidos
+              </p>
+            )}
+
+            {currentRank.prize && (
+              <div
+                className="mt-3 px-3 py-2 rounded-xl"
+                style={{ backgroundColor: `${currentRank.color}18` }}
+              >
+                <p className="text-[11px] font-semibold" style={{ color: currentRank.color }}>
+                  Tu beneficio: {currentRank.prize}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Top 3 favoritos */}
         {!top3Loading && top3.length > 0 && (
           <div className="bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-4">
@@ -246,7 +356,9 @@ export default function AccountPage() {
             <div className="space-y-3">
               {top3.map((item, i) => (
                 <div key={item.product_id} className="flex items-center gap-3">
-                  <span className="text-xl w-7 text-center shrink-0">{MEDALS[i]}</span>
+                  <div className="shrink-0">
+                    <MedalIcon rank={i + 1} size={28} />
+                  </div>
                   {item.image_url ? (
                     <img src={item.image_url} alt={item.name} className="w-11 h-11 rounded-xl object-cover shrink-0" />
                   ) : (
@@ -260,20 +372,22 @@ export default function AccountPage() {
                   </div>
                   <button
                     onClick={() => handleQuickAdd(item)}
-                    className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center font-bold text-lg transition-all"
+                    className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center font-bold text-base transition-all"
                     style={{
                       backgroundColor: addedId === item.id ? '#22c55e' : '#e15c23',
                       color: '#fff',
                     }}
                   >
-                    {addedId === item.id ? '✓' : '+'}
+                    {addedId === item.id ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 6 9 17l-5-5"/>
+                      </svg>
+                    ) : '+'}
                   </button>
                 </div>
               ))}
             </div>
-            <p className="text-smoke-600 text-[10px] mt-3">
-              Agregá directo al carrito desde acá
-            </p>
+            <p className="text-smoke-600 text-[10px] mt-3">Agregá directo al carrito desde acá</p>
           </div>
         )}
 
