@@ -461,8 +461,8 @@ export default function AccountPage() {
                     onClick={() => toggleDietaryPref(tag.id)}
                     className={`flex items-center gap-1.5 text-sm px-3 py-2 rounded-full border transition-colors ${
                       active
-                        ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300'
-                        : 'border-carbon-600 text-smoke-400'
+                        ? 'bg-emerald-500/15 border-emerald-600/60 text-emerald-700'
+                        : 'border-carbon-600 text-smoke-300'
                     }`}
                   >
                     <tag.Icon size={14} /> {tag.label}

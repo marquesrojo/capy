@@ -298,7 +298,7 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
                   type="button"
                   onClick={() => setDietaryTags(prev => active ? prev.filter(t => t !== tag.id) : [...prev, tag.id])}
                   className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-colors ${
-                    active ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-300' : 'border-carbon-600 text-smoke-500'
+                    active ? 'bg-emerald-500/15 border-emerald-600/60 text-emerald-700' : 'border-carbon-600 text-smoke-300'
                   }`}
                 >
                   <tag.Icon size={12} /> {tag.label}
