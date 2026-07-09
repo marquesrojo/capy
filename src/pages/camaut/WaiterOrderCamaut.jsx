@@ -63,7 +63,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
     try {
       const [catRes, prodRes, , staffRes, zoneRes, notesRes, menuRes] = await Promise.all([
         supabaseStaff.from('categories').select('id, name, menu_id').eq('venue_id', activeVenueId).order('sort_order'),
-        supabaseStaff.from('products').select('id, name, price, category_id').eq('venue_id', activeVenueId).eq('is_available', true),
+        supabaseStaff.from('products').select('id, name, price, category_id, is_daily_special').eq('venue_id', activeVenueId).eq('is_available', true),
         supabaseStaff.from('venues').select('whatsapp_number').eq('id', activeVenueId).maybeSingle(),
         supabaseStaff.from('staff_names').select('id').eq('venue_id', venueId).limit(1).maybeSingle(),
         supabaseStaff.from('venue_zones').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order'),
@@ -647,9 +647,12 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
               const item = cart[product.id]
               const qty = item?.qty || 0
               return (
-                <div key={product.id} className="bg-white rounded-xl px-4 py-3 flex items-center justify-between border border-black/5 shadow-sm">
+                <div key={product.id} className={`bg-white rounded-xl px-4 py-3 flex items-center justify-between border shadow-sm ${product.is_daily_special ? 'border-amber-300 bg-amber-50' : 'border-black/5'}`}>
                   <div className="flex-1 min-w-0 pr-2">
-                    <p className="text-sm font-semibold text-[#1A2A3A]">{product.name}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-semibold text-[#1A2A3A]">{product.name}</p>
+                      {product.is_daily_special && <span className="text-[10px] font-bold bg-amber-400 text-white px-1.5 py-0.5 rounded-full leading-none">HOY</span>}
+                    </div>
                     <p className="text-xs text-[#8896A5]">{categoryMap[product.category_id] || ''} · <span className="text-[#008080] font-semibold">{formatPrice(product.price)}</span></p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -694,9 +697,12 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
               const item = cart[product.id]
               const qty = item?.qty || 0
               return (
-                <div key={product.id} className="bg-white rounded-xl px-3 py-3 flex items-center justify-between border border-black/5 shadow-sm">
+                <div key={product.id} className={`bg-white rounded-xl px-3 py-3 flex items-center justify-between border shadow-sm ${product.is_daily_special ? 'border-amber-300 bg-amber-50' : 'border-black/5'}`}>
                   <div className="flex-1 min-w-0 pr-2">
-                    <p className="text-sm font-semibold text-[#1A2A3A] leading-snug">{product.name}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-semibold text-[#1A2A3A] leading-snug">{product.name}</p>
+                      {product.is_daily_special && <span className="text-[10px] font-bold bg-amber-400 text-white px-1.5 py-0.5 rounded-full leading-none">HOY</span>}
+                    </div>
                     <p className="text-xs text-[#008080] font-semibold mt-0.5">{formatPrice(product.price)}</p>
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
