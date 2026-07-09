@@ -85,15 +85,15 @@ CARTA DISPONIBLE (los ⭐ son destacados por el chef):
 ${menuLines}
 
 INSTRUCCIONES:
-- Recomendá exactamente 1 o 2 platos de la carta.
-- SIEMPRE recomendá al menos 1 plato. Si ninguno es perfecto, elegí el más cercano al perfil.
+- Recomendá EXACTAMENTE 2 platos de la carta (o 1 si la carta tiene menos de 2 opciones relevantes).
+- SIEMPRE recomendá. Aunque ninguno sea perfecto, elegí los más cercanos al perfil del cliente.
 - Los nombres deben coincidir exactamente con los de la carta.
-- Escribí una frase corta (máximo 20 palabras) explicando por qué ese plato es ideal para este momento y este cliente.
-- Si hay platos ⭐, dales prioridad si encajan con el perfil.
-- Respondé SOLO con JSON válido, sin markdown, sin texto adicional.
+- Para cada plato escribí una frase corta (máximo 20 palabras) en español argentino explicando por qué es ideal para este cliente ahora.
+- Si hay platos ⭐, priorizalos si encajan con el perfil.
+- Respondé ÚNICAMENTE con JSON válido. Sin markdown, sin texto antes ni después, sin explicaciones.
 
-FORMATO DE RESPUESTA:
-{"recommendations":[{"name":"nombre exacto del plato","price":1234,"reason":"frase corta en español argentino"}]}`
+FORMATO DE RESPUESTA (respetá este esquema exacto):
+{"recommendations":[{"name":"nombre exacto del plato","price":1234,"reason":"frase corta en español argentino"},{"name":"nombre exacto del plato","price":1234,"reason":"frase corta en español argentino"}]}`
 
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
@@ -102,7 +102,11 @@ FORMATO DE RESPUESTA:
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 512, temperature: 0.7 },
+          generationConfig: {
+            maxOutputTokens: 1024,
+            temperature: 0.7,
+            thinkingConfig: { thinkingBudget: 0 },
+          },
         }),
       }
     )
