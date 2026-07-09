@@ -1,5 +1,6 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet, Link } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, Outlet, Link, useLocation } from 'react-router-dom'
 import { AuthProvider } from './hooks/useAuth'
+import CapyChat from './components/CapyChat'
 import { CustomerProvider } from './hooks/useCustomer'
 import { CartProvider } from './hooks/useCart'
 import { RequireCustomer, RequireStaff, RequireAdmin, RequireSuperAdmin } from './components/ProtectedRoute'
@@ -48,6 +49,12 @@ import SuperAdminPage from './pages/admin/SuperAdminPage'
 import WaiterCVPage from './pages/camaut/WaiterCVPage'
 import ClientAuthCallbackPage from './pages/client/ClientAuthCallbackPage'
 import AccountPage from './pages/client/AccountPage'
+
+function CapyChatOverlay() {
+  const location = useLocation()
+  if (!location.pathname.startsWith('/admin')) return null
+  return <CapyChat />
+}
 
 function VenueGuard() {
   const { loading, notFound } = useVenue()
@@ -336,6 +343,7 @@ export default function App() {
               <Route path="/cv/:alias" element={<WaiterCVPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            <CapyChatOverlay />
           </BrowserRouter>
         </CartProvider>
       </CustomerProvider>

@@ -529,8 +529,22 @@ function NewProductForm({ venueId, categories, onClose, onCreated }) {
   )
 }
 
+async function searchUnsplash(query) {
+  const key = import.meta.env.VITE_UNSPLASH_ACCESS_KEY
+  if (!key) return null
+  try {
+    const res = await fetch(
+      `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape&client_id=${key}`
+    )
+    const data = await res.json()
+    return data.results?.[0]?.urls?.small || null
+  } catch {
+    return null
+  }
+}
+
 function ImportarConIA({ venueId, onImported }) {
-  const [step, setStep] = useState('idle') // idle | analyzing | review | saving
+  const [step, setStep] = useState('idle') // idle | analyzing | enriching | review | saving
   const [preview, setPreview] = useState(null)
   const [detected, setDetected] = useState([])
   const [error, setError] = useState('')
@@ -570,7 +584,7 @@ function ImportarConIA({ venueId, onImported }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts: [{
-              text: `Este es el texto de un menú de restaurante:\n\n${transcriptText}\n\nConvertí esto a un JSON array de productos. Para cada producto incluí: name (nombre), price (precio como número sin símbolo), category (categoría en español). Respondé ÚNICAMENTE con el JSON array, sin texto adicional, sin backticks. Ejemplo: [{"name":"Milanesa","price":2500,"category":"Platos principales"}]`
+              text: `Este es el texto de un menú de restaurante:\n\n${transcriptText}\n\nConvertí esto a un JSON array de productos. Para cada producto incluí: name (nombre), price (precio como número sin símbolo), category (categoría en español), description (descripción del plato si aparece en el menú, sino cadena vacía ""). Respondé ÚNICAMENTE con el JSON array, sin texto adicional, sin backticks. Ejemplo: [{"name":"Milanesa","price":2500,"category":"Platos principales","description":"Milanesa de ternera con papas fritas"}]`
             }]}]
           })
         })
@@ -578,7 +592,17 @@ function ImportarConIA({ venueId, onImported }) {
         const parseText = parseData.candidates?.[0]?.content?.parts?.[0]?.text || '[]'
         const jsonMatch = parseText.match(/\[[\s\S]*\]/)
         const items = JSON.parse(jsonMatch ? jsonMatch[0] : '[]')
-        setDetected(items.map(i => ({ ...i, selected: true })))
+
+        setStep('enriching')
+        const enriched = await Promise.all(
+          items.map(async item => ({
+            ...item,
+            description: item.description || '',
+            image_url: await searchUnsplash(item.name),
+            selected: true,
+          }))
+        )
+        setDetected(enriched)
         setStep('review')
       } catch (err) {
         const msg = err.message || ''
@@ -615,6 +639,8 @@ function ImportarConIA({ venueId, onImported }) {
         name: i.name.trim(),
         price: parseFloat(i.price) || 0,
         category_id: catMap[i.category || 'General'],
+        description: i.description?.trim() || null,
+        image_url: i.image_url || null,
         is_available: true
       }))
     )
@@ -649,30 +675,44 @@ function ImportarConIA({ venueId, onImported }) {
             {detected.filter(i => i.selected).length} productos detectados
           </p>
           <p className="text-smoke-500 text-xs mb-3">Revisá y editá antes de importar</p>
-          <div className="space-y-2 max-h-64 overflow-y-auto">
+          <div className="space-y-2 max-h-72 overflow-y-auto">
             {detected.map((item, i) => (
-              <div key={i} className={`flex items-center gap-2 p-2 rounded-xl border ${item.selected ? 'border-ember-500/30 bg-ember-500/5' : 'border-carbon-700 opacity-50'}`}>
-                <input type="checkbox" checked={item.selected} onChange={() => toggleItem(i)} className="flex-shrink-0" />
-                <div className="flex-1 min-w-0">
+              <div key={i} className={`rounded-xl border p-2 ${item.selected ? 'border-ember-500/30 bg-ember-500/5' : 'border-carbon-700 opacity-50'}`}>
+                <div className="flex items-start gap-2">
+                  <input type="checkbox" checked={item.selected} onChange={() => toggleItem(i)} className="flex-shrink-0 mt-1" />
+                  {item.image_url && (
+                    <img src={item.image_url} alt={item.name} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <input
+                      type="text"
+                      value={item.name}
+                      onChange={e => updateItem(i, 'name', e.target.value)}
+                      className="w-full text-xs font-semibold text-smoke-300 bg-transparent border-none outline-none"
+                    />
+                    <input
+                      type="text"
+                      value={item.category}
+                      onChange={e => updateItem(i, 'category', e.target.value)}
+                      className="w-full text-[10px] text-smoke-500 bg-transparent border-none outline-none"
+                    />
+                    {item.description !== undefined && (
+                      <input
+                        type="text"
+                        value={item.description}
+                        onChange={e => updateItem(i, 'description', e.target.value)}
+                        placeholder="Descripción (opcional)"
+                        className="w-full text-[10px] text-smoke-400 bg-transparent border-none outline-none mt-0.5 italic"
+                      />
+                    )}
+                  </div>
                   <input
-                    type="text"
-                    value={item.name}
-                    onChange={e => updateItem(i, 'name', e.target.value)}
-                    className="w-full text-xs font-semibold text-smoke-300 bg-transparent border-none outline-none"
-                  />
-                  <input
-                    type="text"
-                    value={item.category}
-                    onChange={e => updateItem(i, 'category', e.target.value)}
-                    className="w-full text-[10px] text-smoke-500 bg-transparent border-none outline-none"
+                    type="number"
+                    value={item.price}
+                    onChange={e => updateItem(i, 'price', e.target.value)}
+                    className="w-20 text-xs text-ember-400 font-semibold bg-transparent border border-carbon-600 rounded-lg px-2 py-1 text-right flex-shrink-0"
                   />
                 </div>
-                <input
-                  type="number"
-                  value={item.price}
-                  onChange={e => updateItem(i, 'price', e.target.value)}
-                  className="w-20 text-xs text-ember-400 font-semibold bg-transparent border border-carbon-600 rounded-lg px-2 py-1 text-right"
-                />
               </div>
             ))}
           </div>
@@ -701,7 +741,7 @@ function ImportarConIA({ venueId, onImported }) {
       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
       <button
         onClick={() => fileRef.current?.click()}
-        disabled={step === 'analyzing'}
+        disabled={step === 'analyzing' || step === 'enriching'}
         className="w-full bg-carbon-900 border border-carbon-700 hover:border-ember-500/40 rounded-2xl p-4 flex items-center gap-3"
       >
         {step === 'analyzing' ? (
@@ -714,6 +754,18 @@ function ImportarConIA({ venueId, onImported }) {
             <div className="text-left">
               <p className="font-semibold text-smoke-300 text-sm">Analizando imagen...</p>
               <p className="text-smoke-500 text-xs">Gemini está leyendo tu menú</p>
+            </div>
+          </>
+        ) : step === 'enriching' ? (
+          <>
+            <div className="w-9 h-9 rounded-xl bg-ember-500/10 flex items-center justify-center flex-shrink-0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+              </svg>
+            </div>
+            <div className="text-left">
+              <p className="font-semibold text-smoke-300 text-sm">Buscando fotos...</p>
+              <p className="text-smoke-500 text-xs">Obteniendo imágenes para cada producto</p>
             </div>
           </>
         ) : (
