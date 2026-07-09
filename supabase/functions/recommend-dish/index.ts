@@ -84,6 +84,7 @@ ${menuLines}
 
 INSTRUCCIONES:
 - Recomendá exactamente 1 o 2 platos de la carta.
+- SIEMPRE recomendá al menos 1 plato. Si ninguno es perfecto, elegí el más cercano al perfil.
 - Los nombres deben coincidir exactamente con los de la carta.
 - Escribí una frase corta (máximo 20 palabras) explicando por qué ese plato es ideal para este momento y este cliente.
 - Si hay platos ⭐, dales prioridad si encajan con el perfil.
@@ -111,6 +112,15 @@ FORMATO DE RESPUESTA:
     const jsonMatch = raw.match(/\{[\s\S]*\}/)
     if (!jsonMatch) throw new Error('Gemini no devolvió JSON válido')
     const parsed = JSON.parse(jsonMatch[0])
+
+    // Fallback: if Gemini returns no recommendations, pick the top featured product
+    if (!parsed.recommendations?.length) {
+      const fallback = (products as Array<{ name: string; price: number; is_featured?: boolean }>)
+        .find(p => p.is_featured) || (products as Array<{ name: string; price: number }>)[0]
+      if (fallback) {
+        parsed.recommendations = [{ name: fallback.name, price: fallback.price, reason: 'Una buena opción de nuestra carta para vos.' }]
+      }
+    }
 
     // Always include today's daily special, unless Gemini already recommended it
     const aiNames = new Set((parsed.recommendations || []).map((r: { name: string }) => r.name.toLowerCase()))
