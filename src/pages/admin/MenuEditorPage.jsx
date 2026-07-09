@@ -201,8 +201,153 @@ function CategoryNameEditor({ cat, onSave }) {
   )
 }
 
+const UNITS = ['g', 'kg', 'ml', 'l', 'unidad', 'taza', 'cdita', 'cda', 'porción']
+
+function IngredientsPanel({ productId, productName, productDescription }) {
+  const [ingredients, setIngredients] = useState(null) // null = loading
+  const [saving, setSaving] = useState(false)
+  const [suggesting, setSuggesting] = useState(false)
+
+  useEffect(() => {
+    supabaseStaff
+      .from('product_ingredients')
+      .select('id, ingredient_name, quantity, unit')
+      .eq('product_id', productId)
+      .then(({ data }) => setIngredients(data || []))
+  }, [productId])
+
+  function addRow() {
+    setIngredients(prev => [...prev, { id: null, ingredient_name: '', quantity: '', unit: 'g' }])
+  }
+
+  function updateRow(i, field, val) {
+    setIngredients(prev => prev.map((r, idx) => idx === i ? { ...r, [field]: val } : r))
+  }
+
+  function removeRow(i) {
+    setIngredients(prev => prev.filter((_, idx) => idx !== i))
+  }
+
+  async function suggestWithAI() {
+    const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
+    if (!API_KEY) return
+    setSuggesting(true)
+    try {
+      const desc = productDescription ? ` — ${productDescription}` : ''
+      const prompt = `Sos un chef. Para el plato "${productName}"${desc}, listá los ingredientes principales con cantidad aproximada por porción individual. Respondé ÚNICAMENTE con un JSON array sin texto extra ni backticks. Ejemplo: [{"name":"Harina","quantity":200,"unit":"g"},{"name":"Huevos","quantity":2,"unit":"unidad"}]. Máximo 8 ingredientes. Usá solo estas unidades: g, kg, ml, l, unidad, taza, cdita, cda, porción.`
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+        }
+      )
+      const data = await res.json()
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]'
+      const match = text.match(/\[[\s\S]*\]/)
+      const parsed = JSON.parse(match ? match[0] : '[]')
+      setIngredients(parsed.map(i => ({ id: null, ingredient_name: i.name, quantity: String(i.quantity), unit: i.unit || 'g' })))
+    } catch {
+      // silently fail
+    }
+    setSuggesting(false)
+  }
+
+  async function handleSave() {
+    const valid = (ingredients || []).filter(r => r.ingredient_name.trim() && Number(r.quantity) > 0)
+    setSaving(true)
+    await supabaseStaff.from('product_ingredients').delete().eq('product_id', productId)
+    if (valid.length > 0) {
+      await supabaseStaff.from('product_ingredients').insert(
+        valid.map(r => ({
+          product_id: productId,
+          ingredient_name: r.ingredient_name.trim(),
+          quantity: Number(r.quantity),
+          unit: r.unit,
+        }))
+      )
+    }
+    setIngredients(valid.map(r => ({ ...r, id: null })))
+    setSaving(false)
+  }
+
+  if (ingredients === null) {
+    return (
+      <div className="px-3 pb-3">
+        <p className="text-smoke-500 text-xs">Cargando ingredientes...</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="px-3 pb-3 pt-1 border-t border-carbon-800 mt-1 space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-smoke-500 text-[10px] uppercase tracking-wide font-medium">Ingredientes por porción</p>
+        <button
+          onClick={suggestWithAI}
+          disabled={suggesting}
+          className="text-[10px] text-ember-500 underline disabled:opacity-50"
+        >
+          {suggesting ? 'Consultando IA...' : 'Sugerir con IA'}
+        </button>
+      </div>
+
+      {ingredients.length === 0 && !suggesting && (
+        <p className="text-smoke-600 text-xs italic">Sin ingredientes. Agregá uno o usá la IA.</p>
+      )}
+
+      <div className="space-y-1.5">
+        {ingredients.map((row, i) => (
+          <div key={i} className="flex gap-1 items-center">
+            <input
+              value={row.ingredient_name}
+              onChange={e => updateRow(i, 'ingredient_name', e.target.value)}
+              placeholder="Ingrediente"
+              className="flex-1 min-w-0 text-xs bg-carbon-800 border border-carbon-700 rounded-lg px-2 py-1.5 text-smoke-200 outline-none focus:border-ember-500/50"
+            />
+            <input
+              type="number"
+              value={row.quantity}
+              onChange={e => updateRow(i, 'quantity', e.target.value)}
+              placeholder="Cant."
+              min="0"
+              className="w-16 text-xs bg-carbon-800 border border-carbon-700 rounded-lg px-2 py-1.5 text-ember-400 text-right font-mono outline-none focus:border-ember-500/50"
+            />
+            <select
+              value={row.unit}
+              onChange={e => updateRow(i, 'unit', e.target.value)}
+              className="text-[10px] bg-carbon-800 border border-carbon-700 rounded-lg px-1 py-1.5 text-smoke-400 outline-none"
+            >
+              {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+            </select>
+            <button onClick={() => removeRow(i)} className="text-smoke-600 hover:text-red-500 text-sm leading-none px-1">×</button>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex gap-2 pt-1">
+        <button
+          onClick={addRow}
+          className="text-xs text-smoke-400 underline"
+        >
+          + Agregar
+        </button>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="ml-auto text-xs bg-ember-500 text-white font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50"
+        >
+          {saving ? 'Guardando...' : 'Guardar'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }) {
   const [editing, setEditing] = useState(false)
+  const [showIngredients, setShowIngredients] = useState(false)
   const [name, setName] = useState(product.name)
   const [price, setPrice] = useState(String(product.price))
   const [description, setDescription] = useState(product.description || '')
@@ -267,7 +412,7 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
   if (editing) {
     const displayImg = imagePreview || product.image_url
     return (
-      <div className="bg-carbon-900 border border-ember-500/40 rounded-xl p-3 space-y-2">
+      <div className="bg-carbon-900 border border-ember-500/40 rounded-xl p-3 space-y-2" onClick={() => setShowIngredients(false)}>
         {/* Image upload */}
         <div
           onClick={() => imgInputRef.current?.click()}
@@ -322,58 +467,74 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
   }
 
   return (
-    <div className="bg-carbon-900 border border-carbon-700 rounded-xl p-3 flex items-center gap-3">
-      {/* Thumbnail */}
-      <div
-        onClick={() => setEditing(true)}
-        className="w-12 h-12 rounded-lg bg-carbon-800 flex-shrink-0 overflow-hidden cursor-pointer flex items-center justify-center"
-      >
-        {product.image_url ? (
-          <img src={product.image_url} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <CameraIcon size={20} className="text-smoke-600" />
-        )}
-      </div>
+    <div className="bg-carbon-900 border border-carbon-700 rounded-xl overflow-hidden">
+      <div className="p-3 flex items-center gap-3">
+        {/* Thumbnail */}
+        <div
+          onClick={() => { setEditing(true); setShowIngredients(false) }}
+          className="w-12 h-12 rounded-lg bg-carbon-800 flex-shrink-0 overflow-hidden cursor-pointer flex items-center justify-center"
+        >
+          {product.image_url ? (
+            <img src={product.image_url} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <CameraIcon size={20} className="text-smoke-600" />
+          )}
+        </div>
 
-      <div className="min-w-0 flex-1">
-        <p className="text-smoke-300 text-sm font-medium truncate">{product.name}</p>
-        <div className="flex items-center gap-1.5 mt-0.5">
-          <p className="font-mono text-ember-400 text-xs">{formatPrice(product.price)}</p>
-          {(product.dietary_tags || []).map(t => {
-            const tag = DIETARY_TAGS.find(d => d.id === t)
-            return tag ? <span key={t} className="text-smoke-400" title={tag.label}><tag.Icon size={13} /></span> : null
-          })}
+        <div className="min-w-0 flex-1">
+          <p className="text-smoke-300 text-sm font-medium truncate">{product.name}</p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <p className="font-mono text-ember-400 text-xs">{formatPrice(product.price)}</p>
+            {(product.dietary_tags || []).map(t => {
+              const tag = DIETARY_TAGS.find(d => d.id === t)
+              return tag ? <span key={t} className="text-smoke-400" title={tag.label}><tag.Icon size={13} /></span> : null
+            })}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {/* Daily special toggle */}
+          <button
+            onClick={toggleDailySpecial}
+            title={product.is_daily_special ? 'Quitar plato del día' : 'Marcar como plato del día'}
+            className={`text-base leading-none transition-opacity ${product.is_daily_special ? 'opacity-100' : 'opacity-25 hover:opacity-60'}`}
+          >
+            ☀️
+          </button>
+          {/* Featured toggle */}
+          <button
+            onClick={toggleFeatured}
+            title={product.is_featured ? 'Quitar destacado' : 'Marcar como destacado'}
+            className={`leading-none transition-opacity ${product.is_featured ? 'text-amber-400 opacity-100' : 'text-smoke-500 opacity-25 hover:opacity-60'}`}
+          >
+            <StarIcon size={18} />
+          </button>
+          <button
+            onClick={onToggle}
+            className={`text-[10px] font-semibold px-2 py-1 rounded-full border ${
+              product.is_available ? 'border-emerald-500/40 text-emerald-700' : 'border-red-500/40 text-red-700'
+            }`}
+          >
+            {product.is_available ? 'Disp.' : 'Agot.'}
+          </button>
+          <button
+            onClick={() => { setShowIngredients(v => !v); setEditing(false) }}
+            className={`text-xs underline ${showIngredients ? 'text-ember-500' : 'text-smoke-500'}`}
+          >
+            Ingredientes
+          </button>
+          <button onClick={() => { setEditing(true); setShowIngredients(false) }} className="text-smoke-400 text-xs underline">Editar</button>
+          <button onClick={onDelete} className="text-smoke-500 text-xs underline">Borrar</button>
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 flex-shrink-0">
-        {/* Daily special toggle */}
-        <button
-          onClick={toggleDailySpecial}
-          title={product.is_daily_special ? 'Quitar plato del día' : 'Marcar como plato del día'}
-          className={`text-base leading-none transition-opacity ${product.is_daily_special ? 'opacity-100' : 'opacity-25 hover:opacity-60'}`}
-        >
-          ☀️
-        </button>
-        {/* Featured toggle */}
-        <button
-          onClick={toggleFeatured}
-          title={product.is_featured ? 'Quitar destacado' : 'Marcar como destacado'}
-          className={`leading-none transition-opacity ${product.is_featured ? 'text-amber-400 opacity-100' : 'text-smoke-500 opacity-25 hover:opacity-60'}`}
-        >
-          <StarIcon size={18} />
-        </button>
-        <button
-          onClick={onToggle}
-          className={`text-[10px] font-semibold px-2 py-1 rounded-full border ${
-            product.is_available ? 'border-emerald-500/40 text-emerald-700' : 'border-red-500/40 text-red-700'
-          }`}
-        >
-          {product.is_available ? 'Disp.' : 'Agot.'}
-        </button>
-        <button onClick={() => setEditing(true)} className="text-smoke-400 text-xs underline">Editar</button>
-        <button onClick={onDelete} className="text-smoke-500 text-xs underline">Borrar</button>
-      </div>
+      {showIngredients && (
+        <IngredientsPanel
+          productId={product.id}
+          productName={product.name}
+          productDescription={product.description}
+        />
+      )}
     </div>
   )
 }
