@@ -169,7 +169,7 @@ export default function LocationsPage() {
 
       <main className="px-5 mt-4">
         {viewMode === 'mapa' ? (
-          <FloorPlanEditor zones={filtered} parentZones={parentZonas} onSaved={load} />
+          <FloorPlanEditor zones={filtered} parentZones={parentZonas} onSaved={load} venueId={venueId} />
         ) : (
           <>
             <div className="flex gap-2 mb-4">
