@@ -392,6 +392,9 @@ function IngredientsPanel({ productId, productName, productDescription, currentI
 function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }) {
   const [editing, setEditing] = useState(false)
   const [showIngredients, setShowIngredients] = useState(false)
+  const [photoSearching, setPhotoSearching] = useState(false)
+  const [foundPhoto, setFoundPhoto] = useState(null)
+  const [savingPhoto, setSavingPhoto] = useState(false)
   const [name, setName] = useState(product.name)
   const [price, setPrice] = useState(String(product.price))
   const [description, setDescription] = useState(product.description || '')
@@ -510,6 +513,36 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
     )
   }
 
+  async function searchPhoto() {
+    const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
+    if (!API_KEY) return
+    if (getUnsplashCount(venueId) >= UNSPLASH_DAILY_LIMIT) return
+    setPhotoSearching(true)
+    setFoundPhoto(null)
+    try {
+      const desc = product.description ? ` — ${product.description}` : ''
+      const prompt = `Para el plato "${product.name}"${desc}, generá un término de búsqueda en inglés para encontrar una foto gastronómica en Unsplash. Si el nombre no es descriptivo usá la descripción para inferir qué es el plato. Respondé ÚNICAMENTE con el término de búsqueda, sin texto extra. Ejemplo: "beef milanesa breaded"`
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) }
+      )
+      const data = await res.json()
+      const query = (data.candidates?.[0]?.content?.parts?.[0]?.text || product.name).trim().replace(/^"|"$/g, '')
+      const url = await searchUnsplash(query, venueId)
+      if (url) setFoundPhoto(url)
+    } catch { /* silently fail */ }
+    setPhotoSearching(false)
+  }
+
+  async function saveFoundPhoto() {
+    if (!foundPhoto) return
+    setSavingPhoto(true)
+    await supabaseStaff.from('products').update({ image_url: foundPhoto }).eq('id', product.id)
+    onSave({ ...product, image_url: foundPhoto })
+    setFoundPhoto(null)
+    setSavingPhoto(false)
+  }
+
   return (
     <div className="bg-carbon-900 border border-carbon-700 rounded-xl overflow-hidden">
       <div className="p-3 flex items-center gap-3">
@@ -562,6 +595,18 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
             {product.is_available ? 'Disp.' : 'Agot.'}
           </button>
           <button
+            onClick={searchPhoto}
+            disabled={photoSearching}
+            title="Buscar foto con IA"
+            className="text-smoke-500 hover:text-ember-500 disabled:opacity-40 transition-colors"
+          >
+            {photoSearching ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            )}
+          </button>
+          <button
             onClick={() => { setShowIngredients(v => !v); setEditing(false) }}
             className={`text-xs underline ${showIngredients ? 'text-ember-500' : 'text-smoke-500'}`}
           >
@@ -571,6 +616,28 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
           <button onClick={onDelete} className="text-smoke-500 text-xs underline">Borrar</button>
         </div>
       </div>
+
+      {foundPhoto && (
+        <div className="flex items-center gap-3 px-3 pb-3 border-t border-carbon-800 pt-2.5">
+          <img src={foundPhoto} alt="" className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-smoke-300 text-xs font-medium">Foto sugerida</p>
+            {product.image_url && <p className="text-smoke-600 text-[10px]">Reemplaza la foto actual</p>}
+          </div>
+          <div className="flex flex-col gap-1 flex-shrink-0">
+            <button
+              onClick={saveFoundPhoto}
+              disabled={savingPhoto}
+              className="text-[10px] bg-ember-500 text-white font-semibold px-3 py-1.5 rounded-lg disabled:opacity-50"
+            >
+              {savingPhoto ? 'Guardando...' : 'Usar foto'}
+            </button>
+            <button onClick={() => setFoundPhoto(null)} className="text-[10px] text-smoke-500 underline text-center">
+              Descartar
+            </button>
+          </div>
+        </div>
+      )}
 
       {showIngredients && (
         <IngredientsPanel
