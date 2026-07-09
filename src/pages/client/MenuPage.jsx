@@ -7,6 +7,7 @@ import { formatPrice } from '../../lib/utils'
 import BottomNav from '../../components/BottomNav'
 import { useClientBase, useVenueOptional } from '../../hooks/useVenue'
 import { PinIcon, SunIcon, ShoppingBagIcon, ClockIcon, XIcon, DIETARY_TAGS } from '../../components/Icons'
+import RecommendModal from '../../components/RecommendModal'
 
 export default function MenuPage() {
   const [categories, setCategories] = useState([])
@@ -14,6 +15,7 @@ export default function MenuPage() {
   const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState(null)
   const [showCategorySheet, setShowCategorySheet] = useState(false)
+  const [showRecommend, setShowRecommend] = useState(false)
   const [search, setSearch] = useState('')
   const [highDemand, setHighDemand] = useState(false)
   const [venueName, setVenueName] = useState('')
@@ -118,6 +120,11 @@ export default function MenuPage() {
         (p.description || '').toLowerCase().includes(search.toLowerCase())
       )
     : []
+
+  function handleRecommendAdd(name) {
+    const product = products.find(p => p.name === name && p.is_available)
+    if (product) addItem(product, 1)
+  }
 
   if (loading) {
     return (
@@ -226,6 +233,18 @@ export default function MenuPage() {
             )}
           </div>
         </div>
+
+        {/* Recommend button */}
+        <button
+          onClick={() => setShowRecommend(true)}
+          className="mt-2 w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all active:scale-[0.98]"
+          style={{ backgroundColor: `${accentText}15`, color: accentText }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+          ¿No sabés qué comer? Te recomendamos algo
+        </button>
       </header>
 
       {search ? (
@@ -360,6 +379,15 @@ export default function MenuPage() {
       )}
 
       <BottomNav />
+
+      {showRecommend && (
+        <RecommendModal
+          venueId={ACTIVE_VENUE_ID}
+          accentColor={contentAccent}
+          onAddToCart={handleRecommendAdd}
+          onClose={() => setShowRecommend(false)}
+        />
+      )}
     </div>
   )
 }
