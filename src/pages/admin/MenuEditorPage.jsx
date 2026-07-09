@@ -341,7 +341,7 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
           <p className="font-mono text-ember-400 text-xs">{formatPrice(product.price)}</p>
           {(product.dietary_tags || []).map(t => {
             const tag = DIETARY_TAGS.find(d => d.id === t)
-            return tag ? <span key={t} className="text-[11px]" title={tag.label}>{tag.emoji}</span> : null
+            return tag ? <span key={t} className="text-smoke-400" title={tag.label}><tag.Icon size={13} /></span> : null
           })}
         </div>
       </div>
