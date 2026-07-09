@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const SYSTEM_PROMPT = `Sos Capy, el asistente virtual de Capy App — la plataforma de pedidos digitales para restaurantes y bares. Respondés en español argentino, de manera amigable y directa.
+const SYSTEM_PROMPT = `Sos Capy, el asistente virtual de Capy App — la plataforma de pedidos digitales para restaurantes y bares. Hablás con administradores del local y camareros (staff). Respondés en español argentino, de manera amigable y directa.
 
 Ayudás con:
 - Configuración de Capy: zonas, mesas, categorías, productos, métodos de pago, QR
@@ -14,6 +14,7 @@ Ayudás con:
 - Retiro en local y delivery
 - Onboarding y primeros pasos
 - Tips de atención al cliente, diseño de carta y gestión de venue gastronómico
+- Cualquier instrucción o política interna del local que te hayan indicado
 
 REGLAS DE FORMATO — MUY IMPORTANTE:
 - No uses markdown: sin asteriscos, sin #, sin **, sin _
@@ -45,26 +46,41 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
 
-    // Search relevant docs using the last user message as query
     const lastUserMsg = [...messages].reverse().find((m: { role: string }) => m.role === 'user')
     let systemPrompt = SYSTEM_PROMPT
     if (venue_name) systemPrompt += `\n\nEl usuario trabaja en el local: "${venue_name}".`
 
+    // 1. Always inject active instruction docs into the system prompt
+    const { data: instructionDocs } = await supabase
+      .from('capy_docs')
+      .select('title, content')
+      .eq('is_active', true)
+      .eq('type', 'instruction')
+
+    if (instructionDocs?.length) {
+      const instructions = instructionDocs
+        .map((d: { title: string; content: string }) => `[${d.title}]\n${d.content}`)
+        .join('\n\n')
+      systemPrompt += `\n\nINSTRUCCIONES DEL LOCAL (seguí estas reglas siempre, tienen prioridad):\n${instructions}`
+    }
+
+    // 2. RAG: search info docs relevant to this specific message
     if (lastUserMsg?.content) {
-      const { data: docs } = await supabase
+      const { data: infoDocs } = await supabase
         .from('capy_docs')
         .select('title, content')
         .eq('is_active', true)
+        .eq('type', 'info')
         .textSearch('title, content', lastUserMsg.content, {
           type: 'websearch',
           config: 'spanish',
         })
         .limit(3)
 
-      if (docs?.length) {
-        const docsContext = docs.map((d: { title: string; content: string }) =>
-          `--- ${d.title} ---\n${d.content}`
-        ).join('\n\n')
+      if (infoDocs?.length) {
+        const docsContext = infoDocs
+          .map((d: { title: string; content: string }) => `--- ${d.title} ---\n${d.content}`)
+          .join('\n\n')
         systemPrompt += `\n\nINFORMACIÓN ESPECÍFICA DE CAPY (usá esto si es relevante para la pregunta):\n${docsContext}`
       }
     }
