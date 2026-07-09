@@ -769,7 +769,7 @@ function QRCanvas({ orderId }) {
 
 function MenuQRCanvas({ slug }) {
   const canvasRef = useRef(null)
-  const url = slug ? `https://capyapp.co/r/${slug}` : null
+  const url = slug ? `https://capyapp.co/r/${slug}/carta` : null
 
   useEffect(() => {
     if (!canvasRef.current || !url) return
