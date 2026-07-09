@@ -74,6 +74,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
   const [timerModal, setTimerModal] = useState(null) // { orderId }
   const [timerMins, setTimerMins] = useState('15')
   const [qrModal, setQrModal] = useState(null)
+  const [menuQrModal, setMenuQrModal] = useState(null) // { slug, name }
   const [expandedCard, setExpandedCard] = useState(null)
 
   useEffect(() => {
@@ -313,6 +314,19 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
           </div>
         </div>
       )}
+      {/* Modal QR carta (para mostrar al cliente) */}
+      {menuQrModal && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-6" onClick={() => setMenuQrModal(null)}>
+          <div className="bg-white rounded-3xl p-6 w-full max-w-xs text-center" onClick={e => e.stopPropagation()}>
+            <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-1">Carta digital</p>
+            <p className="font-bold text-[#1A2A3A] text-base mb-4">{menuQrModal.name}</p>
+            <MenuQRCanvas slug={menuQrModal.slug} />
+            <p className="text-[#8896A5] text-xs mt-3 mb-4">El cliente escanea esto para ver la carta</p>
+            <button onClick={() => setMenuQrModal(null)} className="text-[#8896A5] text-sm">Cerrar</button>
+          </div>
+        </div>
+      )}
+
       {/* Modal QR */}
       {qrModal && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-6" onClick={() => setQrModal(null)}>
@@ -350,12 +364,30 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
               {activeTab === 'propio' ? 'Mis Cartas' : linkedVenues.find(v => v.id === activeTab)?.name?.replace(' — Capy', '')}
             </p>
           </div>
-          <button
-            onClick={() => selectTab(null)}
-            className="text-[#008080] text-xs font-semibold border border-[#008080]/30 px-3 py-1.5 rounded-xl"
-          >
-            Cambiar
-          </button>
+          <div className="flex items-center gap-2">
+            {activeTab !== 'propio' && (() => {
+              const av = linkedVenues.find(v => v.id === activeTab)
+              return av?.slug ? (
+                <button
+                  onClick={() => setMenuQrModal({ slug: av.slug, name: av.name.replace(' — Capy', '').replace(' - Capy', '') })}
+                  className="flex items-center gap-1.5 text-[#008080] text-xs font-semibold border border-[#008080]/30 px-3 py-1.5 rounded-xl"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="5" height="5"/><rect x="16" y="3" width="5" height="5"/>
+                    <rect x="3" y="16" width="5" height="5"/>
+                    <path d="M21 16h-3a2 2 0 0 0-2 2v3M21 21v.01M12 7v3a2 2 0 0 1-2 2H7M3 12h.01M12 3h.01M7 17H4a1 1 0 0 1-1-1v-3"/>
+                  </svg>
+                  QR carta
+                </button>
+              ) : null
+            })()}
+            <button
+              onClick={() => selectTab(null)}
+              className="text-[#008080] text-xs font-semibold border border-[#008080]/30 px-3 py-1.5 rounded-xl"
+            >
+              Cambiar
+            </button>
+          </div>
         </div>
       )}
 
@@ -728,6 +760,28 @@ function QRCanvas({ orderId }) {
   return (
     <div className="flex justify-center">
       <div className="bg-white p-3 rounded-2xl border border-black/5">
+        <canvas ref={canvasRef} />
+      </div>
+    </div>
+  )
+}
+
+function MenuQRCanvas({ slug }) {
+  const canvasRef = useRef(null)
+  const url = `https://capyapp.co/r/${slug}`
+
+  useEffect(() => {
+    if (!canvasRef.current || !slug) return
+    QRCode.toCanvas(canvasRef.current, url, {
+      width: 220,
+      margin: 2,
+      color: { dark: '#1A2A3A', light: '#FFFFFF' }
+    })
+  }, [url])
+
+  return (
+    <div className="flex justify-center">
+      <div className="bg-white p-3 rounded-2xl border border-black/5 inline-block">
         <canvas ref={canvasRef} />
       </div>
     </div>
