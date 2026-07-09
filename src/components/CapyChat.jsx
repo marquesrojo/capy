@@ -7,47 +7,18 @@ const TICKET_ENDPOINT = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/suppo
 
 const WELCOME = '¡Hola! Soy Capy 🦫\n\n¿En qué puedo ayudarte hoy? Puedo orientarte con la configuración de la app, tips de gestión de tu local o cualquier duda sobre Capy.'
 
+const CAPY_ICON_URL = 'https://ycgptakgpsvmstoftkdk.supabase.co/storage/v1/object/public/icons/icon-512.png'
+
 function CapyIcon({ size = 48 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <clipPath id="capy-chat-clip">
-          <circle cx="50" cy="50" r="43" />
-        </clipPath>
-      </defs>
-      {/* Orange outer ring */}
-      <circle cx="50" cy="50" r="49" fill="#C4581A" />
-      {/* White inner canvas */}
-      <circle cx="50" cy="50" r="43" fill="#fff" />
-      {/* Horizontal stripes at bottom, clipped to inner circle */}
-      <g clipPath="url(#capy-chat-clip)" fill="#C4581A">
-        <rect x="0" y="68" width="100" height="5" />
-        <rect x="0" y="76.5" width="100" height="5" />
-        <rect x="0" y="85" width="100" height="5" />
-        <rect x="0" y="93.5" width="100" height="5" />
-      </g>
-      {/* Left ear */}
-      <ellipse cx="37" cy="21" rx="7.5" ry="6" fill="#C4581A" />
-      {/* Right ear */}
-      <ellipse cx="63" cy="21" rx="7.5" ry="6" fill="#C4581A" />
-      {/* Head — large, wide, slightly rectangular like a capybara */}
-      <path
-        d="M31 25 Q31 13 50 13 Q69 13 69 25 L69 45 Q69 54 50 54 Q31 54 31 45 Z"
-        fill="#C4581A"
-      />
-      {/* Body — wide barrel shape */}
-      <ellipse cx="50" cy="62" rx="24" ry="13" fill="#C4581A" />
-      {/* Left arm/paw */}
-      <ellipse cx="29" cy="66" rx="9" ry="5" fill="#C4581A" transform="rotate(-22 29 66)" />
-      {/* Right arm/paw */}
-      <ellipse cx="71" cy="66" rx="9" ry="5" fill="#C4581A" transform="rotate(22 71 66)" />
-      {/* Mate gourd — round bottom */}
-      <ellipse cx="50" cy="68" rx="7" ry="7.5" fill="#C4581A" />
-      {/* Mate gourd — narrow neck */}
-      <rect x="44" y="59" width="12" height="6" rx="3" fill="#C4581A" />
-      {/* Bombilla (straw) going diagonally up-right */}
-      <path d="M54 61 Q59 50 65 37" stroke="#C4581A" strokeWidth="3" strokeLinecap="round" fill="none" />
-    </svg>
+    <img
+      src={CAPY_ICON_URL}
+      alt="Capy"
+      width={size}
+      height={size}
+      style={{ width: size, height: size, borderRadius: '50%' }}
+      draggable={false}
+    />
   )
 }
 
