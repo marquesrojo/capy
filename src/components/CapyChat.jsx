@@ -162,9 +162,9 @@ export default function CapyChat({ venueName = '' }) {
             <button
               onClick={e => { e.stopPropagation(); setMinimized(true) }}
               aria-label="Minimizar chat"
-              className="pr-3 pl-1 py-1 text-white/40 hover:text-white/70 text-base leading-none rounded-r-full active:scale-95 transition-all"
+              className="w-8 h-8 mr-1 rounded-full flex items-center justify-center bg-white/15 text-white text-lg leading-none active:scale-95 transition-all"
             >
-              ›
+              ‹
             </button>
           </div>
         )
