@@ -108,8 +108,9 @@ FORMATO DE RESPUESTA:
     if (geminiData.error) throw new Error(geminiData.error.message || 'Gemini error')
 
     const raw: string = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '{}'
-    const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    const parsed = JSON.parse(cleaned)
+    const jsonMatch = raw.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) throw new Error('Gemini no devolvió JSON válido')
+    const parsed = JSON.parse(jsonMatch[0])
 
     // Always include today's daily special, unless Gemini already recommended it
     const aiNames = new Set((parsed.recommendations || []).map((r: { name: string }) => r.name.toLowerCase()))
