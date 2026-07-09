@@ -24,11 +24,19 @@ function normalizeRow(row) {
 const UNIT_ORDER = ['g', 'ml', 'unidad', 'taza', 'cda', 'cdita', 'porción']
 const BAR_COLOR = '#f97316'
 
+function BarLabel({ x, y, width, height, value, index }) {
+  const color = index === 0 ? BAR_COLOR : '#6B7280'
+  return (
+    <text x={x + width + 6} y={y + height / 2} dy={4} textAnchor="start" fontSize={10} fill={color} fontFamily="monospace">
+      {formatQty(value)}
+    </text>
+  )
+}
+
 function UnitChart({ unit, items }) {
   const max = Math.max(...items.map(i => i.total))
   const data = [...items].sort((a, b) => b.total - a.total)
-  const barHeight = 28
-  const chartHeight = Math.max(data.length * barHeight + 40, 80)
+  const chartHeight = Math.max(data.length * 36 + 20, 60)
 
   return (
     <div className="bg-carbon-900 border border-carbon-700 rounded-2xl overflow-hidden">
@@ -38,7 +46,7 @@ function UnitChart({ unit, items }) {
       </div>
       <div className="px-2 py-2">
         <ResponsiveContainer width="100%" height={chartHeight}>
-          <BarChart layout="vertical" data={data} margin={{ top: 0, right: 48, left: 8, bottom: 0 }}>
+          <BarChart layout="vertical" data={data} margin={{ top: 0, right: 56, left: 8, bottom: 0 }}>
             <XAxis type="number" domain={[0, max]} hide />
             <YAxis
               type="category"
@@ -59,25 +67,13 @@ function UnitChart({ unit, items }) {
                 )
               }}
             />
-            <Bar dataKey="total" radius={[0, 4, 4, 0]} barSize={16}>
+            <Bar dataKey="total" radius={[0, 4, 4, 0]} barSize={18} label={<BarLabel />}>
               {data.map((_, i) => (
                 <Cell key={i} fill={i === 0 ? BAR_COLOR : '#374151'} />
               ))}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-        {/* value labels */}
-        <div className="space-y-0" style={{ marginTop: -chartHeight }}>
-          {data.map((row, i) => (
-            <div
-              key={i}
-              className="flex items-center justify-end pr-1 text-[10px] font-mono tabular-nums"
-              style={{ height: barHeight, color: i === 0 ? BAR_COLOR : '#6B7280' }}
-            >
-              {formatQty(row.total)}
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   )
