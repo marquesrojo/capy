@@ -5,6 +5,7 @@ import { useClientBase, useVenueOptional } from '../../hooks/useVenue'
 import { useCart } from '../../hooks/useCart'
 import { useCustomer } from '../../hooks/useCustomer'
 import { ClipboardIcon, HelpCircleIcon, FileTextIcon, MessageIcon, PinIcon, UtensilsIcon, XIcon } from '../../components/Icons'
+import ClientFloorMap from '../../components/ClientFloorMap'
 
 const WAITER_REASONS = [
   { id: 'tomar_pedido', label: 'Tomar mi pedido', Icon: ClipboardIcon },
@@ -57,6 +58,7 @@ export default function IdentifyPage() {
   const [pickedSector, setPickedSector] = useState(null)
   const [pickedZone, setPickedZone] = useState(null)
   const [showZonePicker, setShowZonePicker] = useState(false)
+  const [zonePickerView, setZonePickerView] = useState('lista') // 'lista' | 'mapa'
 
   const [showWaiterCall, setShowWaiterCall] = useState(false)
   const [selectedReason, setSelectedReason] = useState(null)
@@ -100,7 +102,7 @@ export default function IdentifyPage() {
     if (!prefillZoneId) {
       supabaseCustomer
         .from('venue_zones')
-        .select('id, name, type, parent_zone_id')
+        .select('id, name, type, parent_zone_id, pos_x, pos_y, size_w, size_h, shape')
         .eq('venue_id', venueId)
         .eq('is_active', true)
         .order('sort_order')
@@ -201,6 +203,7 @@ export default function IdentifyPage() {
   const sectores = zones.filter(z => z.type === 'zona')
   const allMesas = zones.filter(z => z.type === 'mesa')
   const retiro = zones.filter(z => z.type === 'retiro')
+  const hasMap = allMesas.some(m => m.pos_x != null)
   const sectorMesas = pickedSector
     ? allMesas.filter(m => m.parent_zone_id === pickedSector.id)
     : []
@@ -320,7 +323,37 @@ export default function IdentifyPage() {
           {showZonePicker && (
             <div className="mt-2 bg-white rounded-2xl border border-black/[0.06] p-4 shadow-sm">
 
+              {/* Map / List toggle */}
+              {hasMap && (
+                <div className="flex gap-1 bg-[#F0F4F8] rounded-xl p-1 mb-4">
+                  {['mapa', 'lista'].map(mode => (
+                    <button
+                      key={mode}
+                      onClick={() => setZonePickerView(mode)}
+                      className="flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize"
+                      style={zonePickerView === mode
+                        ? { backgroundColor: selfColor, color: 'white' }
+                        : { color: selfColor }
+                      }
+                    >
+                      {mode === 'mapa' ? '🗺 Mapa' : '☰ Lista'}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Map view */}
+              {zonePickerView === 'mapa' && hasMap && (
+                <ClientFloorMap
+                  zones={zones}
+                  accent={selfColor}
+                  confirmStep={false}
+                  onChoose={zone => { pickMesa(zone); setShowZonePicker(false) }}
+                />
+              )}
+
               {/* Step 1: Sectors */}
+              {zonePickerView === 'lista' && (<>
               {sectores.length > 0 && (
                 <>
                   <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Sector</p>
@@ -430,6 +463,7 @@ export default function IdentifyPage() {
                   Quitar selección
                 </button>
               )}
+              </>)}
             </div>
           )}
         </div>

@@ -4,6 +4,7 @@ import { supabaseCustomer, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useCart } from '../../hooks/useCart'
 import { useClientBase } from '../../hooks/useVenue'
 import { accentColor } from '../../lib/utils'
+import ClientFloorMap from '../../components/ClientFloorMap'
 
 function zoneShort(name) {
   const match = name.match(/\d+/)
