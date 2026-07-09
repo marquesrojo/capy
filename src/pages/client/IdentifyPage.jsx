@@ -99,35 +99,40 @@ export default function IdentifyPage() {
       .limit(10)
       .then(({ data }) => setTopProducts(data || []))
 
+    const venueQ = supabaseCustomer
+      .from('venues')
+      .select('instagram_handle, retiro_externo_enabled, delivery_enabled, client_floor_map_enabled')
+      .eq('id', venueId)
+      .single()
+
     if (!prefillZoneId) {
-      supabaseCustomer
+      const zonesQ = supabaseCustomer
         .from('venue_zones')
         .select('id, name, type, parent_zone_id, pos_x, pos_y, size_w, size_h, shape')
         .eq('venue_id', venueId)
         .eq('is_active', true)
         .order('sort_order')
         .order('name')
-        .then(({ data }) => {
-          const zonesData = data || []
-          setZones(zonesData)
-          if (zonesData.some(z => z.type === 'mesa' && z.pos_x != null)) {
-            setZonePickerView('mapa')
-            setShowZonePicker(true)
-          }
-        })
-    }
 
-    supabaseCustomer
-      .from('venues')
-      .select('instagram_handle, retiro_externo_enabled, delivery_enabled')
-      .eq('id', venueId)
-      .single()
-      .then(({ data }) => {
+      Promise.all([zonesQ, venueQ]).then(([{ data: zonesData }, { data: venueData }]) => {
+        const zd = zonesData || []
+        setZones(zd)
+        if (venueData?.instagram_handle) setInstagramHandle(venueData.instagram_handle)
+        if (venueData?.retiro_externo_enabled) setRetiroExternoEnabled(true)
+        if (venueData?.delivery_enabled) setDeliveryEnabled(true)
+        const clientMapOn = !!venueData?.client_floor_map_enabled
+        if (clientMapOn && zd.some(z => z.type === 'mesa' && z.pos_x != null)) {
+          setZonePickerView('mapa')
+          setShowZonePicker(true)
+        }
+      }).catch(() => {})
+    } else {
+      venueQ.then(({ data }) => {
         if (data?.instagram_handle) setInstagramHandle(data.instagram_handle)
         if (data?.retiro_externo_enabled) setRetiroExternoEnabled(true)
         if (data?.delivery_enabled) setDeliveryEnabled(true)
-      })
-      .catch(() => {})
+      }).catch(() => {})
+    }
   }, [venueId])
 
   function pickSector(sector) {
@@ -372,6 +377,7 @@ export default function IdentifyPage() {
                   zones={zones}
                   accent={selfColor}
                   confirmStep={false}
+                  venueId={venueId}
                   onChoose={zone => { pickMesa(zone); setShowZonePicker(false) }}
                 />
               )}

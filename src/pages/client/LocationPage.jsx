@@ -19,6 +19,7 @@ export default function LocationPage() {
   const [pickedSector, setPickedSector] = useState(null)
   const [retiroExternoEnabled, setRetiroExternoEnabled] = useState(false)
   const [deliveryEnabled, setDeliveryEnabled] = useState(false)
+  const [clientMapEnabled, setClientMapEnabled] = useState(false)
   const [viewMode, setViewMode] = useState(null) // 'mapa' | 'lista' | null (not yet decided)
   const { setLocation, itemCount } = useCart()
   const navigate = useNavigate()
@@ -40,7 +41,7 @@ export default function LocationPage() {
           .order('name'),
         supabaseCustomer
           .from('venues')
-          .select('header_bg_color, retiro_externo_enabled, delivery_enabled')
+          .select('header_bg_color, retiro_externo_enabled, delivery_enabled, client_floor_map_enabled')
           .eq('id', ACTIVE_VENUE_ID)
           .single()
       ])
@@ -50,8 +51,9 @@ export default function LocationPage() {
       if (venueRes.data?.retiro_externo_enabled) setRetiroExternoEnabled(true)
       if (venueRes.data?.delivery_enabled) setDeliveryEnabled(true)
 
-      // Default to map view if any mesa has been positioned
-      const hasMap = zonesData.some(z => z.type === 'mesa' && z.pos_x != null)
+      const clientMapOn = !!venueRes.data?.client_floor_map_enabled
+      setClientMapEnabled(clientMapOn)
+      const hasMap = clientMapOn && zonesData.some(z => z.type === 'mesa' && z.pos_x != null)
       setViewMode(hasMap ? 'mapa' : 'lista')
       setLoading(false)
     }
@@ -75,7 +77,7 @@ export default function LocationPage() {
   const sectores = zones.filter(z => z.type === 'zona')
   const allMesas = zones.filter(z => z.type === 'mesa')
   const retiro = zones.filter(z => z.type === 'retiro')
-  const hasMap = allMesas.some(m => m.pos_x != null)
+  const hasMap = clientMapEnabled && allMesas.some(m => m.pos_x != null)
   const sectorMesas = pickedSector ? allMesas.filter(m => m.parent_zone_id === pickedSector.id) : []
   const orphanMesas = allMesas.filter(m => !m.parent_zone_id)
 
@@ -126,7 +128,7 @@ export default function LocationPage() {
 
         {/* Map view */}
         {viewMode === 'mapa' && hasMap && (
-          <ClientFloorMap zones={zones} accent={accent} onChoose={chooseZone} />
+          <ClientFloorMap zones={zones} accent={accent} onChoose={chooseZone} venueId={ACTIVE_VENUE_ID} />
         )}
 
         {/* List view */}

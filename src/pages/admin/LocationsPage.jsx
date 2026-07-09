@@ -23,10 +23,18 @@ export default function LocationsPage() {
   const [activeTab, setActiveTab] = useState('mesa')
   const [viewMode, setViewMode] = useState('lista') // 'lista' | 'mapa'
   const [newName, setNewName] = useState('')
+  const [clientMapEnabled, setClientMapEnabled] = useState(false)
+  const [togglingMap, setTogglingMap] = useState(false)
 
   useEffect(() => {
     if (!venueId) return
     load()
+    supabaseStaff
+      .from('venues')
+      .select('client_floor_map_enabled')
+      .eq('id', venueId)
+      .single()
+      .then(({ data }) => { if (data) setClientMapEnabled(data.client_floor_map_enabled) })
   }, [venueId])
 
   async function load() {
@@ -38,6 +46,17 @@ export default function LocationsPage() {
       .order('name')
     setZones(data || [])
     setLoading(false)
+  }
+
+  async function toggleClientMap() {
+    setTogglingMap(true)
+    const next = !clientMapEnabled
+    await supabaseStaff
+      .from('venues')
+      .update({ client_floor_map_enabled: next })
+      .eq('id', venueId)
+    setClientMapEnabled(next)
+    setTogglingMap(false)
   }
 
   async function addZone() {
@@ -159,7 +178,25 @@ export default function LocationsPage() {
         </div>
       </header>
 
-      <div className="mx-5 mt-4 mb-1 flex items-center gap-2 bg-carbon-900 border border-carbon-700 rounded-xl px-4 py-3">
+      {activeTab === 'mesa' && (
+        <div className="mx-5 mt-4 flex items-center justify-between bg-carbon-900 border border-carbon-700 rounded-xl px-4 py-3">
+          <div>
+            <p className="text-smoke-300 text-xs font-semibold">Mapa visible para clientes</p>
+            <p className="text-smoke-500 text-[11px] mt-0.5">Los clientes pueden elegir mesa desde el mapa</p>
+          </div>
+          <button
+            onClick={toggleClientMap}
+            disabled={togglingMap}
+            className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 ${clientMapEnabled ? 'bg-emerald-500' : 'bg-carbon-600'}`}
+          >
+            <span
+              className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${clientMapEnabled ? 'translate-x-6' : 'translate-x-0.5'}`}
+            />
+          </button>
+        </div>
+      )}
+
+      <div className="mx-5 mt-3 mb-1 flex items-center gap-2 bg-carbon-900 border border-carbon-700 rounded-xl px-4 py-3">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B7A8D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
         </svg>

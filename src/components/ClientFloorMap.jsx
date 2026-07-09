@@ -1,7 +1,23 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { supabaseCustomer, ACTIVE_VENUE_ID } from '../lib/supabase'
 
-export default function ClientFloorMap({ zones, accent, onChoose, confirmStep = true }) {
+const ACTIVE_STATUSES = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo']
+
+export default function ClientFloorMap({ zones, accent, onChoose, confirmStep = true, venueId }) {
   const [selected, setSelected] = useState(null)
+  const [occupiedIds, setOccupiedIds] = useState(new Set())
+  const vid = venueId || ACTIVE_VENUE_ID
+
+  useEffect(() => {
+    if (!vid) return
+    supabaseCustomer
+      .from('orders')
+      .select('zone_id')
+      .eq('venue_id', vid)
+      .in('status', ACTIVE_STATUSES)
+      .not('zone_id', 'is', null)
+      .then(({ data }) => setOccupiedIds(new Set((data || []).map(o => o.zone_id))))
+  }, [vid])
 
   const mesas = zones.filter(z => z.pos_x != null && z.pos_y != null && z.type === 'mesa')
   const zonas = zones.filter(z => z.type === 'zona')
@@ -60,9 +76,20 @@ export default function ClientFloorMap({ zones, accent, onChoose, confirmStep = 
           )}
           {visibleMesas.map(zone => {
             const isSelected = selected?.id === zone.id
+            const isOccupied = occupiedIds.has(zone.id)
             const w = zone.size_w ?? 8
             const h = zone.size_h ?? 13
             const radius = zone.shape === 'redonda' ? 'rounded-full' : zone.shape === 'barra' ? 'rounded-lg' : 'rounded-xl'
+
+            let bgColor, borderColor, textColor
+            if (isSelected) {
+              bgColor = accent; borderColor = accent; textColor = 'white'
+            } else if (isOccupied) {
+              bgColor = '#FEF3C7'; borderColor = '#F59E0B'; textColor = '#92400E'
+            } else {
+              bgColor = '#E8E3DA'; borderColor = '#C2B9A8'; textColor = '#4A4742'
+            }
+
             return (
               <button
                 key={zone.id}
@@ -77,24 +104,41 @@ export default function ClientFloorMap({ zones, accent, onChoose, confirmStep = 
                 onClick={() => tap(zone)}
               >
                 <div
-                  className={`w-full h-full ${radius} flex items-center justify-center border-2 transition-all`}
+                  className={`w-full h-full ${radius} flex items-center justify-center border-2 transition-all relative`}
                   style={isSelected
-                    ? { backgroundColor: accent, borderColor: accent, boxShadow: `0 0 0 3px ${accent}55` }
-                    : { backgroundColor: '#E8E3DA', borderColor: '#C2B9A8' }
+                    ? { backgroundColor: bgColor, borderColor, boxShadow: `0 0 0 3px ${accent}55` }
+                    : { backgroundColor: bgColor, borderColor }
                   }
                 >
                   <span
                     className="text-[9px] font-semibold text-center leading-tight px-1 break-words w-full"
-                    style={{ color: isSelected ? 'white' : '#4A4742' }}
+                    style={{ color: textColor }}
                   >
                     {zone.name}
                   </span>
+                  {isOccupied && !isSelected && (
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-[#0D1117]" />
+                  )}
                 </div>
               </button>
             )
           })}
         </div>
       </div>
+
+      {/* Legend */}
+      {occupiedIds.size > 0 && (
+        <div className="flex items-center gap-4 mt-2 px-1">
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded bg-[#E8E3DA] border border-[#C2B9A8]" />
+            <span className="text-[10px] text-[#9DAAB8]">Libre</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded bg-[#FEF3C7] border border-amber-400" />
+            <span className="text-[10px] text-[#9DAAB8]">Ocupada</span>
+          </div>
+        </div>
+      )}
 
       {confirmStep && (
         <div className="mt-3 min-h-[52px]">
