@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import jsQR from 'jsqr'
 import { supabaseCamaut, supabaseStaff } from '../../lib/supabase'
 
 const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent.toLowerCase())
@@ -94,6 +95,8 @@ export default function CamautVincularPage() {
   const [scanning, setScanning] = useState(false)
   const videoRef = useRef(null)
   const streamRef = useRef(null)
+  const canvasRef = useRef(null)
+  const intervalRef = useRef(null)
 
   useEffect(() => {
     if (searchParams.get('code')) {
@@ -101,6 +104,14 @@ export default function CamautVincularPage() {
     }
     return () => stopScan()
   }, [])
+
+  function processQRResult(raw) {
+    const match = raw.match(/code=([A-Z0-9]{8})/i)
+    const extracted = match ? match[1].toUpperCase() : raw.toUpperCase().slice(0, 8)
+    stopScan()
+    setCode(extracted)
+    handleSearch(extracted)
+  }
 
   async function startScan() {
     setScanning(true)
@@ -112,25 +123,34 @@ export default function CamautVincularPage() {
 
       if ('BarcodeDetector' in window) {
         const detector = new window.BarcodeDetector({ formats: ['qr_code'] })
-        const interval = setInterval(async () => {
-          if (!videoRef.current) { clearInterval(interval); return }
+        intervalRef.current = setInterval(async () => {
+          if (!videoRef.current) { clearInterval(intervalRef.current); return }
           try {
             const barcodes = await detector.detect(videoRef.current)
             if (barcodes.length > 0) {
-              clearInterval(interval)
-              const raw = barcodes[0].rawValue
-              // Extraer código del URL o usar directamente
-              const match = raw.match(/code=([A-Z0-9]{8})/i)
-              const extracted = match ? match[1].toUpperCase() : raw.toUpperCase().slice(0, 8)
-              stopScan()
-              setCode(extracted)
-              handleSearch(extracted)
+              clearInterval(intervalRef.current)
+              processQRResult(barcodes[0].rawValue)
             }
           } catch {}
         }, 500)
       } else {
-        setError('Tu navegador no soporta escaneo. Ingresá el código manualmente.')
-        stopScan()
+        // Fallback for iOS Safari: canvas-based jsQR scanning
+        const canvas = document.createElement('canvas')
+        canvasRef.current = canvas
+        intervalRef.current = setInterval(() => {
+          const video = videoRef.current
+          if (!video || video.readyState < 2) return
+          canvas.width = video.videoWidth
+          canvas.height = video.videoHeight
+          const ctx = canvas.getContext('2d')
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+          const code = jsQR(imageData.data, imageData.width, imageData.height)
+          if (code?.data) {
+            clearInterval(intervalRef.current)
+            processQRResult(code.data)
+          }
+        }, 300)
       }
     } catch {
       setError('No se pudo acceder a la cámara.')
@@ -139,6 +159,7 @@ export default function CamautVincularPage() {
   }
 
   function stopScan() {
+    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(t => t.stop())
       streamRef.current = null
@@ -278,7 +299,7 @@ export default function CamautVincularPage() {
           {/* Escáner QR */}
           {scanning ? (
             <div className="relative">
-              <video ref={videoRef} autoPlay playsInline className="w-full rounded-2xl" />
+              <video ref={videoRef} autoPlay playsInline muted className="w-full rounded-2xl" />
               <div className="absolute inset-0 border-4 border-ember-500/50 rounded-2xl pointer-events-none" />
               <button
                 onClick={stopScan}
