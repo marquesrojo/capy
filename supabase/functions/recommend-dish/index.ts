@@ -108,7 +108,11 @@ FORMATO DE RESPUESTA:
     )
 
     const geminiData = await geminiRes.json()
-    if (geminiData.error) throw new Error(geminiData.error.message || 'Gemini error')
+    if (geminiData.error) {
+      const code = geminiData.error.code
+      if (code === 503 || code === 429) throw new Error('El servicio de IA está muy ocupado ahora. Intentá de nuevo en un momento.')
+      throw new Error('No pudimos conectarnos al servicio de recomendaciones. Intentá de nuevo.')
+    }
 
     const parts: Array<{ text?: string; thought?: boolean }> = geminiData.candidates?.[0]?.content?.parts || []
     console.log('[recommend-dish] parts count:', parts.length, '| thought parts:', parts.filter(p => p.thought).length)
