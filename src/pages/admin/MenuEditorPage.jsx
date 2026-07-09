@@ -203,10 +203,12 @@ function CategoryNameEditor({ cat, onSave }) {
 
 const UNITS = ['g', 'kg', 'ml', 'l', 'unidad', 'taza', 'cdita', 'cda', 'porción']
 
-function IngredientsPanel({ productId, productName, productDescription }) {
+function IngredientsPanel({ productId, productName, productDescription, currentImageUrl, onPhotoSaved }) {
   const [ingredients, setIngredients] = useState(null) // null = loading
   const [saving, setSaving] = useState(false)
   const [suggesting, setSuggesting] = useState(false)
+  const [foundPhoto, setFoundPhoto] = useState(null)
+  const [savingPhoto, setSavingPhoto] = useState(false)
 
   useEffect(() => {
     supabaseStaff
@@ -232,9 +234,10 @@ function IngredientsPanel({ productId, productName, productDescription }) {
     const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
     if (!API_KEY) return
     setSuggesting(true)
+    setFoundPhoto(null)
     try {
       const desc = productDescription ? ` — ${productDescription}` : ''
-      const prompt = `Sos un chef. Para el plato "${productName}"${desc}, listá los ingredientes principales con cantidad aproximada por porción individual. Respondé ÚNICAMENTE con un JSON array sin texto extra ni backticks. Ejemplo: [{"name":"Harina","quantity":200,"unit":"g"},{"name":"Huevos","quantity":2,"unit":"unidad"}]. Máximo 8 ingredientes. Usá solo estas unidades: g, kg, ml, l, unidad, taza, cdita, cda, porción.`
+      const prompt = `Sos un chef. Para el plato "${productName}"${desc}, respondé con un JSON objeto (sin texto extra ni backticks) con dos campos: "photo_query" (término de búsqueda en inglés para Unsplash — si el nombre no es descriptivo usá la descripción o la categoría para inferir qué es el plato, siempre términos concretos del plato en inglés) e "ingredients" (array de hasta 8 ingredientes principales con cantidad por porción individual, usando solo estas unidades: g, kg, ml, l, unidad, taza, cdita, cda, porción). Ejemplo: {"photo_query":"beef milanesa breaded","ingredients":[{"name":"Carne","quantity":200,"unit":"g"},{"name":"Huevo","quantity":1,"unit":"unidad"}]}`
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
         {
@@ -244,14 +247,30 @@ function IngredientsPanel({ productId, productName, productDescription }) {
         }
       )
       const data = await res.json()
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]'
-      const match = text.match(/\[[\s\S]*\]/)
-      const parsed = JSON.parse(match ? match[0] : '[]')
-      setIngredients(parsed.map(i => ({ id: null, ingredient_name: i.name, quantity: String(i.quantity), unit: i.unit || 'g' })))
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}'
+      const match = text.match(/\{[\s\S]*\}/)
+      const parsed = JSON.parse(match ? match[0] : '{}')
+
+      if (parsed.ingredients?.length) {
+        setIngredients(parsed.ingredients.map(i => ({ id: null, ingredient_name: i.name, quantity: String(i.quantity), unit: i.unit || 'g' })))
+      }
+      if (parsed.photo_query) {
+        const url = await searchUnsplash(parsed.photo_query)
+        if (url) setFoundPhoto(url)
+      }
     } catch {
       // silently fail
     }
     setSuggesting(false)
+  }
+
+  async function handleSavePhoto() {
+    if (!foundPhoto) return
+    setSavingPhoto(true)
+    await supabaseStaff.from('products').update({ image_url: foundPhoto }).eq('id', productId)
+    onPhotoSaved?.(foundPhoto)
+    setFoundPhoto(null)
+    setSavingPhoto(false)
   }
 
   async function handleSave() {
@@ -292,6 +311,31 @@ function IngredientsPanel({ productId, productName, productDescription }) {
           {suggesting ? 'Consultando IA...' : 'Sugerir con IA'}
         </button>
       </div>
+
+      {foundPhoto && (
+        <div className="flex items-center gap-2 bg-carbon-800 border border-carbon-700 rounded-xl p-2">
+          <img src={foundPhoto} alt="" className="w-14 h-14 rounded-lg object-cover flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-smoke-300 text-xs font-medium">Foto encontrada</p>
+            {currentImageUrl && <p className="text-smoke-600 text-[10px]">Reemplaza la foto actual</p>}
+          </div>
+          <div className="flex flex-col gap-1">
+            <button
+              onClick={handleSavePhoto}
+              disabled={savingPhoto}
+              className="text-[10px] bg-ember-500 text-white font-semibold px-2.5 py-1 rounded-lg disabled:opacity-50"
+            >
+              {savingPhoto ? 'Guardando...' : 'Usar foto'}
+            </button>
+            <button
+              onClick={() => setFoundPhoto(null)}
+              className="text-[10px] text-smoke-500 underline text-center"
+            >
+              Descartar
+            </button>
+          </div>
+        </div>
+      )}
 
       {ingredients.length === 0 && !suggesting && (
         <p className="text-smoke-600 text-xs italic">Sin ingredientes. Agregá uno o usá la IA.</p>
@@ -533,6 +577,8 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
           productId={product.id}
           productName={product.name}
           productDescription={product.description}
+          currentImageUrl={product.image_url}
+          onPhotoSaved={url => onSave({ ...product, image_url: url })}
         />
       )}
     </div>
