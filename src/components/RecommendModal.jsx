@@ -34,6 +34,7 @@ export default function RecommendModal({ venueId, accentColor, onAddToCart, onCl
           headers: {
             'Content-Type': 'application/json',
             apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           },
           body: JSON.stringify({
             venue_id: venueId,
