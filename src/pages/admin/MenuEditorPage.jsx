@@ -751,7 +751,7 @@ function ImportarConIA({ venueId, onImported }) {
 
         const isRich = mode === 'rich'
         const parsePrompt = isRich
-          ? `Este es el texto de un menú de restaurante:\n\n${transcriptText}\n\nConvertí esto a un JSON array de productos. Para cada producto incluí: name (nombre), price (precio como número sin símbolo), category (categoría en español), description (descripción del plato si aparece en el menú, sino cadena vacía ""). Respondé ÚNICAMENTE con el JSON array, sin texto adicional, sin backticks. Ejemplo: [{"name":"Milanesa","price":2500,"category":"Platos principales","description":"Milanesa de ternera con papas fritas"}]`
+          ? `Este es el texto de un menú de restaurante:\n\n${transcriptText}\n\nConvertí esto a un JSON array de productos. Para cada producto incluí: name (nombre), price (precio como número sin símbolo), category (categoría en español), description (descripción del plato si aparece en el menú, sino cadena vacía ""), photo_query (término de búsqueda en inglés para encontrar una foto gastronómica del plato en Unsplash — si el nombre es genérico o no descriptivo como "El Porteño" o "Especial", usá la descripción para inferir qué es el plato y generá un término concreto como "steak sandwich cheese ham"; siempre en inglés, siempre describe el plato, no el nombre). Respondé ÚNICAMENTE con el JSON array, sin texto adicional, sin backticks. Ejemplo: [{"name":"El Porteño","price":2500,"category":"Sandwiches","description":"Sándwich de lomo con queso y jamón","photo_query":"steak sandwich cheese ham"}]`
           : `Este es el texto de un menú de restaurante:\n\n${transcriptText}\n\nConvertí esto a un JSON array de productos. Para cada producto incluí: name (nombre), price (precio como número sin símbolo), category (categoría en español). Respondé ÚNICAMENTE con el JSON array, sin texto adicional, sin backticks. Ejemplo: [{"name":"Milanesa","price":2500,"category":"Platos principales"}]`
 
         const parseRes = await fetch(BASE_URL, {
@@ -770,7 +770,7 @@ function ImportarConIA({ venueId, onImported }) {
             items.map(async item => ({
               ...item,
               description: item.description || '',
-              image_url: await searchUnsplash(item.name),
+              image_url: await searchUnsplash(item.photo_query || item.name),
               selected: true,
             }))
           )
