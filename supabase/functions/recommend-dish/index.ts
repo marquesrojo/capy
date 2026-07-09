@@ -31,6 +31,8 @@ Deno.serve(async (req) => {
       supabase.from('products').select('id, name, price, description, category_id, dietary_tags, is_featured, is_daily_special').eq('venue_id', venue_id).eq('is_available', true).order('sort_order'),
     ])
 
+    console.log('[recommend-dish] products count:', products?.length ?? 'null')
+
     if (!products?.length) {
       return new Response(JSON.stringify({ error: 'No hay productos disponibles' }), {
         status: 400,
@@ -108,16 +110,21 @@ FORMATO DE RESPUESTA:
     const geminiData = await geminiRes.json()
     if (geminiData.error) throw new Error(geminiData.error.message || 'Gemini error')
 
-    // gemini-2.5-flash returns thinking tokens as the first part (thought: true)
-    // We need the non-thinking part that contains the actual JSON response
     const parts: Array<{ text?: string; thought?: boolean }> = geminiData.candidates?.[0]?.content?.parts || []
+    console.log('[recommend-dish] parts count:', parts.length, '| thought parts:', parts.filter(p => p.thought).length)
+
     const raw: string = parts.filter(p => !p.thought).map(p => p.text || '').join('') || '{}'
+    console.log('[recommend-dish] raw (first 500):', raw.substring(0, 500))
+
     const jsonMatch = raw.match(/\{[\s\S]*\}/)
     if (!jsonMatch) throw new Error('Gemini no devolvió JSON válido')
+
     const parsed = JSON.parse(jsonMatch[0])
+    console.log('[recommend-dish] parsed recs:', JSON.stringify(parsed.recommendations?.length ?? 'undefined'))
 
     // Fallback: if Gemini returns no recommendations, pick the top featured product
     if (!parsed.recommendations?.length) {
+      console.log('[recommend-dish] fallback triggered, products[0]:', products[0]?.name)
       const fallback = (products as Array<{ name: string; price: number; is_featured?: boolean }>)
         .find(p => p.is_featured) || (products as Array<{ name: string; price: number }>)[0]
       if (fallback) {
@@ -133,6 +140,7 @@ FORMATO DE RESPUESTA:
       parsed.restaurant_pick = { name: dailySpecial.name, price: dailySpecial.price }
     }
 
+    console.log('[recommend-dish] final response recs:', parsed.recommendations?.length)
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
