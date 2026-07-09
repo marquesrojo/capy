@@ -104,10 +104,12 @@ export default function MenuPage() {
     ? products.filter(p => p.is_available && (p.dietary_tags || []).some(t => customerDietaryPrefs.includes(t)))
     : []
 
+  const activeDietaryTag = DIETARY_TAGS.find(t => t.id === activeCategory)
   const visibleProducts = activeCategory
-    ? products
-        .filter(p => p.category_id === activeCategory)
-        .sort((a, b) => (b.image_url ? 1 : 0) - (a.image_url ? 1 : 0))
+    ? (activeDietaryTag
+        ? products.filter(p => p.is_available && (p.dietary_tags || []).includes(activeCategory))
+        : products.filter(p => p.is_available && p.category_id === activeCategory)
+      ).sort((a, b) => (b.image_url ? 1 : 0) - (a.image_url ? 1 : 0))
     : []
 
   const searchResults = search.trim()
@@ -205,7 +207,7 @@ export default function MenuPage() {
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
               <line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="9" y1="18" x2="15" y2="18"/>
             </svg>
-            <span className="truncate">{(categories.find(c => c.id === activeCategory)?.name || 'Categoría').slice(0, 8)}</span>
+            <span className="truncate">{(activeDietaryTag?.label || categories.find(c => c.id === activeCategory)?.name || 'Categoría').slice(0, 8)}</span>
           </button>
           <div className="relative flex-1">
             <input
@@ -278,7 +280,9 @@ export default function MenuPage() {
               customerPrefs={customerDietaryPrefs} />
           ))}
           {visibleProducts.length === 0 && dailySpecials.length === 0 && paraVos.length === 0 && (
-            <p className="text-smoke-500 text-sm text-center py-10">Sin productos en esta categoría.</p>
+            <p className="text-smoke-500 text-sm text-center py-10">
+              {activeDietaryTag ? `Sin productos con preferencia "${activeDietaryTag.label}".` : 'Sin productos en esta categoría.'}
+            </p>
           )}
         </div>
       )}
@@ -310,6 +314,36 @@ export default function MenuPage() {
                 </button>
               ))}
             </div>
+            {(() => {
+              const tagsWithProducts = DIETARY_TAGS.filter(tag =>
+                products.some(p => p.is_available && (p.dietary_tags || []).includes(tag.id))
+              )
+              if (!tagsWithProducts.length) return null
+              return (
+                <div className="mt-4">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Preferencias</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {tagsWithProducts.map(tag => {
+                      const active = activeCategory === tag.id
+                      return (
+                        <button
+                          key={tag.id}
+                          onClick={() => { setActiveCategory(tag.id); setShowCategorySheet(false) }}
+                          className="py-3 px-2 rounded-xl text-sm font-semibold text-center border-2 transition-all leading-tight flex items-center justify-center gap-1.5"
+                          style={active
+                            ? { backgroundColor: contentAccent, borderColor: contentAccent, color: contentAccentText }
+                            : { backgroundColor: '#F8FAFB', borderColor: '#E8EEF4', color: '#1A2332' }
+                          }
+                        >
+                          <tag.Icon size={14} />
+                          {tag.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })()}
           </div>
         </div>
       )}
