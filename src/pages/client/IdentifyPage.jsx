@@ -107,7 +107,14 @@ export default function IdentifyPage() {
         .eq('is_active', true)
         .order('sort_order')
         .order('name')
-        .then(({ data }) => setZones(data || []))
+        .then(({ data }) => {
+          const zonesData = data || []
+          setZones(zonesData)
+          if (zonesData.some(z => z.type === 'mesa' && z.pos_x != null)) {
+            setZonePickerView('mapa')
+            setShowZonePicker(true)
+          }
+        })
     }
 
     supabaseCustomer
