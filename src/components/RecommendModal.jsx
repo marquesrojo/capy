@@ -189,6 +189,21 @@ export default function RecommendModal({ venueId, accentColor, onAddToCart, onCl
           </div>
         )}
 
+        {/* Results — empty */}
+        {step === 'result' && results.length === 0 && (
+          <div className="py-10 text-center">
+            <p className="text-[#1A2332] font-bold text-sm mb-1">No encontramos una recomendación</p>
+            <p className="text-[#9DAAB8] text-xs mb-5">Intentá con otro perfil o sin límite de presupuesto.</p>
+            <button
+              onClick={() => { setStep('hunger'); setHunger(null); setMood(null); setBudget(''); setBudgetEnabled(false) }}
+              className="text-sm font-bold py-2.5 px-6 rounded-xl text-white"
+              style={{ backgroundColor: accentColor }}
+            >
+              Reintentar
+            </button>
+          </div>
+        )}
+
         {/* Results */}
         {step === 'result' && results.length > 0 && (
           <div>
