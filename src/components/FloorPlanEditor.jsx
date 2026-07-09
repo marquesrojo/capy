@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { supabaseStaff } from '../lib/supabase'
 
 const DEFAULT_SIZES = {
@@ -42,6 +42,34 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
   const [savedOk, setSavedOk] = useState(false)
   const canvasRef = useRef(null)
   const iaRef = useRef(null)
+
+  // When zones reload from DB (after save), add any new zones not yet in local state
+  useEffect(() => {
+    const active = zones.filter(z => z.is_active)
+    setPositions(prev => {
+      const next = { ...prev }
+      let changed = false
+      active.forEach(z => {
+        if (!(z.id in next)) {
+          next[z.id] = { x: z.pos_x ?? null, y: z.pos_y ?? null }
+          changed = true
+        }
+      })
+      return changed ? next : prev
+    })
+    setSizes(prev => {
+      const next = { ...prev }
+      let changed = false
+      active.forEach(z => {
+        if (!(z.id in next)) {
+          const def = DEFAULT_SIZES[z.shape || 'cuadrada']
+          next[z.id] = { w: z.size_w ?? def.w, h: z.size_h ?? def.h }
+          changed = true
+        }
+      })
+      return changed ? next : prev
+    })
+  }, [zones])
 
   // All items to render: existing + pending copies
   const allItems = [
@@ -169,10 +197,16 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
   }
 
   function placeOnCanvas(zone) {
+    const id = zone.itemId
     setPositions(prev => ({
       ...prev,
-      [zone.itemId]: { x: 10 + Math.random() * 70, y: 15 + Math.random() * 65 }
+      [id]: { x: 10 + Math.random() * 70, y: 15 + Math.random() * 65 }
     }))
+    setSizes(prev => {
+      if (id in prev) return prev
+      const def = DEFAULT_SIZES[zone.shape || 'cuadrada']
+      return { ...prev, [id]: { w: zone.size_w ?? def.w, h: zone.size_h ?? def.h } }
+    })
   }
 
   async function save() {
