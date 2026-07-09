@@ -203,7 +203,7 @@ function CategoryNameEditor({ cat, onSave }) {
 
 const UNITS = ['g', 'kg', 'ml', 'l', 'unidad', 'taza', 'cdita', 'cda', 'porción']
 
-function IngredientsPanel({ productId, productName, productDescription, currentImageUrl, onPhotoSaved }) {
+function IngredientsPanel({ productId, productName, productDescription, currentImageUrl, onPhotoSaved, venueId }) {
   const [ingredients, setIngredients] = useState(null) // null = loading
   const [saving, setSaving] = useState(false)
   const [suggesting, setSuggesting] = useState(false)
@@ -255,7 +255,7 @@ function IngredientsPanel({ productId, productName, productDescription, currentI
         setIngredients(parsed.ingredients.map(i => ({ id: null, ingredient_name: i.name, quantity: String(i.quantity), unit: i.unit || 'g' })))
       }
       if (parsed.photo_query) {
-        const url = await searchUnsplash(parsed.photo_query)
+        const url = await searchUnsplash(parsed.photo_query, venueId)
         if (url) setFoundPhoto(url)
       }
     } catch {
@@ -579,6 +579,7 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
           productDescription={product.description}
           currentImageUrl={product.image_url}
           onPhotoSaved={url => onSave({ ...product, image_url: url })}
+          venueId={venueId}
         />
       )}
     </div>
@@ -736,33 +737,35 @@ function NewProductForm({ venueId, categories, onClose, onCreated }) {
   )
 }
 
-async function searchUnsplash(query) {
+const UNSPLASH_DAILY_LIMIT = 15
+
+function getUnsplashCount(venueId) {
+  const today = new Date().toISOString().slice(0, 10)
+  return parseInt(localStorage.getItem(`capy_unsplash_${venueId}_${today}`) || '0', 10)
+}
+
+function incrementUnsplashCount(venueId) {
+  const today = new Date().toISOString().slice(0, 10)
+  localStorage.setItem(`capy_unsplash_${venueId}_${today}`, String(getUnsplashCount(venueId) + 1))
+}
+
+async function searchUnsplash(query, venueId) {
   const key = import.meta.env.VITE_UNSPLASH_ACCESS_KEY
   if (!key) return null
+  if (venueId && getUnsplashCount(venueId) >= UNSPLASH_DAILY_LIMIT) return null
   try {
     const res = await fetch(
       `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape&client_id=${key}`
     )
     const data = await res.json()
-    return data.results?.[0]?.urls?.small || null
+    const url = data.results?.[0]?.urls?.small || null
+    if (url && venueId) incrementUnsplashCount(venueId)
+    return url
   } catch {
     return null
   }
 }
 
-const RICH_IMPORT_LIMIT = 3
-
-function getRichImportCount(venueId) {
-  const today = new Date().toISOString().slice(0, 10)
-  const raw = localStorage.getItem(`capy_rich_import_${venueId}_${today}`)
-  return raw ? parseInt(raw, 10) : 0
-}
-
-function incrementRichImportCount(venueId) {
-  const today = new Date().toISOString().slice(0, 10)
-  const key = `capy_rich_import_${venueId}_${today}`
-  localStorage.setItem(key, String(getRichImportCount(venueId) + 1))
-}
 
 function ImportarConIA({ venueId, onImported }) {
   const [step, setStep] = useState('idle') // idle | pick_mode | analyzing | enriching | review | saving
@@ -773,12 +776,9 @@ function ImportarConIA({ venueId, onImported }) {
   const fileRef = useRef(null)
 
   function pickMode(selectedMode) {
-    if (selectedMode === 'rich') {
-      const count = getRichImportCount(venueId)
-      if (count >= RICH_IMPORT_LIMIT) {
-        setError(`Límite diario alcanzado: podés hacer hasta ${RICH_IMPORT_LIMIT} importaciones con fotos por día. Mañana se renueva.`)
-        return
-      }
+    if (selectedMode === 'rich' && getUnsplashCount(venueId) >= UNSPLASH_DAILY_LIMIT) {
+      setError(`Límite diario de imágenes alcanzado (${UNSPLASH_DAILY_LIMIT}/día). Mañana se renueva.`)
+      return
     }
     setMode(selectedMode)
     setStep('analyzing')
@@ -837,7 +837,7 @@ function ImportarConIA({ venueId, onImported }) {
             items.map(async item => ({
               ...item,
               description: item.description || '',
-              image_url: await searchUnsplash(item.photo_query || item.name),
+              image_url: await searchUnsplash(item.photo_query || item.name, venueId),
               selected: true,
             }))
           )
@@ -886,7 +886,6 @@ function ImportarConIA({ venueId, onImported }) {
         is_available: true
       }))
     )
-    if (mode === 'rich') incrementRichImportCount(venueId)
     onImported()
     setStep('idle')
     setDetected([])
