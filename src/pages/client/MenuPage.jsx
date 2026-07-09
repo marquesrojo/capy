@@ -229,7 +229,7 @@ export default function MenuPage() {
               <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35" strokeLinecap="round"/>
             </svg>
             {search && (
-              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 opacity-60" style={{ color: accentText }}><XIcon size={14} /></button>
+              <button onClick={() => setSearch('')} aria-label="Limpiar búsqueda" className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center opacity-60" style={{ color: accentText }}><XIcon size={14} /></button>
             )}
           </div>
         </div>
@@ -443,14 +443,16 @@ function ProductCard({ product, onAdd, onRemove, qty, accentBg = '#1A3A6B', acce
               <button
                 onClick={() => onRemove(product)}
                 disabled={qty === 0}
-                className="w-8 h-8 rounded-lg border border-black/10 bg-[#F0F4F8] text-smoke-300 flex items-center justify-center font-bold text-base disabled:opacity-30"
+                aria-label={`Quitar ${product.name}`}
+                className="w-10 h-10 rounded-lg border border-black/10 bg-[#F0F4F8] text-smoke-300 flex items-center justify-center font-bold text-base disabled:opacity-30"
               >
                 −
               </button>
               <span className="font-semibold w-5 text-center text-sm" style={{ color: qty > 0 ? accentBg : '#9CA3AF' }}>{qty}</span>
               <button
                 onClick={() => onAdd(product, 1)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-base active:opacity-80"
+                aria-label={`Agregar ${product.name}`}
+                className="w-10 h-10 rounded-lg flex items-center justify-center font-bold text-base active:opacity-80"
                 style={{ backgroundColor: accentBg, color: accentText }}
               >
                 +

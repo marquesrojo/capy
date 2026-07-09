@@ -183,7 +183,8 @@ export default function BottomNav() {
                   </div>
                   <button
                     onClick={() => !callLoading && setShowWaiter(false)}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F0F4F8] text-[#6B7A8D]"
+                    aria-label="Cerrar"
+                    className="w-10 h-10 flex items-center justify-center rounded-full bg-[#F0F4F8] text-[#6B7A8D]"
                   >
                     <XIcon size={16} />
                   </button>

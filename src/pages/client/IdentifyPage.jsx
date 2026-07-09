@@ -610,7 +610,7 @@ export default function IdentifyPage() {
               <div className="bg-white border border-black/[0.06] rounded-2xl shadow-sm overflow-hidden">
                 <div className="px-5 pt-4 pb-3 flex items-center justify-between">
                   <p className="text-[#1A2332] font-black text-sm">¿Cómo lo querés?</p>
-                  <button onClick={() => setShowExternalOptions(false)} className="text-[#9DAAB8] text-xs">✕</button>
+                  <button onClick={() => setShowExternalOptions(false)} aria-label="Cerrar" className="w-10 h-10 flex items-center justify-center text-[#9DAAB8] text-xs">✕</button>
                 </div>
                 <div className={`grid gap-3 px-4 pb-4 ${retiroExternoEnabled && deliveryEnabled ? 'grid-cols-2' : 'grid-cols-1'}`}>
                   {retiroExternoEnabled && (
@@ -741,7 +741,8 @@ export default function IdentifyPage() {
                     <p className="text-[#9DAAB8] text-sm">¿En qué te podemos ayudar?</p>
                   </div>
                   <button onClick={() => !callLoading && setShowWaiterCall(false)}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-[#F0F4F8] text-[#6B7A8D]"><XIcon size={16} /></button>
+                    aria-label="Cerrar"
+                    className="w-10 h-10 flex items-center justify-center rounded-full bg-[#F0F4F8] text-[#6B7A8D]"><XIcon size={16} /></button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 mb-5">

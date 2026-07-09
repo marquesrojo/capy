@@ -15,6 +15,13 @@ body {
   scrollbar-color: #D8D1C4 #F3F0EA;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 :focus-visible {
   outline: 2px solid #E8772A;
   outline-offset: 2px;

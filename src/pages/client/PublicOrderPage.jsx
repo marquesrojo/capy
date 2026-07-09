@@ -321,10 +321,12 @@ export default function PublicOrderPage() {
               <span className="text-smoke-400 text-sm">Personas</span>
               <div className="flex items-center gap-3">
                 <button onClick={() => setSplitPeople(p => Math.max(2, p - 1))}
-                  className="w-8 h-8 rounded-lg border border-carbon-600 text-smoke-300 flex items-center justify-center">−</button>
+                  aria-label="Quitar persona"
+                  className="w-10 h-10 rounded-lg border border-carbon-600 text-smoke-300 flex items-center justify-center">−</button>
                 <span className="text-smoke-200 font-bold text-sm w-4 text-center">{splitPeople}</span>
                 <button onClick={() => setSplitPeople(p => p + 1)}
-                  className="w-8 h-8 rounded-lg border border-carbon-600 text-smoke-300 flex items-center justify-center">+</button>
+                  aria-label="Agregar persona"
+                  className="w-10 h-10 rounded-lg border border-carbon-600 text-smoke-300 flex items-center justify-center">+</button>
               </div>
             </div>
             <p className="text-center text-smoke-300 text-sm">

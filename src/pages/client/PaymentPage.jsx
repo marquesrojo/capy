@@ -202,14 +202,16 @@ export default function PaymentPage() {
               <div className="flex items-center gap-3 flex-shrink-0">
                 <button
                   onClick={() => updateQuantity(index, item.quantity - 1)}
-                  className="w-9 h-9 rounded-full bg-[#F0F4F8] text-[#1A2332] flex items-center justify-center text-lg font-bold active:opacity-70"
+                  aria-label={`Quitar ${item.product.name}`}
+                  className="w-10 h-10 rounded-full bg-[#F0F4F8] text-[#1A2332] flex items-center justify-center text-lg font-bold active:opacity-70"
                 >
                   −
                 </button>
                 <span className="text-[#1A2332] w-5 text-center font-semibold text-sm">{item.quantity}</span>
                 <button
                   onClick={() => updateQuantity(index, item.quantity + 1)}
-                  className="w-9 h-9 rounded-full text-white flex items-center justify-center text-lg font-bold active:opacity-70"
+                  aria-label={`Agregar ${item.product.name}`}
+                  className="w-10 h-10 rounded-full text-white flex items-center justify-center text-lg font-bold active:opacity-70"
                   style={{ backgroundColor: accent }}
                 >
                   +
