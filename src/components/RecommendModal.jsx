@@ -82,7 +82,7 @@ export default function RecommendModal({ venueId, accentColor, onAddToCart, onCl
         {/* Step: hunger */}
         {step === 'hunger' && (
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-[#C0CBDA] mb-3">¿Cuánto hambre tenés?</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-[#6B7A8D] mb-3">¿Cuánto hambre tenés?</p>
             <div className="space-y-2">
               {HUNGER_OPTIONS.map(o => (
                 <button
@@ -104,7 +104,7 @@ export default function RecommendModal({ venueId, accentColor, onAddToCart, onCl
         {/* Step: budget */}
         {step === 'budget' && (
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-[#C0CBDA] mb-3">¿Tenés un límite de presupuesto?</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-[#6B7A8D] mb-3">¿Tenés un límite de presupuesto?</p>
             <div className="space-y-2 mb-4">
               <button
                 onClick={() => { setBudgetEnabled(false); setStep('mood') }}
@@ -161,7 +161,7 @@ export default function RecommendModal({ venueId, accentColor, onAddToCart, onCl
         {/* Step: mood */}
         {step === 'mood' && (
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-[#C0CBDA] mb-3">¿Qué te provoca?</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-[#6B7A8D] mb-3">¿Qué te provoca?</p>
             <div className="grid grid-cols-2 gap-2">
               {MOOD_OPTIONS.map(o => (
                 <button
@@ -208,7 +208,7 @@ export default function RecommendModal({ venueId, accentColor, onAddToCart, onCl
         {/* Results */}
         {step === 'result' && results.length > 0 && (
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-[#C0CBDA] mb-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-[#6B7A8D] mb-3">
               {results.length === 1 ? 'Nuestra recomendación' : 'Nuestras recomendaciones'}
             </p>
             <div className="space-y-3">
@@ -237,7 +237,7 @@ export default function RecommendModal({ venueId, accentColor, onAddToCart, onCl
             </div>
             {restaurantPick && (
               <div className="mt-4">
-                <p className="text-xs font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Plato del día</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-[#6B7A8D] mb-2">Plato del día</p>
                 <div className="rounded-2xl border-2 border-[#E8EEF4] bg-[#F8FAFB] p-4">
                   <div className="flex items-center justify-between gap-2 mb-3">
                     <p className="font-black text-base text-[#1A2332] leading-tight flex-1">{restaurantPick.name}</p>
