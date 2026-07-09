@@ -367,9 +367,10 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
           <div className="flex items-center gap-2">
             {activeTab !== 'propio' && (() => {
               const av = linkedVenues.find(v => v.id === activeTab)
-              return av?.slug ? (
+              if (!av) return null
+              return (
                 <button
-                  onClick={() => setMenuQrModal({ slug: av.slug, name: av.name.replace(' — Capy', '').replace(' - Capy', '') })}
+                  onClick={() => setMenuQrModal({ slug: av.slug || null, name: av.name.replace(' — Capy', '').replace(' - Capy', '') })}
                   className="flex items-center gap-1.5 text-[#008080] text-xs font-semibold border border-[#008080]/30 px-3 py-1.5 rounded-xl"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -379,7 +380,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
                   </svg>
                   QR carta
                 </button>
-              ) : null
+              )
             })()}
             <button
               onClick={() => selectTab(null)}
@@ -768,16 +769,20 @@ function QRCanvas({ orderId }) {
 
 function MenuQRCanvas({ slug }) {
   const canvasRef = useRef(null)
-  const url = `https://capyapp.co/r/${slug}`
+  const url = slug ? `https://capyapp.co/r/${slug}` : null
 
   useEffect(() => {
-    if (!canvasRef.current || !slug) return
+    if (!canvasRef.current || !url) return
     QRCode.toCanvas(canvasRef.current, url, {
       width: 220,
       margin: 2,
       color: { dark: '#1A2A3A', light: '#FFFFFF' }
     })
   }, [url])
+
+  if (!url) return (
+    <p className="text-[#8896A5] text-xs text-center py-4">Este local no tiene carta digital configurada</p>
+  )
 
   return (
     <div className="flex justify-center">
