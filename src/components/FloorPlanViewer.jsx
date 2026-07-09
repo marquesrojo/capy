@@ -93,19 +93,28 @@ export default function FloorPlanViewer({ zones, venueId, selectedZone, onSelect
           {visibleMesas.map(zone => {
             const occupied = occupiedIds.has(zone.id)
             const selected = selectedZone?.id === zone.id
+            const w = zone.size_w ?? 8
+            const h = zone.size_h ?? 13
+            const radius = zone.shape === 'redonda' ? 'rounded-full' : zone.shape === 'barra' ? 'rounded-lg' : 'rounded-xl'
             return (
               <button
                 key={zone.id}
                 className="absolute"
-                style={{ left: `${zone.pos_x}%`, top: `${zone.pos_y}%`, transform: 'translate(-50%,-50%)' }}
+                style={{
+                  left: `${zone.pos_x}%`,
+                  top: `${zone.pos_y}%`,
+                  width: `${w}%`,
+                  height: `${h}%`,
+                  transform: 'translate(-50%,-50%)',
+                }}
                 onClick={() => onSelect?.(zone)}
               >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all relative
+                <div className={`w-full h-full ${radius} flex items-center justify-center transition-all relative border-2
                   ${selected
-                    ? 'bg-[#008080] border-2 border-[#00b0b0] shadow-lg scale-110'
+                    ? 'bg-[#008080] border-[#00b0b0] shadow-lg scale-105'
                     : occupied
-                      ? 'bg-red-950 border-2 border-red-700/70'
-                      : 'bg-carbon-800 border-2 border-carbon-600 hover:border-[#008080]'
+                      ? 'bg-red-950 border-red-700/70'
+                      : 'bg-carbon-800 border-carbon-600 hover:border-[#008080]'
                   }`}
                 >
                   <span className={`text-[9px] font-semibold text-center leading-tight px-1 break-words w-full
