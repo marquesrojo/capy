@@ -751,7 +751,7 @@ function ImportarConIA({ venueId, onImported }) {
 
         const isRich = mode === 'rich'
         const parsePrompt = isRich
-          ? `Este es el texto de un menú de restaurante:\n\n${transcriptText}\n\nConvertí esto a un JSON array de productos. Para cada producto incluí: name (nombre), price (precio como número sin símbolo), category (categoría en español), description (descripción del plato si aparece en el menú, sino cadena vacía ""). Respondé ÚNICAMENTE con el JSON array, sin texto adicional, sin backticks. Ejemplo: [{"name":"Milanesa","price":2500,"category":"Platos principales","description":"Milanesa de ternera con papas fritas"}]`
+          ? `Este es el texto de un menú de restaurante:\n\n${transcriptText}\n\nConvertí esto a un JSON array de productos. Para cada producto incluí: name (nombre), price (precio como número sin símbolo), category (categoría en español), description (descripción del plato si aparece en el menú, sino cadena vacía ""), photo_query (término de búsqueda en inglés para encontrar una foto gastronómica del plato en Unsplash — reglas en orden de prioridad: 1) si hay descripción en el menú usala para describir el plato en inglés, 2) si el nombre no es descriptivo pero hay categoría, combiná categoría + nombre para inferir qué es (ej: categoría "Sandwiches" + nombre "El Porteño" → "argentinian beef sandwich"; categoría "Postres" + nombre "La Abuela" → "homemade cake dessert"), 3) si el nombre ya es descriptivo traducilo al inglés; siempre términos concretos del plato en inglés, nunca el nombre propio). Respondé ÚNICAMENTE con el JSON array, sin texto adicional, sin backticks. Ejemplo: [{"name":"El Porteño","price":2500,"category":"Sandwiches","description":"Sándwich de lomo con queso y jamón","photo_query":"steak sandwich cheese ham"}]`
           : `Este es el texto de un menú de restaurante:\n\n${transcriptText}\n\nConvertí esto a un JSON array de productos. Para cada producto incluí: name (nombre), price (precio como número sin símbolo), category (categoría en español). Respondé ÚNICAMENTE con el JSON array, sin texto adicional, sin backticks. Ejemplo: [{"name":"Milanesa","price":2500,"category":"Platos principales"}]`
 
         const parseRes = await fetch(BASE_URL, {
@@ -770,7 +770,7 @@ function ImportarConIA({ venueId, onImported }) {
             items.map(async item => ({
               ...item,
               description: item.description || '',
-              image_url: await searchUnsplash(item.name),
+              image_url: await searchUnsplash(item.photo_query || item.name),
               selected: true,
             }))
           )
