@@ -1,28 +1,48 @@
 import { useState, useRef } from 'react'
 import { supabaseStaff } from '../lib/supabase'
 
-const SHAPE_STYLES = {
-  cuadrada:    { cls: 'w-10 h-10 rounded' },
-  redonda:     { cls: 'w-10 h-10 rounded-full' },
-  rectangular: { cls: 'w-14 h-9 rounded' },
-  barra:       { cls: 'w-20 h-6 rounded-sm' },
+// Default size (% of canvas width / height) per shape
+const DEFAULT_SIZES = {
+  cuadrada:    { w: 8, h: 13 },
+  redonda:     { w: 8, h: 13 },
+  rectangular: { w: 14, h: 10 },
+  barra:       { w: 22, h: 8 },
+}
+
+// Border-radius class per shape
+const SHAPE_RADIUS = {
+  cuadrada:    'rounded-xl',
+  redonda:     'rounded-full',
+  rectangular: 'rounded-xl',
+  barra:       'rounded-lg',
 }
 
 export default function FloorPlanEditor({ zones, parentZones = [], onSaved }) {
   const mesas = zones.filter(z => z.is_active)
   const hasZoneTabs = parentZones.length > 0
 
-  const [activeZoneId, setActiveZoneId] = useState(() => hasZoneTabs ? (parentZones[0]?.id ?? '__none__') : '__all__')
-
+  const [activeZoneId, setActiveZoneId] = useState(() =>
+    hasZoneTabs ? (parentZones[0]?.id ?? '__none__') : '__all__'
+  )
   const [positions, setPositions] = useState(() => {
     const map = {}
     mesas.forEach(z => { map[z.id] = { x: z.pos_x ?? null, y: z.pos_y ?? null } })
     return map
   })
-  const [dragging, setDragging] = useState(null)
+  const [sizes, setSizes] = useState(() => {
+    const map = {}
+    mesas.forEach(z => {
+      const def = DEFAULT_SIZES[z.shape || 'cuadrada']
+      map[z.id] = { w: z.size_w ?? def.w, h: z.size_h ?? def.h }
+    })
+    return map
+  })
+  const [selected, setSelected] = useState(null)
   const [saving, setSaving] = useState(false)
   const [savedOk, setSavedOk] = useState(false)
   const canvasRef = useRef(null)
+  // tracks the active pointer interaction
+  const iaRef = useRef(null)
 
   const zoneMesas = hasZoneTabs
     ? (activeZoneId === '__none__'
@@ -33,36 +53,93 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved }) {
   const positioned = zoneMesas.filter(z => positions[z.id]?.x != null)
   const unpositioned = zoneMesas.filter(z => positions[z.id]?.x == null)
 
-  function getCoords(clientX, clientY) {
-    const rect = canvasRef.current.getBoundingClientRect()
-    return {
-      x: Math.min(96, Math.max(4, ((clientX - rect.left) / rect.width) * 100)),
-      y: Math.min(93, Math.max(7, ((clientY - rect.top) / rect.height) * 100)),
+  function canvasRect() {
+    return canvasRef.current.getBoundingClientRect()
+  }
+
+  function startMove(e, id) {
+    e.preventDefault()
+    const src = e.touches ? e.touches[0] : e
+    const rect = canvasRect()
+    const pos = positions[id]
+    iaRef.current = {
+      type: 'move', id,
+      startClientX: src.clientX,
+      startClientY: src.clientY,
+      startPosX: pos?.x ?? 50,
+      startPosY: pos?.y ?? 50,
+      moved: false,
+      rect,
     }
   }
 
-  function startDrag(e, id) {
+  function startResize(e, id) {
     e.preventDefault()
+    e.stopPropagation()
     const src = e.touches ? e.touches[0] : e
-    const { x, y } = getCoords(src.clientX, src.clientY)
-    const pos = positions[id]
-    setDragging({ id, ox: pos?.x != null ? x - pos.x : 0, oy: pos?.y != null ? y - pos.y : 0 })
+    const rect = canvasRect()
+    const sz = sizes[id]
+    iaRef.current = {
+      type: 'resize', id,
+      startClientX: src.clientX,
+      startClientY: src.clientY,
+      startW: sz.w,
+      startH: sz.h,
+      moved: false,
+      rect,
+    }
   }
 
-  function onMove(e) {
-    if (!dragging) return
+  function onPointerMove(e) {
+    const ia = iaRef.current
+    if (!ia) return
     const src = e.touches ? e.touches[0] : e
-    const { x, y } = getCoords(src.clientX, src.clientY)
-    setPositions(prev => ({
+    const dx = src.clientX - ia.startClientX
+    const dy = src.clientY - ia.startClientY
+
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) ia.moved = true
+    if (!ia.moved) return
+
+    if (ia.type === 'move') {
+      const dxPct = (dx / ia.rect.width) * 100
+      const dyPct = (dy / ia.rect.height) * 100
+      setPositions(prev => ({
+        ...prev,
+        [ia.id]: {
+          x: Math.min(96, Math.max(4, ia.startPosX + dxPct)),
+          y: Math.min(93, Math.max(7, ia.startPosY + dyPct)),
+        }
+      }))
+    } else if (ia.type === 'resize') {
+      // BR corner drag: moving corner right/down increases size
+      // since element is centered, delta on one corner = half the size delta
+      const dw = (dx / ia.rect.width) * 100 * 2
+      const dh = (dy / ia.rect.height) * 100 * 2
+      setSizes(prev => ({
+        ...prev,
+        [ia.id]: {
+          w: Math.max(4, Math.min(45, ia.startW + dw)),
+          h: Math.max(4, Math.min(40, ia.startH + dh)),
+        }
+      }))
+    }
+  }
+
+  function onPointerUp() {
+    const ia = iaRef.current
+    if (!ia) return
+    if (!ia.moved && ia.type === 'move') {
+      setSelected(prev => prev === ia.id ? null : ia.id)
+    }
+    iaRef.current = null
+  }
+
+  function rotate(id) {
+    setSizes(prev => ({
       ...prev,
-      [dragging.id]: {
-        x: Math.min(96, Math.max(4, x - dragging.ox)),
-        y: Math.min(93, Math.max(7, y - dragging.oy)),
-      }
+      [id]: { w: prev[id].h, h: prev[id].w }
     }))
   }
-
-  function endDrag() { setDragging(null) }
 
   function placeOnCanvas(zone) {
     setPositions(prev => ({
@@ -77,7 +154,12 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved }) {
       mesas.map(z =>
         supabaseStaff
           .from('venue_zones')
-          .update({ pos_x: positions[z.id]?.x ?? null, pos_y: positions[z.id]?.y ?? null })
+          .update({
+            pos_x: positions[z.id]?.x ?? null,
+            pos_y: positions[z.id]?.y ?? null,
+            size_w: sizes[z.id]?.w,
+            size_h: sizes[z.id]?.h,
+          })
           .eq('id', z.id)
       )
     )
@@ -123,6 +205,10 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved }) {
         </div>
       )}
 
+      <p className="text-smoke-600 text-[11px] mb-2">
+        Tocá para seleccionar · Arrastrá para mover · Arrastrá la esquina para redimensionar · ⟳ para rotar
+      </p>
+
       <div
         ref={canvasRef}
         className="relative w-full rounded-2xl overflow-hidden select-none"
@@ -134,11 +220,11 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved }) {
             'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
           backgroundSize: '10% 10%',
         }}
-        onMouseMove={onMove}
-        onMouseUp={endDrag}
-        onMouseLeave={endDrag}
-        onTouchMove={e => { e.preventDefault(); onMove(e) }}
-        onTouchEnd={endDrag}
+        onMouseMove={onPointerMove}
+        onMouseUp={onPointerUp}
+        onMouseLeave={onPointerUp}
+        onTouchMove={e => { e.preventDefault(); onPointerMove(e) }}
+        onTouchEnd={onPointerUp}
       >
         <div className="absolute inset-0">
           {positioned.length === 0 && (
@@ -148,27 +234,61 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved }) {
           )}
           {positioned.map(zone => {
             const { x, y } = positions[zone.id]
-            const active = dragging?.id === zone.id
-            const shapeStyle = SHAPE_STYLES[zone.shape || 'cuadrada']
+            const { w, h } = sizes[zone.id]
+            const isSelected = selected === zone.id
+            const isMoving = iaRef.current?.type === 'move' && iaRef.current?.id === zone.id && iaRef.current?.moved
+            const radius = SHAPE_RADIUS[zone.shape || 'cuadrada']
+
             return (
               <div
                 key={zone.id}
                 className="absolute"
-                style={{ left: `${x}%`, top: `${y}%`, transform: 'translate(-50%,-50%)', zIndex: active ? 20 : 1 }}
-                onMouseDown={e => startDrag(e, zone.id)}
-                onTouchStart={e => startDrag(e, zone.id)}
+                style={{
+                  left: `${x}%`,
+                  top: `${y}%`,
+                  width: `${w}%`,
+                  height: `${h}%`,
+                  transform: 'translate(-50%,-50%)',
+                  zIndex: isSelected ? 20 : 1,
+                }}
+                onMouseDown={e => startMove(e, zone.id)}
+                onTouchStart={e => startMove(e, zone.id)}
               >
+                {/* Main element */}
                 <div
-                  className={`flex items-center justify-center cursor-grab active:cursor-grabbing border-2 ${shapeStyle.cls}
-                    ${active
-                      ? 'bg-ember-500 border-ember-400 scale-110 shadow-lg'
-                      : 'bg-carbon-800 border-carbon-600 hover:border-carbon-400'
+                  className={`w-full h-full flex items-center justify-center cursor-grab active:cursor-grabbing border-2 ${radius}
+                    ${isMoving
+                      ? 'bg-ember-500 border-ember-400 shadow-lg scale-105'
+                      : isSelected
+                        ? 'bg-carbon-700 border-ember-500 shadow-ember-500/30 shadow-md'
+                        : 'bg-carbon-800 border-carbon-600 hover:border-carbon-400'
                     }`}
                 >
                   <span className="text-[8px] font-semibold text-smoke-200 text-center leading-tight px-1 break-words w-full">
                     {zone.name}
                   </span>
                 </div>
+
+                {/* Controls when selected */}
+                {isSelected && (
+                  <>
+                    {/* Rotate button — top-left */}
+                    <button
+                      className="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-ember-500 text-white text-[10px] flex items-center justify-center shadow z-30"
+                      onMouseDown={e => { e.stopPropagation(); rotate(zone.id) }}
+                      onTouchStart={e => { e.stopPropagation(); rotate(zone.id) }}
+                    >
+                      ⟳
+                    </button>
+
+                    {/* Resize handle — bottom-right corner */}
+                    <div
+                      className="absolute -bottom-1.5 -right-1.5 w-4 h-4 rounded-full bg-ember-500 border-2 border-carbon-900 cursor-se-resize z-30"
+                      onMouseDown={e => startResize(e, zone.id)}
+                      onTouchStart={e => startResize(e, zone.id)}
+                    />
+                  </>
+                )}
               </div>
             )
           })}
