@@ -294,6 +294,191 @@ function SoporteTab() {
   )
 }
 
+const SEED_DOCS = [
+  {
+    title: 'Primeros pasos: orden de configuración inicial',
+    content: `Al empezar con Capy, el orden recomendado es:
+1. Configurar los datos del local: ir a Mi Local → Datos del local. Ahí se carga el nombre, WhatsApp de contacto y ajustes generales.
+2. Crear la carta: ir a Mi Local → Carta. Primero crear las categorías (Entradas, Platos principales, Bebidas, etc.) y luego agregar los productos dentro de cada una con nombre, descripción, precio y foto.
+3. Configurar las ubicaciones: ir a Mi Local → Ubicaciones. Crear las zonas (Salón, Terraza, Barra) y dentro de cada zona agregar las mesas con su nombre o número. También se puede activar la opción de Retiro en local.
+4. Configurar los métodos de pago: ir a Mi Local → Medios de pago. Activar efectivo, MercadoPago u otros métodos disponibles.
+5. Generar los QR: ir a Mi Local → Códigos QR. Descargar el QR de cada mesa para imprimir y poner en las mesas.
+6. Hacer una prueba: escanear el QR de una mesa, hacer un pedido de prueba como cliente y verificar que llega al panel del admin.`,
+    tags: ['onboarding', 'setup', 'primeros pasos', 'configuración'],
+  },
+  {
+    title: 'Configurar la carta: categorías y productos',
+    content: `Para armar la carta en Capy, ir a Mi Local → Carta.
+Primero crear las categorías: tocar el botón + Categoría, poner el nombre (ej: Entradas, Pizzas, Bebidas) y guardar. Las categorías se pueden reordenar arrastrándolas.
+Luego agregar productos dentro de cada categoría: tocar + Producto, completar nombre, descripción (opcional pero recomendada), precio y foto. La foto se puede subir manualmente o buscar con el botón IA que sugiere una imagen de Unsplash.
+Para importar una carta completa de golpe, usar el botón Importar con IA: pegar el texto del menú (foto, PDF escaneado, texto libre) y Capy genera todos los productos y categorías automáticamente con fotos incluidas.
+Los productos se pueden activar o desactivar sin borrarlos (útil para productos de temporada o agotados).
+Cada producto tiene un panel de ingredientes donde se puede cargar la materia prima para el reporte de consumo diario.`,
+    tags: ['carta', 'productos', 'categorías', 'menú', 'importar'],
+  },
+  {
+    title: 'Configurar ubicaciones: zonas, mesas y retiro',
+    content: `Las ubicaciones en Capy representan dónde está sentado el cliente cuando hace el pedido. Ir a Mi Local → Ubicaciones.
+Crear zonas primero: son agrupaciones de mesas (Salón, Terraza, Barra, Patio). Cada zona tiene un nombre.
+Dentro de cada zona, agregar las mesas con su nombre o número (Mesa 1, Mesa 2, Barra 1, etc.).
+También existe la opción Retiro en local: cuando está activa, el cliente puede pedir sin estar en una mesa y retirar el pedido en la barra o mostrador. Se activa desde el panel de ubicaciones.
+Cada mesa genera su propio QR individual. Los QR se descargan desde Mi Local → Códigos QR, donde se puede bajar el de cada mesa por separado o todos juntos.`,
+    tags: ['ubicaciones', 'mesas', 'zonas', 'retiro', 'qr'],
+  },
+  {
+    title: 'Códigos QR: tipos y cómo usarlos',
+    content: `En Mi Local → Códigos QR hay dos tipos de QR:
+QR de mesa: el cliente lo escanea con la cámara del celular, entra a la carta de Capy, elige su nombre y ya puede pedir desde su mesa. Cada mesa tiene su QR único. Se deben imprimir y colocar en cada mesa.
+QR de camarero: sirve para que el camarero tome pedidos en nombre de una mesa usando su celular. El camarero escanea el QR del cliente o usa el modo camarero desde /admin/tomar.
+Para imprimir los QR: descargar desde Mi Local → Códigos QR, se puede bajar cada uno individualmente o todos juntos en un ZIP. Se recomiendan en tamaño mínimo 5x5cm para que sean fáciles de escanear.`,
+    tags: ['qr', 'códigos qr', 'mesas', 'imprimir'],
+  },
+  {
+    title: 'Métodos de pago disponibles',
+    content: `En Mi Local → Medios de pago se configuran los métodos que el cliente puede usar al momento de pagar.
+Efectivo: siempre disponible, el cliente indica que va a pagar en efectivo y el admin confirma el cobro.
+MercadoPago: permite que el cliente pague online con tarjeta o billetera virtual. Para activarlo se debe vincular la cuenta de MercadoPago del local desde la configuración.
+Los métodos activos se muestran al cliente en la pantalla de pago. Se pueden activar o desactivar en cualquier momento.`,
+    tags: ['pagos', 'mercadopago', 'efectivo', 'medios de pago'],
+  },
+  {
+    title: 'Agregar camareros y usuarios',
+    content: `En Mi Local → Usuarios se gestionan los camareros y administradores vinculados al local.
+Para agregar un camarero: ir a Usuarios y tocar + Agregar. El camarero recibe un link para crear su cuenta en Camaut (la plataforma de camareros de Capy). Una vez que acepta, queda vinculado al local.
+Roles disponibles: admin (acceso total al panel) y camarero (acceso solo al modo tomar pedidos y ver historial).
+El camarero puede tomar pedidos desde su celular usando /admin/tomar — ve las mesas disponibles, elige una y toma el pedido como si fuera el cliente.
+Los camareros también acumulan XP y suben de rango en el programa de fidelización de Camaut.`,
+    tags: ['camareros', 'usuarios', 'staff', 'roles', 'camaut'],
+  },
+  {
+    title: 'Gestión de pedidos: estados y flujo',
+    content: `Cuando un cliente hace un pedido, aparece en el panel del admin en /admin (el dashboard principal).
+Estados de un pedido:
+- Pendiente: recién llegó, todavía no fue confirmado.
+- En preparación: el admin o cocina lo confirmó y está siendo preparado.
+- Listo: el pedido está listo para entregar.
+- Entregado: fue entregado al cliente.
+- Cancelado: el pedido fue cancelado.
+El admin puede cambiar el estado tocando el pedido. También puede ver el historial completo de pedidos del día en Mi Local → Historial.
+Los pedidos pagados con MercadoPago se confirman automáticamente cuando el pago es aprobado.`,
+    tags: ['pedidos', 'estados', 'historial', 'kitchen', 'cocina'],
+  },
+  {
+    title: 'Notas rápidas: aclaraciones predefinidas',
+    content: `Las notas rápidas son chips de texto que el cliente puede agregar a su pedido como aclaraciones (sin sal, sin cebolla, bien cocido, sin gluten, etc.).
+Se configuran en Mi Local → Notas rápidas. Se agregan como chips de texto y el cliente los puede seleccionar al hacer el pedido, o también escribir una nota libre.
+Son útiles para evitar que el cliente tenga que escribir siempre las mismas aclaraciones y para estandarizar las solicitudes que llegan a cocina.`,
+    tags: ['notas rápidas', 'aclaraciones', 'chips', 'pedidos'],
+  },
+  {
+    title: 'Qué es Camaut y para qué sirve',
+    content: `Camaut es la app de Capy para camareros. Permite al camarero tomar pedidos digitalmente, ver el estado de los pedidos en tiempo real, llevar un registro de su carrera y acumular XP por turno.
+Camaut tiene dos modos:
+1. Camarero vinculado a un local: trabaja en un restaurante o bar que usa Capy. El dueño lo agrega desde Mi Local → Usuarios. El camarero recibe un link para crear su cuenta y queda vinculado al local.
+2. Camarero autónomo: trabaja freelance o en varios locales. Se registra en camaut.app y puede vincularse a múltiples locales.
+Los camareros acceden a su app en /camaut/app o desde el panel de admin en /admin/tomar si están vinculados a un local.`,
+    tags: ['camaut', 'camarero', 'app', 'registro'],
+  },
+  {
+    title: 'Cómo registrarse en Camaut',
+    content: `Para crear una cuenta en Camaut:
+1. Ir a camaut.app o escanear el QR de camarero del local.
+2. Tocar Crear cuenta, ingresar nombre, email y contraseña.
+3. Si el dueño del local ya envió una invitación, al entrar al link de invitación el camarero queda vinculado automáticamente al local.
+4. Si es autónomo, puede vincularse a locales desde la app usando el código o link que le da el dueño.
+Una vez registrado, el camarero accede a su perfil con historial de pedidos, XP acumulado, ranking y su CV digital.`,
+    tags: ['camaut', 'registro', 'cuenta', 'camarero', 'vincular'],
+  },
+  {
+    title: 'Tomar pedidos como camarero',
+    content: `El camarero puede tomar pedidos desde dos lugares:
+1. Panel admin en /admin/tomar: si está logueado como camarero en el panel, ve las mesas disponibles del local, elige una mesa y puede hacer el pedido en nombre del cliente.
+2. App Camaut (/camaut/app): tiene 5 secciones accesibles desde la barra inferior:
+   - Comanda: tomar un pedido nuevo seleccionando mesa y productos de la carta.
+   - Pedidos: ver todos los pedidos activos y su estado (pendiente, en preparación, listo, entregado).
+   - Turno: resumen del turno actual — pedidos tomados, XP ganado en el turno.
+   - Carrera: historial acumulado de XP, rango actual, logros desbloqueados.
+   - Ranking: posición del camarero comparado con otros camareros de la zona.
+El camarero también recibe notificaciones push cuando un pedido cambia de estado.`,
+    tags: ['camaut', 'camarero', 'pedidos', 'comanda', 'tomar pedidos'],
+  },
+  {
+    title: 'XP y rangos del camarero en Camaut',
+    content: `Los camareros acumulan XP (experiencia) por cada pedido que toman. El XP se suma al perfil del camarero y determina su rango.
+Rangos disponibles (de menor a mayor): Novato, Bronce, Plata, Oro, Diamante.
+Cada rango desbloquea beneficios dentro de la plataforma y mejora el posicionamiento en el ranking público de camareros.
+El historial de XP y pedidos queda guardado en el perfil aunque el camarero cambie de local, lo que construye su reputación a lo largo del tiempo.
+El ranking compara al camarero con otros de su zona, mostrando posición, propinas promedio y velocidad de atención.`,
+    tags: ['camaut', 'xp', 'rangos', 'ranking', 'carrera', 'reputación'],
+  },
+  {
+    title: 'CV digital del camarero en Camaut',
+    content: `Cada camarero en Camaut tiene un CV digital público accesible en /c/:alias (por ejemplo capy.ar/c/nombre).
+El CV muestra: nombre, foto, rango actual, XP total, cantidad de pedidos tomados, locales donde trabajó y calificaciones de clientes.
+Es útil para que el camarero muestre su experiencia verificada en entrevistas de trabajo o al ofrecer sus servicios a nuevos locales.
+El alias se configura desde el perfil en la app de Camaut. También hay una versión extendida tipo CV en /cv/:alias con más detalle profesional.`,
+    tags: ['camaut', 'cv', 'perfil', 'reputación', 'alias'],
+  },
+  {
+    title: 'Programa de rangos para clientes',
+    content: `Capy tiene un sistema de fidelización de clientes por rangos. Los clientes acumulan puntos por cada pedido y suben de nivel.
+Se configura en Mi Local → Programa de rangos. Desde ahí se pueden definir:
+- Los nombres de los rangos (ej: Bronce, Plata, Oro) y los iconos que los representan.
+- Los puntos necesarios para alcanzar cada rango.
+- Los premios o beneficios de cada nivel (texto descriptivo que ve el cliente).
+El programa se puede activar o desactivar. Cuando está activo, el cliente ve su rango y puntos en su perfil dentro de la app.
+Es una herramienta de retención: motiva a los clientes a volver para subir de nivel y acceder a beneficios.`,
+    tags: ['rangos', 'fidelización', 'clientes', 'puntos', 'programa'],
+  },
+  {
+    title: 'Encuestas y feedback de clientes',
+    content: `Los clientes pueden calificar su experiencia después de cada pedido. Las calificaciones se ven en Mi Local → Encuestas.
+La pantalla de encuestas muestra: puntaje promedio general, cantidad de respuestas, y el detalle de cada calificación con comentarios opcionales del cliente.
+Es útil para detectar problemas de atención, calidad de platos o tiempos de espera antes de que se conviertan en malas reseñas en Google o Instagram.
+Se pueden filtrar por fecha para ver tendencias en el tiempo.`,
+    tags: ['encuestas', 'feedback', 'calificaciones', 'clientes', 'reseñas'],
+  },
+  {
+    title: 'KPIs: métricas de facturación y rendimiento',
+    content: `La sección KPIs en Mi Local → KPIs (solo accesible para admin) muestra métricas clave del negocio.
+Períodos disponibles: hoy, últimos 7 días, últimos 30 días, todo el tiempo.
+Métricas disponibles:
+- Facturación total del período.
+- Cantidad de pedidos y ticket promedio.
+- Productos más vendidos (ranking por cantidad vendida).
+- Métodos de pago más usados (efectivo vs MercadoPago vs otros).
+- Calificaciones promedio de clientes en el período.
+Es el panel ideal para revisar al cierre del día o la semana y tomar decisiones sobre la carta, precios y atención.`,
+    tags: ['kpis', 'métricas', 'facturación', 'análisis', 'rendimiento'],
+  },
+  {
+    title: 'Reporte de consumo de materia prima',
+    content: `El reporte de consumo está en Mi Local → Consumo (solo para admin). Calcula cuánta materia prima se usó en un día dado, en base a los pedidos pagados y los ingredientes configurados por producto.
+Para que funcione, primero hay que cargar los ingredientes de cada producto: ir a Mi Local → Carta, expandir el producto y usar el panel de ingredientes para agregar cada materia prima con cantidad y unidad (gramos, litros, unidades, etc.).
+El reporte muestra gráficos de barras agrupados por unidad, tabla completa de ingredientes consumidos, desglose por producto y un botón de resumen IA opcional que genera un análisis narrativo del día.
+Es útil para controlar stock, detectar desperdicios y planificar compras del día siguiente.`,
+    tags: ['consumo', 'materia prima', 'ingredientes', 'stock', 'reporte'],
+  },
+  {
+    title: 'Tips para organizar la carta en Capy',
+    content: `Algunos consejos para armar una carta efectiva en Capy:
+- Usar categorías claras y cortas: Entradas, Principales, Postres, Bebidas. Evitar subcategorías innecesarias.
+- Los productos con foto convierten más. Usar el botón IA en cada producto para buscar una imagen automáticamente con Unsplash.
+- Las descripciones cortas pero específicas ayudan al cliente a decidir más rápido.
+- Desactivar productos agotados en lugar de borrarlos: así se reactivan fácilmente cuando vuelven a estar disponibles.
+- Usar la importación con IA para cargar una carta completa de una sola vez: pegar el texto del menú y Capy crea todos los productos y categorías automáticamente.`,
+    tags: ['carta', 'tips', 'productos', 'fotos', 'organización'],
+  },
+  {
+    title: 'Historial de pedidos y cierre de turno',
+    content: `En Mi Local → Historial se puede ver el listado completo de pedidos del local con filtros por fecha, estado y método de pago.
+Cada pedido muestra: mesa o ubicación, productos pedidos, total, estado y método de pago.
+Para el cierre de turno, el camarero puede ver el resumen de su turno en /admin/mi-turno: pedidos tomados, total facturado en su turno y XP ganado.
+Los pedidos cancelados y los no pagados quedan registrados en el historial con su estado correspondiente, lo que permite detectar pérdidas o problemas de cobro.`,
+    tags: ['historial', 'pedidos', 'turno', 'cierre', 'facturación'],
+  },
+]
+
 function DocsTab() {
   const [docs, setDocs] = useState([])
   const [loading, setLoading] = useState(true)
@@ -302,6 +487,7 @@ function DocsTab() {
   const [content, setContent] = useState('')
   const [tags, setTags] = useState('')
   const [saving, setSaving] = useState(false)
+  const [seeding, setSeeding] = useState(false)
 
   async function load() {
     const { data } = await supabaseStaff
@@ -313,6 +499,18 @@ function DocsTab() {
   }
 
   useEffect(() => { load() }, [])
+
+  async function seedDocs() {
+    setSeeding(true)
+    const { data: existing } = await supabaseStaff.from('capy_docs').select('title')
+    const existingTitles = new Set((existing || []).map(d => d.title))
+    const toInsert = SEED_DOCS.filter(d => !existingTitles.has(d.title))
+    if (toInsert.length > 0) {
+      await supabaseStaff.from('capy_docs').insert(toInsert)
+    }
+    setSeeding(false)
+    load()
+  }
 
   function startNew() {
     setEditing('new')
@@ -399,9 +597,20 @@ function DocsTab() {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-smoke-400 text-xs">{docs.length} documentos · usados por Capy Chat para responder</p>
-        <button onClick={startNew} className="bg-ember-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">
-          + Nuevo
-        </button>
+        <div className="flex items-center gap-2">
+          {docs.length < SEED_DOCS.length && (
+            <button
+              onClick={seedDocs}
+              disabled={seeding}
+              className="text-xs text-smoke-400 border border-carbon-600 px-3 py-1.5 rounded-lg disabled:opacity-50 hover:border-smoke-500 transition-colors"
+            >
+              {seeding ? 'Cargando...' : `↓ Cargar docs base (${SEED_DOCS.length - docs.length})`}
+            </button>
+          )}
+          <button onClick={startNew} className="bg-ember-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">
+            + Nuevo
+          </button>
+        </div>
       </div>
       {loading ? (
         <p className="text-smoke-500 text-sm">Cargando...</p>
