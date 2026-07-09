@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import QRCode from 'qrcode'
 import { useNavigate } from 'react-router-dom'
 import { supabaseCamaut, supabaseStaff } from '../../lib/supabase'
 import { PinIcon, BoltIcon, CalendarIcon } from '../../components/Icons'
@@ -1280,7 +1281,7 @@ function VincularTab() {
     if (!session) { setLoading(false); return }
     const { data } = await supabaseStaff
       .from('venue_staff')
-      .select('id, status, venue:venues(id, name), joined_at')
+      .select('id, status, venue:venues(id, name, slug), joined_at')
       .eq('staff_profile_id', session.user.id)
       .eq('status', 'active')
     setLinkedVenues(data || [])
