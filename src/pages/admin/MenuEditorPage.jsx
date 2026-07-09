@@ -598,13 +598,14 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
             onClick={searchPhoto}
             disabled={photoSearching}
             title="Buscar foto con IA"
-            className="text-smoke-500 hover:text-ember-500 disabled:opacity-40 transition-colors"
+            className="text-[10px] font-semibold text-smoke-500 hover:text-ember-500 disabled:opacity-40 transition-colors flex items-center gap-0.5"
           >
             {photoSearching ? (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
             ) : (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
             )}
+            IA
           </button>
           <button
             onClick={() => { setShowIngredients(v => !v); setEditing(false) }}
