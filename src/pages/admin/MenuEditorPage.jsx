@@ -704,6 +704,20 @@ async function searchUnsplash(query) {
   }
 }
 
+const RICH_IMPORT_LIMIT = 3
+
+function getRichImportCount(venueId) {
+  const today = new Date().toISOString().slice(0, 10)
+  const raw = localStorage.getItem(`capy_rich_import_${venueId}_${today}`)
+  return raw ? parseInt(raw, 10) : 0
+}
+
+function incrementRichImportCount(venueId) {
+  const today = new Date().toISOString().slice(0, 10)
+  const key = `capy_rich_import_${venueId}_${today}`
+  localStorage.setItem(key, String(getRichImportCount(venueId) + 1))
+}
+
 function ImportarConIA({ venueId, onImported }) {
   const [step, setStep] = useState('idle') // idle | pick_mode | analyzing | enriching | review | saving
   const [mode, setMode] = useState('basic') // 'basic' | 'rich'
@@ -713,6 +727,13 @@ function ImportarConIA({ venueId, onImported }) {
   const fileRef = useRef(null)
 
   function pickMode(selectedMode) {
+    if (selectedMode === 'rich') {
+      const count = getRichImportCount(venueId)
+      if (count >= RICH_IMPORT_LIMIT) {
+        setError(`Límite diario alcanzado: podés hacer hasta ${RICH_IMPORT_LIMIT} importaciones con fotos por día. Mañana se renueva.`)
+        return
+      }
+    }
     setMode(selectedMode)
     setStep('analyzing')
     setTimeout(() => fileRef.current?.click(), 50)
@@ -819,6 +840,7 @@ function ImportarConIA({ venueId, onImported }) {
         is_available: true
       }))
     )
+    if (mode === 'rich') incrementRichImportCount(venueId)
     onImported()
     setStep('idle')
     setDetected([])
