@@ -203,7 +203,7 @@ function CategoryNameEditor({ cat, onSave }) {
 
 const UNITS = ['g', 'kg', 'ml', 'l', 'unidad', 'taza', 'cdita', 'cda', 'porción']
 
-function IngredientsPanel({ productId, productName, productDescription, currentImageUrl, onPhotoSaved, venueId }) {
+function IngredientsPanel({ productId, productName, productDescription, currentImageUrl, onPhotoSaved, venueId, onClose }) {
   const [ingredients, setIngredients] = useState(null) // null = loading
   const [saving, setSaving] = useState(false)
   const [suggesting, setSuggesting] = useState(false)
@@ -289,6 +289,7 @@ function IngredientsPanel({ productId, productName, productDescription, currentI
     }
     setIngredients(valid.map(r => ({ ...r, id: null })))
     setSaving(false)
+    onClose?.()
   }
 
   if (ingredients === null) {
@@ -648,6 +649,7 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
           currentImageUrl={product.image_url}
           onPhotoSaved={url => onSave({ ...product, image_url: url })}
           venueId={venueId}
+          onClose={() => setShowIngredients(false)}
         />
       )}
     </div>
