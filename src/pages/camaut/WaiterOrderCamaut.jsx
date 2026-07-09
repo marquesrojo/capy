@@ -31,6 +31,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
   const [step, setStep] = useState('carta') // 'carta' | 'confirmar'
   const [searchQuery, setSearchQuery] = useState('')
   const [showMap, setShowMap] = useState(false)
+  const [menuQrModal, setMenuQrModal] = useState(null) // { slug, name }
   const [contextReady, setContextReady] = useState(() => {
     if (linkedVenues.length === 0) return true
     return !!localStorage.getItem(`capy_ctx_${venueId}`)
@@ -457,6 +458,19 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
   return (
     <div className="flex-1 min-h-0 flex flex-col bg-[#F0F4F8]" style={{ minHeight: '420px' }}>
 
+      {/* Modal QR carta para el cliente */}
+      {menuQrModal && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-6" onClick={() => setMenuQrModal(null)}>
+          <div className="bg-white rounded-3xl p-6 w-full max-w-xs text-center" onClick={e => e.stopPropagation()}>
+            <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-1">Carta digital</p>
+            <p className="font-bold text-[#1A2A3A] text-base mb-4">{menuQrModal.name}</p>
+            <MenuQRCanvas slug={menuQrModal.slug} />
+            <p className="text-[#8896A5] text-xs mt-3 mb-4">El cliente escanea esto para ver la carta</p>
+            <button onClick={() => setMenuQrModal(null)} className="text-[#8896A5] text-sm">Cerrar</button>
+          </div>
+        </div>
+      )}
+
       {/* Indicador de carta activa */}
       {linkedVenues.length > 0 && (
         <div className="flex-shrink-0 px-4 pt-3 pb-3 flex items-center justify-between bg-white border-b border-black/5">
@@ -466,12 +480,31 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
               {activeVenueId === venueId ? 'Mis Cartas' : linkedVenues.find(v => v.id === activeVenueId)?.name?.replace(' — Capy', '')}
             </p>
           </div>
-          <button
-            onClick={() => { setContextReady(false); setCart({}); setSelectedZone(null); setShowMap(false); localStorage.removeItem(`capy_ctx_${venueId}`) }}
-            className="text-[#008080] text-xs font-semibold border border-[#008080]/30 px-3 py-1.5 rounded-xl"
-          >
-            Cambiar
-          </button>
+          <div className="flex items-center gap-2">
+            {activeVenueId !== venueId && (() => {
+              const av = linkedVenues.find(v => v.id === activeVenueId)
+              if (!av) return null
+              return (
+                <button
+                  onClick={() => setMenuQrModal({ slug: av.slug || null, name: av.name.replace(' — Capy', '').replace(' - Capy', '') })}
+                  className="flex items-center gap-1.5 text-[#008080] text-xs font-semibold border border-[#008080]/30 px-3 py-1.5 rounded-xl"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="5" height="5"/><rect x="16" y="3" width="5" height="5"/>
+                    <rect x="3" y="16" width="5" height="5"/>
+                    <path d="M21 16h-3a2 2 0 0 0-2 2v3M21 21v.01M12 7v3a2 2 0 0 1-2 2H7M3 12h.01M12 3h.01M7 17H4a1 1 0 0 1-1-1v-3"/>
+                  </svg>
+                  QR carta
+                </button>
+              )
+            })()}
+            <button
+              onClick={() => { setContextReady(false); setCart({}); setSelectedZone(null); setShowMap(false); localStorage.removeItem(`capy_ctx_${venueId}`) }}
+              className="text-[#008080] text-xs font-semibold border border-[#008080]/30 px-3 py-1.5 rounded-xl"
+            >
+              Cambiar
+            </button>
+          </div>
         </div>
       )}
 
@@ -1112,6 +1145,32 @@ function QRCanvas({ orderId }) {
   return (
     <div className="flex justify-center">
       <div className="bg-white p-3 rounded-2xl border border-black/5 shadow-sm">
+        <canvas ref={canvasRef} />
+      </div>
+    </div>
+  )
+}
+
+function MenuQRCanvas({ slug }) {
+  const canvasRef = useRef(null)
+  const url = slug ? `https://capyapp.co/r/${slug}/carta` : null
+
+  useEffect(() => {
+    if (!canvasRef.current || !url) return
+    QRCode.toCanvas(canvasRef.current, url, {
+      width: 220,
+      margin: 2,
+      color: { dark: '#1A2A3A', light: '#FFFFFF' }
+    })
+  }, [url])
+
+  if (!url) return (
+    <p className="text-[#8896A5] text-xs text-center py-4">Este local no tiene carta digital configurada</p>
+  )
+
+  return (
+    <div className="flex justify-center">
+      <div className="bg-white p-3 rounded-2xl border border-black/5 inline-block">
         <canvas ref={canvasRef} />
       </div>
     </div>
