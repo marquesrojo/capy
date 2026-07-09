@@ -216,7 +216,7 @@ export default function RecommendModal({ venueId, accentColor, onAddToCart, onCl
                 <div
                   key={i}
                   className="rounded-2xl border-2 p-4"
-                  style={{ borderColor: `${accentColor}30`, backgroundColor: `${accentColor}06` }}
+                  style={{ borderColor: `${accentColor}50`, backgroundColor: `${accentColor}0D` }}
                 >
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <p className="font-black text-base text-[#1A2332] leading-tight flex-1">{r.name}</p>
@@ -224,7 +224,7 @@ export default function RecommendModal({ venueId, accentColor, onAddToCart, onCl
                       {formatPrice(r.price)}
                     </p>
                   </div>
-                  <p className="text-[#6B7A8D] text-sm mb-3 leading-snug">{r.reason}</p>
+                  <p className="text-[#3D4E60] text-sm mb-3 leading-snug">{r.reason}</p>
                   <button
                     onClick={() => { onAddToCart(r.name); onClose() }}
                     className="w-full py-2.5 rounded-xl text-sm font-bold text-white active:scale-[0.98] transition-transform"
@@ -238,10 +238,10 @@ export default function RecommendModal({ venueId, accentColor, onAddToCart, onCl
             {restaurantPick && (
               <div className="mt-4">
                 <p className="text-xs font-bold uppercase tracking-wider text-[#6B7A8D] mb-2">Plato del día</p>
-                <div className="rounded-2xl border-2 border-[#E8EEF4] bg-[#F8FAFB] p-4">
+                <div className="rounded-2xl border-2 border-[#D1D9E0] bg-[#F0F4F8] p-4">
                   <div className="flex items-center justify-between gap-2 mb-3">
                     <p className="font-black text-base text-[#1A2332] leading-tight flex-1">{restaurantPick.name}</p>
-                    <p className="font-black text-base flex-shrink-0 text-[#6B7A8D]">{formatPrice(restaurantPick.price)}</p>
+                    <p className="font-black text-base flex-shrink-0 text-[#1A2332]">{formatPrice(restaurantPick.price)}</p>
                   </div>
                   <button
                     onClick={() => { onAddToCart(restaurantPick.name); onClose() }}
