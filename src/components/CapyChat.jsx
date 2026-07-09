@@ -176,14 +176,19 @@ export default function CapyChat({ venueName = '' }) {
               {messages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div
-                    className="max-w-[82%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap"
+                    className="max-w-[82%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed"
                     style={msg.role === 'user'
                       ? { backgroundColor: '#1A2332', color: 'white' }
                       : { backgroundColor: '#F0F4F8', color: '#1A2332' }
                     }
-                  >
-                    {msg.content}
-                  </div>
+                    dangerouslySetInnerHTML={{
+                      __html: msg.content
+                        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                        .replace(/\n/g, '<br/>')
+                    }}
+                  />
                 </div>
               ))}
               {loading && (
