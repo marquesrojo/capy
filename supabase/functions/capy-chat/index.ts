@@ -45,8 +45,29 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
 
+    // Search relevant docs using the last user message as query
+    const lastUserMsg = [...messages].reverse().find((m: { role: string }) => m.role === 'user')
     let systemPrompt = SYSTEM_PROMPT
     if (venue_name) systemPrompt += `\n\nEl usuario trabaja en el local: "${venue_name}".`
+
+    if (lastUserMsg?.content) {
+      const { data: docs } = await supabase
+        .from('capy_docs')
+        .select('title, content')
+        .eq('is_active', true)
+        .textSearch('title, content', lastUserMsg.content, {
+          type: 'websearch',
+          config: 'spanish',
+        })
+        .limit(3)
+
+      if (docs?.length) {
+        const docsContext = docs.map((d: { title: string; content: string }) =>
+          `--- ${d.title} ---\n${d.content}`
+        ).join('\n\n')
+        systemPrompt += `\n\nINFORMACIÓN ESPECÍFICA DE CAPY (usá esto si es relevante para la pregunta):\n${docsContext}`
+      }
+    }
 
     const contents = messages.map((m: { role: string; content: string }) => ({
       role: m.role === 'assistant' ? 'model' : 'user',

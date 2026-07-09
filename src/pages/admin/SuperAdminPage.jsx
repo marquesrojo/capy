@@ -8,6 +8,7 @@ const TABS = [
   { id: 'venues', label: 'Venues' },
   { id: 'camaut', label: 'Camaut' },
   { id: 'soporte', label: 'Soporte' },
+  { id: 'docs', label: 'Docs Capy' },
 ]
 
 export default function SuperAdminPage() {
@@ -47,6 +48,7 @@ export default function SuperAdminPage() {
         {tab === 'venues' && <VenuesTab />}
         {tab === 'camaut' && <CamautTab />}
         {tab === 'soporte' && <SoporteTab />}
+        {tab === 'docs' && <DocsTab />}
       </div>
     </div>
   )
@@ -285,6 +287,154 @@ function SoporteTab() {
           <p className="text-smoke-500 text-xs font-semibold uppercase tracking-wide mt-4">Resueltos · {resolved.length}</p>
           {resolved.map(t => (
             <TicketCard key={t.id} ticket={t} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function DocsTab() {
+  const [docs, setDocs] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [editing, setEditing] = useState(null) // null | 'new' | doc object
+  const [title, setTitle] = useState('')
+  const [content, setContent] = useState('')
+  const [tags, setTags] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  async function load() {
+    const { data } = await supabaseStaff
+      .from('capy_docs')
+      .select('*')
+      .order('created_at', { ascending: false })
+    setDocs(data || [])
+    setLoading(false)
+  }
+
+  useEffect(() => { load() }, [])
+
+  function startNew() {
+    setEditing('new')
+    setTitle('')
+    setContent('')
+    setTags('')
+  }
+
+  function startEdit(doc) {
+    setEditing(doc)
+    setTitle(doc.title)
+    setContent(doc.content)
+    setTags((doc.tags || []).join(', '))
+  }
+
+  async function save() {
+    if (!title.trim() || !content.trim()) return
+    setSaving(true)
+    const payload = {
+      title: title.trim(),
+      content: content.trim(),
+      tags: tags.split(',').map(t => t.trim()).filter(Boolean),
+      updated_at: new Date().toISOString(),
+    }
+    if (editing === 'new') {
+      await supabaseStaff.from('capy_docs').insert(payload)
+    } else {
+      await supabaseStaff.from('capy_docs').update(payload).eq('id', editing.id)
+    }
+    setSaving(false)
+    setEditing(null)
+    load()
+  }
+
+  async function toggleActive(doc) {
+    await supabaseStaff.from('capy_docs').update({ is_active: !doc.is_active }).eq('id', doc.id)
+    setDocs(prev => prev.map(d => d.id === doc.id ? { ...d, is_active: !d.is_active } : d))
+  }
+
+  async function deleteDoc(id) {
+    if (!confirm('¿Borrar este documento?')) return
+    await supabaseStaff.from('capy_docs').delete().eq('id', id)
+    setDocs(prev => prev.filter(d => d.id !== id))
+  }
+
+  if (editing) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-smoke-200 font-semibold text-sm">{editing === 'new' ? 'Nuevo documento' : 'Editar documento'}</h2>
+          <button onClick={() => setEditing(null)} className="text-smoke-500 text-xs underline">Cancelar</button>
+        </div>
+        <input
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          placeholder="Título (ej: Cómo cargar la carta)"
+          className="w-full bg-carbon-900 border border-carbon-700 rounded-xl px-3 py-2.5 text-sm text-smoke-200 focus:outline-none focus:border-ember-500"
+        />
+        <textarea
+          value={content}
+          onChange={e => setContent(e.target.value)}
+          placeholder="Contenido del documento — escribí la información que Capy va a usar para responder..."
+          rows={10}
+          className="w-full bg-carbon-900 border border-carbon-700 rounded-xl px-3 py-2.5 text-sm text-smoke-200 focus:outline-none focus:border-ember-500 resize-none"
+        />
+        <input
+          value={tags}
+          onChange={e => setTags(e.target.value)}
+          placeholder="Tags separados por coma (ej: carta, productos, onboarding)"
+          className="w-full bg-carbon-900 border border-carbon-700 rounded-xl px-3 py-2.5 text-sm text-smoke-200 focus:outline-none focus:border-ember-500"
+        />
+        <button
+          onClick={save}
+          disabled={saving || !title.trim() || !content.trim()}
+          className="w-full bg-ember-500 hover:bg-ember-600 disabled:opacity-50 text-white font-semibold py-3 rounded-xl text-sm"
+        >
+          {saving ? 'Guardando...' : 'Guardar documento'}
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-smoke-400 text-xs">{docs.length} documentos · usados por Capy Chat para responder</p>
+        <button onClick={startNew} className="bg-ember-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">
+          + Nuevo
+        </button>
+      </div>
+      {loading ? (
+        <p className="text-smoke-500 text-sm">Cargando...</p>
+      ) : docs.length === 0 ? (
+        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-6 text-center">
+          <p className="text-smoke-500 text-sm">No hay documentos todavía.</p>
+          <p className="text-smoke-600 text-xs mt-1">Creá el primero para que Capy tenga contexto específico.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {docs.map(doc => (
+            <div key={doc.id} className={`bg-carbon-900 border rounded-2xl p-4 ${doc.is_active ? 'border-carbon-700' : 'border-carbon-800 opacity-50'}`}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-smoke-200 font-semibold text-sm">{doc.title}</p>
+                  <p className="text-smoke-500 text-xs mt-0.5 line-clamp-2">{doc.content}</p>
+                  {doc.tags?.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {doc.tags.map(tag => (
+                        <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-carbon-800 text-smoke-400">{tag}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button onClick={() => toggleActive(doc)} className={`text-[10px] px-2 py-0.5 rounded-full border ${doc.is_active ? 'border-emerald-500/40 text-emerald-500' : 'border-carbon-600 text-smoke-500'}`}>
+                    {doc.is_active ? 'Activo' : 'Inactivo'}
+                  </button>
+                  <button onClick={() => startEdit(doc)} className="text-smoke-500 text-xs underline">Editar</button>
+                  <button onClick={() => deleteDoc(doc.id)} className="text-red-500/60 text-xs underline">Borrar</button>
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       )}
