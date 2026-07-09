@@ -220,7 +220,7 @@ export default function RecommendModal({ venueId, accentColor, onAddToCart, onCl
             </div>
             {restaurantPick && (
               <div className="mt-4">
-                <p className="text-xs font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Elección del restaurante</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Plato del día</p>
                 <div className="rounded-2xl border-2 border-[#E8EEF4] bg-[#F8FAFB] p-4">
                   <div className="flex items-center justify-between gap-2 mb-3">
                     <p className="font-black text-base text-[#1A2332] leading-tight flex-1">{restaurantPick.name}</p>
