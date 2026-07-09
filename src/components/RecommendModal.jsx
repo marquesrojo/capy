@@ -44,7 +44,7 @@ export default function RecommendModal({ venueId, accentColor, onAddToCart, onCl
         }
       )
       const data = await res.json()
-      if (data.error) throw new Error(data.error)
+      if (!res.ok || data.error) throw new Error(data.error || data.message || `HTTP ${res.status}`)
       setResults(data.recommendations || [])
       setRestaurantPick(data.restaurant_pick || null)
       setStep('result')
