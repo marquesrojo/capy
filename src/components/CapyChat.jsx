@@ -138,10 +138,11 @@ export default function CapyChat({ venueName = '' }) {
         <button
           onClick={() => setOpen(true)}
           aria-label="Abrir asistente Capy"
-          className="fixed right-4 z-50 flex items-center justify-center select-none active:scale-95 transition-transform drop-shadow-xl"
-          style={{ bottom: isWaiter ? '5.5rem' : '1.5rem' }}
+          className="fixed right-4 z-50 flex items-center gap-2 pl-1 pr-4 py-1 rounded-full select-none active:scale-95 transition-transform drop-shadow-xl"
+          style={{ bottom: isWaiter ? '5.5rem' : '1.5rem', backgroundColor: '#1A2332' }}
         >
-          <CapyIcon size={56} />
+          <CapyIcon size={44} />
+          <span className="text-white font-black text-sm tracking-wide">CAPY Chat</span>
         </button>
       )}
 
