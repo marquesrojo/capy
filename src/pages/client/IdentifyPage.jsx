@@ -47,6 +47,7 @@ export default function IdentifyPage() {
   const [instagramHandle, setInstagramHandle] = useState('')
   const [retiroExternoEnabled, setRetiroExternoEnabled] = useState(false)
   const [deliveryEnabled, setDeliveryEnabled] = useState(false)
+  const [showExternalOptions, setShowExternalOptions] = useState(false)
   const [orderNumber, setOrderNumber] = useState('')
   const [finding, setFinding] = useState(false)
   const [orderError, setOrderError] = useState('')
@@ -434,40 +435,67 @@ export default function IdentifyPage() {
         </div>
       )}
 
-      {/* ── Pedido para llevar (retiro externo / delivery) ── */}
+      {/* ── Pedido desde afuera ── */}
       {(retiroExternoEnabled || deliveryEnabled) && (
-        <div className="mt-4 px-4">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2.5 px-1">Pedido para llevar</p>
-          <div className={`grid gap-3 ${retiroExternoEnabled && deliveryEnabled ? 'grid-cols-2' : 'grid-cols-1'}`}>
-            {retiroExternoEnabled && (
-              <button
-                onClick={() => { setLocation({ type: 'retiro_externo', label: 'Retiro en local' }); navigate(`${base}/carta`) }}
-                className="bg-white border border-black/[0.06] rounded-2xl p-4 text-left shadow-sm active:scale-[0.97] transition-transform"
-              >
-                <div className="w-10 h-10 rounded-xl mb-2.5 flex items-center justify-center" style={{ backgroundColor: `${selfColor}15` }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={selfColor} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
-                  </svg>
-                </div>
-                <p className="text-[#1A2332] font-bold text-sm leading-tight">Retiro en local</p>
-                <p className="text-[#9DAAB8] text-xs mt-0.5">Pedí online y pasá a buscar</p>
-              </button>
-            )}
-            {deliveryEnabled && (
-              <button
-                onClick={() => { setLocation({ type: 'delivery', label: 'Delivery' }); navigate(`${base}/carta`) }}
-                className="bg-white border border-black/[0.06] rounded-2xl p-4 text-left shadow-sm active:scale-[0.97] transition-transform"
-              >
-                <div className="w-10 h-10 rounded-xl mb-2.5 flex items-center justify-center" style={{ backgroundColor: `${selfColor}15` }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={selfColor} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
-                  </svg>
-                </div>
-                <p className="text-[#1A2332] font-bold text-sm leading-tight">Delivery</p>
-                <p className="text-[#9DAAB8] text-xs mt-0.5">Lo llevamos a tu domicilio</p>
-              </button>
-            )}
-          </div>
+        <div className="mt-3 px-4">
+          {!showExternalOptions ? (
+            <button
+              onClick={() => setShowExternalOptions(true)}
+              className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl bg-white border border-black/[0.06] shadow-sm active:scale-[0.98] transition-transform text-left"
+            >
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${selfColor}15` }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={selfColor} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="font-black text-sm leading-tight text-[#1A2332]">Pido desde afuera de {venue?.name || 'acá'}</p>
+                <p className="text-[#9DAAB8] text-xs mt-0.5">Retiro o delivery</p>
+              </div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9DAAB8" strokeWidth="2.5">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </button>
+          ) : (
+            <div className="bg-white border border-black/[0.06] rounded-2xl shadow-sm overflow-hidden">
+              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                <p className="text-[#1A2332] font-black text-sm">¿Cómo lo querés?</p>
+                <button onClick={() => setShowExternalOptions(false)} className="text-[#9DAAB8] text-xs">✕</button>
+              </div>
+              <div className={`grid gap-3 px-4 pb-4 ${retiroExternoEnabled && deliveryEnabled ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                {retiroExternoEnabled && (
+                  <button
+                    onClick={() => { setLocation({ type: 'retiro_externo', label: 'Retiro en local' }); navigate(`${base}/carta`) }}
+                    className="border-2 rounded-2xl p-4 text-left active:scale-[0.97] transition-transform"
+                    style={{ borderColor: `${selfColor}40`, backgroundColor: `${selfColor}08` }}
+                  >
+                    <div className="w-9 h-9 rounded-xl mb-2.5 flex items-center justify-center" style={{ backgroundColor: `${selfColor}15` }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={selfColor} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
+                      </svg>
+                    </div>
+                    <p className="font-bold text-sm leading-tight" style={{ color: selfColor }}>Retiro en local</p>
+                    <p className="text-[#9DAAB8] text-xs mt-0.5">Pasás a buscar</p>
+                  </button>
+                )}
+                {deliveryEnabled && (
+                  <button
+                    onClick={() => { setLocation({ type: 'delivery', label: 'Delivery' }); navigate(`${base}/carta`) }}
+                    className="border-2 rounded-2xl p-4 text-left active:scale-[0.97] transition-transform"
+                    style={{ borderColor: `${selfColor}40`, backgroundColor: `${selfColor}08` }}
+                  >
+                    <div className="w-9 h-9 rounded-xl mb-2.5 flex items-center justify-center" style={{ backgroundColor: `${selfColor}15` }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={selfColor} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+                      </svg>
+                    </div>
+                    <p className="font-bold text-sm leading-tight" style={{ color: selfColor }}>Delivery</p>
+                    <p className="text-[#9DAAB8] text-xs mt-0.5">Te lo llevamos</p>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
