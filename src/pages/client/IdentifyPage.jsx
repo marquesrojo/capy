@@ -112,6 +112,7 @@ export default function IdentifyPage() {
           setZones(zonesData)
           if (zonesData.some(z => z.type === 'mesa' && z.pos_x != null)) {
             setZonePickerView('mapa')
+            setShowZonePicker(true)
           }
         })
     }
