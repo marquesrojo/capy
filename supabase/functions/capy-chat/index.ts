@@ -34,8 +34,8 @@ Deno.serve(async (req) => {
       })
     }
 
-    const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY')
-    if (!anthropicKey) throw new Error('ANTHROPIC_API_KEY not set')
+    const geminiKey = Deno.env.get('GEMINI_API_KEY')
+    if (!geminiKey) throw new Error('GEMINI_API_KEY not set')
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -45,28 +45,28 @@ Deno.serve(async (req) => {
     let systemPrompt = SYSTEM_PROMPT
     if (venue_name) systemPrompt += `\n\nEl usuario trabaja en el local: "${venue_name}".`
 
-    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': anthropicKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
-        system: systemPrompt,
-        messages: messages.map((m: { role: string; content: string }) => ({
-          role: m.role,
-          content: m.content,
-        })),
-      }),
-    })
+    const contents = messages.map((m: { role: string; content: string }) => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }],
+    }))
 
-    const claudeData = await claudeRes.json()
-    if (!claudeRes.ok) throw new Error(claudeData.error?.message || 'Claude error')
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: systemPrompt }] },
+          contents,
+          generationConfig: { maxOutputTokens: 1024 },
+        }),
+      }
+    )
 
-    const reply: string = claudeData.content?.[0]?.text || ''
+    const geminiData = await geminiRes.json()
+    if (geminiData.error) throw new Error(geminiData.error.message || 'Gemini error')
+
+    const reply: string = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || ''
 
     const fullMessages = [...messages, { role: 'assistant', content: reply }]
 
