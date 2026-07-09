@@ -245,7 +245,7 @@ export default function RecommendModal({ venueId, accentColor, onAddToCart, onCl
                   </div>
                   <button
                     onClick={() => { onAddToCart(restaurantPick.name); onClose() }}
-                    className="w-full py-2.5 rounded-xl text-sm font-bold bg-[#F0F4F8] text-[#1A2332] active:scale-[0.98] transition-transform"
+                    className="w-full py-2.5 rounded-xl text-sm font-bold bg-[#1A2332] text-white active:scale-[0.98] transition-transform"
                   >
                     Agregar al pedido
                   </button>
