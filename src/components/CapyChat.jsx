@@ -204,7 +204,8 @@ export default function CapyChat({ venueName = '' }) {
                 )}
                 <button
                   onClick={handleClose}
-                  className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white/60 text-sm leading-none"
+                  aria-label="Cerrar chat"
+                  className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white/60 text-sm leading-none"
                 >
                   ✕
                 </button>

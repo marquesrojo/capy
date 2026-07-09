@@ -430,7 +430,8 @@ export default function AccountPage() {
                   </div>
                   <button
                     onClick={() => handleQuickAdd(item)}
-                    className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center font-bold text-base transition-all"
+                    aria-label={`Agregar ${item.name || item.product_name} al carrito`}
+                    className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center font-bold text-base transition-all"
                     style={{
                       backgroundColor: addedId === item.id ? '#22c55e' : '#e15c23',
                       color: '#fff',
