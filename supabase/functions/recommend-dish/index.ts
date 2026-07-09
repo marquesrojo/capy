@@ -117,10 +117,11 @@ FORMATO DE RESPUESTA:
     console.log('[recommend-dish] raw (first 500):', raw.substring(0, 500))
 
     const jsonMatch = raw.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) throw new Error('Gemini no devolvió JSON válido')
-
-    const parsed = JSON.parse(jsonMatch[0])
-    console.log('[recommend-dish] parsed recs:', JSON.stringify(parsed.recommendations?.length ?? 'undefined'))
+    let parsed: { recommendations?: Array<{ name: string; price: number; reason: string }>; restaurant_pick?: { name: string; price: number } } = {}
+    if (jsonMatch) {
+      try { parsed = JSON.parse(jsonMatch[0]) } catch { /* use fallback */ }
+    }
+    console.log('[recommend-dish] parsed recs:', parsed.recommendations?.length ?? 'none')
 
     // Fallback: if Gemini returns no recommendations, pick the top featured product
     if (!parsed.recommendations?.length) {
