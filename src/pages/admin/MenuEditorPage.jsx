@@ -544,15 +544,24 @@ async function searchUnsplash(query) {
 }
 
 function ImportarConIA({ venueId, onImported }) {
-  const [step, setStep] = useState('idle') // idle | analyzing | enriching | review | saving
+  const [step, setStep] = useState('idle') // idle | pick_mode | analyzing | enriching | review | saving
+  const [mode, setMode] = useState('basic') // 'basic' | 'rich'
   const [preview, setPreview] = useState(null)
   const [detected, setDetected] = useState([])
   const [error, setError] = useState('')
   const fileRef = useRef(null)
 
+  function pickMode(selectedMode) {
+    setMode(selectedMode)
+    setStep('analyzing')
+    setTimeout(() => fileRef.current?.click(), 50)
+  }
+
   async function handleFile(e) {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file) { setStep('idle'); return }
+    // reset so same file can be re-selected
+    e.target.value = ''
     setError('')
     setStep('analyzing')
     const reader = new FileReader()
@@ -579,30 +588,35 @@ function ImportarConIA({ venueId, onImported }) {
         const transcriptText = transcriptData.candidates?.[0]?.content?.parts?.[0]?.text || ''
         if (!transcriptText) throw new Error('No se pudo leer texto de la imagen')
 
+        const isRich = mode === 'rich'
+        const parsePrompt = isRich
+          ? `Este es el texto de un menú de restaurante:\n\n${transcriptText}\n\nConvertí esto a un JSON array de productos. Para cada producto incluí: name (nombre), price (precio como número sin símbolo), category (categoría en español), description (descripción del plato si aparece en el menú, sino cadena vacía ""). Respondé ÚNICAMENTE con el JSON array, sin texto adicional, sin backticks. Ejemplo: [{"name":"Milanesa","price":2500,"category":"Platos principales","description":"Milanesa de ternera con papas fritas"}]`
+          : `Este es el texto de un menú de restaurante:\n\n${transcriptText}\n\nConvertí esto a un JSON array de productos. Para cada producto incluí: name (nombre), price (precio como número sin símbolo), category (categoría en español). Respondé ÚNICAMENTE con el JSON array, sin texto adicional, sin backticks. Ejemplo: [{"name":"Milanesa","price":2500,"category":"Platos principales"}]`
+
         const parseRes = await fetch(BASE_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{
-              text: `Este es el texto de un menú de restaurante:\n\n${transcriptText}\n\nConvertí esto a un JSON array de productos. Para cada producto incluí: name (nombre), price (precio como número sin símbolo), category (categoría en español), description (descripción del plato si aparece en el menú, sino cadena vacía ""). Respondé ÚNICAMENTE con el JSON array, sin texto adicional, sin backticks. Ejemplo: [{"name":"Milanesa","price":2500,"category":"Platos principales","description":"Milanesa de ternera con papas fritas"}]`
-            }]}]
-          })
+          body: JSON.stringify({ contents: [{ parts: [{ text: parsePrompt }] }] })
         })
         const parseData = await parseRes.json()
         const parseText = parseData.candidates?.[0]?.content?.parts?.[0]?.text || '[]'
         const jsonMatch = parseText.match(/\[[\s\S]*\]/)
         const items = JSON.parse(jsonMatch ? jsonMatch[0] : '[]')
 
-        setStep('enriching')
-        const enriched = await Promise.all(
-          items.map(async item => ({
-            ...item,
-            description: item.description || '',
-            image_url: await searchUnsplash(item.name),
-            selected: true,
-          }))
-        )
-        setDetected(enriched)
+        if (isRich) {
+          setStep('enriching')
+          const enriched = await Promise.all(
+            items.map(async item => ({
+              ...item,
+              description: item.description || '',
+              image_url: await searchUnsplash(item.name),
+              selected: true,
+            }))
+          )
+          setDetected(enriched)
+        } else {
+          setDetected(items.map(i => ({ ...i, selected: true })))
+        }
         setStep('review')
       } catch (err) {
         const msg = err.message || ''
@@ -736,54 +750,71 @@ function ImportarConIA({ venueId, onImported }) {
     )
   }
 
+  const busy = step === 'analyzing' || step === 'enriching'
+
   return (
-    <div className="mb-4">
+    <div className="mb-4 space-y-2">
       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
-      <button
-        onClick={() => fileRef.current?.click()}
-        disabled={step === 'analyzing' || step === 'enriching'}
-        className="w-full bg-carbon-900 border border-carbon-700 hover:border-ember-500/40 rounded-2xl p-4 flex items-center gap-3"
-      >
-        {step === 'analyzing' ? (
-          <>
-            <div className="w-9 h-9 rounded-xl bg-ember-500/10 flex items-center justify-center flex-shrink-0">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
-                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-              </svg>
-            </div>
-            <div className="text-left">
-              <p className="font-semibold text-smoke-300 text-sm">Analizando imagen...</p>
-              <p className="text-smoke-500 text-xs">Gemini está leyendo tu menú</p>
-            </div>
-          </>
-        ) : step === 'enriching' ? (
-          <>
-            <div className="w-9 h-9 rounded-xl bg-ember-500/10 flex items-center justify-center flex-shrink-0">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
-                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-              </svg>
-            </div>
-            <div className="text-left">
-              <p className="font-semibold text-smoke-300 text-sm">Buscando fotos...</p>
-              <p className="text-smoke-500 text-xs">Obteniendo imágenes para cada producto</p>
-            </div>
-          </>
-        ) : (
-          <>
+
+      {busy ? (
+        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-ember-500/10 flex items-center justify-center flex-shrink-0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+            </svg>
+          </div>
+          <div>
+            <p className="font-semibold text-smoke-300 text-sm">
+              {step === 'enriching' ? 'Buscando fotos...' : 'Analizando imagen...'}
+            </p>
+            <p className="text-smoke-500 text-xs">
+              {step === 'enriching' ? 'Obteniendo imágenes para cada producto' : 'Gemini está leyendo tu menú'}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <>
+          <button
+            onClick={() => pickMode('basic')}
+            className="w-full bg-carbon-900 border border-carbon-700 hover:border-ember-500/40 rounded-2xl p-4 flex items-center gap-3 text-left"
+          >
             <div className="w-9 h-9 rounded-xl bg-ember-500/10 flex items-center justify-center flex-shrink-0">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 0 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                <circle cx="12" cy="13" r="4"/>
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
               </svg>
             </div>
-            <div className="text-left">
-              <p className="font-semibold text-smoke-300 text-sm">Importar carta con IA</p>
-              <p className="text-smoke-500 text-xs">Sacá una foto de tu menú y Gemini lo carga automático</p>
+            <div>
+              <p className="font-semibold text-smoke-300 text-sm">Importar productos</p>
+              <p className="text-smoke-500 text-xs">Nombre, precio y categoría</p>
             </div>
-          </>
-        )}
-      </button>
-      {error && <p className="text-red-500 text-xs mt-2 text-center">{error}</p>}
+          </button>
+
+          <button
+            onClick={() => pickMode('rich')}
+            className="w-full bg-carbon-900 border border-ember-500/30 hover:border-ember-500/60 rounded-2xl p-4 flex items-center gap-3 text-left"
+          >
+            <div className="w-9 h-9 rounded-xl bg-ember-500/20 flex items-center justify-center flex-shrink-0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="font-semibold text-smoke-300 text-sm">Importar con fotos y descripciones</p>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-ember-500/20 text-ember-400 leading-none flex-shrink-0">PRO</span>
+              </div>
+              <p className="text-smoke-500 text-xs">Suma descripción e imagen desde Unsplash</p>
+            </div>
+          </button>
+        </>
+      )}
+
+      {error && <p className="text-red-500 text-xs text-center">{error}</p>}
     </div>
   )
 }
