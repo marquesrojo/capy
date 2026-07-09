@@ -133,6 +133,15 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
     iaRef.current = null
   }
 
+  function removeFromMap(id, isPending) {
+    if (isPending) {
+      setPendingCopies(prev => prev.filter(p => p.tempId !== id))
+    } else {
+      setPositions(prev => ({ ...prev, [id]: { x: null, y: null } }))
+    }
+    setSelected(null)
+  }
+
   function rotate(id) {
     setSizes(prev => ({
       ...prev,
@@ -301,7 +310,7 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
                           : 'bg-carbon-800 border-carbon-600 hover:border-carbon-400'
                     }`}
                 >
-                  <span className="text-[8px] font-semibold text-smoke-200 text-center leading-tight px-1 break-words w-full">
+                  <span className="text-[8px] font-semibold text-smoke-300 text-center leading-tight px-1 break-words w-full">
                     {zone.name}
                   </span>
                 </div>
@@ -318,15 +327,23 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
                     </button>
                     {/* Copy */}
                     <button
-                      className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-carbon-600 text-smoke-200 text-[9px] flex items-center justify-center shadow z-30"
+                      className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-[#3a3f4a] text-white text-[9px] flex items-center justify-center shadow z-30"
                       onMouseDown={e => { e.stopPropagation(); copyZone(zone) }}
                       onTouchStart={e => { e.stopPropagation(); copyZone(zone) }}
                     >
                       ⧉
                     </button>
+                    {/* Remove from map */}
+                    <button
+                      className="absolute -bottom-2 -left-2 w-5 h-5 rounded-full bg-red-600 text-white text-[10px] flex items-center justify-center shadow z-30"
+                      onMouseDown={e => { e.stopPropagation(); removeFromMap(id, zone.isPending) }}
+                      onTouchStart={e => { e.stopPropagation(); removeFromMap(id, zone.isPending) }}
+                    >
+                      ✕
+                    </button>
                     {/* Resize handle */}
                     <div
-                      className="absolute -bottom-1.5 -right-1.5 w-4 h-4 rounded-full bg-ember-500 border-2 border-carbon-900 cursor-se-resize z-30"
+                      className="absolute -bottom-1.5 -right-1.5 w-4 h-4 rounded-full bg-ember-500 border-2 border-[#0D1117] cursor-se-resize z-30"
                       onMouseDown={e => startResize(e, id)}
                       onTouchStart={e => startResize(e, id)}
                     />
@@ -340,19 +357,20 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
 
       {/* Name editor for pending copies */}
       {selectedPending && (
-        <div className="mt-2 flex items-center gap-2 bg-carbon-800 border border-ember-500/40 rounded-xl px-3 py-2.5">
+        <div className="mt-2 flex items-center gap-2 border border-ember-500/40 rounded-xl px-3 py-2.5" style={{ background: '#fff' }}>
           <span className="text-smoke-400 text-xs whitespace-nowrap">Nombre:</span>
           <input
             autoFocus
-            className="flex-1 bg-transparent text-white text-sm outline-none min-w-0"
+            className="flex-1 bg-transparent text-sm outline-none min-w-0"
+            style={{ color: '#2A2824' }}
             value={selectedPending.name}
             onChange={e => setPendingCopies(prev =>
               prev.map(p => p.tempId === selected ? { ...p, name: e.target.value } : p)
             )}
             onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
-            placeholder="Nombre de la nueva mesa"
+            placeholder="Nombre de la nueva ubicación"
           />
-          <span className="text-smoke-600 text-[10px] whitespace-nowrap">Se guarda al guardar el mapa</span>
+          <span className="text-smoke-400 text-[10px] whitespace-nowrap">Se guarda con el mapa</span>
         </div>
       )}
 
