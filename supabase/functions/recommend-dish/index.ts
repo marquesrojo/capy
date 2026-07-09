@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
 
     const [{ data: categories }, { data: products }] = await Promise.all([
       supabase.from('categories').select('id, name').eq('venue_id', venue_id).eq('is_active', true).order('sort_order'),
-      supabase.from('products').select('id, name, price, description, category_id, dietary_tags, is_featured').eq('venue_id', venue_id).eq('is_available', true).order('sort_order'),
+      supabase.from('products').select('id, name, price, description, category_id, dietary_tags, is_featured, is_daily_special').eq('venue_id', venue_id).eq('is_available', true).order('sort_order'),
     ])
 
     if (!products?.length) {
@@ -111,12 +111,12 @@ FORMATO DE RESPUESTA:
     const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     const parsed = JSON.parse(cleaned)
 
-    // Always include the restaurant's featured pick, unless Gemini already recommended it
+    // Always include today's daily special, unless Gemini already recommended it
     const aiNames = new Set((parsed.recommendations || []).map((r: { name: string }) => r.name.toLowerCase()))
-    const featuredProduct = (products as Array<{ name: string; price: number; is_featured?: boolean; dietary_tags?: string[] }>)
-      .find(p => p.is_featured && !aiNames.has(p.name.toLowerCase()))
-    if (featuredProduct) {
-      parsed.restaurant_pick = { name: featuredProduct.name, price: featuredProduct.price }
+    const dailySpecial = (products as Array<{ name: string; price: number; is_daily_special?: boolean }>)
+      .find(p => p.is_daily_special && !aiNames.has(p.name.toLowerCase()))
+    if (dailySpecial) {
+      parsed.restaurant_pick = { name: dailySpecial.name, price: dailySpecial.price }
     }
 
     return new Response(JSON.stringify(parsed), {
