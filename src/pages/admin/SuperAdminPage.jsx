@@ -486,6 +486,7 @@ function DocsTab() {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [tags, setTags] = useState('')
+  const [docType, setDocType] = useState('info')
   const [saving, setSaving] = useState(false)
   const [seeding, setSeeding] = useState(false)
 
@@ -517,6 +518,7 @@ function DocsTab() {
     setTitle('')
     setContent('')
     setTags('')
+    setDocType('info')
   }
 
   function startEdit(doc) {
@@ -524,6 +526,7 @@ function DocsTab() {
     setTitle(doc.title)
     setContent(doc.content)
     setTags((doc.tags || []).join(', '))
+    setDocType(doc.type || 'info')
   }
 
   async function save() {
@@ -533,6 +536,7 @@ function DocsTab() {
       title: title.trim(),
       content: content.trim(),
       tags: tags.split(',').map(t => t.trim()).filter(Boolean),
+      type: docType,
       updated_at: new Date().toISOString(),
     }
     if (editing === 'new') {
@@ -563,16 +567,42 @@ function DocsTab() {
           <h2 className="text-smoke-200 font-semibold text-sm">{editing === 'new' ? 'Nuevo documento' : 'Editar documento'}</h2>
           <button onClick={() => setEditing(null)} className="text-smoke-500 text-xs underline">Cancelar</button>
         </div>
+        {/* Type selector */}
+        <div className="flex gap-2">
+          {[
+            { id: 'info', label: 'Información', desc: 'Aparece cuando es relevante para la pregunta (RAG)' },
+            { id: 'instruction', label: 'Instrucción', desc: 'Se aplica siempre, en cada respuesta del chat' },
+          ].map(opt => (
+            <button
+              key={opt.id}
+              onClick={() => setDocType(opt.id)}
+              className={`flex-1 rounded-xl border px-3 py-2.5 text-left transition-colors ${
+                docType === opt.id
+                  ? opt.id === 'instruction'
+                    ? 'border-violet-500/60 bg-violet-500/10'
+                    : 'border-ember-500/60 bg-ember-500/10'
+                  : 'border-carbon-700 bg-carbon-900'
+              }`}
+            >
+              <p className={`text-xs font-semibold ${docType === opt.id ? (opt.id === 'instruction' ? 'text-violet-400' : 'text-ember-400') : 'text-smoke-400'}`}>
+                {opt.label}
+              </p>
+              <p className="text-smoke-600 text-[10px] mt-0.5 leading-tight">{opt.desc}</p>
+            </button>
+          ))}
+        </div>
         <input
           value={title}
           onChange={e => setTitle(e.target.value)}
-          placeholder="Título (ej: Cómo cargar la carta)"
+          placeholder={docType === 'instruction' ? 'Título (ej: Política de feriados)' : 'Título (ej: Cómo cargar la carta)'}
           className="w-full bg-carbon-900 border border-carbon-700 rounded-xl px-3 py-2.5 text-sm text-smoke-200 focus:outline-none focus:border-ember-500"
         />
         <textarea
           value={content}
           onChange={e => setContent(e.target.value)}
-          placeholder="Contenido del documento — escribí la información que Capy va a usar para responder..."
+          placeholder={docType === 'instruction'
+            ? 'Instrucción para Capy (ej: "Cuando pregunten por feriados, respondé que el local cierra los feriados nacionales...")'
+            : 'Contenido del documento — escribí la información que Capy va a usar para responder...'}
           rows={10}
           className="w-full bg-carbon-900 border border-carbon-700 rounded-xl px-3 py-2.5 text-sm text-smoke-200 focus:outline-none focus:border-ember-500 resize-none"
         />
@@ -625,7 +655,12 @@ function DocsTab() {
             <div key={doc.id} className={`bg-carbon-900 border rounded-2xl p-4 ${doc.is_active ? 'border-carbon-700' : 'border-carbon-800 opacity-50'}`}>
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <p className="text-smoke-200 font-semibold text-sm">{doc.title}</p>
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <p className="text-smoke-200 font-semibold text-sm">{doc.title}</p>
+                    {doc.type === 'instruction' && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-400 border border-violet-500/30 leading-none flex-shrink-0">instrucción</span>
+                    )}
+                  </div>
                   <p className="text-smoke-500 text-xs mt-0.5 line-clamp-2">{doc.content}</p>
                   {doc.tags?.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1.5">
