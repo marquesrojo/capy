@@ -224,13 +224,13 @@ export default function IdentifyPage() {
   return (
     <div className="min-h-screen bg-[#FAF9F6] flex flex-col pb-10">
 
-      {/* ── Hero: banner + logo + nombre ── */}
+      {/* ── Hero ── */}
       <div
         className="relative overflow-hidden"
         style={{
-          minHeight: 280,
+          minHeight: 220,
           paddingTop: 'max(2.5rem, env(safe-area-inset-top))',
-          paddingBottom: '4rem',
+          paddingBottom: '2rem',
           ...(venue?.banner_url ? {
             backgroundImage: `url(${venue.banner_url})`,
             backgroundSize: 'cover',
@@ -239,6 +239,30 @@ export default function IdentifyPage() {
         }}
       >
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/20 to-black/70 pointer-events-none" />
+
+        {/* Login / cuenta — top right */}
+        <div className="absolute z-10" style={{ top: 'max(0.75rem, env(safe-area-inset-top))', right: '1rem' }}>
+          {!isAnonymous && customer ? (
+            <button
+              onClick={() => navigate(`${base}/cuenta`)}
+              className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center text-white font-bold text-sm"
+            >
+              {customer.full_name?.[0]?.toUpperCase() || '?'}
+            </button>
+          ) : (
+            <button
+              onClick={async () => { const r = await loginWithGoogle(`${base}/carta`); if (r?.error) setGoogleError(r.error.message) }}
+              className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center text-white"
+              title="Iniciar sesión"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+            </button>
+          )}
+        </div>
+
         <div className="relative z-10 px-6 text-center">
           <div className="w-20 h-20 mx-auto mb-3 rounded-2xl bg-white/95 p-1.5 shadow-lg">
             <img
@@ -265,50 +289,14 @@ export default function IdentifyPage() {
         </div>
       </div>
 
-      {/* ── CTAs flotantes que solapan el hero ── */}
-      <div className="px-4 -mt-10 relative z-20 space-y-3">
-        <button
-          onClick={() => navigate(`${base}/carta`)}
-          className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl shadow-lg active:scale-[0.98] transition-transform"
-          style={{ backgroundColor: selfColor }}
-        >
-          <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
-            <UtensilsIcon size={22} className="text-white" />
-          </div>
-          <div className="flex-1 text-left">
-            <p className="text-white font-black text-sm leading-tight">Quiero pedir yo mismo</p>
-            <p className="text-white/70 text-xs mt-0.5">Ver la carta y hacer mi pedido</p>
-          </div>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeOpacity="0.6">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
-        </button>
+      {googleError && <p className="text-red-500 text-xs text-center px-4 pt-2">{googleError}</p>}
 
-        <button
-          onClick={openWaiterCall}
-          className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl shadow-md border active:scale-[0.98] transition-transform bg-white"
-          style={{ borderColor: `${waiterColor}30` }}
-        >
-          <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: `${waiterColor}15` }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={waiterColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
-          </div>
-          <div className="flex-1 text-left">
-            <p className="font-black text-sm leading-tight" style={{ color: waiterColor }}>Llamar al mozo</p>
-            <p className="text-[#9DAAB8] text-xs mt-0.5">Un camarero viene a tu mesa</p>
-          </div>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={waiterColor} strokeWidth="2.5" strokeOpacity="0.5">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
-        </button>
-      </div>
+      {/* ── Contenido principal ── */}
+      <div className="px-4 pt-4 space-y-3">
 
-      {/* ── Selector de mesa/sector (QR general, sin prefill) ── */}
-      {!prefillZoneId && zones.length > 0 && (
-        <div className="mt-4 px-4">
+        {/* ── ¿En qué mesa estás? — PRIMERO ── */}
+        {!prefillZoneId && zones.length > 0 && (
+          <div>
           {/* Toggle row */}
           <button
             onClick={() => setShowZonePicker(v => !v)}
@@ -499,98 +487,25 @@ export default function IdentifyPage() {
         </div>
       )}
 
-      {/* ── Pedido desde afuera ── */}
-      {(retiroExternoEnabled || deliveryEnabled) && (
-        <div className="mt-3 px-4">
-          {!showExternalOptions ? (
-            <button
-              onClick={() => setShowExternalOptions(true)}
-              className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl bg-white border border-black/[0.06] shadow-sm active:scale-[0.98] transition-transform text-left"
-            >
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${selfColor}15` }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={selfColor} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
-                </svg>
-              </div>
-              <div className="flex-1">
-                <p className="font-black text-sm leading-tight text-[#1A2332]">Pido desde afuera de {venue?.name || 'acá'}</p>
-                <p className="text-[#9DAAB8] text-xs mt-0.5">Retiro o delivery</p>
-              </div>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9DAAB8" strokeWidth="2.5">
-                <polyline points="9 18 15 12 9 6"/>
-              </svg>
-            </button>
-          ) : (
-            <div className="bg-white border border-black/[0.06] rounded-2xl shadow-sm overflow-hidden">
-              <div className="px-5 pt-4 pb-3 flex items-center justify-between">
-                <p className="text-[#1A2332] font-black text-sm">¿Cómo lo querés?</p>
-                <button onClick={() => setShowExternalOptions(false)} className="text-[#9DAAB8] text-xs">✕</button>
-              </div>
-              <div className={`grid gap-3 px-4 pb-4 ${retiroExternoEnabled && deliveryEnabled ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                {retiroExternoEnabled && (
-                  <button
-                    onClick={() => { setLocation({ type: 'retiro_externo', label: 'Retiro en local' }); navigate(`${base}/carta`) }}
-                    className="border-2 rounded-2xl p-4 text-left active:scale-[0.97] transition-transform"
-                    style={{ borderColor: `${selfColor}40`, backgroundColor: `${selfColor}08` }}
-                  >
-                    <div className="w-9 h-9 rounded-xl mb-2.5 flex items-center justify-center" style={{ backgroundColor: `${selfColor}15` }}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={selfColor} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
-                      </svg>
-                    </div>
-                    <p className="font-bold text-sm leading-tight" style={{ color: selfColor }}>Retiro en local</p>
-                    <p className="text-[#9DAAB8] text-xs mt-0.5">Pasás a buscar</p>
-                  </button>
-                )}
-                {deliveryEnabled && (
-                  <button
-                    onClick={() => { setLocation({ type: 'delivery', label: 'Delivery' }); navigate(`${base}/carta`) }}
-                    className="border-2 rounded-2xl p-4 text-left active:scale-[0.97] transition-transform"
-                    style={{ borderColor: `${selfColor}40`, backgroundColor: `${selfColor}08` }}
-                  >
-                    <div className="w-9 h-9 rounded-xl mb-2.5 flex items-center justify-center" style={{ backgroundColor: `${selfColor}15` }}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={selfColor} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
-                      </svg>
-                    </div>
-                    <p className="font-bold text-sm leading-tight" style={{ color: selfColor }}>Delivery</p>
-                    <p className="text-[#9DAAB8] text-xs mt-0.5">Te lo llevamos</p>
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── Sugerencias del chef ── */}
-      {topProducts.length > 0 && (
-        <div className="mt-7 px-4">
-          <p className="text-sm font-black uppercase tracking-wider text-[#1A2332] mb-3">Sugerencias del chef</p>
-          <div className="grid grid-cols-2 gap-3">
-            {topProducts.slice(0, 4).map(p => (
-              <button
-                key={p.id}
-                onClick={() => { addItem(p, 1); navigate(`${base}/carta`) }}
-                className="bg-white rounded-2xl overflow-hidden shadow-sm border border-black/[0.05] text-left active:scale-[0.97] transition-transform"
-              >
-                {p.image_url ? (
-                  <img src={p.image_url} alt={p.name} className="w-full h-28 object-cover" />
-                ) : (
-                  <div className="w-full h-28 bg-[#F0F4F8] flex items-center justify-center text-[#C0CBDA]"><UtensilsIcon size={32} /></div>
-                )}
-                <div className="p-3">
-                  <p className="text-xs font-bold text-[#1A2332] leading-tight line-clamp-2 mb-1">{p.name}</p>
-                  <p className="text-sm font-black" style={{ color: selfColor }}>{formatPrice(p.price)}</p>
-                </div>
-              </button>
-            ))}
+        {/* ── Quiero pedir yo mismo ── */}
+        <button
+          onClick={() => navigate(`${base}/carta`)}
+          className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl shadow-lg active:scale-[0.98] transition-transform"
+          style={{ backgroundColor: selfColor }}
+        >
+          <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+            <UtensilsIcon size={22} className="text-white" />
           </div>
-        </div>
-      )}
+          <div className="flex-1 text-left">
+            <p className="text-white font-black text-sm leading-tight">Quiero pedir yo mismo</p>
+            <p className="text-white/70 text-xs mt-0.5">Ver la carta y hacer mi pedido</p>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeOpacity="0.6">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
 
-      {/* ── Seguimiento de pedido ── */}
-      <div className="mt-7 px-4">
+        {/* ── ¿Ya tenés un pedido? ── */}
         <div className="bg-white border border-black/[0.06] rounded-2xl p-4">
           <p className="text-[#1A2332] font-bold text-sm mb-0.5">¿Ya tenés un pedido?</p>
           <p className="text-[#9DAAB8] text-xs mb-3">Ingresá el número que te dio el camarero</p>
@@ -614,37 +529,125 @@ export default function IdentifyPage() {
           </form>
           {orderError && <p className="text-red-500 text-xs mt-2">{orderError}</p>}
         </div>
-      </div>
 
-      {/* ── Google login / perfil ── */}
-      <div className="mt-6 px-4">
-        {isAnonymous ? (
-          <div className="bg-white border border-black/[0.06] rounded-2xl p-4">
-            <button
-              onClick={async () => { const r = await loginWithGoogle(`${base}/carta`); if (r?.error) setGoogleError(r.error.message) }}
-              className="w-full flex items-center justify-center gap-2.5 bg-[#F8FAFB] border border-black/[0.08] text-[#1A2332] font-semibold text-sm px-4 py-3 rounded-xl hover:bg-[#F0F4F8] transition-colors"
-            >
-              <GoogleIcon />
-              Iniciar sesión con Google
-            </button>
-            {googleError && <p className="text-red-600 text-xs mt-2 text-center">{googleError}</p>}
-            <p className="text-[#9DAAB8] text-xs mt-2.5 text-center">Si no tenés cuenta, hacé tu pedido igual y luego podés registrarte.</p>
-          </div>
-        ) : customer ? (
-          <button
-            onClick={() => navigate(`${base}/cuenta`)}
-            className="w-full flex items-center justify-between bg-white border border-black/[0.06] rounded-2xl px-4 py-3 shadow-sm"
-          >
-            <div className="text-left">
-              <p className="text-[#1A2332] font-semibold text-sm">{customer.full_name}</p>
-              <p className="text-[#9DAAB8] text-xs">Mi cuenta →</p>
-            </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9DAAB8" strokeWidth="2.5">
-              <polyline points="9 18 15 12 9 6"/>
+        {/* ── Llamar al mozo ── */}
+        <button
+          onClick={openWaiterCall}
+          className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl shadow-md border active:scale-[0.98] transition-transform bg-white"
+          style={{ borderColor: `${waiterColor}30` }}
+        >
+          <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: `${waiterColor}15` }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={waiterColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
             </svg>
-          </button>
-        ) : null}
-      </div>
+          </div>
+          <div className="flex-1 text-left">
+            <p className="font-black text-sm leading-tight" style={{ color: waiterColor }}>Llamar al mozo</p>
+            <p className="text-[#9DAAB8] text-xs mt-0.5">Un camarero viene a tu mesa</p>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={waiterColor} strokeWidth="2.5" strokeOpacity="0.5">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
+
+        {/* ── Para llevar — separado ── */}
+        {(retiroExternoEnabled || deliveryEnabled) && (
+          <div className="pt-1">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex-1 h-px bg-black/[0.07]" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#B0BBCA]">Para llevar</span>
+              <div className="flex-1 h-px bg-black/[0.07]" />
+            </div>
+            {!showExternalOptions ? (
+              <button
+                onClick={() => setShowExternalOptions(true)}
+                className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl bg-white border border-black/[0.06] shadow-sm active:scale-[0.98] transition-transform text-left"
+              >
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${selfColor}15` }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={selfColor} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className="font-black text-sm leading-tight text-[#1A2332]">Pido desde afuera de {venue?.name || 'acá'}</p>
+                  <p className="text-[#9DAAB8] text-xs mt-0.5">Retiro o delivery</p>
+                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9DAAB8" strokeWidth="2.5">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              </button>
+            ) : (
+              <div className="bg-white border border-black/[0.06] rounded-2xl shadow-sm overflow-hidden">
+                <div className="px-5 pt-4 pb-3 flex items-center justify-between">
+                  <p className="text-[#1A2332] font-black text-sm">¿Cómo lo querés?</p>
+                  <button onClick={() => setShowExternalOptions(false)} className="text-[#9DAAB8] text-xs">✕</button>
+                </div>
+                <div className={`grid gap-3 px-4 pb-4 ${retiroExternoEnabled && deliveryEnabled ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                  {retiroExternoEnabled && (
+                    <button
+                      onClick={() => { setLocation({ type: 'retiro_externo', label: 'Retiro en local' }); navigate(`${base}/carta`) }}
+                      className="border-2 rounded-2xl p-4 text-left active:scale-[0.97] transition-transform"
+                      style={{ borderColor: `${selfColor}40`, backgroundColor: `${selfColor}08` }}
+                    >
+                      <div className="w-9 h-9 rounded-xl mb-2.5 flex items-center justify-center" style={{ backgroundColor: `${selfColor}15` }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={selfColor} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
+                        </svg>
+                      </div>
+                      <p className="font-bold text-sm leading-tight" style={{ color: selfColor }}>Retiro en local</p>
+                      <p className="text-[#9DAAB8] text-xs mt-0.5">Pasás a buscar</p>
+                    </button>
+                  )}
+                  {deliveryEnabled && (
+                    <button
+                      onClick={() => { setLocation({ type: 'delivery', label: 'Delivery' }); navigate(`${base}/carta`) }}
+                      className="border-2 rounded-2xl p-4 text-left active:scale-[0.97] transition-transform"
+                      style={{ borderColor: `${selfColor}40`, backgroundColor: `${selfColor}08` }}
+                    >
+                      <div className="w-9 h-9 rounded-xl mb-2.5 flex items-center justify-center" style={{ backgroundColor: `${selfColor}15` }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={selfColor} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+                        </svg>
+                      </div>
+                      <p className="font-bold text-sm leading-tight" style={{ color: selfColor }}>Delivery</p>
+                      <p className="text-[#9DAAB8] text-xs mt-0.5">Te lo llevamos</p>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Sugerencias del chef ── */}
+        {topProducts.length > 0 && (
+          <div className="pt-1">
+            <p className="text-sm font-black uppercase tracking-wider text-[#1A2332] mb-3">Sugerencias del chef</p>
+            <div className="grid grid-cols-2 gap-3">
+              {topProducts.slice(0, 4).map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => { addItem(p, 1); navigate(`${base}/carta`) }}
+                  className="bg-white rounded-2xl overflow-hidden shadow-sm border border-black/[0.05] text-left active:scale-[0.97] transition-transform"
+                >
+                  {p.image_url ? (
+                    <img src={p.image_url} alt={p.name} className="w-full h-28 object-cover" />
+                  ) : (
+                    <div className="w-full h-28 bg-[#F0F4F8] flex items-center justify-center text-[#C0CBDA]"><UtensilsIcon size={32} /></div>
+                  )}
+                  <div className="p-3">
+                    <p className="text-xs font-bold text-[#1A2332] leading-tight line-clamp-2 mb-1">{p.name}</p>
+                    <p className="text-sm font-black" style={{ color: selfColor }}>{formatPrice(p.price)}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+      </div>{/* fin contenido principal */}
 
       {/* ── Footer ── */}
       <div className="mt-8 text-center space-y-3">
