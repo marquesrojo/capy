@@ -108,7 +108,10 @@ FORMATO DE RESPUESTA:
     const geminiData = await geminiRes.json()
     if (geminiData.error) throw new Error(geminiData.error.message || 'Gemini error')
 
-    const raw: string = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '{}'
+    // gemini-2.5-flash returns thinking tokens as the first part (thought: true)
+    // We need the non-thinking part that contains the actual JSON response
+    const parts: Array<{ text?: string; thought?: boolean }> = geminiData.candidates?.[0]?.content?.parts || []
+    const raw: string = parts.filter(p => !p.thought).map(p => p.text || '').join('') || '{}'
     const jsonMatch = raw.match(/\{[\s\S]*\}/)
     if (!jsonMatch) throw new Error('Gemini no devolvió JSON válido')
     const parsed = JSON.parse(jsonMatch[0])
