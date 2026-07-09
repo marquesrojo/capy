@@ -62,7 +62,7 @@ export default function RecommendModal({ venueId, accentColor, onAddToCart, onCl
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white rounded-t-3xl px-5 pt-5 pb-10 max-h-[85vh] overflow-y-auto">
+      <div className="relative bg-white rounded-t-3xl px-5 pt-5 pb-10 max-h-[85vh] overflow-y-scroll overscroll-y-contain">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
