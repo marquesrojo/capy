@@ -27,6 +27,10 @@ export default function PaymentPage() {
   const [venueColor, setVenueColor] = useState('#1A3A6B')
   const [pickupTime, setPickupTime] = useState('')
   const [deliveryAddress, setDeliveryAddress] = useState('')
+  const [discountCode, setDiscountCode] = useState('')
+  const [appliedDiscount, setAppliedDiscount] = useState(null)
+  const [discountError, setDiscountError] = useState('')
+  const [discountLoading, setDiscountLoading] = useState(false)
 
   useEffect(() => {
     if (itemCount === 0) navigate(`${base}/carta`)
@@ -70,6 +74,29 @@ export default function PaymentPage() {
   if (!location || itemCount === 0) return null
 
   const accent = accentColor(venueColor)
+  const discountAmount = appliedDiscount ? Math.round(subtotal * appliedDiscount.percent / 100) : 0
+  const total = subtotal - discountAmount
+
+  async function applyDiscount() {
+    if (!discountCode.trim()) return
+    setDiscountLoading(true)
+    setDiscountError('')
+    const { data } = await supabaseCustomer
+      .from('venue_discounts')
+      .select('*')
+      .eq('venue_id', ACTIVE_VENUE_ID)
+      .eq('code', discountCode.trim().toUpperCase())
+      .eq('is_active', true)
+      .maybeSingle()
+    if (!data) {
+      setDiscountError('Código inválido o inactivo.')
+      setAppliedDiscount(null)
+    } else {
+      setAppliedDiscount(data)
+      setDiscountError('')
+    }
+    setDiscountLoading(false)
+  }
 
   function buildLocationLabel() {
     if (location.type === 'retiro_externo') return `Retiro · ${pickupTime}`
@@ -157,7 +184,9 @@ export default function PaymentPage() {
           delivery_address: location.type === 'delivery' ? deliveryAddress.trim() : null,
           notes,
           subtotal,
-          total: subtotal,
+          discount_amount: discountAmount || null,
+          discount_code: appliedDiscount?.code || null,
+          total,
           payment_method: paymentOptions.find(o => o.id === paymentMethod)?.name || paymentMethod,
           session_id: activeSessionId,
           is_addition: !!sessionId,
@@ -323,6 +352,46 @@ export default function PaymentPage() {
           )}
         </label>
 
+        <div className="bg-white border border-black/[0.06] rounded-2xl p-4 shadow-sm space-y-2">
+          {appliedDiscount ? (
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[#1A2332] text-sm font-medium">Descuento aplicado</p>
+                <p className="text-emerald-600 text-xs font-semibold mt-0.5">{appliedDiscount.code} — {appliedDiscount.percent}% off{appliedDiscount.label ? ` · ${appliedDiscount.label}` : ''}</p>
+              </div>
+              <button
+                onClick={() => { setAppliedDiscount(null); setDiscountCode('') }}
+                className="text-smoke-500 text-xs underline"
+              >
+                Quitar
+              </button>
+            </div>
+          ) : (
+            <>
+              <p className="text-[#1A2332] text-sm font-medium">¿Tenés un código de descuento?</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={discountCode}
+                  onChange={e => { setDiscountCode(e.target.value.toUpperCase()); setDiscountError('') }}
+                  onKeyDown={e => e.key === 'Enter' && applyDiscount()}
+                  placeholder="Ej: COWORK"
+                  className="input flex-1 uppercase font-mono text-sm"
+                />
+                <button
+                  onClick={applyDiscount}
+                  disabled={discountLoading || !discountCode.trim()}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-40"
+                  style={{ backgroundColor: accent }}
+                >
+                  {discountLoading ? '...' : 'Aplicar'}
+                </button>
+              </div>
+              {discountError && <p className="text-red-500 text-xs">{discountError}</p>}
+            </>
+          )}
+        </div>
+
         {paymentOptions.length > 0 && (
           <div>
             <span className="text-smoke-500 text-xs mb-2 block">Forma de pago</span>
@@ -351,9 +420,21 @@ export default function PaymentPage() {
 
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-black/[0.06] px-5 py-4 space-y-3">
         {error && <p className="text-red-600 text-sm">{error}</p>}
+        {discountAmount > 0 && (
+          <div className="flex items-center justify-between text-[#1A2332]">
+            <span className="text-sm text-smoke-500">Subtotal</span>
+            <span className="font-mono text-sm text-smoke-500">{formatPrice(subtotal)}</span>
+          </div>
+        )}
+        {discountAmount > 0 && (
+          <div className="flex items-center justify-between text-emerald-600">
+            <span className="text-sm font-medium">Descuento {appliedDiscount.percent}%</span>
+            <span className="font-mono text-sm font-semibold">−{formatPrice(discountAmount)}</span>
+          </div>
+        )}
         <div className="flex items-center justify-between text-[#1A2332]">
           <span className="font-medium">Total</span>
-          <span className="font-mono font-bold text-lg" style={{ color: accent }}>{formatPrice(subtotal)}</span>
+          <span className="font-mono font-bold text-lg" style={{ color: accent }}>{formatPrice(total)}</span>
         </div>
         <button
           onClick={handleConfirm}

@@ -33,23 +33,27 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
   const [quickNotes, setQuickNotes] = useState([])
   const [activeNoteProduct, setActiveNoteProduct] = useState(null)
   const [showMap, setShowMap] = useState(false)
+  const [discounts, setDiscounts] = useState([])
+  const [selectedDiscount, setSelectedDiscount] = useState(null)
 
   useEffect(() => {
     if (!profile) return // esperar a que cargue el profile
     async function init() {
-      const [staffRes, zoneRes, catRes, prodRes, venueRes, notesRes] = await Promise.all([
+      const [staffRes, zoneRes, catRes, prodRes, venueRes, notesRes, discountsRes] = await Promise.all([
         supabaseStaff.from('staff_names').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('full_name'),
         supabaseStaff.from('venue_zones').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order'),
         supabaseStaff.from('categories').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order'),
         supabaseStaff.from('products').select('*').eq('venue_id', activeVenueId).eq('is_available', true).order('sort_order'),
         supabaseStaff.from('venues').select('whatsapp_number').eq('id', activeVenueId).single(),
-        supabaseStaff.from('quick_notes').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order')
+        supabaseStaff.from('quick_notes').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order'),
+        supabaseStaff.from('venue_discounts').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('created_at')
       ])
       setStaffList(staffRes.data || [])
       setZones(zoneRes.data || [])
       setCategories(catRes.data || [])
       setProducts(prodRes.data || [])
       setQuickNotes(notesRes.data || [])
+      setDiscounts(discountsRes.data || [])
       if (catRes.data?.length) setActiveCategory(catRes.data[0].id)
       if (venueRes.data?.whatsapp_number) setVenueWhatsapp(venueRes.data.whatsapp_number)
 
@@ -108,6 +112,8 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
 
   const cartItems = Object.values(cart).filter(i => i.qty > 0)
   const subtotal = cartItems.reduce((sum, i) => sum + i.product.price * i.qty, 0)
+  const discountAmount = selectedDiscount ? Math.round(subtotal * selectedDiscount.percent / 100) : 0
+  const total = subtotal - discountAmount
 
   async function handleConfirm() {
     if (!selectedZone) { setError('Elegí una ubicación.'); return }
@@ -135,7 +141,9 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
           location_label: selectedZone.name,
           notes: notes.trim() || null,
           subtotal,
-          total: subtotal,
+          discount_amount: discountAmount || null,
+          discount_code: selectedDiscount?.code || null,
+          total,
           payment_method: 'Efectivo',
           assigned_staff_id: selectedStaff?.id || null,
           created_by_staff: true,
@@ -461,9 +469,32 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
             className="input resize-none text-xs py-2"
             rows={2}
           />
+          {discounts.length > 0 && (
+            <select
+              value={selectedDiscount?.id || ''}
+              onChange={e => setSelectedDiscount(discounts.find(d => d.id === e.target.value) || null)}
+              className="input text-xs py-1.5"
+            >
+              <option value="">Sin descuento</option>
+              {discounts.map(d => (
+                <option key={d.id} value={d.id}>
+                  {d.code} — {d.percent}%{d.label ? ` (${d.label})` : ''}
+                </option>
+              ))}
+            </select>
+          )}
           {error && <p className="text-red-700 text-xs">{error}</p>}
           <div className="flex items-center justify-between">
-            <span className="font-mono text-[#008080] font-semibold">{formatPrice(subtotal)}</span>
+            <div>
+              {discountAmount > 0 ? (
+                <>
+                  <p className="text-[#8896A5] text-xs line-through font-mono">{formatPrice(subtotal)}</p>
+                  <p className="font-mono text-[#008080] font-semibold">{formatPrice(total)}</p>
+                </>
+              ) : (
+                <span className="font-mono text-[#008080] font-semibold">{formatPrice(subtotal)}</span>
+              )}
+            </div>
             <button
               onClick={handleConfirm}
               disabled={submitting || !selectedZone}

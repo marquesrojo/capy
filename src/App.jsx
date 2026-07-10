@@ -31,6 +31,7 @@ import KpisPage from './pages/admin/KpisPage'
 import WaiterModePage from './pages/admin/WaiterModePage'
 import WaitersPage from './pages/admin/WaitersPage'
 import QuickNotesPage from './pages/admin/QuickNotesPage'
+import DiscountsPage from './pages/admin/DiscountsPage'
 import QRPage from './pages/admin/QRPage'
 import ShiftSummaryPage from './pages/admin/ShiftSummaryPage'
 import MercadoPagoReturnPage from './pages/client/MercadoPagoReturnPage'
@@ -253,6 +254,10 @@ export default function App() {
               <Route
                 path="/admin/notas-rapidas"
                 element={<RequirePropietario><QuickNotesPage /></RequirePropietario>}
+              />
+              <Route
+                path="/admin/descuentos"
+                element={<RequirePropietario><DiscountsPage /></RequirePropietario>}
               />
               <Route
                 path="/admin/qr"
