@@ -209,6 +209,7 @@ export default function MenuEditorPage() {
                         onToggle={() => toggleAvailability(product)}
                         onDelete={() => deleteProduct(product.id)}
                         onSave={updated => setProducts(prev => prev.map(p => p.id === updated.id ? updated : p))}
+                        onRefreshProducts={loadAll}
                       />
                     ))}
                 </div>
@@ -451,7 +452,7 @@ function IngredientsPanel({ productId, productName, productDescription, currentI
   )
 }
 
-function ProductRow({ product, venueId, categories, allProducts = [], onToggle, onDelete, onSave }) {
+function ProductRow({ product, venueId, categories, allProducts = [], onToggle, onDelete, onSave, onRefreshProducts }) {
   const [editing, setEditing] = useState(false)
   const [showIngredients, setShowIngredients] = useState(false)
   const [photoSearching, setPhotoSearching] = useState(false)
@@ -622,6 +623,7 @@ function ProductRow({ product, venueId, categories, allProducts = [], onToggle, 
               allProducts={allProducts}
               recipe={recipe}
               onChange={setRecipe}
+              onCreatedSupply={onRefreshProducts}
             />
           )}
         </div>
@@ -1651,7 +1653,7 @@ function ProductSearch({ value, allProducts, onChange }) {
   )
 }
 
-function RecipeEditor({ productId, productName, productDescription, venueId, allProducts, recipe, onChange }) {
+function RecipeEditor({ productId, productName, productDescription, venueId, allProducts, recipe, onChange, onCreatedSupply }) {
   const [suggesting, setSuggesting] = useState(false)
 
   useEffect(() => {
@@ -1715,7 +1717,10 @@ function RecipeEditor({ productId, productName, productDescription, venueId, all
             })
             .select()
             .single()
-          if (newProd) newRows.push({ supply_product_id: newProd.id, quantity: String(s.quantity), unit: s.unit || 'u' })
+          if (newProd) {
+            newRows.push({ supply_product_id: newProd.id, quantity: String(s.quantity), unit: s.unit || 'u' })
+            onCreatedSupply?.()
+          }
         }
       }
       onChange(newRows)
