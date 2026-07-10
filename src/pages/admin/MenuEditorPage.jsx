@@ -1221,11 +1221,13 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
   const [progress, setProgress] = useState({ current: 0, total: 0, name: '' })
   const [results, setResults] = useState([])
   const [error, setError] = useState('')
+  const [batchSize, setBatchSize] = useState(15)
 
   const noPhoto = products.filter(p => !p.image_url)
   const dailyRemaining = unlimited ? Infinity : Math.max(UNSPLASH_DAILY_LIMIT - getUnsplashCount(venueId), 0)
   const totalAvailable = unlimited ? noPhoto.length : dailyRemaining + extraCredits
   const canProcess = Math.min(noPhoto.length, totalAvailable)
+  const effectiveBatch = Math.min(batchSize, canProcess)
   const outOfCredits = !unlimited && totalAvailable === 0 && noPhoto.length > 0
 
   function reset() {
@@ -1247,7 +1249,7 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
       if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen')
     } catch { /* no soportado en este browser */ }
 
-    const toProcess = noPhoto.slice(0, totalAvailable)
+    const toProcess = noPhoto.slice(0, effectiveBatch)
     setStatus('generating')
     setProgress({ current: 0, total: toProcess.length, name: '' })
     setError('')
@@ -1499,19 +1501,32 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
           </div>
         )}
         <div className="flex-1 bg-ember-500/10 border border-ember-500/20 rounded-xl p-3">
-          <p className="text-2xl font-bold text-ember-400 font-mono">{canProcess}</p>
+          <p className="text-2xl font-bold text-ember-400 font-mono">{effectiveBatch}</p>
           <p className="text-smoke-600 text-[10px] mt-0.5">se procesarán</p>
         </div>
       </div>
+      {canProcess > 0 && (
+        <div>
+          <label className="text-smoke-500 text-xs block mb-1">¿Cuántas procesar ahora? <span className="text-smoke-600">(Unsplash: 50/hora)</span></label>
+          <input
+            type="number"
+            min={1}
+            max={canProcess}
+            value={batchSize}
+            onChange={e => setBatchSize(Math.max(1, Math.min(canProcess, Number(e.target.value))))}
+            className="w-full bg-carbon-800 border border-carbon-700 rounded-lg px-3 py-2 text-smoke-200 text-sm focus:outline-none focus:border-ember-500"
+          />
+        </div>
+      )}
       {!unlimited && canProcess < noPhoto.length && canProcess > 0 && (
-        <p className="text-amber-400/80 text-xs">Solo se procesarán {canProcess} productos (cupo disponible). El cupo diario se renueva mañana.</p>
+        <p className="text-amber-400/80 text-xs">Cupo disponible: {canProcess}. El cupo diario se renueva mañana.</p>
       )}
       {error && <p className="text-red-500 text-xs">{error}</p>}
       <div className="flex gap-2">
         <button onClick={reset} className="flex-1 border border-carbon-700 text-smoke-400 text-sm py-2.5 rounded-xl">Cancelar</button>
         <button
           onClick={generate}
-          disabled={canProcess === 0}
+          disabled={effectiveBatch === 0}
           className="flex-1 bg-ember-500 hover:bg-ember-600 disabled:opacity-50 text-white font-semibold text-sm py-2.5 rounded-xl"
         >
           Generar fotos
