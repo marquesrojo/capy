@@ -289,14 +289,7 @@ export default function App() {
                   </RequireStaff>
                 }
               />
-              <Route
-                path="/admin/camareros"
-                element={
-                  <RequireStaff>
-                    <WaitersPage />
-                  </RequireStaff>
-                }
-              />
+              <Route path="/admin/camareros" element={<Navigate to="/admin/usuarios" replace />} />
               <Route
                 path="/admin/notas-rapidas"
                 element={
