@@ -1253,12 +1253,13 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
     setError('')
 
     const found = []
+    let savedCount = 0
     let extraCreditsUsed = 0
 
     try {
       for (let i = 0; i < toProcess.length; i++) {
         const p = toProcess[i]
-        setProgress({ current: i + 1, total: toProcess.length, name: p.name })
+        setProgress({ current: i + 1, total: toProcess.length, name: p.name, saved: savedCount })
         const usingExtra = !unlimited && i >= dailyRemaining
 
         let query = p.name
@@ -1275,7 +1276,11 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
 
         const url = await searchUnsplash(query, venueId, { skipLimit: unlimited || usingExtra })
         if (url) {
+          // Guardar inmediatamente — si el proceso se interrumpe, las fotos ya guardadas no se pierden
+          await supabaseStaff.from('products').update({ image_url: url }).eq('id', p.id)
           found.push({ product: p, imageUrl: url, selected: true })
+          savedCount++
+          setProgress({ current: i + 1, total: toProcess.length, name: p.name, saved: savedCount })
           if (usingExtra) extraCreditsUsed++
         }
       }
@@ -1293,6 +1298,7 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
       setError('No se encontraron fotos. Intentá de nuevo.')
       setStatus('idle')
     } else {
+      onUpdated()
       setResults(found)
       setStatus('review')
     }
@@ -1389,9 +1395,14 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="animate-spin flex-shrink-0">
             <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
           </svg>
-          <p className="text-smoke-300 text-sm font-semibold">
-            {progress.current === 0 ? 'Generando consultas...' : `Buscando foto ${progress.current}/${progress.total}`}
-          </p>
+          <div>
+            <p className="text-smoke-300 text-sm font-semibold">
+              {progress.current === 0 ? 'Generando consultas...' : `Buscando foto ${progress.current}/${progress.total}`}
+            </p>
+            {progress.saved > 0 && (
+              <p className="text-emerald-500 text-xs mt-0.5">{progress.saved} guardada{progress.saved !== 1 ? 's' : ''} ✓</p>
+            )}
+          </div>
         </div>
         {progress.current > 0 && (
           <>
