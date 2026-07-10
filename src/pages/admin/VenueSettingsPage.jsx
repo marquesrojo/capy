@@ -364,7 +364,7 @@ export default function VenueSettingsPage() {
             </div>
             <div className="w-full py-3 rounded-xl flex items-center justify-center gap-2" style={{ backgroundColor: headerTextColor }}>
               <BellIcon size={16} className="text-white" />
-              <span className="text-white font-semibold text-sm">Quiero que me atienda un mozo</span>
+              <span className="text-white font-semibold text-sm">Quiero que me atienda un camarero/a</span>
             </div>
           </div>
         </div>

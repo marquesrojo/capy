@@ -619,7 +619,7 @@ export default function IdentifyPage() {
             </svg>
           </div>
           <div className="flex-1 text-left">
-            <p className="font-black text-sm leading-tight" style={{ color: waiterColor }}>Llamar al mozo</p>
+            <p className="font-black text-sm leading-tight" style={{ color: waiterColor }}>Llamar a un camarero/a</p>
             <p className="text-[#9DAAB8] text-xs mt-0.5">Un camarero viene a tu mesa</p>
           </div>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={waiterColor} strokeWidth="2.5" strokeOpacity="0.5">

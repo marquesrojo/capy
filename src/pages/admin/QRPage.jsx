@@ -134,6 +134,7 @@ ${items.map(item => `<div class="card"><div class="type">${typeLabel[item.type] 
             url={clientUrl}
             showTemplate
             venueId={venueId}
+            venueName={venueName}
           />
         )}
 
@@ -284,7 +285,7 @@ function ZoneQRCard({ zone, slug }) {
   )
 }
 
-function QRCard({ label, description, url, showTemplate, venueId }) {
+function QRCard({ label, description, url, showTemplate, venueId, venueName }) {
   const canvasRef = useRef(null)
   const [ready, setReady] = useState(false)
 
@@ -306,6 +307,43 @@ function QRCard({ label, description, url, showTemplate, venueId }) {
     link.click()
   }
 
+  async function handleDownloadPDF() {
+    const dataUrl = await QRCode.toDataURL(url, {
+      width: 400, margin: 2,
+      color: { dark: '#1A1A1A', light: '#FFFFFF' }
+    })
+    const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>QR — ${venueName || 'Capy'}</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: sans-serif; background: white; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+.card { text-align: center; padding: 40px 48px; border: 2px solid #e5e7eb; border-radius: 16px; max-width: 360px; width: 100%; }
+.logo { font-size: 13px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: #9ca3af; margin-bottom: 24px; }
+img { width: 220px; height: 220px; display: block; margin: 0 auto 24px; }
+.venue { font-size: 22px; font-weight: 800; color: #111827; margin-bottom: 8px; }
+.cta { font-size: 14px; color: #6b7280; margin-bottom: 20px; }
+.url { font-size: 10px; color: #d1d5db; font-family: monospace; word-break: break-all; }
+@media print { body { min-height: auto; } .card { border: 2px solid #e5e7eb; } }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">Capy</div>
+  <img src="${dataUrl}" alt="QR" />
+  <div class="venue">${venueName || ''}</div>
+  <div class="cta">Escaneá para ver la carta</div>
+  <div class="url">${url}</div>
+</div>
+<script>window.onload = () => setTimeout(() => window.print(), 300)<\/script>
+</body>
+</html>`
+    const win = window.open('', '_blank')
+    if (win) { win.document.write(html); win.document.close() }
+  }
+
   return (
     <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
       <p className="text-smoke-200 font-semibold mb-1">{label}</p>
@@ -317,17 +355,32 @@ function QRCard({ label, description, url, showTemplate, venueId }) {
         </div>
       </div>
       {ready && (
-        <button
-          onClick={handleDownload}
-          className="w-full flex items-center justify-center gap-2 border border-ember-500 text-ember-500 font-semibold py-3 rounded-xl mb-2"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="7 10 12 15 17 10"/>
-            <line x1="12" y1="15" x2="12" y2="3"/>
-          </svg>
-          Descargar PNG
-        </button>
+        <>
+          <button
+            onClick={handleDownload}
+            className="w-full flex items-center justify-center gap-2 border border-ember-500 text-ember-500 font-semibold py-3 rounded-xl mb-2"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Descargar PNG
+          </button>
+          <button
+            onClick={handleDownloadPDF}
+            className="w-full flex items-center justify-center gap-2 border border-carbon-700 text-smoke-300 font-semibold py-3 rounded-xl mb-2"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10 9 9 9 8 9"/>
+            </svg>
+            Bajar para imprimir (PDF)
+          </button>
+        </>
       )}
       {showTemplate && venueId && (
         <a
