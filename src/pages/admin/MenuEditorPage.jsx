@@ -86,7 +86,7 @@ export default function MenuEditorPage() {
           </button>
         </div>
 
-        <ImportarConIA venueId={venueId} onImported={loadAll} />
+        <ImportarConIA venueId={venueId} onImported={loadAll} unlimited={unlimitedPhotos} />
         <FotosConIA venueId={venueId} products={products} onUpdated={loadAll} unlimited={unlimitedPhotos} />
 
         {showCategoryForm && (
@@ -840,7 +840,7 @@ async function searchUnsplash(query, venueId, { skipLimit = false } = {}) {
 }
 
 
-function ImportarConIA({ venueId, onImported }) {
+function ImportarConIA({ venueId, onImported, unlimited = false }) {
   const [step, setStep] = useState('idle') // idle | pick_mode | analyzing | enriching | review | saving
   const [mode, setMode] = useState('basic') // 'basic' | 'rich'
   const [preview, setPreview] = useState(null)
@@ -849,7 +849,7 @@ function ImportarConIA({ venueId, onImported }) {
   const fileRef = useRef(null)
 
   function pickMode(selectedMode) {
-    if (selectedMode === 'rich' && getUnsplashCount(venueId) >= UNSPLASH_DAILY_LIMIT) {
+    if (!unlimited && selectedMode === 'rich' && getUnsplashCount(venueId) >= UNSPLASH_DAILY_LIMIT) {
       setError(`Límite diario de imágenes alcanzado (${UNSPLASH_DAILY_LIMIT}/día). Mañana se renueva.`)
       return
     }
@@ -910,7 +910,7 @@ function ImportarConIA({ venueId, onImported }) {
             items.map(async item => ({
               ...item,
               description: item.description || '',
-              image_url: await searchUnsplash(item.photo_query || item.name, venueId),
+              image_url: await searchUnsplash(item.photo_query || item.name, venueId, { skipLimit: unlimited }),
               selected: true,
             }))
           )
