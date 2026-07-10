@@ -8,8 +8,10 @@ export default function QRPage() {
   const { venueId } = useAuth()
   const [inviteCode, setInviteCode] = useState(null)
   const [slug, setSlug] = useState(null)
+  const [venueName, setVenueName] = useState('')
   const [loading, setLoading] = useState(true)
   const [zones, setZones] = useState([])
+  const [generatingPdf, setGeneratingPdf] = useState(false)
 
   useEffect(() => {
     if (!venueId) return
@@ -18,13 +20,61 @@ export default function QRPage() {
 
   async function loadVenueData() {
     const [venueRes, zonesRes] = await Promise.all([
-      supabaseStaff.from('venues').select('invite_code, slug').eq('id', venueId).single(),
+      supabaseStaff.from('venues').select('invite_code, slug, name').eq('id', venueId).single(),
       supabaseStaff.from('venue_zones').select('id, name, type').eq('venue_id', venueId).eq('is_active', true).order('type').order('sort_order').order('name'),
     ])
     setInviteCode(venueRes.data?.invite_code || null)
     setSlug(venueRes.data?.slug || null)
+    setVenueName(venueRes.data?.name || '')
     setZones(zonesRes.data || [])
     setLoading(false)
+  }
+
+  async function downloadAllZonesPDF() {
+    if (!slug || zones.length === 0) return
+    setGeneratingPdf(true)
+    try {
+      const items = await Promise.all(
+        zones.map(async zone => {
+          const url = `https://capyapp.co/r/${slug}?zone_id=${zone.id}&location_label=${encodeURIComponent(zone.name)}&location_type=${zone.type}`
+          const dataUrl = await QRCode.toDataURL(url, {
+            width: 200, margin: 2,
+            color: { dark: '#1A1A1A', light: '#FFFFFF' }
+          })
+          return { name: zone.name, type: zone.type, dataUrl }
+        })
+      )
+      const typeLabel = { mesa: 'Mesa', zona: 'Zona', retiro: 'Retiro' }
+      const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>QR por ubicación — ${venueName}</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: sans-serif; background: white; padding: 24px; }
+h1 { font-size: 20px; font-weight: 700; margin-bottom: 20px; color: #1A1A1A; }
+.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.card { border: 1px solid #ddd; border-radius: 10px; padding: 12px 10px; text-align: center; page-break-inside: avoid; }
+.type { font-size: 8px; text-transform: uppercase; color: #999; letter-spacing: 0.1em; margin-bottom: 4px; }
+.name { font-size: 13px; font-weight: 700; color: #1A1A1A; margin-bottom: 8px; }
+img { width: 100%; height: auto; max-width: 160px; }
+@media print { body { padding: 0; } }
+</style>
+</head>
+<body>
+<h1>QR por ubicación · ${venueName}</h1>
+<div class="grid">
+${items.map(item => `<div class="card"><div class="type">${typeLabel[item.type] || item.type}</div><div class="name">${item.name}</div><img src="${item.dataUrl}" /></div>`).join('')}
+</div>
+<script>window.onload = () => setTimeout(() => window.print(), 300)<\/script>
+</body>
+</html>`
+      const win = window.open('', '_blank')
+      if (win) { win.document.write(html); win.document.close() }
+    } finally {
+      setGeneratingPdf(false)
+    }
   }
 
   async function regenerateCode() {
@@ -91,9 +141,21 @@ export default function QRPage() {
         {!loading && zones.length > 0 && (
           <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
             <p className="text-smoke-200 font-semibold mb-1">QR por Mesa / Ubicación</p>
-            <p className="text-smoke-500 text-xs mb-5">
+            <p className="text-smoke-500 text-xs mb-4">
               Cada QR lleva al cliente directamente a su mesa. Descargalos e imprimílos para cada ubicación.
             </p>
+            <button
+              onClick={downloadAllZonesPDF}
+              disabled={generatingPdf || !slug}
+              className="w-full flex items-center justify-center gap-2 bg-ember-500 hover:bg-ember-600 disabled:opacity-50 text-white font-semibold text-sm py-3 rounded-xl mb-5"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              {generatingPdf ? 'Generando...' : 'Bajar todos como PDF'}
+            </button>
             <div className="grid grid-cols-2 gap-3">
               {zones.map(zone => (
                 <ZoneQRCard key={zone.id} zone={zone} slug={slug} />
