@@ -152,6 +152,7 @@ function UserRow({ user, onUpdated }) {
   const [fullName, setFullName] = useState(user.full_name)
   const [role, setRole] = useState(user.role)
   const [password, setPassword] = useState('')
+  const [managerPin, setManagerPin] = useState('')
   const [saving, setSaving] = useState(false)
   const [toggling, setToggling] = useState(false)
   const [togglingShared, setTogglingShared] = useState(false)
@@ -174,6 +175,10 @@ function UserRow({ user, onUpdated }) {
   async function handleSave() {
     if (!fullName.trim()) { setError('El nombre no puede estar vacío.'); return }
     if (password && password.length < 6) { setError('La contraseña debe tener al menos 6 caracteres.'); return }
+    if (managerPin && (managerPin.length !== 4 || !/^\d{4}$/.test(managerPin))) {
+      setError('El PIN debe ser exactamente 4 dígitos numéricos.')
+      return
+    }
     setSaving(true)
     setError('')
     try {
@@ -183,11 +188,18 @@ function UserRow({ user, onUpdated }) {
       const result = await res.json()
       if (!res.ok) {
         setError(result.error || 'Error al guardar.')
-      } else {
-        onUpdated({ id: user.id, full_name: fullName.trim(), role })
-        setEditing(false)
-        setPassword('')
+        return
       }
+      if (managerPin) {
+        await supabaseStaff
+          .from('profiles')
+          .update({ manager_pin: managerPin })
+          .eq('id', user.id)
+      }
+      onUpdated({ id: user.id, full_name: fullName.trim(), role })
+      setEditing(false)
+      setPassword('')
+      setManagerPin('')
     } catch {
       setError('Error de red.')
     } finally {
@@ -221,6 +233,15 @@ function UserRow({ user, onUpdated }) {
           <option value="camarero">Camarero</option>
         </select>
         <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Nueva contraseña (opcional)" className="input w-full" />
+        <input
+          type="text"
+          inputMode="numeric"
+          maxLength={4}
+          value={managerPin}
+          onChange={e => setManagerPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+          placeholder="PIN de manager (4 dígitos, opcional)"
+          className="input w-full"
+        />
         {error && <p className="text-red-700 text-xs">{error}</p>}
         <div className="flex gap-2">
           <button onClick={() => { setEditing(false); setPassword(''); setError('') }} className="flex-1 border border-carbon-700 text-smoke-400 py-2 rounded-xl text-sm">
