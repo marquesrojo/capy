@@ -7,13 +7,17 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Bebas+Neue&display=swap" rel="stylesheet">
 <style>
+  :root {
+    --accent: #E8772A;
+    --bg: #1A1A1A;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #e5e5e5; font-family: 'Inter', sans-serif; padding: 40px 20px; }
   h2 { font-size: 13px; font-weight: 600; color: #666; letter-spacing: 0.1em; text-transform: uppercase; margin: 40px 0 16px; text-align: center; }
 
   .a4 {
     width: 210mm; height: 297mm;
-    background: #1A1A1A;
+    background: var(--bg);
     margin: 0 auto;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     position: relative; overflow: hidden; border-radius: 4px;
@@ -21,7 +25,7 @@
   }
   .a4::before {
     content: ''; position: absolute; inset: 0;
-    background: radial-gradient(ellipse 70% 50% at 50% 30%, rgba(232,119,42,0.10) 0%, transparent 70%);
+    background: radial-gradient(ellipse 70% 50% at 50% 30%, var(--accent-10) 0%, transparent 70%);
   }
   .a4::after {
     content: ''; position: absolute; inset: 0;
@@ -36,20 +40,20 @@
 
   .resto-logo {
     width: 90px; height: 90px; border-radius: 22px;
-    background: rgba(232,119,42,0.15); border: 1.5px solid rgba(232,119,42,0.3);
+    background: var(--accent-15); border: 1.5px solid var(--accent-30);
     display: flex; align-items: center; justify-content: center;
     margin-bottom: 24px; overflow: hidden;
   }
   .resto-logo img { width: 100%; height: 100%; object-fit: cover; }
-  .resto-logo-placeholder { font-size: 11px; font-weight: 600; color: rgba(232,119,42,0.6); text-align: center; }
+  .resto-logo-placeholder { font-size: 11px; font-weight: 600; color: var(--accent-60); text-align: center; }
 
   .resto-name { font-family: 'Bebas Neue', sans-serif; font-size: 52px; color: #F5F0EB; letter-spacing: 0.08em; text-align: center; margin-bottom: 48px; line-height: 1; }
 
-  .divider { width: 48px; height: 2px; background: #E8772A; border-radius: 2px; margin-bottom: 48px; }
+  .divider { width: 48px; height: 2px; background: var(--accent); border-radius: 2px; margin-bottom: 48px; }
 
   .qr-a4-wrap {
     background: #F5F0EB; border-radius: 24px; padding: 28px; margin-bottom: 48px;
-    box-shadow: 0 0 0 1px rgba(232,119,42,0.2), 0 20px 60px rgba(0,0,0,0.4);
+    box-shadow: 0 0 0 1px var(--accent-20), 0 20px 60px rgba(0,0,0,0.4);
   }
   #qr-a4 canvas, #qr-a4 img { display: block; width: 240px !important; height: 240px !important; }
 
@@ -57,7 +61,7 @@
     font-size: 19px; font-weight: 500; color: #F5F0EB;
     text-align: center; line-height: 1.5; max-width: 420px; margin-bottom: 48px;
   }
-  .invite-text strong { color: #E8772A; font-weight: 700; }
+  .invite-text strong { color: var(--accent); font-weight: 700; }
 
   .divider-bottom { width: 100%; height: 1px; background: rgba(255,255,255,0.07); margin-bottom: 32px; }
 
@@ -65,13 +69,13 @@
   .powered-text { font-size: 10px; color: rgba(245,240,235,0.2); letter-spacing: 0.12em; text-transform: uppercase; }
   .powered-logo { width: 20px; height: 20px; border-radius: 5px; overflow: hidden; opacity: 0.4; }
   .powered-logo img { width: 100%; height: 100%; object-fit: cover; }
-  .powered-brand { font-size: 12px; font-weight: 700; color: rgba(232,119,42,0.5); letter-spacing: 0.15em; text-transform: uppercase; }
+  .powered-brand { font-size: 12px; font-weight: 700; color: var(--accent-50); letter-spacing: 0.15em; text-transform: uppercase; }
 
   /* 5x10 */
   .small-wrap { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; }
   .small {
     width: 56.7mm; height: 113.4mm;
-    background: #E8772A; border-radius: 12px;
+    background: var(--accent); border-radius: 12px;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     padding: 16px 14px; box-shadow: 0 8px 30px rgba(0,0,0,0.25);
     position: relative; overflow: hidden;
@@ -129,7 +133,7 @@
     <div class="qr-small-wrap">
       <div id="qr-small"></div>
     </div>
-    <div class="small-url">capyapp.co</div>
+    <div class="small-url" id="small-url">capyapp.co</div>
     <div class="small-powered">Powered by Capy</div>
   </div>
 </div>
@@ -137,45 +141,83 @@
 <script>
 const SUPABASE_URL = 'https://ycgptakgpsvmstoftkdk.supabase.co'
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljZ3B0YWtncHN2bXN0b2Z0a2RrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3MDcyMTMsImV4cCI6MjA5NzI4MzIxM30.-71ZglbJfVLXhN4NtWivs8E7flb2QN_H7Gc4lwgpcIY'
-const VENUE_ID = '00000000-0000-0000-0000-000000000001'
+const FALLBACK_VENUE_ID = '00000000-0000-0000-0000-000000000001'
+
+const params = new URLSearchParams(window.location.search)
+const VENUE_ID = params.get('venue') || FALLBACK_VENUE_ID
 
 const { createClient } = supabase
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
+function hexToRgb(hex) {
+  hex = hex.replace('#', '')
+  if (hex.length === 3) hex = hex.split('').map(c => c + c).join('')
+  const r = parseInt(hex.slice(0, 2), 16)
+  const g = parseInt(hex.slice(2, 4), 16)
+  const b = parseInt(hex.slice(4, 6), 16)
+  return `${r},${g},${b}`
+}
+
+function applyColors(accent, bg) {
+  const root = document.documentElement
+  const rgb = hexToRgb(accent)
+  root.style.setProperty('--accent', accent)
+  root.style.setProperty('--bg', bg)
+  root.style.setProperty('--accent-10', `rgba(${rgb},0.10)`)
+  root.style.setProperty('--accent-15', `rgba(${rgb},0.15)`)
+  root.style.setProperty('--accent-20', `rgba(${rgb},0.20)`)
+  root.style.setProperty('--accent-30', `rgba(${rgb},0.30)`)
+  root.style.setProperty('--accent-50', `rgba(${rgb},0.50)`)
+  root.style.setProperty('--accent-60', `rgba(${rgb},0.60)`)
+}
+
 async function loadVenue() {
   const { data } = await db
     .from('venues')
-    .select('name, logo_url')
+    .select('name, logo_url, header_bg_color, header_text_color, slug')
     .eq('id', VENUE_ID)
     .single()
 
-  if (data) {
-    // Nombre
-    document.getElementById('resto-name').textContent = data.name || 'Mi Restaurante'
+  if (!data) return
 
-    // Logo
-    if (data.logo_url) {
-      const wrap = document.getElementById('resto-logo-wrap')
-      wrap.innerHTML = `<img src="${data.logo_url}" alt="Logo" />`
-    }
+  // Apply venue colors
+  const accent = data.header_text_color || '#E8772A'
+  const bg = data.header_bg_color || '#1A1A1A'
+  applyColors(accent, bg)
+
+  // Venue name
+  document.getElementById('resto-name').textContent = data.name || 'Mi Restaurante'
+
+  // Logo
+  if (data.logo_url) {
+    const wrap = document.getElementById('resto-logo-wrap')
+    wrap.innerHTML = `<img src="${data.logo_url}" alt="Logo" />`
   }
+
+  // QR URL based on venue slug
+  const clientUrl = data.slug
+    ? `https://capyapp.co/r/${data.slug}`
+    : 'https://capyapp.co'
+
+  // Update small url label
+  const shortUrl = data.slug ? `capyapp.co/r/${data.slug}` : 'capyapp.co'
+  document.getElementById('small-url').textContent = shortUrl
+
+  // Generate QR codes now that we have the URL
+  new QRCode(document.getElementById('qr-a4'), {
+    text: clientUrl,
+    width: 240, height: 240,
+    colorDark: '#1A1A1A', colorLight: '#F5F0EB',
+    correctLevel: QRCode.CorrectLevel.H
+  })
+
+  new QRCode(document.getElementById('qr-small'), {
+    text: clientUrl,
+    width: 110, height: 110,
+    colorDark: '#1A1A1A', colorLight: '#FFFFFF',
+    correctLevel: QRCode.CorrectLevel.H
+  })
 }
-
-// QR A4
-new QRCode(document.getElementById('qr-a4'), {
-  text: 'https://capyapp.co',
-  width: 240, height: 240,
-  colorDark: '#1A1A1A', colorLight: '#F5F0EB',
-  correctLevel: QRCode.CorrectLevel.H
-})
-
-// QR pequeño
-new QRCode(document.getElementById('qr-small'), {
-  text: 'https://capyapp.co',
-  width: 110, height: 110,
-  colorDark: '#1A1A1A', colorLight: '#FFFFFF',
-  correctLevel: QRCode.CorrectLevel.H
-})
 
 loadVenue()
 </script>

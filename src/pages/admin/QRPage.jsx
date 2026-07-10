@@ -83,6 +83,7 @@ export default function QRPage() {
             description="QR único del local. El cliente elige su mesa al escanear (o no la indica y el camarero la asigna)."
             url={clientUrl}
             showTemplate
+            venueId={venueId}
           />
         )}
 
@@ -221,7 +222,7 @@ function ZoneQRCard({ zone, slug }) {
   )
 }
 
-function QRCard({ label, description, url, showTemplate }) {
+function QRCard({ label, description, url, showTemplate, venueId }) {
   const canvasRef = useRef(null)
   const [ready, setReady] = useState(false)
 
@@ -266,9 +267,9 @@ function QRCard({ label, description, url, showTemplate }) {
           Descargar PNG
         </button>
       )}
-      {showTemplate && (
+      {showTemplate && venueId && (
         <a
-          href="/qr-template.html"
+          href={`/qr-template.html?venue=${venueId}`}
           target="_blank"
           rel="noreferrer"
           className="w-full flex items-center justify-center gap-2 border border-carbon-700 text-smoke-400 text-sm py-3 rounded-xl"
