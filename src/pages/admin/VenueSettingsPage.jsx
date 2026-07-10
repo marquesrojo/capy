@@ -48,6 +48,7 @@ export default function VenueSettingsPage() {
   const [description, setDescription] = useState('')
   const [announcement, setAnnouncement] = useState('')
   const [schedule, setSchedule] = useState(DEFAULT_SCHEDULE)
+  const [address, setAddress] = useState('')
   const [activePicker, setActivePicker] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -72,7 +73,7 @@ export default function VenueSettingsPage() {
       try {
         const { data: opt } = await supabaseStaff
           .from('venues')
-          .select('landing_self_color, landing_waiter_color, instagram_handle, banner_url, retiro_externo_enabled, delivery_enabled, description, announcement, schedule')
+          .select('landing_self_color, landing_waiter_color, instagram_handle, banner_url, retiro_externo_enabled, delivery_enabled, description, announcement, schedule, address')
           .eq('id', venueId)
           .single()
         if (opt?.landing_self_color) setLandingSelfColor(opt.landing_self_color)
@@ -84,6 +85,7 @@ export default function VenueSettingsPage() {
         if (opt?.description) setDescription(opt.description)
         if (opt?.announcement) setAnnouncement(opt.announcement)
         if (opt?.schedule) setSchedule(opt.schedule)
+        if (opt?.address) setAddress(opt.address)
       } catch (_) {}
 
       setLoading(false)
@@ -168,6 +170,7 @@ export default function VenueSettingsPage() {
             description: description.trim() || null,
             announcement: announcement.trim() || null,
             schedule,
+            address: address.trim() || null,
           })
           .eq('id', venueId)
       } catch (_) {}
@@ -474,6 +477,18 @@ export default function VenueSettingsPage() {
             className="input w-full resize-none text-sm"
           />
           <p className="text-smoke-600 text-[10px] mt-1 text-right">{description.length}/120</p>
+        </div>
+
+        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
+          <p className="text-smoke-300 font-medium text-sm mb-1">Dirección</p>
+          <p className="text-smoke-500 text-xs mb-3">Aparece en la página de bienvenida con link a Google Maps.</p>
+          <input
+            type="text"
+            value={address}
+            onChange={e => setAddress(e.target.value)}
+            placeholder="Ej: Av. Corrientes 1234, Buenos Aires"
+            className="input w-full text-sm"
+          />
         </div>
 
         <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">

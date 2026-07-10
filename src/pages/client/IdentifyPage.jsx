@@ -48,6 +48,7 @@ export default function IdentifyPage() {
   const [instagramHandle, setInstagramHandle] = useState('')
   const [description, setDescription] = useState('')
   const [announcement, setAnnouncement] = useState('')
+  const [address, setAddress] = useState('')
   const [schedule, setSchedule] = useState(null)
   const [showSchedule, setShowSchedule] = useState(false)
   const [retiroExternoEnabled, setRetiroExternoEnabled] = useState(false)
@@ -106,7 +107,7 @@ export default function IdentifyPage() {
 
     const venueQ = supabaseCustomer
       .from('venues')
-      .select('instagram_handle, retiro_externo_enabled, delivery_enabled, client_floor_map_enabled, description, announcement, schedule')
+      .select('instagram_handle, retiro_externo_enabled, delivery_enabled, client_floor_map_enabled, description, announcement, schedule, address')
       .eq('id', venueId)
       .single()
 
@@ -128,6 +129,7 @@ export default function IdentifyPage() {
         if (venueData?.description) setDescription(venueData.description)
         if (venueData?.announcement) setAnnouncement(venueData.announcement)
         if (venueData?.schedule) setSchedule(venueData.schedule)
+        if (venueData?.address) setAddress(venueData.address)
         const clientMapOn = !!venueData?.client_floor_map_enabled
         if (clientMapOn && zd.some(z => z.type === 'mesa' && z.pos_x != null)) {
           setZonePickerView('mapa')
@@ -142,6 +144,7 @@ export default function IdentifyPage() {
         if (data?.description) setDescription(data.description)
         if (data?.announcement) setAnnouncement(data.announcement)
         if (data?.schedule) setSchedule(data.schedule)
+        if (data?.address) setAddress(data.address)
       }).catch(() => {})
     }
   }, [venueId])
@@ -316,6 +319,19 @@ export default function IdentifyPage() {
           </h1>
           {description && (
             <p className="text-white/60 text-sm mt-1 max-w-xs mx-auto leading-snug">{description}</p>
+          )}
+          {address && (
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 mt-1 text-white/50 text-xs hover:text-white/80 transition-colors"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 21s-7-7.5-7-12a7 7 0 0 1 14 0c0 4.5-7 12-7 12Z"/><circle cx="12" cy="9" r="2.5"/>
+              </svg>
+              {address}
+            </a>
           )}
           {scheduleStatus && (
             <button
