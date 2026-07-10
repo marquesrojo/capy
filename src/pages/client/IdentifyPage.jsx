@@ -107,7 +107,7 @@ export default function IdentifyPage() {
 
     const venueQ = supabaseCustomer
       .from('venues')
-      .select('instagram_handle, retiro_externo_enabled, delivery_enabled, client_floor_map_enabled, description, announcement, schedule, address')
+      .select('instagram_handle, retiro_externo_enabled, delivery_enabled, client_floor_map_enabled, description, announcement, schedule')
       .eq('id', venueId)
       .single()
 
@@ -129,7 +129,6 @@ export default function IdentifyPage() {
         if (venueData?.description) setDescription(venueData.description)
         if (venueData?.announcement) setAnnouncement(venueData.announcement)
         if (venueData?.schedule) setSchedule(venueData.schedule)
-        if (venueData?.address) setAddress(venueData.address)
         const clientMapOn = !!venueData?.client_floor_map_enabled
         if (clientMapOn && zd.some(z => z.type === 'mesa' && z.pos_x != null)) {
           setZonePickerView('mapa')
@@ -144,9 +143,16 @@ export default function IdentifyPage() {
         if (data?.description) setDescription(data.description)
         if (data?.announcement) setAnnouncement(data.announcement)
         if (data?.schedule) setSchedule(data.schedule)
-        if (data?.address) setAddress(data.address)
       }).catch(() => {})
     }
+
+    supabaseCustomer
+      .from('venues')
+      .select('address')
+      .eq('id', venueId)
+      .single()
+      .then(({ data }) => { if (data?.address) setAddress(data.address) })
+      .catch(() => {})
   }, [venueId])
 
   function pickSector(sector) {

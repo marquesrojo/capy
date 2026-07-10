@@ -73,7 +73,7 @@ export default function VenueSettingsPage() {
       try {
         const { data: opt } = await supabaseStaff
           .from('venues')
-          .select('landing_self_color, landing_waiter_color, instagram_handle, banner_url, retiro_externo_enabled, delivery_enabled, description, announcement, schedule, address')
+          .select('landing_self_color, landing_waiter_color, instagram_handle, banner_url, retiro_externo_enabled, delivery_enabled, description, announcement, schedule')
           .eq('id', venueId)
           .single()
         if (opt?.landing_self_color) setLandingSelfColor(opt.landing_self_color)
@@ -85,7 +85,15 @@ export default function VenueSettingsPage() {
         if (opt?.description) setDescription(opt.description)
         if (opt?.announcement) setAnnouncement(opt.announcement)
         if (opt?.schedule) setSchedule(opt.schedule)
-        if (opt?.address) setAddress(opt.address)
+      } catch (_) {}
+
+      try {
+        const { data: addr } = await supabaseStaff
+          .from('venues')
+          .select('address')
+          .eq('id', venueId)
+          .single()
+        if (addr?.address) setAddress(addr.address)
       } catch (_) {}
 
       setLoading(false)
@@ -170,8 +178,14 @@ export default function VenueSettingsPage() {
             description: description.trim() || null,
             announcement: announcement.trim() || null,
             schedule,
-            address: address.trim() || null,
           })
+          .eq('id', venueId)
+      } catch (_) {}
+
+      try {
+        await supabaseStaff
+          .from('venues')
+          .update({ address: address.trim() || null })
           .eq('id', venueId)
       } catch (_) {}
 
