@@ -46,6 +46,10 @@ export default function IdentifyPage() {
   const [googleError, setGoogleError] = useState('')
 
   const [instagramHandle, setInstagramHandle] = useState('')
+  const [description, setDescription] = useState('')
+  const [announcement, setAnnouncement] = useState('')
+  const [schedule, setSchedule] = useState(null)
+  const [showSchedule, setShowSchedule] = useState(false)
   const [retiroExternoEnabled, setRetiroExternoEnabled] = useState(false)
   const [deliveryEnabled, setDeliveryEnabled] = useState(false)
   const [showExternalOptions, setShowExternalOptions] = useState(false)
@@ -102,7 +106,7 @@ export default function IdentifyPage() {
 
     const venueQ = supabaseCustomer
       .from('venues')
-      .select('instagram_handle, retiro_externo_enabled, delivery_enabled, client_floor_map_enabled')
+      .select('instagram_handle, retiro_externo_enabled, delivery_enabled, client_floor_map_enabled, description, announcement, schedule')
       .eq('id', venueId)
       .single()
 
@@ -121,6 +125,9 @@ export default function IdentifyPage() {
         if (venueData?.instagram_handle) setInstagramHandle(venueData.instagram_handle)
         if (venueData?.retiro_externo_enabled) setRetiroExternoEnabled(true)
         if (venueData?.delivery_enabled) setDeliveryEnabled(true)
+        if (venueData?.description) setDescription(venueData.description)
+        if (venueData?.announcement) setAnnouncement(venueData.announcement)
+        if (venueData?.schedule) setSchedule(venueData.schedule)
         const clientMapOn = !!venueData?.client_floor_map_enabled
         if (clientMapOn && zd.some(z => z.type === 'mesa' && z.pos_x != null)) {
           setZonePickerView('mapa')
@@ -132,6 +139,9 @@ export default function IdentifyPage() {
         if (data?.instagram_handle) setInstagramHandle(data.instagram_handle)
         if (data?.retiro_externo_enabled) setRetiroExternoEnabled(true)
         if (data?.delivery_enabled) setDeliveryEnabled(true)
+        if (data?.description) setDescription(data.description)
+        if (data?.announcement) setAnnouncement(data.announcement)
+        if (data?.schedule) setSchedule(data.schedule)
       }).catch(() => {})
     }
   }, [venueId])
@@ -213,6 +223,31 @@ export default function IdentifyPage() {
     return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(p)
   }
 
+  const DAY_KEYS = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado']
+  const DAY_LABELS = [
+    { key: 'lunes', label: 'Lunes' }, { key: 'martes', label: 'Martes' },
+    { key: 'miercoles', label: 'Miércoles' }, { key: 'jueves', label: 'Jueves' },
+    { key: 'viernes', label: 'Viernes' }, { key: 'sabado', label: 'Sábado' },
+    { key: 'domingo', label: 'Domingo' },
+  ]
+  const currentDayKey = DAY_KEYS[new Date().getDay()]
+
+  let scheduleStatus = null
+  if (schedule) {
+    const day = schedule[currentDayKey]
+    if (!day?.active) {
+      scheduleStatus = { isOpen: false, closeTime: null }
+    } else {
+      const [fH, fM] = day.from.split(':').map(Number)
+      const [tH, tM] = day.to.split(':').map(Number)
+      const now = new Date().getHours() * 60 + new Date().getMinutes()
+      const from = fH * 60 + fM
+      let to = tH * 60 + tM
+      if (to <= from) to += 24 * 60
+      scheduleStatus = { isOpen: now >= from && now < to, closeTime: day.to }
+    }
+  }
+
   const sectores = zones.filter(z => z.type === 'zona')
   const allMesas = zones.filter(z => z.type === 'mesa')
   const retiro = zones.filter(z => z.type === 'retiro')
@@ -278,6 +313,23 @@ export default function IdentifyPage() {
           >
             {venue?.name || 'Bienvenido'}
           </h1>
+          {description && (
+            <p className="text-white/60 text-sm mt-1 max-w-xs mx-auto leading-snug">{description}</p>
+          )}
+          {scheduleStatus && (
+            <button
+              onClick={() => setShowSchedule(v => !v)}
+              className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full text-xs font-medium"
+              style={{ background: 'rgba(255,255,255,0.15)', color: '#FFFFFF', backdropFilter: 'blur(4px)' }}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${scheduleStatus.isOpen ? 'bg-emerald-400' : 'bg-red-400'}`} />
+              {scheduleStatus.isOpen ? `Abierto · Cierra ${scheduleStatus.closeTime}` : 'Cerrado ahora'}
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                className={`transition-transform ${showSchedule ? 'rotate-180' : ''}`}>
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+          )}
           {decodedLabel && (
             <div className="inline-flex items-center gap-1.5 mt-2.5 px-3 py-1.5 rounded-full text-xs font-bold"
               style={{ background: 'rgba(255,255,255,0.2)', color: '#FFFFFF', backdropFilter: 'blur(4px)' }}>
@@ -291,6 +343,43 @@ export default function IdentifyPage() {
       </div>
 
       {googleError && <p className="text-red-500 text-xs text-center px-4 pt-2">{googleError}</p>}
+
+      {/* ── Horario expandible ── */}
+      {showSchedule && schedule && (
+        <div className="px-4 pt-3">
+          <div className="bg-white rounded-2xl border border-black/[0.06] shadow-sm p-4">
+            <p className="text-[#1A2332] font-black text-xs uppercase tracking-wider mb-3">Horarios</p>
+            <div className="space-y-1.5">
+              {DAY_LABELS.map(({ key, label }) => {
+                const day = schedule[key]
+                const isToday = key === currentDayKey
+                return (
+                  <div key={key} className="flex items-center justify-between">
+                    <span className={`text-sm ${isToday ? 'font-bold text-[#1A2332]' : 'text-[#6B7A8D]'}`}>{label}</span>
+                    {day?.active
+                      ? <span className={`text-sm tabular-nums ${isToday ? 'font-bold text-[#1A2332]' : 'text-[#6B7A8D]'}`}>{day.from} – {day.to}</span>
+                      : <span className="text-sm text-[#C0CBDA]">Cerrado</span>
+                    }
+                  </div>
+                )
+              })}
+            </div>
+            <button onClick={() => setShowSchedule(false)} className="text-[#9DAAB8] text-xs mt-3 underline">Cerrar</button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Anuncio del día ── */}
+      {announcement && (
+        <div className="px-4 pt-3">
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-start gap-2.5">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#92400e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </svg>
+            <p className="text-amber-800 text-sm font-medium leading-snug">{announcement}</p>
+          </div>
+        </div>
+      )}
 
       {/* ── Contenido principal ── */}
       <div className="px-4 pt-4 space-y-3">

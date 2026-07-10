@@ -7,6 +7,26 @@ import { PaperclipIcon, UtensilsIcon, BellIcon } from '../../components/Icons'
 
 const MAX_LOGO_SIZE_MB = 4
 
+const DAYS = [
+  { key: 'lunes',     label: 'Lunes' },
+  { key: 'martes',    label: 'Martes' },
+  { key: 'miercoles', label: 'Miércoles' },
+  { key: 'jueves',    label: 'Jueves' },
+  { key: 'viernes',   label: 'Viernes' },
+  { key: 'sabado',    label: 'Sábado' },
+  { key: 'domingo',   label: 'Domingo' },
+]
+
+const DEFAULT_SCHEDULE = {
+  lunes:     { active: true,  from: '09:00', to: '23:00' },
+  martes:    { active: true,  from: '09:00', to: '23:00' },
+  miercoles: { active: true,  from: '09:00', to: '23:00' },
+  jueves:    { active: true,  from: '09:00', to: '23:00' },
+  viernes:   { active: true,  from: '09:00', to: '01:00' },
+  sabado:    { active: true,  from: '10:00', to: '01:00' },
+  domingo:   { active: false, from: '10:00', to: '22:00' },
+}
+
 export default function VenueSettingsPage() {
   const { venueId } = useAuth()
   const [name, setName] = useState('')
@@ -25,6 +45,9 @@ export default function VenueSettingsPage() {
   const [bannerPreview, setBannerPreview] = useState(null)
   const [retiroExternoEnabled, setRetiroExternoEnabled] = useState(false)
   const [deliveryEnabled, setDeliveryEnabled] = useState(false)
+  const [description, setDescription] = useState('')
+  const [announcement, setAnnouncement] = useState('')
+  const [schedule, setSchedule] = useState(DEFAULT_SCHEDULE)
   const [activePicker, setActivePicker] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -49,7 +72,7 @@ export default function VenueSettingsPage() {
       try {
         const { data: opt } = await supabaseStaff
           .from('venues')
-          .select('landing_self_color, landing_waiter_color, instagram_handle, banner_url, retiro_externo_enabled, delivery_enabled')
+          .select('landing_self_color, landing_waiter_color, instagram_handle, banner_url, retiro_externo_enabled, delivery_enabled, description, announcement, schedule')
           .eq('id', venueId)
           .single()
         if (opt?.landing_self_color) setLandingSelfColor(opt.landing_self_color)
@@ -58,6 +81,9 @@ export default function VenueSettingsPage() {
         if (opt?.banner_url) setBannerUrl(opt.banner_url)
         if (opt?.retiro_externo_enabled) setRetiroExternoEnabled(true)
         if (opt?.delivery_enabled) setDeliveryEnabled(true)
+        if (opt?.description) setDescription(opt.description)
+        if (opt?.announcement) setAnnouncement(opt.announcement)
+        if (opt?.schedule) setSchedule(opt.schedule)
       } catch (_) {}
 
       setLoading(false)
@@ -139,6 +165,9 @@ export default function VenueSettingsPage() {
             banner_url: finalBannerUrl || null,
             retiro_externo_enabled: retiroExternoEnabled,
             delivery_enabled: deliveryEnabled,
+            description: description.trim() || null,
+            announcement: announcement.trim() || null,
+            schedule,
           })
           .eq('id', venueId)
       } catch (_) {}
@@ -157,6 +186,10 @@ export default function VenueSettingsPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  function setScheduleDay(key, field, value) {
+    setSchedule(prev => ({ ...prev, [key]: { ...prev[key], [field]: value } }))
   }
 
   if (loading) {
@@ -426,6 +459,81 @@ export default function VenueSettingsPage() {
                 <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${deliveryEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
               </div>
             </button>
+          </div>
+        </div>
+
+        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
+          <p className="text-smoke-300 font-medium text-sm mb-1">Descripción del local</p>
+          <p className="text-smoke-500 text-xs mb-3">Aparece bajo el nombre en la página de bienvenida para clientes.</p>
+          <textarea
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            placeholder="Ej: Café de especialidad y brunch en Palermo"
+            rows={2}
+            maxLength={120}
+            className="input w-full resize-none text-sm"
+          />
+          <p className="text-smoke-600 text-[10px] mt-1 text-right">{description.length}/120</p>
+        </div>
+
+        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
+          <p className="text-smoke-300 font-medium text-sm mb-1">Anuncio del día</p>
+          <p className="text-smoke-500 text-xs mb-3">Mensaje que aparece como banner en la página de bienvenida. Dejalo vacío para ocultarlo.</p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={announcement}
+              onChange={e => setAnnouncement(e.target.value)}
+              placeholder="Ej: Hoy: especial de milanesas $3500"
+              maxLength={100}
+              className="input flex-1 text-sm"
+            />
+            {announcement && (
+              <button type="button" onClick={() => setAnnouncement('')} className="text-smoke-500 text-xs px-3 rounded-xl border border-carbon-600">
+                Borrar
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
+          <p className="text-smoke-300 font-medium text-sm mb-1">Horarios</p>
+          <p className="text-smoke-500 text-xs mb-4">Aparecen en la página de bienvenida con indicador de abierto/cerrado.</p>
+          <div className="space-y-2">
+            {DAYS.map(({ key, label }) => {
+              const day = schedule[key] || { active: false, from: '09:00', to: '23:00' }
+              return (
+                <div key={key} className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setScheduleDay(key, 'active', !day.active)}
+                    className={`relative w-8 h-4 rounded-full transition-colors flex-shrink-0 ${day.active ? 'bg-ember-500' : 'bg-carbon-600'}`}
+                  >
+                    <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform ${day.active ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                  </button>
+                  <span className={`text-sm w-20 flex-shrink-0 ${day.active ? 'text-smoke-200' : 'text-smoke-600'}`}>{label}</span>
+                  {day.active ? (
+                    <div className="flex items-center gap-1.5 flex-1">
+                      <input
+                        type="time"
+                        value={day.from}
+                        onChange={e => setScheduleDay(key, 'from', e.target.value)}
+                        className="input text-xs py-1 px-2 flex-1 min-w-0"
+                      />
+                      <span className="text-smoke-600 text-xs">–</span>
+                      <input
+                        type="time"
+                        value={day.to}
+                        onChange={e => setScheduleDay(key, 'to', e.target.value)}
+                        className="input text-xs py-1 px-2 flex-1 min-w-0"
+                      />
+                    </div>
+                  ) : (
+                    <span className="text-smoke-600 text-xs">Cerrado</span>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
 
