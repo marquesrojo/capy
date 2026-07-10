@@ -78,10 +78,10 @@ export default function ShiftManagerPage() {
   async function loadShiftStats(shiftId) {
     const { data: orders } = await supabaseStaff
       .from('orders')
-      .select('total, payment_method, payment_status')
+      .select('total, payment_method, payment_status, status')
       .eq('venue_id', venueId)
       .eq('shift_id', shiftId)
-      .eq('payment_status', 'aprobado')
+      .neq('status', 'cancelado')
 
     if (!orders) return
 
@@ -145,7 +145,7 @@ export default function ShiftManagerPage() {
       .select('total, payment_method')
       .eq('venue_id', venueId)
       .eq('shift_id', shift.id)
-      .eq('payment_status', 'aprobado')
+      .neq('status', 'cancelado')
 
     const cashSales = (cashOrders || [])
       .filter(o => cashMethodNames.includes(o.payment_method))
