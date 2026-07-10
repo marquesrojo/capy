@@ -319,14 +319,24 @@ export default function WaitersPage() {
 function AdminCard({ user, currentUserId, onUpdated }) {
   const [editing, setEditing] = useState(false)
   const [fullName, setFullName] = useState(user.full_name)
+  const [managerPin, setManagerPin] = useState('')
+  const [pinError, setPinError] = useState('')
   const [saving, setSaving] = useState(false)
   const isMe = user.id === currentUserId
 
   async function handleSave() {
+    if (managerPin && (managerPin.length !== 4 || !/^\d{4}$/.test(managerPin))) {
+      setPinError('El PIN debe ser exactamente 4 dígitos.')
+      return
+    }
     setSaving(true)
-    await supabaseStaff.from('profiles').update({ full_name: fullName.trim() }).eq('id', user.id)
+    setPinError('')
+    const updates = { full_name: fullName.trim() }
+    if (managerPin) updates.manager_pin = managerPin
+    await supabaseStaff.from('profiles').update(updates).eq('id', user.id)
     setSaving(false)
     setEditing(false)
+    setManagerPin('')
     onUpdated()
   }
 
@@ -346,14 +356,25 @@ function AdminCard({ user, currentUserId, onUpdated }) {
             type="text"
             value={fullName}
             onChange={e => setFullName(e.target.value)}
+            placeholder="Nombre completo"
             className="input w-full text-sm"
           />
+          <input
+            type="text"
+            inputMode="numeric"
+            maxLength={4}
+            value={managerPin}
+            onChange={e => setManagerPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+            placeholder="PIN de manager (4 dígitos, opcional)"
+            className="input w-full text-sm"
+          />
+          {pinError && <p className="text-red-500 text-xs">{pinError}</p>}
           <div className="flex gap-2">
             <button onClick={handleSave} disabled={saving}
               className="flex-1 bg-ember-500 disabled:opacity-50 text-white text-xs font-semibold py-2 rounded-xl">
               {saving ? 'Guardando...' : 'Guardar'}
             </button>
-            <button onClick={() => setEditing(false)}
+            <button onClick={() => { setEditing(false); setManagerPin(''); setPinError('') }}
               className="flex-1 border border-carbon-700 text-smoke-400 text-xs py-2 rounded-xl">
               Cancelar
             </button>
