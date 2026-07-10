@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import { supabaseStaff } from '../../lib/supabase'
 
 const ICON_PROPS = { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round' }
 
@@ -55,8 +57,28 @@ const MI_LOCAL_ITEMS = [
 ]
 
 export default function ConfigPage() {
-  const { profile } = useAuth()
+  const { profile, venueId } = useAuth()
+  const [hasProducts, setHasProducts] = useState(true)
+  const [hasLocations, setHasLocations] = useState(true)
+  const [hasCamautStaff, setHasCamautStaff] = useState(true)
+
+  useEffect(() => {
+    if (!venueId) return
+    async function checkSetup() {
+      const [prodRes, zoneRes, staffRes] = await Promise.all([
+        supabaseStaff.from('products').select('id', { count: 'exact', head: true }).eq('venue_id', venueId),
+        supabaseStaff.from('venue_zones').select('id', { count: 'exact', head: true }).eq('venue_id', venueId),
+        supabaseStaff.from('venue_staff').select('id', { count: 'exact', head: true }).eq('venue_id', venueId)
+      ])
+      setHasProducts((prodRes.count || 0) > 0)
+      setHasLocations((zoneRes.count || 0) > 0)
+      setHasCamautStaff((staffRes.count || 0) > 0)
+    }
+    checkSetup()
+  }, [venueId])
+
   const items = MI_LOCAL_ITEMS.filter(item => !item.adminOnly || profile?.role === 'admin')
+  const setupIncomplete = !hasProducts || !hasLocations || !hasCamautStaff
 
   return (
     <div className="min-h-screen bg-carbon-950 pb-10">
@@ -66,6 +88,32 @@ export default function ConfigPage() {
           <Link to="/admin" className="text-smoke-400 text-xs underline">← Volver</Link>
         </div>
       </header>
+
+      {setupIncomplete && (
+        <div className="px-4 pt-4">
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 space-y-3">
+            <p className="text-amber-700 font-semibold text-sm">Configuración inicial</p>
+            {!hasProducts && (
+              <div className="flex items-center justify-between">
+                <span className="text-smoke-400 text-xs">Carta de productos</span>
+                <Link to="/admin/carta" className="text-amber-600 text-xs font-medium underline">Crear →</Link>
+              </div>
+            )}
+            {!hasLocations && (
+              <div className="flex items-center justify-between">
+                <span className="text-smoke-400 text-xs">Ubicaciones del local</span>
+                <Link to="/admin/ubicaciones" className="text-amber-600 text-xs font-medium underline">Crear →</Link>
+              </div>
+            )}
+            {!hasCamautStaff && (
+              <div className="flex items-center justify-between">
+                <span className="text-smoke-400 text-xs">App Camarero vinculada</span>
+                <Link to="/admin/qr" className="text-amber-600 text-xs font-medium underline">Ver QR →</Link>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <main className="px-4 mt-4">
         <div className="grid grid-cols-2 gap-3">
