@@ -1298,7 +1298,25 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
     reset()
   }
 
-  if (noPhoto.length === 0) return null
+  if (noPhoto.length === 0) {
+    return (
+      <div className="w-full mb-4 bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-3 flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-smoke-300 text-xs font-semibold">Todos los productos tienen foto</p>
+          {!unlimited && (
+            <p className="text-smoke-600 text-[10px]">
+              {dailyRemaining} búsquedas diarias disponibles{extraCredits > 0 ? ` · ${extraCredits} créditos extra` : ''}
+            </p>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   // Sin créditos: alerta con CTA
   if (outOfCredits) {
