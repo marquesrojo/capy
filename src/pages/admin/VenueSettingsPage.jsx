@@ -494,13 +494,13 @@ export default function VenueSettingsPage() {
         </div>
 
         <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
-          <p className="text-smoke-300 font-medium text-sm mb-1">Dirección</p>
-          <p className="text-smoke-500 text-xs mb-3">Aparece en la página de bienvenida con link a Google Maps.</p>
+          <p className="text-smoke-300 font-medium text-sm mb-1">Link de Google Maps</p>
+          <p className="text-smoke-500 text-xs mb-3">Pegá el link de tu local en Google Maps. Aparece en la página de bienvenida.</p>
           <input
-            type="text"
+            type="url"
             value={address}
             onChange={e => setAddress(e.target.value)}
-            placeholder="Ej: Av. Corrientes 1234, Buenos Aires"
+            placeholder="https://maps.app.goo.gl/..."
             className="input w-full text-sm"
           />
         </div>

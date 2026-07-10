@@ -805,7 +805,7 @@ export default function IdentifyPage() {
         {address && (
           <div>
             <a
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`}
+              href={address}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 text-[#9DAAB8] text-xs hover:text-[#1A2332] transition-colors"
@@ -813,7 +813,7 @@ export default function IdentifyPage() {
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 21s-7-7.5-7-12a7 7 0 0 1 14 0c0 4.5-7 12-7 12Z"/><circle cx="12" cy="9" r="2.5"/>
               </svg>
-              {address}
+              Ver en Google Maps
             </a>
           </div>
         )}
