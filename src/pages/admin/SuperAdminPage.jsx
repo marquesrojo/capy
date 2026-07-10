@@ -112,12 +112,13 @@ function StatsTab() {
 function VenuesTab() {
   const [venues, setVenues] = useState([])
   const [loading, setLoading] = useState(true)
+  const [creditInputs, setCreditInputs] = useState({})
 
   useEffect(() => {
     async function load() {
       const { data } = await supabaseStaff
         .from('venues')
-        .select('id, name, slug, is_active, created_at, mp_enabled')
+        .select('id, name, slug, is_active, created_at, mp_enabled, extra_image_credits')
         .not('slug', 'like', 'camaut-%')
         .order('created_at', { ascending: false })
       setVenues(data || [])
@@ -126,28 +127,75 @@ function VenuesTab() {
     load()
   }, [])
 
+  async function addCredits(venueId, amount) {
+    const venue = venues.find(v => v.id === venueId)
+    if (!venue) return
+    const newTotal = (venue.extra_image_credits || 0) + amount
+    await supabaseStaff.from('venues').update({ extra_image_credits: newTotal }).eq('id', venueId)
+    setVenues(prev => prev.map(v => v.id === venueId ? { ...v, extra_image_credits: newTotal } : v))
+    setCreditInputs(prev => ({ ...prev, [venueId]: '' }))
+  }
+
   if (loading) return <p className="text-smoke-500 text-sm">Cargando...</p>
 
   return (
     <div className="space-y-2">
       <p className="text-smoke-500 text-xs mb-3">{venues.length} locales registrados</p>
       {venues.map(v => (
-        <div key={v.id} className="bg-carbon-900 border border-carbon-700 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-smoke-200 font-medium text-sm truncate">{v.name}</p>
-            <p className="text-smoke-500 text-xs font-mono">/r/{v.slug}</p>
+        <div key={v.id} className="bg-carbon-900 border border-carbon-700 rounded-xl px-4 py-3 space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-smoke-200 font-medium text-sm truncate">{v.name}</p>
+              <p className="text-smoke-500 text-xs font-mono">/r/{v.slug}</p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {v.mp_enabled && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full border border-blue-500/40 text-blue-500">MP</span>
+              )}
+              <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                v.is_active
+                  ? 'border-emerald-500/40 text-emerald-500'
+                  : 'border-carbon-600 text-smoke-500'
+              }`}>
+                {v.is_active ? 'activo' : 'inactivo'}
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {v.mp_enabled && (
-              <span className="text-[10px] px-2 py-0.5 rounded-full border border-blue-500/40 text-blue-500">MP</span>
-            )}
-            <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
-              v.is_active
-                ? 'border-emerald-500/40 text-emerald-500'
-                : 'border-carbon-600 text-smoke-500'
-            }`}>
-              {v.is_active ? 'activo' : 'inactivo'}
+          <div className="flex items-center gap-2">
+            <span className="text-smoke-500 text-[11px]">Créditos img:</span>
+            <span className={`font-mono text-xs font-semibold ${(v.extra_image_credits || 0) > 0 ? 'text-emerald-400' : 'text-smoke-600'}`}>
+              {v.extra_image_credits || 0}
             </span>
+            <div className="flex items-center gap-1 ml-auto">
+              <input
+                type="number"
+                min="1"
+                placeholder="cantidad"
+                value={creditInputs[v.id] || ''}
+                onChange={e => setCreditInputs(prev => ({ ...prev, [v.id]: e.target.value }))}
+                className="w-20 bg-carbon-800 border border-carbon-700 rounded-lg px-2 py-1 text-xs text-smoke-300 text-center"
+              />
+              <button
+                onClick={() => {
+                  const n = parseInt(creditInputs[v.id])
+                  if (n > 0) addCredits(v.id, n)
+                }}
+                className="bg-ember-500 hover:bg-ember-600 text-white text-[11px] font-semibold px-2.5 py-1 rounded-lg"
+              >
+                + Cargar
+              </button>
+              {(v.extra_image_credits || 0) > 0 && (
+                <button
+                  onClick={() => {
+                    supabaseStaff.from('venues').update({ extra_image_credits: 0 }).eq('id', v.id)
+                    setVenues(prev => prev.map(x => x.id === v.id ? { ...x, extra_image_credits: 0 } : x))
+                  }}
+                  className="text-smoke-600 text-[11px] underline"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
           </div>
         </div>
       ))}

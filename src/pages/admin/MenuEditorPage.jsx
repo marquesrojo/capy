@@ -18,17 +18,20 @@ export default function MenuEditorPage() {
   const unlimitedPhotos = isSuperAdmin || (isPropietario && today === '2026-07-10')
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
+  const [extraCredits, setExtraCredits] = useState(0)
   const [loading, setLoading] = useState(true)
   const [showProductForm, setShowProductForm] = useState(false)
   const [showCategoryForm, setShowCategoryForm] = useState(false)
 
   async function loadAll() {
-    const [catRes, prodRes] = await Promise.all([
+    const [catRes, prodRes, venueRes] = await Promise.all([
       supabaseStaff.from('categories').select('*').eq('venue_id', venueId).order('sort_order'),
-      supabaseStaff.from('products').select('*').eq('venue_id', venueId).order('sort_order')
+      supabaseStaff.from('products').select('*').eq('venue_id', venueId).order('sort_order'),
+      supabaseStaff.from('venues').select('extra_image_credits').eq('id', venueId).single()
     ])
     setCategories(catRes.data || [])
     setProducts(prodRes.data || [])
+    setExtraCredits(venueRes.data?.extra_image_credits || 0)
     setLoading(false)
   }
 
@@ -104,7 +107,7 @@ export default function MenuEditorPage() {
         </div>
 
         <ImportarConIA venueId={venueId} onImported={loadAll} unlimited={unlimitedPhotos} />
-        <FotosConIA venueId={venueId} products={products} onUpdated={loadAll} unlimited={unlimitedPhotos} />
+        <FotosConIA venueId={venueId} products={products} onUpdated={loadAll} unlimited={unlimitedPhotos} extraCredits={extraCredits} onExtraCreditsChanged={setExtraCredits} />
 
         {showCategoryForm && (
           <NewCategoryForm
@@ -1151,7 +1154,9 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
   )
 }
 
-function FotosConIA({ venueId, products, onUpdated, unlimited = false }) {
+const CAPY_SUPPORT_WA = 'https://wa.me/5491168064524?text=Hola%20Capy%2C%20me%20qued%C3%A9%20sin%20cr%C3%A9ditos%20de%20im%C3%A1genes.%20%C2%BFMe%20pod%C3%A9s%20recargar%3F'
+
+function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCredits = 0, onExtraCreditsChanged }) {
   const [open, setOpen] = useState(false)
   const [status, setStatus] = useState('idle') // idle | generating | review | saving
   const [progress, setProgress] = useState({ current: 0, total: 0, name: '' })
@@ -1159,8 +1164,10 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false }) {
   const [error, setError] = useState('')
 
   const noPhoto = products.filter(p => !p.image_url)
-  const remaining = unlimited ? noPhoto.length : UNSPLASH_DAILY_LIMIT - getUnsplashCount(venueId)
-  const canProcess = Math.min(noPhoto.length, Math.max(remaining, 0))
+  const dailyRemaining = unlimited ? Infinity : Math.max(UNSPLASH_DAILY_LIMIT - getUnsplashCount(venueId), 0)
+  const totalAvailable = unlimited ? noPhoto.length : dailyRemaining + extraCredits
+  const canProcess = Math.min(noPhoto.length, totalAvailable)
+  const outOfCredits = !unlimited && totalAvailable === 0 && noPhoto.length > 0
 
   function reset() {
     setOpen(false)
@@ -1173,17 +1180,20 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false }) {
   async function generate() {
     const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
     if (!API_KEY) { setError('VITE_GEMINI_API_KEY no configurada'); return }
-    if (remaining <= 0) { setError(`Límite diario alcanzado (${UNSPLASH_DAILY_LIMIT}/día). Volvé mañana.`); return }
+    if (totalAvailable <= 0) return
 
-    const toProcess = noPhoto.slice(0, remaining)
+    const toProcess = noPhoto.slice(0, totalAvailable)
     setStatus('generating')
     setProgress({ current: 0, total: toProcess.length, name: '' })
     setError('')
 
     const found = []
+    let extraCreditsUsed = 0
+
     for (let i = 0; i < toProcess.length; i++) {
       const p = toProcess[i]
       setProgress({ current: i + 1, total: toProcess.length, name: p.name })
+      const usingExtra = !unlimited && i >= dailyRemaining
 
       let query = p.name
       try {
@@ -1197,8 +1207,17 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false }) {
         query = (data.candidates?.[0]?.content?.parts?.[0]?.text || p.name).trim().replace(/^"|"$/g, '')
       } catch { /* use product name as fallback */ }
 
-      const url = await searchUnsplash(query, venueId, { skipLimit: unlimited })
-      if (url) found.push({ product: p, imageUrl: url, selected: true })
+      const url = await searchUnsplash(query, venueId, { skipLimit: unlimited || usingExtra })
+      if (url) {
+        found.push({ product: p, imageUrl: url, selected: true })
+        if (usingExtra) extraCreditsUsed++
+      }
+    }
+
+    if (extraCreditsUsed > 0) {
+      const newCredits = Math.max(0, extraCredits - extraCreditsUsed)
+      await supabaseStaff.from('venues').update({ extra_image_credits: newCredits }).eq('id', venueId)
+      onExtraCreditsChanged?.(newCredits)
     }
 
     if (found.length === 0) {
@@ -1222,6 +1241,38 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false }) {
 
   if (noPhoto.length === 0) return null
 
+  // Sin créditos: alerta con CTA
+  if (outOfCredits) {
+    return (
+      <div className="w-full mb-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl px-4 py-4">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-xl bg-amber-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-amber-700 font-semibold text-sm">Sin créditos de imagen</p>
+            <p className="text-amber-700/70 text-xs mt-1">
+              Usaste todas las búsquedas de hoy ({UNSPLASH_DAILY_LIMIT}/día). El cupo diario se renueva a medianoche.
+            </p>
+            <p className="text-amber-700/70 text-xs mt-1">
+              Tenés {noPhoto.length} producto{noPhoto.length !== 1 ? 's' : ''} sin foto. Para generarlas antes de mañana, solicitá créditos adicionales.
+            </p>
+            <a
+              href={CAPY_SUPPORT_WA}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block mt-3 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-4 py-2 rounded-xl"
+            >
+              Solicitar créditos →
+            </a>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (!open) {
     return (
       <button
@@ -1235,7 +1286,10 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false }) {
         </div>
         <div>
           <p className="font-semibold text-smoke-300 text-sm">Generar fotos con IA</p>
-          <p className="text-smoke-500 text-xs">{noPhoto.length} productos sin foto{!unlimited ? ` · ${Math.max(remaining, 0)} búsquedas disponibles hoy` : ''}</p>
+          <p className="text-smoke-500 text-xs">
+            {noPhoto.length} productos sin foto
+            {!unlimited && ` · ${dailyRemaining} diarias${extraCredits > 0 ? ` + ${extraCredits} extra` : ''}`}
+          </p>
         </div>
       </button>
     )
@@ -1336,8 +1390,14 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false }) {
         </div>
         {!unlimited && (
           <div className="flex-1 bg-carbon-800 rounded-xl p-3">
-            <p className={`text-2xl font-bold font-mono ${remaining < 5 ? 'text-amber-400' : 'text-smoke-200'}`}>{Math.max(remaining, 0)}</p>
-            <p className="text-smoke-600 text-[10px] mt-0.5">disponibles hoy</p>
+            <p className={`text-2xl font-bold font-mono ${dailyRemaining < 5 ? 'text-amber-400' : 'text-smoke-200'}`}>{dailyRemaining}</p>
+            <p className="text-smoke-600 text-[10px] mt-0.5">diarias hoy</p>
+          </div>
+        )}
+        {!unlimited && extraCredits > 0 && (
+          <div className="flex-1 bg-carbon-800 rounded-xl p-3">
+            <p className="text-2xl font-bold font-mono text-emerald-400">{extraCredits}</p>
+            <p className="text-smoke-600 text-[10px] mt-0.5">créditos extra</p>
           </div>
         )}
         <div className="flex-1 bg-ember-500/10 border border-ember-500/20 rounded-xl p-3">
@@ -1345,8 +1405,8 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false }) {
           <p className="text-smoke-600 text-[10px] mt-0.5">se procesarán</p>
         </div>
       </div>
-      {!unlimited && remaining < noPhoto.length && remaining > 0 && (
-        <p className="text-amber-400/80 text-xs">Solo se procesarán {remaining} productos hoy. El cupo se renueva mañana.</p>
+      {!unlimited && canProcess < noPhoto.length && canProcess > 0 && (
+        <p className="text-amber-400/80 text-xs">Solo se procesarán {canProcess} productos (cupo disponible). El cupo diario se renueva mañana.</p>
       )}
       {error && <p className="text-red-500 text-xs">{error}</p>}
       <div className="flex gap-2">
