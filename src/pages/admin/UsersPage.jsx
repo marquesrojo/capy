@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabaseStaff } from '../../lib/supabase'
+import { useAuth } from '../../hooks/useAuth'
 import { UsersIcon } from '../../components/Icons'
 
 const ROLE_LABELS = { admin: 'Administrador', camarero: 'Camarero' }
@@ -13,6 +14,7 @@ const EDGE_HEADERS = {
 }
 
 export default function UsersPage() {
+  const { venueId } = useAuth()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [email, setEmail] = useState('')
@@ -23,13 +25,14 @@ export default function UsersPage() {
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
 
-  useEffect(() => { loadUsers() }, [])
+  useEffect(() => { if (venueId) loadUsers() }, [venueId])
 
   async function loadUsers() {
     const { data } = await supabaseStaff
       .from('profiles')
       .select('id, full_name, role, is_active, is_shared_account, created_at')
-      .in('role', ['admin', 'camarero'])
+      .eq('venue_id', venueId)
+      .in('role', ['admin', 'camarero', 'propietario'])
       .order('is_active', { ascending: false })
       .order('created_at', { ascending: false })
     setUsers(data || [])
