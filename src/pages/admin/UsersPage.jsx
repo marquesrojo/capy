@@ -23,6 +23,12 @@ export default function UsersPage() {
   const { venueId, isPropietario, profile } = useAuth()
   const [tab, setTab] = useState('todos')
 
+  // Mi PIN
+  const [myPin, setMyPin] = useState('')
+  const [savingPin, setSavingPin] = useState(false)
+  const [pinSuccess, setPinSuccess] = useState('')
+  const [pinError, setPinError] = useState('')
+
   // Tab: todos
   const [users, setUsers] = useState([])
   const [loadingUsers, setLoadingUsers] = useState(true)
@@ -211,6 +217,28 @@ export default function UsersPage() {
     }
   }
 
+  async function handleSaveMyPin() {
+    if (!myPin || myPin.length !== 4 || !/^\d{4}$/.test(myPin)) {
+      setPinError('El PIN debe ser exactamente 4 dígitos.')
+      return
+    }
+    setSavingPin(true)
+    setPinError('')
+    setPinSuccess('')
+    const { error: err } = await supabaseStaff
+      .from('profiles')
+      .update({ manager_pin: myPin })
+      .eq('id', profile.id)
+    setSavingPin(false)
+    if (err) {
+      setPinError('No se pudo guardar el PIN: ' + err.message)
+    } else {
+      setPinSuccess('PIN guardado.')
+      setMyPin('')
+      setTimeout(() => setPinSuccess(''), 3000)
+    }
+  }
+
   async function desvincular(id) {
     if (!confirm('¿Desvincular este camarero?')) return
     await supabaseStaff
@@ -258,6 +286,32 @@ export default function UsersPage() {
         {/* ── TAB: TODOS ── */}
         {tab === 'todos' && (
           <div className="space-y-6">
+            {/* Mi PIN de manager */}
+            <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
+              <p className="text-smoke-300 font-medium text-sm mb-1">Mi PIN de manager</p>
+              <p className="text-smoke-500 text-xs mb-3">Se usa para autorizar anulaciones en el Auditor.</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={4}
+                  value={myPin}
+                  onChange={e => { setMyPin(e.target.value.replace(/\D/g, '').slice(0, 4)); setPinError(''); setPinSuccess('') }}
+                  placeholder="4 dígitos"
+                  className="input flex-1"
+                />
+                <button
+                  onClick={handleSaveMyPin}
+                  disabled={savingPin}
+                  className="bg-ember-500 hover:bg-ember-600 disabled:opacity-50 text-white font-semibold px-5 rounded-xl text-sm"
+                >
+                  {savingPin ? '...' : 'Guardar'}
+                </button>
+              </div>
+              {pinError && <p className="text-red-500 text-xs mt-2">{pinError}</p>}
+              {pinSuccess && <p className="text-emerald-500 text-xs mt-2">{pinSuccess}</p>}
+            </div>
+
             {isPropietario && (
               <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
                 <p className="text-smoke-300 font-medium text-sm mb-4">Crear nuevo usuario</p>
