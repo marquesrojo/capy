@@ -22,6 +22,7 @@ export default function MenuEditorPage() {
   const [loading, setLoading] = useState(true)
   const [showProductForm, setShowProductForm] = useState(false)
   const [showCategoryForm, setShowCategoryForm] = useState(false)
+  const [activeTab, setActiveTab] = useState('carta') // 'carta' | 'insumos'
 
   async function loadAll() {
     const [catRes, prodRes, venueRes] = await Promise.all([
@@ -91,107 +92,130 @@ export default function MenuEditorPage() {
       </header>
 
       <div className="px-5 mt-4">
-        <div className="flex gap-2 mb-4">
+        {/* Tabs */}
+        <div className="flex gap-1 mb-4 bg-carbon-900 p-1 rounded-xl">
           <button
-            onClick={() => { setShowProductForm(true); setShowCategoryForm(false) }}
-            className="flex-1 bg-ember-500 hover:bg-ember-600 text-white font-semibold py-3 rounded-xl text-sm"
+            onClick={() => setActiveTab('carta')}
+            className={`flex-1 text-sm font-semibold py-2 rounded-lg transition-colors ${activeTab === 'carta' ? 'bg-ember-500 text-white' : 'text-smoke-400'}`}
           >
-            + Producto
+            Carta
           </button>
           <button
-            onClick={() => { setShowCategoryForm(true); setShowProductForm(false) }}
-            className="flex-1 border border-carbon-700 text-smoke-300 font-semibold py-3 rounded-xl text-sm"
+            onClick={() => setActiveTab('insumos')}
+            className={`flex-1 text-sm font-semibold py-2 rounded-lg transition-colors ${activeTab === 'insumos' ? 'bg-ember-500 text-white' : 'text-smoke-400'}`}
           >
-            + Categoría
+            Insumos
           </button>
         </div>
 
-        <ImportarConIA venueId={venueId} onImported={loadAll} unlimited={unlimitedPhotos} />
-        <FotosConIA venueId={venueId} products={products} onUpdated={loadAll} unlimited={unlimitedPhotos} extraCredits={extraCredits} onExtraCreditsChanged={setExtraCredits} isSuperAdmin={isSuperAdmin} />
+        {activeTab === 'insumos' ? (
+          <InsumosList venueId={venueId} categories={categories} allProducts={products} onRefresh={loadAll} />
+        ) : (
+          <>
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => { setShowProductForm(true); setShowCategoryForm(false) }}
+                className="flex-1 bg-ember-500 hover:bg-ember-600 text-white font-semibold py-3 rounded-xl text-sm"
+              >
+                + Producto
+              </button>
+              <button
+                onClick={() => { setShowCategoryForm(true); setShowProductForm(false) }}
+                className="flex-1 border border-carbon-700 text-smoke-300 font-semibold py-3 rounded-xl text-sm"
+              >
+                + Categoría
+              </button>
+            </div>
 
-        {showCategoryForm && (
-          <NewCategoryForm
-            venueId={venueId}
-            onClose={() => setShowCategoryForm(false)}
-            onCreated={() => { setShowCategoryForm(false); loadAll() }}
-          />
-        )}
+            <ImportarConIA venueId={venueId} onImported={loadAll} unlimited={unlimitedPhotos} />
+            <FotosConIA venueId={venueId} products={products.filter(p => !p.is_ingredient_only)} onUpdated={loadAll} unlimited={unlimitedPhotos} extraCredits={extraCredits} onExtraCreditsChanged={setExtraCredits} isSuperAdmin={isSuperAdmin} />
 
-        {showProductForm && (
-          <NewProductForm
-            venueId={venueId}
-            categories={categories}
-            onClose={() => setShowProductForm(false)}
-            onCreated={() => { setShowProductForm(false); loadAll() }}
-          />
-        )}
+            {showCategoryForm && (
+              <NewCategoryForm
+                venueId={venueId}
+                onClose={() => setShowCategoryForm(false)}
+                onCreated={() => { setShowCategoryForm(false); loadAll() }}
+              />
+            )}
 
-        {categories.map((cat, catIdx) => (
-          <div key={cat.id} className="mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <div className="flex flex-col gap-0.5">
-                  <button
-                    onClick={() => moveCategory(cat.id, -1)}
-                    disabled={catIdx === 0}
-                    className="text-smoke-600 disabled:opacity-20 leading-none text-xs px-0.5"
-                    title="Subir"
-                  >▲</button>
-                  <button
-                    onClick={() => moveCategory(cat.id, 1)}
-                    disabled={catIdx === categories.length - 1}
-                    className="text-smoke-600 disabled:opacity-20 leading-none text-xs px-0.5"
-                    title="Bajar"
-                  >▼</button>
+            {showProductForm && (
+              <NewProductForm
+                venueId={venueId}
+                categories={categories}
+                onClose={() => setShowProductForm(false)}
+                onCreated={() => { setShowProductForm(false); loadAll() }}
+              />
+            )}
+
+            {categories.map((cat, catIdx) => (
+              <div key={cat.id} className="mb-6">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex flex-col gap-0.5">
+                      <button
+                        onClick={() => moveCategory(cat.id, -1)}
+                        disabled={catIdx === 0}
+                        className="text-smoke-600 disabled:opacity-20 leading-none text-xs px-0.5"
+                        title="Subir"
+                      >▲</button>
+                      <button
+                        onClick={() => moveCategory(cat.id, 1)}
+                        disabled={catIdx === categories.length - 1}
+                        className="text-smoke-600 disabled:opacity-20 leading-none text-xs px-0.5"
+                        title="Bajar"
+                      >▼</button>
+                    </div>
+                    <CategoryNameEditor
+                      cat={cat}
+                      onSave={newName => setCategories(prev => prev.map(c => c.id === cat.id ? { ...c, name: newName } : c))}
+                    />
+                    <select
+                      value={cat.kind || 'otro'}
+                      onChange={async e => {
+                        const newKind = e.target.value
+                        setCategories(prev => prev.map(c => c.id === cat.id ? { ...c, kind: newKind } : c))
+                        await supabaseStaff.from('categories').update({ kind: newKind }).eq('id', cat.id)
+                      }}
+                      className={`text-[10px] px-2 py-0.5 rounded-full border bg-transparent cursor-pointer ${KIND_COLORS[cat.kind] || KIND_COLORS.otro}`}
+                    >
+                      <option value="comida">Comida</option>
+                      <option value="bebida">Bebida</option>
+                      <option value="otro">Otro</option>
+                    </select>
+                  </div>
+                  {products.filter(p => p.category_id === cat.id && !p.is_ingredient_only).length === 0 && (
+                    <button
+                      onClick={async () => {
+                        if (!confirm(`¿Borrar la categoría "${cat.name}"?`)) return
+                        await supabaseStaff.from('categories').delete().eq('id', cat.id)
+                        setCategories(prev => prev.filter(c => c.id !== cat.id))
+                      }}
+                      className="text-smoke-500 text-xs underline"
+                    >
+                      Borrar
+                    </button>
+                  )}
                 </div>
-                <CategoryNameEditor
-                  cat={cat}
-                  onSave={newName => setCategories(prev => prev.map(c => c.id === cat.id ? { ...c, name: newName } : c))}
-                />
-                <select
-                  value={cat.kind || 'otro'}
-                  onChange={async e => {
-                    const newKind = e.target.value
-                    setCategories(prev => prev.map(c => c.id === cat.id ? { ...c, kind: newKind } : c))
-                    await supabaseStaff.from('categories').update({ kind: newKind }).eq('id', cat.id)
-                  }}
-                  className={`text-[10px] px-2 py-0.5 rounded-full border bg-transparent cursor-pointer ${KIND_COLORS[cat.kind] || KIND_COLORS.otro}`}
-                >
-                  <option value="comida">Comida</option>
-                  <option value="bebida">Bebida</option>
-                  <option value="otro">Otro</option>
-                </select>
+                <div className="space-y-2">
+                  {products
+                    .filter(p => p.category_id === cat.id && !p.is_ingredient_only)
+                    .map(product => (
+                      <ProductRow
+                        key={product.id}
+                        product={product}
+                        venueId={venueId}
+                        categories={categories}
+                        allProducts={products}
+                        onToggle={() => toggleAvailability(product)}
+                        onDelete={() => deleteProduct(product.id)}
+                        onSave={updated => setProducts(prev => prev.map(p => p.id === updated.id ? updated : p))}
+                      />
+                    ))}
+                </div>
               </div>
-              {products.filter(p => p.category_id === cat.id).length === 0 && (
-                <button
-                  onClick={async () => {
-                    if (!confirm(`¿Borrar la categoría "${cat.name}"?`)) return
-                    await supabaseStaff.from('categories').delete().eq('id', cat.id)
-                    setCategories(prev => prev.filter(c => c.id !== cat.id))
-                  }}
-                  className="text-smoke-500 text-xs underline"
-                >
-                  Borrar
-                </button>
-              )}
-            </div>
-            <div className="space-y-2">
-              {products
-                .filter(p => p.category_id === cat.id)
-                .map(product => (
-                  <ProductRow
-                    key={product.id}
-                    product={product}
-                    venueId={venueId}
-                    categories={categories}
-                    onToggle={() => toggleAvailability(product)}
-                    onDelete={() => deleteProduct(product.id)}
-                    onSave={updated => setProducts(prev => prev.map(p => p.id === updated.id ? updated : p))}
-                  />
-                ))}
-            </div>
-          </div>
-        ))}
+            ))}
+          </>
+        )}
       </div>
     </div>
   )
@@ -427,7 +451,7 @@ function IngredientsPanel({ productId, productName, productDescription, currentI
   )
 }
 
-function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }) {
+function ProductRow({ product, venueId, categories, allProducts = [], onToggle, onDelete, onSave }) {
   const [editing, setEditing] = useState(false)
   const [showIngredients, setShowIngredients] = useState(false)
   const [photoSearching, setPhotoSearching] = useState(false)
@@ -438,9 +462,10 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
   const [description, setDescription] = useState(product.description || '')
   const [categoryId, setCategoryId] = useState(product.category_id)
   const [dietaryTags, setDietaryTags] = useState(product.dietary_tags || [])
-  const [trackStock, setTrackStock] = useState(product.unit_stock != null)
+  const [stockMode, setStockMode] = useState(product.stock_mode || null)
   const [unitStock, setUnitStock] = useState(product.unit_stock != null ? String(product.unit_stock) : '')
   const [minStockAlert, setMinStockAlert] = useState(product.min_stock_alert != null ? String(product.min_stock_alert) : '')
+  const [recipe, setRecipe] = useState(null)
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -476,10 +501,22 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
       category_id: categoryId,
       image_url: imageUrl,
       dietary_tags: dietaryTags,
-      unit_stock: trackStock && unitStock !== '' ? parseInt(unitStock, 10) : null,
-      min_stock_alert: trackStock && minStockAlert !== '' ? parseInt(minStockAlert, 10) : null,
+      stock_mode: stockMode,
+      unit_stock: stockMode === 'unit' && unitStock !== '' ? parseInt(unitStock, 10) : null,
+      min_stock_alert: stockMode === 'unit' && minStockAlert !== '' ? parseInt(minStockAlert, 10) : null,
     }
     await supabaseStaff.from('products').update(updates).eq('id', product.id)
+
+    if (stockMode === 'ingredient' && recipe !== null) {
+      await supabaseStaff.from('product_ingredients').delete().eq('product_id', product.id).not('supply_product_id', 'is', null)
+      const valid = recipe.filter(r => r.supply_product_id && Number(r.quantity) > 0)
+      if (valid.length > 0) {
+        await supabaseStaff.from('product_ingredients').insert(
+          valid.map(r => ({ product_id: product.id, supply_product_id: r.supply_product_id, quantity: Number(r.quantity), unit: r.unit || 'u' }))
+        )
+      }
+    }
+
     onSave({ ...product, ...updates })
     setSaving(false)
     setEditing(false)
@@ -542,51 +579,55 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
             })}
           </div>
         </div>
-        {/* Stock por unidad */}
+        {/* Control de stock */}
         <div className="border border-carbon-700 rounded-xl p-3 space-y-2">
-          <div className="flex items-center justify-between">
-            <p className="text-smoke-400 text-[10px] uppercase tracking-wide">Control de stock</p>
-            <button
-              type="button"
-              onClick={() => { setTrackStock(v => !v); if (trackStock) { setUnitStock(''); setMinStockAlert('') } }}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 ${trackStock ? 'bg-ember-500' : 'bg-carbon-600'}`}
-            >
-              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${trackStock ? 'translate-x-4' : 'translate-x-0.5'}`} />
-            </button>
+          <p className="text-smoke-400 text-[10px] uppercase tracking-wide">Control de stock</p>
+          <div className="flex gap-1">
+            {[
+              { value: null, label: 'Sin stock' },
+              { value: 'unit', label: 'Por unidad' },
+              { value: 'ingredient', label: 'Por receta' },
+            ].map(({ value, label }) => (
+              <button
+                key={String(value)}
+                type="button"
+                onClick={() => { setStockMode(value); if (value !== 'unit') { setUnitStock(''); setMinStockAlert('') } }}
+                className={`flex-1 text-[10px] py-1.5 rounded-lg font-semibold transition-colors ${stockMode === value ? 'bg-ember-500 text-white' : 'bg-carbon-800 text-smoke-400'}`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
-          {trackStock && (
+          {stockMode === 'unit' && (
             <div className="flex gap-2">
               <div className="flex-1">
                 <label className="text-smoke-600 text-[10px] block mb-1">Stock actual</label>
-                <input
-                  className="input text-xs"
-                  type="number"
-                  min="0"
-                  placeholder="Ej: 20"
-                  value={unitStock}
-                  onChange={e => setUnitStock(e.target.value)}
-                />
+                <input className="input text-xs" type="number" min="0" placeholder="Ej: 20" value={unitStock} onChange={e => setUnitStock(e.target.value)} />
               </div>
               <div className="flex-1">
                 <label className="text-smoke-600 text-[10px] block mb-1">Alerta cuando queden</label>
                 <div className="relative">
-                  <input
-                    className="input text-xs pr-6"
-                    type="number"
-                    min="0"
-                    placeholder="Ej: 3"
-                    value={minStockAlert}
-                    onChange={e => setMinStockAlert(e.target.value)}
-                  />
+                  <input className="input text-xs pr-6" type="number" min="0" placeholder="Ej: 3" value={minStockAlert} onChange={e => setMinStockAlert(e.target.value)} />
                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-smoke-600 text-[10px]">u.</span>
                 </div>
               </div>
             </div>
           )}
+          {stockMode === 'ingredient' && (
+            <RecipeEditor
+              productId={product.id}
+              productName={name}
+              productDescription={description}
+              venueId={venueId}
+              allProducts={allProducts}
+              recipe={recipe}
+              onChange={setRecipe}
+            />
+          )}
         </div>
 
         <div className="flex gap-2">
-          <button onClick={() => { setEditing(false); setImageFile(null); setImagePreview(null); setDietaryTags(product.dietary_tags || []); setTrackStock(product.unit_stock != null); setUnitStock(product.unit_stock != null ? String(product.unit_stock) : ''); setMinStockAlert(product.min_stock_alert != null ? String(product.min_stock_alert) : '') }}
+          <button onClick={() => { setEditing(false); setImageFile(null); setImagePreview(null); setDietaryTags(product.dietary_tags || []); setStockMode(product.stock_mode || null); setUnitStock(product.unit_stock != null ? String(product.unit_stock) : ''); setMinStockAlert(product.min_stock_alert != null ? String(product.min_stock_alert) : ''); setRecipe(null) }}
             className="flex-1 border border-carbon-700 text-smoke-400 py-2 rounded-xl text-xs">
             Cancelar
           </button>
@@ -652,7 +693,7 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
               const tag = DIETARY_TAGS.find(d => d.id === t)
               return tag ? <span key={t} className="text-smoke-400" title={tag.label}><tag.Icon size={13} /></span> : null
             })}
-            {product.unit_stock != null && (
+            {product.stock_mode === 'unit' && product.unit_stock != null && (
               <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${
                 product.unit_stock === 0
                   ? 'bg-red-500/15 text-red-500'
@@ -662,6 +703,9 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
               }`}>
                 {product.unit_stock === 0 ? 'Sin stock' : `${product.unit_stock} u.`}
               </span>
+            )}
+            {product.stock_mode === 'ingredient' && (
+              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400">Por receta</span>
             )}
           </div>
         </div>
@@ -1532,6 +1576,283 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
           Generar fotos
         </button>
       </div>
+    </div>
+  )
+}
+
+function RecipeEditor({ productId, productName, productDescription, venueId, allProducts, recipe, onChange }) {
+  const [suggesting, setSuggesting] = useState(false)
+
+  useEffect(() => {
+    if (recipe !== null) return
+    supabaseStaff
+      .from('product_ingredients')
+      .select('supply_product_id, quantity, unit')
+      .eq('product_id', productId)
+      .not('supply_product_id', 'is', null)
+      .then(({ data }) => onChange(data || []))
+  }, [productId])
+
+  function addRow() {
+    onChange(prev => [...(prev || []), { supply_product_id: '', quantity: '', unit: 'u' }])
+  }
+
+  function updateRow(i, field, val) {
+    onChange(prev => (prev || []).map((r, idx) => idx === i ? { ...r, [field]: val } : r))
+  }
+
+  function removeRow(i) {
+    onChange(prev => (prev || []).filter((_, idx) => idx !== i))
+  }
+
+  async function suggestWithAI() {
+    const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
+    if (!API_KEY) return
+    setSuggesting(true)
+    try {
+      const desc = productDescription ? ` — ${productDescription}` : ''
+      const prompt = `Sos un chef profesional. Para el plato "${productName}"${desc}, listá los ingredientes principales con cantidades para una porción. Respondé ÚNICAMENTE con un JSON array sin texto extra ni backticks. Ejemplo: [{"name":"Harina 000","quantity":200,"unit":"g"},{"name":"Huevo","quantity":1,"unit":"u"}]. Unidades permitidas: g, kg, ml, l, u, cdita, cda, taza, porción.`
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) }
+      )
+      const data = await res.json()
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]'
+      const match = text.match(/\[[\s\S]*\]/)
+      const suggested = JSON.parse(match ? match[0] : '[]')
+
+      const newRows = []
+      for (const s of suggested) {
+        const found = allProducts.find(p =>
+          p.name.toLowerCase() === s.name.toLowerCase() ||
+          p.name.toLowerCase().includes(s.name.toLowerCase().split(' ')[0])
+        )
+        if (found) {
+          newRows.push({ supply_product_id: found.id, quantity: String(s.quantity), unit: s.unit || 'u' })
+        } else {
+          const { data: newProd } = await supabaseStaff
+            .from('products')
+            .insert({
+              venue_id: venueId,
+              name: s.name,
+              price: 0,
+              is_available: false,
+              is_ingredient_only: true,
+              stock_mode: 'unit',
+              unit_stock: 0,
+              category_id: allProducts.find(p => p.category_id)?.category_id || null,
+            })
+            .select()
+            .single()
+          if (newProd) newRows.push({ supply_product_id: newProd.id, quantity: String(s.quantity), unit: s.unit || 'u' })
+        }
+      }
+      onChange(newRows)
+    } catch { /* silently fail */ }
+    setSuggesting(false)
+  }
+
+  const rows = recipe || []
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-smoke-600 text-[10px]">Insumos por porción</p>
+        <button type="button" onClick={suggestWithAI} disabled={suggesting} className="text-[10px] text-ember-500 underline disabled:opacity-50">
+          {suggesting ? 'Consultando IA...' : 'Sugerir con IA'}
+        </button>
+      </div>
+      {recipe === null && <p className="text-smoke-500 text-[10px]">Cargando receta...</p>}
+      <div className="space-y-1.5">
+        {rows.map((row, i) => (
+          <div key={i} className="flex gap-1 items-center">
+            <select
+              value={row.supply_product_id || ''}
+              onChange={e => updateRow(i, 'supply_product_id', e.target.value)}
+              className="flex-1 min-w-0 text-xs bg-carbon-800 border border-carbon-700 rounded-lg px-2 py-1.5 text-smoke-200 outline-none"
+            >
+              <option value="">— Seleccionar —</option>
+              {[...allProducts]
+                .filter(p => p.id !== productId)
+                .sort((a, b) => {
+                  if (a.is_ingredient_only && !b.is_ingredient_only) return -1
+                  if (!a.is_ingredient_only && b.is_ingredient_only) return 1
+                  return a.name.localeCompare(b.name)
+                })
+                .map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.is_ingredient_only ? '★ ' : ''}{p.name}
+                  </option>
+                ))}
+            </select>
+            <input
+              type="number"
+              value={row.quantity}
+              onChange={e => updateRow(i, 'quantity', e.target.value)}
+              placeholder="Cant."
+              min="0"
+              step="any"
+              className="w-16 text-xs bg-carbon-800 border border-carbon-700 rounded-lg px-2 py-1.5 text-ember-400 text-right font-mono outline-none"
+            />
+            <select
+              value={row.unit || 'u'}
+              onChange={e => updateRow(i, 'unit', e.target.value)}
+              className="text-[10px] bg-carbon-800 border border-carbon-700 rounded-lg px-1 py-1.5 text-smoke-400 outline-none"
+            >
+              {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+            </select>
+            <button type="button" onClick={() => removeRow(i)} className="text-smoke-600 hover:text-red-500 text-sm leading-none px-1">×</button>
+          </div>
+        ))}
+      </div>
+      <button type="button" onClick={addRow} className="text-xs text-smoke-400 underline">+ Agregar insumo</button>
+    </div>
+  )
+}
+
+function InsumosList({ venueId, categories, allProducts, onRefresh }) {
+  const [insumos, setInsumos] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newStock, setNewStock] = useState('')
+  const [newAlert, setNewAlert] = useState('')
+  const [newCategory, setNewCategory] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [editingId, setEditingId] = useState(null)
+  const [editStock, setEditStock] = useState('')
+  const [editAlert, setEditAlert] = useState('')
+
+  useEffect(() => { if (venueId) loadInsumos() }, [venueId])
+  useEffect(() => { if (categories.length && !newCategory) setNewCategory(categories[0]?.id || '') }, [categories])
+
+  async function loadInsumos() {
+    setLoading(true)
+    const { data } = await supabaseStaff
+      .from('products')
+      .select('*')
+      .eq('venue_id', venueId)
+      .eq('is_ingredient_only', true)
+      .order('name')
+    setInsumos(data || [])
+    setLoading(false)
+  }
+
+  async function createInsumo() {
+    if (!newName.trim()) return
+    setSaving(true)
+    await supabaseStaff.from('products').insert({
+      venue_id: venueId,
+      name: newName.trim(),
+      price: 0,
+      is_available: false,
+      is_ingredient_only: true,
+      stock_mode: 'unit',
+      unit_stock: newStock !== '' ? parseInt(newStock, 10) : 0,
+      min_stock_alert: newAlert !== '' ? parseInt(newAlert, 10) : null,
+      category_id: newCategory || categories[0]?.id || null,
+    })
+    setNewName(''); setNewStock(''); setNewAlert('')
+    setSaving(false)
+    setShowForm(false)
+    loadInsumos()
+    onRefresh?.()
+  }
+
+  async function adjustStock(id) {
+    await supabaseStaff.from('products').update({
+      unit_stock: parseInt(editStock, 10) || 0,
+      min_stock_alert: editAlert !== '' ? parseInt(editAlert, 10) : null,
+      is_available: (parseInt(editStock, 10) || 0) > 0,
+    }).eq('id', id)
+    setEditingId(null)
+    loadInsumos()
+  }
+
+  async function deleteInsumo(id) {
+    if (!confirm('¿Eliminar este insumo?')) return
+    await supabaseStaff.from('products').delete().eq('id', id)
+    loadInsumos()
+    onRefresh?.()
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-smoke-400 text-xs font-semibold uppercase tracking-wide">Insumos · {insumos.length}</p>
+        <button onClick={() => setShowForm(v => !v)} className="text-xs bg-ember-500 text-white font-semibold px-3 py-1.5 rounded-lg">
+          + Nuevo insumo
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="bg-carbon-900 border border-carbon-700 rounded-xl p-3 mb-4 space-y-2">
+          <input className="input" placeholder="Nombre (ej: Harina 000)" value={newName} onChange={e => setNewName(e.target.value)} />
+          <select className="input" value={newCategory} onChange={e => setNewCategory(e.target.value)}>
+            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label className="text-smoke-600 text-[10px] block mb-1">Stock inicial</label>
+              <input className="input text-xs" type="number" min="0" placeholder="0" value={newStock} onChange={e => setNewStock(e.target.value)} />
+            </div>
+            <div className="flex-1">
+              <label className="text-smoke-600 text-[10px] block mb-1">Alerta cuando queden</label>
+              <input className="input text-xs" type="number" min="0" placeholder="Ej: 5" value={newAlert} onChange={e => setNewAlert(e.target.value)} />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => setShowForm(false)} className="flex-1 border border-carbon-700 text-smoke-400 py-2 rounded-xl text-xs">Cancelar</button>
+            <button onClick={createInsumo} disabled={saving || !newName.trim()} className="flex-1 bg-ember-500 text-white font-semibold py-2 rounded-xl text-xs disabled:opacity-50">
+              {saving ? 'Creando...' : 'Crear insumo'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <p className="text-smoke-500 text-xs">Cargando...</p>
+      ) : insumos.length === 0 ? (
+        <p className="text-smoke-600 text-xs italic mt-4">No hay insumos. Creá uno manualmente o la IA los crea automáticamente al sugerir recetas.</p>
+      ) : (
+        <div className="space-y-2">
+          {insumos.map(p => (
+            <div key={p.id} className="bg-carbon-900 border border-carbon-700 rounded-xl p-3 flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-smoke-200 text-sm font-medium truncate">{p.name}</p>
+                <p className={`text-[10px] font-semibold ${
+                  p.unit_stock === 0 ? 'text-red-400'
+                  : p.min_stock_alert != null && p.unit_stock <= p.min_stock_alert ? 'text-amber-500'
+                  : 'text-smoke-500'
+                }`}>
+                  {p.unit_stock === 0 ? 'Sin stock' : `${p.unit_stock} u.`}
+                  {p.min_stock_alert != null && ` · alerta ≤ ${p.min_stock_alert}`}
+                </p>
+              </div>
+              {editingId === p.id ? (
+                <div className="flex items-center gap-1.5">
+                  <input autoFocus type="number" min="0" value={editStock} onChange={e => setEditStock(e.target.value)}
+                    placeholder="Stock" className="w-16 bg-carbon-800 border border-carbon-600 text-smoke-200 text-xs px-2 py-1 rounded-lg" />
+                  <input type="number" min="0" value={editAlert} onChange={e => setEditAlert(e.target.value)}
+                    placeholder="Alerta" className="w-16 bg-carbon-800 border border-carbon-600 text-smoke-200 text-xs px-2 py-1 rounded-lg" />
+                  <button onClick={() => adjustStock(p.id)} className="text-xs text-emerald-500 font-semibold">OK</button>
+                  <button onClick={() => setEditingId(null)} className="text-xs text-smoke-500">✕</button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setEditingId(p.id); setEditStock(String(p.unit_stock ?? 0)); setEditAlert(p.min_stock_alert != null ? String(p.min_stock_alert) : '') }}
+                    className="text-[10px] text-amber-500 border border-amber-500/40 px-2 py-1 rounded-lg font-semibold"
+                  >
+                    Ajustar
+                  </button>
+                  <button onClick={() => deleteInsumo(p.id)} className="text-[10px] text-smoke-500 underline">Borrar</button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
