@@ -111,8 +111,8 @@
       <div id="qr-a4"></div>
     </div>
     <div class="invite-text">
-      Escaneá el código, elegí lo que querés<br>
-      y <strong>seguí tu pedido en tiempo real</strong>
+      Escaneá y viví tu experiencia<br>
+      en <strong id="invite-venue-name"></strong>
     </div>
     <div class="divider-bottom"></div>
     <div class="powered">
@@ -186,7 +186,9 @@ async function loadVenue() {
   applyColors(accent, bg)
 
   // Venue name
-  document.getElementById('resto-name').textContent = data.name || 'Mi Restaurante'
+  const venueName = data.name || 'Mi Restaurante'
+  document.getElementById('resto-name').textContent = venueName
+  document.getElementById('invite-venue-name').textContent = venueName
 
   // Logo
   if (data.logo_url) {
