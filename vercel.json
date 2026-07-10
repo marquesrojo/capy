@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/qr-template.html", "destination": "/qr-template.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
