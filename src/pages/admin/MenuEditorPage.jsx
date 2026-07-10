@@ -85,6 +85,7 @@ export default function MenuEditorPage() {
         </div>
 
         <ImportarConIA venueId={venueId} onImported={loadAll} />
+        <FotosConIA venueId={venueId} products={products} onUpdated={loadAll} />
 
         {showCategoryForm && (
           <NewCategoryForm
@@ -1113,6 +1114,225 @@ function ImportarConIA({ venueId, onImported }) {
       )}
 
       {error && <p className="text-red-500 text-xs text-center">{error}</p>}
+    </div>
+  )
+}
+
+function FotosConIA({ venueId, products, onUpdated }) {
+  const [open, setOpen] = useState(false)
+  const [status, setStatus] = useState('idle') // idle | generating | review | saving
+  const [progress, setProgress] = useState({ current: 0, total: 0, name: '' })
+  const [results, setResults] = useState([])
+  const [error, setError] = useState('')
+
+  const noPhoto = products.filter(p => !p.image_url)
+  const remaining = UNSPLASH_DAILY_LIMIT - getUnsplashCount(venueId)
+  const canProcess = Math.min(noPhoto.length, Math.max(remaining, 0))
+
+  function reset() {
+    setOpen(false)
+    setStatus('idle')
+    setResults([])
+    setError('')
+    setProgress({ current: 0, total: 0, name: '' })
+  }
+
+  async function generate() {
+    const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
+    if (!API_KEY) { setError('VITE_GEMINI_API_KEY no configurada'); return }
+    if (remaining <= 0) { setError(`Límite diario alcanzado (${UNSPLASH_DAILY_LIMIT}/día). Volvé mañana.`); return }
+
+    const toProcess = noPhoto.slice(0, remaining)
+    setStatus('generating')
+    setProgress({ current: 0, total: toProcess.length, name: '' })
+    setError('')
+
+    const batchPrompt = `Para los siguientes platos de restaurante, generá términos de búsqueda en inglés para fotos gastronómicas en Unsplash.
+Reglas: si hay descripción usala para describir el plato en inglés; si el nombre no es descriptivo inferí por contexto; siempre términos concretos del plato en inglés, nunca nombre propio.
+Respondé ÚNICAMENTE con un JSON array (sin texto extra ni backticks) donde cada objeto tiene "idx" (número entero 0-based) y "query" (string).
+
+Platos:
+${toProcess.map((p, i) => `${i}. "${p.name}"${p.description ? ' — ' + p.description : ''}`).join('\n')}
+
+Ejemplo: [{"idx":0,"query":"beef milanesa breaded"},{"idx":1,"query":"espresso coffee cup"}]`
+
+    const queryMap = {}
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: batchPrompt }] }] }) }
+      )
+      const data = await res.json()
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]'
+      const match = text.match(/\[[\s\S]*\]/)
+      const parsed = JSON.parse(match ? match[0] : '[]')
+      for (const q of parsed) queryMap[q.idx] = q.query
+    } catch { /* fall back to product names */ }
+
+    const found = []
+    for (let i = 0; i < toProcess.length; i++) {
+      setProgress({ current: i + 1, total: toProcess.length, name: toProcess[i].name })
+      const query = queryMap[i] || toProcess[i].name
+      const url = await searchUnsplash(query, venueId)
+      if (url) found.push({ product: toProcess[i], imageUrl: url, selected: true })
+    }
+
+    if (found.length === 0) {
+      setError('No se encontraron fotos. Intentá de nuevo.')
+      setStatus('idle')
+    } else {
+      setResults(found)
+      setStatus('review')
+    }
+  }
+
+  async function saveAll() {
+    setStatus('saving')
+    const toSave = results.filter(r => r.selected)
+    await Promise.all(toSave.map(r =>
+      supabaseStaff.from('products').update({ image_url: r.imageUrl }).eq('id', r.product.id)
+    ))
+    onUpdated()
+    reset()
+  }
+
+  if (noPhoto.length === 0) return null
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="w-full mb-4 bg-carbon-900 border border-dashed border-carbon-600 hover:border-ember-500/40 hover:bg-ember-500/5 rounded-2xl px-4 py-3 flex items-center gap-3 text-left transition-colors"
+      >
+        <div className="w-9 h-9 rounded-xl bg-ember-500/10 flex items-center justify-center flex-shrink-0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+          </svg>
+        </div>
+        <div>
+          <p className="font-semibold text-smoke-300 text-sm">Generar fotos con IA</p>
+          <p className="text-smoke-500 text-xs">{noPhoto.length} productos sin foto · {Math.max(remaining, 0)} búsquedas disponibles hoy</p>
+        </div>
+      </button>
+    )
+  }
+
+  if (status === 'generating') {
+    return (
+      <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5 mb-4">
+        <div className="flex items-center gap-3 mb-4">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="animate-spin flex-shrink-0">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+          </svg>
+          <p className="text-smoke-300 text-sm font-semibold">
+            {progress.current === 0 ? 'Generando consultas...' : `Buscando foto ${progress.current}/${progress.total}`}
+          </p>
+        </div>
+        {progress.current > 0 && (
+          <>
+            <div className="w-full bg-carbon-800 rounded-full h-1.5 mb-2">
+              <div
+                className="bg-ember-500 h-1.5 rounded-full transition-all duration-300"
+                style={{ width: `${(progress.current / progress.total) * 100}%` }}
+              />
+            </div>
+            <p className="text-smoke-600 text-xs truncate">{progress.name}</p>
+          </>
+        )}
+      </div>
+    )
+  }
+
+  if (status === 'review') {
+    const selected = results.filter(r => r.selected)
+    return (
+      <div className="bg-carbon-900 border border-carbon-700 rounded-2xl overflow-hidden mb-4">
+        <div className="p-4 border-b border-carbon-800">
+          <p className="font-semibold text-smoke-300 text-sm">{results.length} fotos encontradas</p>
+          <p className="text-smoke-500 text-xs">Tocá para seleccionar o deseleccionar</p>
+        </div>
+        <div className="max-h-80 overflow-y-auto p-3 space-y-2">
+          {results.map((r, i) => (
+            <div
+              key={r.product.id}
+              onClick={() => setResults(prev => prev.map((x, idx) => idx === i ? { ...x, selected: !x.selected } : x))}
+              className={`flex items-center gap-3 p-2 rounded-xl border cursor-pointer transition-colors ${
+                r.selected ? 'border-ember-500/40 bg-ember-500/5' : 'border-carbon-700 opacity-40'
+              }`}
+            >
+              <img src={r.imageUrl} alt={r.product.name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+              <p className="flex-1 min-w-0 text-smoke-300 text-xs font-medium truncate">{r.product.name}</p>
+              <div className={`w-4 h-4 rounded-full border flex-shrink-0 flex items-center justify-center transition-colors ${
+                r.selected ? 'bg-ember-500 border-ember-500' : 'border-carbon-600'
+              }`}>
+                {r.selected && (
+                  <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="2 6 5 9 10 3"/>
+                  </svg>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="p-4 border-t border-carbon-800 flex gap-2">
+          <button onClick={reset} className="flex-1 border border-carbon-700 text-smoke-400 text-sm py-2.5 rounded-xl">
+            Cancelar
+          </button>
+          <button
+            onClick={saveAll}
+            disabled={selected.length === 0}
+            className="flex-1 bg-ember-500 hover:bg-ember-600 disabled:opacity-50 text-white font-semibold text-sm py-2.5 rounded-xl"
+          >
+            Guardar {selected.length} foto{selected.length !== 1 ? 's' : ''}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (status === 'saving') {
+    return (
+      <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4 mb-4 text-center">
+        <p className="text-ember-500 text-sm font-semibold">Guardando fotos...</p>
+      </div>
+    )
+  }
+
+  // idle + open: confirmation panel
+  return (
+    <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5 mb-4 space-y-4">
+      <div>
+        <p className="font-semibold text-smoke-300 text-sm mb-1">Generar fotos con IA</p>
+        <p className="text-smoke-500 text-xs">Busca fotos en Unsplash para los productos sin imagen, usando IA para encontrar la foto correcta.</p>
+      </div>
+      <div className="flex gap-3 text-center">
+        <div className="flex-1 bg-carbon-800 rounded-xl p-3">
+          <p className="text-2xl font-bold text-smoke-200 font-mono">{noPhoto.length}</p>
+          <p className="text-smoke-600 text-[10px] mt-0.5">sin foto</p>
+        </div>
+        <div className="flex-1 bg-carbon-800 rounded-xl p-3">
+          <p className={`text-2xl font-bold font-mono ${remaining < 5 ? 'text-amber-400' : 'text-smoke-200'}`}>{Math.max(remaining, 0)}</p>
+          <p className="text-smoke-600 text-[10px] mt-0.5">disponibles hoy</p>
+        </div>
+        <div className="flex-1 bg-ember-500/10 border border-ember-500/20 rounded-xl p-3">
+          <p className="text-2xl font-bold text-ember-400 font-mono">{canProcess}</p>
+          <p className="text-smoke-600 text-[10px] mt-0.5">se procesarán</p>
+        </div>
+      </div>
+      {remaining < noPhoto.length && remaining > 0 && (
+        <p className="text-amber-400/80 text-xs">Solo se procesarán {remaining} productos hoy. El cupo se renueva mañana.</p>
+      )}
+      {error && <p className="text-red-500 text-xs">{error}</p>}
+      <div className="flex gap-2">
+        <button onClick={reset} className="flex-1 border border-carbon-700 text-smoke-400 text-sm py-2.5 rounded-xl">Cancelar</button>
+        <button
+          onClick={generate}
+          disabled={canProcess === 0}
+          className="flex-1 bg-ember-500 hover:bg-ember-600 disabled:opacity-50 text-white font-semibold text-sm py-2.5 rounded-xl"
+        >
+          Generar fotos
+        </button>
+      </div>
     </div>
   )
 }
