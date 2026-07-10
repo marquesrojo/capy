@@ -53,6 +53,23 @@ export default function MenuEditorPage() {
     setProducts(prev => prev.filter(p => p.id !== productId))
   }
 
+  async function moveCategory(catId, direction) {
+    const idx = categories.findIndex(c => c.id === catId)
+    const swapIdx = idx + direction
+    if (swapIdx < 0 || swapIdx >= categories.length) return
+    const updated = [...categories]
+    const orderA = updated[idx].sort_order ?? idx
+    const orderB = updated[swapIdx].sort_order ?? swapIdx
+    updated[idx] = { ...updated[idx], sort_order: orderB }
+    updated[swapIdx] = { ...updated[swapIdx], sort_order: orderA }
+    ;[updated[idx], updated[swapIdx]] = [updated[swapIdx], updated[idx]]
+    setCategories(updated)
+    await Promise.all([
+      supabaseStaff.from('categories').update({ sort_order: orderB }).eq('id', catId),
+      supabaseStaff.from('categories').update({ sort_order: orderA }).eq('id', updated[idx].id)
+    ])
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-carbon-950 flex items-center justify-center">
@@ -106,10 +123,24 @@ export default function MenuEditorPage() {
           />
         )}
 
-        {categories.map(cat => (
+        {categories.map((cat, catIdx) => (
           <div key={cat.id} className="mb-6">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-0.5">
+                  <button
+                    onClick={() => moveCategory(cat.id, -1)}
+                    disabled={catIdx === 0}
+                    className="text-smoke-600 disabled:opacity-20 leading-none text-xs px-0.5"
+                    title="Subir"
+                  >▲</button>
+                  <button
+                    onClick={() => moveCategory(cat.id, 1)}
+                    disabled={catIdx === categories.length - 1}
+                    className="text-smoke-600 disabled:opacity-20 leading-none text-xs px-0.5"
+                    title="Bajar"
+                  >▼</button>
+                </div>
                 <CategoryNameEditor
                   cat={cat}
                   onSave={newName => setCategories(prev => prev.map(c => c.id === cat.id ? { ...c, name: newName } : c))}
