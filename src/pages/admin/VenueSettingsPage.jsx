@@ -49,6 +49,8 @@ export default function VenueSettingsPage() {
   const [announcement, setAnnouncement] = useState('')
   const [schedule, setSchedule] = useState(DEFAULT_SCHEDULE)
   const [address, setAddress] = useState('')
+  const [slug, setSlug] = useState('')
+  const [copied, setCopied] = useState(false)
   const [activePicker, setActivePicker] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -60,7 +62,7 @@ export default function VenueSettingsPage() {
     async function load() {
       const { data } = await supabaseStaff
         .from('venues')
-        .select('name, whatsapp_number, logo_url, header_bg_color, header_text_color, kitchen_alias')
+        .select('name, whatsapp_number, logo_url, header_bg_color, header_text_color, kitchen_alias, slug')
         .eq('id', venueId)
         .single()
       setName(data?.name || '')
@@ -69,6 +71,7 @@ export default function VenueSettingsPage() {
       if (data?.header_bg_color) setHeaderBgColor(data.header_bg_color)
       if (data?.header_text_color) setHeaderTextColor(data.header_text_color)
       if (data?.kitchen_alias) setKitchenAlias(data.kitchen_alias)
+      if (data?.slug) setSlug(data.slug)
 
       try {
         const { data: opt } = await supabaseStaff
@@ -365,6 +368,34 @@ export default function VenueSettingsPage() {
             </div>
           </div>
         </div>
+
+        {slug && (
+          <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
+            <p className="text-smoke-300 font-medium text-sm mb-1">URL de bienvenida</p>
+            <p className="text-smoke-500 text-xs mb-3">
+              Compartí este link con tus clientes para que accedan a la carta.
+            </p>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                readOnly
+                value={`https://capyapp.co/r/${slug}`}
+                className="input flex-1 text-sm text-smoke-400 bg-carbon-800 cursor-default select-all"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(`https://capyapp.co/r/${slug}`)
+                  setCopied(true)
+                  setTimeout(() => setCopied(false), 2000)
+                }}
+                className="px-3 py-2 rounded-xl border border-carbon-600 text-smoke-400 text-xs whitespace-nowrap"
+              >
+                {copied ? '¡Copiado!' : 'Copiar'}
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
           <p className="text-smoke-300 font-medium text-sm mb-1">WhatsApp del local</p>
