@@ -107,7 +107,7 @@ export default function MenuEditorPage() {
         </div>
 
         <ImportarConIA venueId={venueId} onImported={loadAll} unlimited={unlimitedPhotos} />
-        <FotosConIA venueId={venueId} products={products} onUpdated={loadAll} unlimited={unlimitedPhotos} extraCredits={extraCredits} onExtraCreditsChanged={setExtraCredits} />
+        <FotosConIA venueId={venueId} products={products} onUpdated={loadAll} unlimited={unlimitedPhotos} extraCredits={extraCredits} onExtraCreditsChanged={setExtraCredits} isSuperAdmin={isSuperAdmin} />
 
         {showCategoryForm && (
           <NewCategoryForm
@@ -1215,7 +1215,7 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
 
 const CAPY_SUPPORT_WA = 'https://wa.me/5491168064524?text=Hola%20Capy%2C%20me%20qued%C3%A9%20sin%20cr%C3%A9ditos%20de%20im%C3%A1genes.%20%C2%BFMe%20pod%C3%A9s%20recargar%3F'
 
-function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCredits = 0, onExtraCreditsChanged }) {
+function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCredits = 0, onExtraCreditsChanged, isSuperAdmin = false }) {
   const [open, setOpen] = useState(false)
   const [status, setStatus] = useState('idle') // idle | generating | review | saving
   const [progress, setProgress] = useState({ current: 0, total: 0, name: '' })
@@ -1507,7 +1507,7 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
       </div>
       {canProcess > 0 && (
         <div>
-          <label className="text-smoke-500 text-xs block mb-1">¿Cuántas procesar ahora? <span className="text-smoke-600">(Unsplash: 50/hora)</span></label>
+          <label className="text-smoke-500 text-xs block mb-1">¿Cuántas procesar ahora?{isSuperAdmin && <span className="text-smoke-600"> (Unsplash: 50/hora)</span>}</label>
           <input
             type="number"
             min={1}
