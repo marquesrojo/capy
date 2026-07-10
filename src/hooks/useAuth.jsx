@@ -86,6 +86,7 @@ export function AuthProvider({ children }) {
     isSuperAdmin: profile?.role === 'superadmin',
     isStaff: profile?.role === 'admin' || profile?.role === 'camarero' || profile?.role === 'propietario' || profile?.role === 'superadmin',
     isAdmin: profile?.role === 'admin' || profile?.role === 'propietario',
+    isPropietario: profile?.role === 'propietario',
     signInWithEmail,
     signOut
   }

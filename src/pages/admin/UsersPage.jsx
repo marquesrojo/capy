@@ -4,7 +4,7 @@ import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { UsersIcon } from '../../components/Icons'
 
-const ROLE_LABELS = { admin: 'Administrador', camarero: 'Camarero', propietario: 'Propietario' }
+const ROLE_LABELS = { admin: 'Encargado', camarero: 'Camarero', propietario: 'Propietario' }
 
 const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invite-user`
 const EDGE_HEADERS = {
@@ -20,7 +20,7 @@ const SORT_ICONS = {
 }
 
 export default function UsersPage() {
-  const { venueId } = useAuth()
+  const { venueId, isPropietario, profile } = useAuth()
   const [tab, setTab] = useState('todos')
 
   // Tab: todos
@@ -218,27 +218,29 @@ export default function UsersPage() {
         {/* ── TAB: TODOS ── */}
         {tab === 'todos' && (
           <div className="space-y-6">
-            <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
-              <p className="text-smoke-300 font-medium text-sm mb-4">Crear nuevo usuario</p>
-              <div className="space-y-3">
-                <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Nombre completo" className="input w-full" />
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" className="input w-full" />
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Contraseña (mínimo 6 caracteres)" className="input w-full" />
-                <select value={role} onChange={e => setRole(e.target.value)} className="input w-full">
-                  <option value="admin">Administrador</option>
-                  <option value="camarero">Camarero</option>
-                </select>
+            {isPropietario && (
+              <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
+                <p className="text-smoke-300 font-medium text-sm mb-4">Crear nuevo usuario</p>
+                <div className="space-y-3">
+                  <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Nombre completo" className="input w-full" />
+                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" className="input w-full" />
+                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Contraseña (mínimo 6 caracteres)" className="input w-full" />
+                  <select value={role} onChange={e => setRole(e.target.value)} className="input w-full">
+                    <option value="propietario">Propietario</option>
+                    <option value="admin">Encargado</option>
+                  </select>
+                </div>
+                {error && <p className="text-red-700 text-xs mt-3">{error}</p>}
+                {success && <p className="text-emerald-700 text-xs mt-3">{success}</p>}
+                <button
+                  onClick={handleCreate}
+                  disabled={submitting}
+                  className="w-full mt-4 bg-ember-500 hover:bg-ember-600 disabled:opacity-50 text-white font-semibold py-3 rounded-xl"
+                >
+                  {submitting ? 'Creando...' : 'Crear usuario'}
+                </button>
               </div>
-              {error && <p className="text-red-700 text-xs mt-3">{error}</p>}
-              {success && <p className="text-emerald-700 text-xs mt-3">{success}</p>}
-              <button
-                onClick={handleCreate}
-                disabled={submitting}
-                className="w-full mt-4 bg-ember-500 hover:bg-ember-600 disabled:opacity-50 text-white font-semibold py-3 rounded-xl"
-              >
-                {submitting ? 'Creando...' : 'Crear usuario'}
-              </button>
-            </div>
+            )}
 
             {loadingUsers ? (
               <p className="text-smoke-500 text-sm text-center py-8">Cargando...</p>
@@ -255,7 +257,7 @@ export default function UsersPage() {
                         </p>
                         <div className="space-y-2">
                           {active.map(user => (
-                            <UserRow key={user.id} user={user} onUpdated={handleUpdated} />
+                            <UserRow key={user.id} user={user} onUpdated={handleUpdated} currentRole={profile?.role} />
                           ))}
                         </div>
                       </div>
@@ -266,7 +268,7 @@ export default function UsersPage() {
                           </p>
                           <div className="space-y-2 opacity-50">
                             {inactive.map(user => (
-                              <UserRow key={user.id} user={user} onUpdated={handleUpdated} />
+                              <UserRow key={user.id} user={user} onUpdated={handleUpdated} currentRole={profile?.role} />
                             ))}
                           </div>
                         </div>
@@ -379,7 +381,8 @@ export default function UsersPage() {
   )
 }
 
-function UserRow({ user, onUpdated }) {
+function UserRow({ user, onUpdated, currentRole }) {
+  const canEdit = currentRole === 'propietario' || user.role === 'camarero'
   const [editing, setEditing] = useState(false)
   const [fullName, setFullName] = useState(user.full_name)
   const [role, setRole] = useState(user.role)
@@ -453,7 +456,8 @@ function UserRow({ user, onUpdated }) {
       <div className="bg-carbon-900 border border-ember-500/40 rounded-xl p-4 space-y-3">
         <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Nombre completo" className="input w-full" />
         <select value={role} onChange={e => setRole(e.target.value)} className="input w-full">
-          <option value="admin">Administrador</option>
+          {currentRole === 'propietario' && <option value="propietario">Propietario</option>}
+          <option value="admin">Encargado</option>
           <option value="camarero">Camarero</option>
         </select>
         <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Nueva contraseña (opcional)" className="input w-full" />
@@ -501,12 +505,14 @@ function UserRow({ user, onUpdated }) {
             {togglingShared ? '...' : user.is_shared_account ? 'Quitar compartida' : 'Marcar compartida'}
           </button>
         )}
-        {user.is_active !== false && (
+        {canEdit && user.is_active !== false && (
           <button onClick={() => setEditing(true)} className="text-smoke-400 text-xs underline">Editar</button>
         )}
-        <button onClick={handleToggle} disabled={toggling} className="text-smoke-400 text-xs underline disabled:opacity-50">
-          {toggling ? '...' : user.is_active !== false ? 'Deshabilitar' : 'Habilitar'}
-        </button>
+        {canEdit && (
+          <button onClick={handleToggle} disabled={toggling} className="text-smoke-400 text-xs underline disabled:opacity-50">
+            {toggling ? '...' : user.is_active !== false ? 'Deshabilitar' : 'Habilitar'}
+          </button>
+        )}
       </div>
     </div>
   )

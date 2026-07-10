@@ -447,9 +447,16 @@ function AdminDashboardInner() {
               Auditor
             </Link>
           )}
-          <Link to="/admin/configuracion" className="text-smoke-400 text-xs underline">
-            Mi Local
-          </Link>
+          {profile?.role === 'propietario' && (
+            <Link to="/admin/configuracion" className="text-smoke-400 text-xs underline">
+              Mi Local
+            </Link>
+          )}
+          {profile?.role !== 'camarero' && (
+            <Link to="/admin/usuarios" className="text-smoke-400 text-xs underline">
+              Usuarios
+            </Link>
+          )}
           <button onClick={signOut} className="text-smoke-500 text-xs underline">
             Salir
           </button>
