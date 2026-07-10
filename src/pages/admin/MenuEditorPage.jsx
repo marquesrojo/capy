@@ -1149,34 +1149,25 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false }) {
     setProgress({ current: 0, total: toProcess.length, name: '' })
     setError('')
 
-    const batchPrompt = `Para los siguientes platos de restaurante, generá términos de búsqueda en inglés para fotos gastronómicas en Unsplash.
-Reglas: si hay descripción usala para describir el plato en inglés; si el nombre no es descriptivo inferí por contexto; siempre términos concretos del plato en inglés, nunca nombre propio.
-Respondé ÚNICAMENTE con un JSON array (sin texto extra ni backticks) donde cada objeto tiene "idx" (número entero 0-based) y "query" (string).
-
-Platos:
-${toProcess.map((p, i) => `${i}. "${p.name}"${p.description ? ' — ' + p.description : ''}`).join('\n')}
-
-Ejemplo: [{"idx":0,"query":"beef milanesa breaded"},{"idx":1,"query":"espresso coffee cup"}]`
-
-    const queryMap = {}
-    try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: batchPrompt }] }] }) }
-      )
-      const data = await res.json()
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]'
-      const match = text.match(/\[[\s\S]*\]/)
-      const parsed = JSON.parse(match ? match[0] : '[]')
-      for (const q of parsed) queryMap[q.idx] = q.query
-    } catch { /* fall back to product names */ }
-
     const found = []
     for (let i = 0; i < toProcess.length; i++) {
-      setProgress({ current: i + 1, total: toProcess.length, name: toProcess[i].name })
-      const query = queryMap[i] || toProcess[i].name
+      const p = toProcess[i]
+      setProgress({ current: i + 1, total: toProcess.length, name: p.name })
+
+      let query = p.name
+      try {
+        const desc = p.description ? ` — ${p.description}` : ''
+        const prompt = `Para el plato "${p.name}"${desc}, generá un término de búsqueda en inglés para encontrar una foto gastronómica en Unsplash. Si el nombre no es descriptivo usá la descripción para inferir qué es. Respondé ÚNICAMENTE con el término, sin texto extra. Ejemplo: "beef milanesa breaded"`
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
+          { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) }
+        )
+        const data = await res.json()
+        query = (data.candidates?.[0]?.content?.parts?.[0]?.text || p.name).trim().replace(/^"|"$/g, '')
+      } catch { /* use product name as fallback */ }
+
       const url = await searchUnsplash(query, venueId, { skipLimit: unlimited })
-      if (url) found.push({ product: toProcess[i], imageUrl: url, selected: true })
+      if (url) found.push({ product: p, imageUrl: url, selected: true })
     }
 
     if (found.length === 0) {
