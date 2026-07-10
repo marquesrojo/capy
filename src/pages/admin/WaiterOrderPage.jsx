@@ -469,20 +469,25 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
             className="input resize-none text-xs py-2"
             rows={2}
           />
-          {discounts.length > 0 && (
-            <select
-              value={selectedDiscount?.id || ''}
-              onChange={e => setSelectedDiscount(discounts.find(d => d.id === e.target.value) || null)}
-              className="input text-xs py-1.5"
-            >
-              <option value="">Sin descuento</option>
-              {discounts.map(d => (
-                <option key={d.id} value={d.id}>
-                  {d.code} — {d.percent}%{d.label ? ` (${d.label})` : ''}
-                </option>
-              ))}
-            </select>
-          )}
+          <div>
+            <p className="text-[#8896A5] text-[10px] mb-1">Descuento</p>
+            {discounts.length > 0 ? (
+              <select
+                value={selectedDiscount?.id || ''}
+                onChange={e => setSelectedDiscount(discounts.find(d => d.id === e.target.value) || null)}
+                className="input text-xs py-1.5 w-full"
+              >
+                <option value="">Sin descuento</option>
+                {discounts.map(d => (
+                  <option key={d.id} value={d.id}>
+                    {d.code} — {d.percent}%{d.label ? ` (${d.label})` : ''}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <p className="text-[#8896A5] text-xs italic">No hay descuentos configurados</p>
+            )}
+          </div>
           {error && <p className="text-red-700 text-xs">{error}</p>}
           <div className="flex items-center justify-between">
             <div>
