@@ -117,6 +117,7 @@ export default function WaitersPage() {
       supabaseStaff
         .from('profiles')
         .select('id, full_name, role, created_at')
+        .eq('venue_id', venueId)
         .in('role', ['admin', 'propietario'])
         .order('full_name')
     ])
