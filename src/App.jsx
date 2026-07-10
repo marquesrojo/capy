@@ -3,7 +3,7 @@ import { AuthProvider } from './hooks/useAuth'
 import CapyChat from './components/CapyChat'
 import { CustomerProvider } from './hooks/useCustomer'
 import { CartProvider } from './hooks/useCart'
-import { RequireCustomer, RequireStaff, RequireAdmin, RequireSuperAdmin } from './components/ProtectedRoute'
+import { RequireCustomer, RequireStaff, RequireAdmin, RequireAdmin as RequireEncargado, RequirePropietario, RequireSuperAdmin } from './components/ProtectedRoute'
 import { VenueProvider, useVenue } from './hooks/useVenue'
 
 import HubPage from './pages/HubPage'
@@ -211,100 +211,52 @@ export default function App() {
               />
               <Route
                 path="/admin/carta"
-                element={
-                  <RequireStaff>
-                    <MenuEditorPage />
-                  </RequireStaff>
-                }
+                element={<RequirePropietario><MenuEditorPage /></RequirePropietario>}
               />
               <Route
                 path="/admin/encuestas"
-                element={
-                  <RequireStaff>
-                    <FeedbackPage />
-                  </RequireStaff>
-                }
+                element={<RequirePropietario><FeedbackPage /></RequirePropietario>}
               />
               <Route
                 path="/admin/ubicaciones"
-                element={
-                  <RequireStaff>
-                    <LocationsPage />
-                  </RequireStaff>
-                }
+                element={<RequirePropietario><LocationsPage /></RequirePropietario>}
               />
               <Route
                 path="/admin/usuarios"
-                element={
-                  <RequireStaff>
-                    <UsersPage />
-                  </RequireStaff>
-                }
+                element={<RequireAdmin><UsersPage /></RequireAdmin>}
               />
               <Route
                 path="/admin/configuracion"
-                element={
-                  <RequireStaff>
-                    <ConfigPage />
-                  </RequireStaff>
-                }
+                element={<RequirePropietario><ConfigPage /></RequirePropietario>}
               />
               <Route
                 path="/admin/configuracion/medios-pago"
-                element={
-                  <RequireStaff>
-                    <PaymentMethodsPage />
-                  </RequireStaff>
-                }
+                element={<RequirePropietario><PaymentMethodsPage /></RequirePropietario>}
               />
               <Route
                 path="/admin/configuracion/local"
-                element={
-                  <RequireStaff>
-                    <VenueSettingsPage />
-                  </RequireStaff>
-                }
+                element={<RequirePropietario><VenueSettingsPage /></RequirePropietario>}
               />
               <Route
                 path="/admin/rangos"
-                element={
-                  <RequireStaff>
-                    <RankConfigPage />
-                  </RequireStaff>
-                }
+                element={<RequirePropietario><RankConfigPage /></RequirePropietario>}
               />
               <Route
                 path="/admin/kpis"
-                element={
-                  <RequireAdmin>
-                    <KpisPage />
-                  </RequireAdmin>
-                }
+                element={<RequirePropietario><KpisPage /></RequirePropietario>}
               />
               <Route
                 path="/admin/tomar"
-                element={
-                  <RequireStaff>
-                    <WaiterModePage />
-                  </RequireStaff>
-                }
+                element={<RequireStaff><WaiterModePage /></RequireStaff>}
               />
               <Route path="/admin/camareros" element={<Navigate to="/admin/usuarios" replace />} />
               <Route
                 path="/admin/notas-rapidas"
-                element={
-                  <RequireStaff>
-                    <QuickNotesPage />
-                  </RequireStaff>
-                }
+                element={<RequirePropietario><QuickNotesPage /></RequirePropietario>}
               />
               <Route
                 path="/admin/qr"
-                element={
-                  <RequireStaff>
-                    <QRPage />
-                  </RequireStaff>
-                }
+                element={<RequirePropietario><QRPage /></RequirePropietario>}
               />
               <Route
                 path="/admin/mi-turno"

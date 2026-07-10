@@ -65,6 +65,24 @@ export function RequireAdmin({ children }) {
   )
 }
 
+export function RequirePropietario({ children }) {
+  const { user, profile, loading, profileLoading, isPropietario, venueId } = useAuth()
+
+  useEffect(() => { if (venueId) setActiveVenueId(venueId) }, [venueId])
+
+  if (loading || profileLoading) return <FullScreenLoader />
+  if (!user) return <Navigate to="/admin/login" replace />
+  if (!profile) return <Navigate to="/admin/login" replace />
+  if (!isPropietario) return <Navigate to="/admin" replace />
+  if (!venueId) return <Navigate to="/admin/onboarding" replace />
+  return (
+    <>
+      <AdminHeader />
+      {children}
+    </>
+  )
+}
+
 function FullScreenLoader() {
   return (
     <div className="min-h-screen bg-carbon-950 flex items-center justify-center">
