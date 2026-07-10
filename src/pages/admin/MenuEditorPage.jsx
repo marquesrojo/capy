@@ -13,7 +13,8 @@ const KIND_COLORS = {
 }
 
 export default function MenuEditorPage() {
-  const { venueId } = useAuth()
+  const { venueId, isSuperAdmin, isPropietario } = useAuth()
+  const unlimitedPhotos = isSuperAdmin || isPropietario
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -85,7 +86,7 @@ export default function MenuEditorPage() {
         </div>
 
         <ImportarConIA venueId={venueId} onImported={loadAll} />
-        <FotosConIA venueId={venueId} products={products} onUpdated={loadAll} />
+        <FotosConIA venueId={venueId} products={products} onUpdated={loadAll} unlimited={unlimitedPhotos} />
 
         {showCategoryForm && (
           <NewCategoryForm
@@ -820,17 +821,17 @@ function incrementUnsplashCount(venueId) {
   localStorage.setItem(`capy_unsplash_${venueId}_${today}`, String(getUnsplashCount(venueId) + 1))
 }
 
-async function searchUnsplash(query, venueId) {
+async function searchUnsplash(query, venueId, { skipLimit = false } = {}) {
   const key = import.meta.env.VITE_UNSPLASH_ACCESS_KEY
   if (!key) return null
-  if (venueId && getUnsplashCount(venueId) >= UNSPLASH_DAILY_LIMIT) return null
+  if (!skipLimit && venueId && getUnsplashCount(venueId) >= UNSPLASH_DAILY_LIMIT) return null
   try {
     const res = await fetch(
       `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape&client_id=${key}`
     )
     const data = await res.json()
     const url = data.results?.[0]?.urls?.small || null
-    if (url && venueId) incrementUnsplashCount(venueId)
+    if (url && venueId && !skipLimit) incrementUnsplashCount(venueId)
     return url
   } catch {
     return null
@@ -1118,7 +1119,7 @@ function ImportarConIA({ venueId, onImported }) {
   )
 }
 
-function FotosConIA({ venueId, products, onUpdated }) {
+function FotosConIA({ venueId, products, onUpdated, unlimited = false }) {
   const [open, setOpen] = useState(false)
   const [status, setStatus] = useState('idle') // idle | generating | review | saving
   const [progress, setProgress] = useState({ current: 0, total: 0, name: '' })
@@ -1126,7 +1127,7 @@ function FotosConIA({ venueId, products, onUpdated }) {
   const [error, setError] = useState('')
 
   const noPhoto = products.filter(p => !p.image_url)
-  const remaining = UNSPLASH_DAILY_LIMIT - getUnsplashCount(venueId)
+  const remaining = unlimited ? noPhoto.length : UNSPLASH_DAILY_LIMIT - getUnsplashCount(venueId)
   const canProcess = Math.min(noPhoto.length, Math.max(remaining, 0))
 
   function reset() {
@@ -1173,7 +1174,7 @@ Ejemplo: [{"idx":0,"query":"beef milanesa breaded"},{"idx":1,"query":"espresso c
     for (let i = 0; i < toProcess.length; i++) {
       setProgress({ current: i + 1, total: toProcess.length, name: toProcess[i].name })
       const query = queryMap[i] || toProcess[i].name
-      const url = await searchUnsplash(query, venueId)
+      const url = await searchUnsplash(query, venueId, { skipLimit: unlimited })
       if (url) found.push({ product: toProcess[i], imageUrl: url, selected: true })
     }
 
@@ -1211,7 +1212,7 @@ Ejemplo: [{"idx":0,"query":"beef milanesa breaded"},{"idx":1,"query":"espresso c
         </div>
         <div>
           <p className="font-semibold text-smoke-300 text-sm">Generar fotos con IA</p>
-          <p className="text-smoke-500 text-xs">{noPhoto.length} productos sin foto · {Math.max(remaining, 0)} búsquedas disponibles hoy</p>
+          <p className="text-smoke-500 text-xs">{noPhoto.length} productos sin foto{!unlimited ? ` · ${Math.max(remaining, 0)} búsquedas disponibles hoy` : ''}</p>
         </div>
       </button>
     )
@@ -1310,16 +1311,18 @@ Ejemplo: [{"idx":0,"query":"beef milanesa breaded"},{"idx":1,"query":"espresso c
           <p className="text-2xl font-bold text-smoke-200 font-mono">{noPhoto.length}</p>
           <p className="text-smoke-600 text-[10px] mt-0.5">sin foto</p>
         </div>
-        <div className="flex-1 bg-carbon-800 rounded-xl p-3">
-          <p className={`text-2xl font-bold font-mono ${remaining < 5 ? 'text-amber-400' : 'text-smoke-200'}`}>{Math.max(remaining, 0)}</p>
-          <p className="text-smoke-600 text-[10px] mt-0.5">disponibles hoy</p>
-        </div>
+        {!unlimited && (
+          <div className="flex-1 bg-carbon-800 rounded-xl p-3">
+            <p className={`text-2xl font-bold font-mono ${remaining < 5 ? 'text-amber-400' : 'text-smoke-200'}`}>{Math.max(remaining, 0)}</p>
+            <p className="text-smoke-600 text-[10px] mt-0.5">disponibles hoy</p>
+          </div>
+        )}
         <div className="flex-1 bg-ember-500/10 border border-ember-500/20 rounded-xl p-3">
           <p className="text-2xl font-bold text-ember-400 font-mono">{canProcess}</p>
           <p className="text-smoke-600 text-[10px] mt-0.5">se procesarán</p>
         </div>
       </div>
-      {remaining < noPhoto.length && remaining > 0 && (
+      {!unlimited && remaining < noPhoto.length && remaining > 0 && (
         <p className="text-amber-400/80 text-xs">Solo se procesarán {remaining} productos hoy. El cupo se renueva mañana.</p>
       )}
       {error && <p className="text-red-500 text-xs">{error}</p>}
