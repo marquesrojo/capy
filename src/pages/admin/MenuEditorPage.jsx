@@ -1588,13 +1588,14 @@ function ProductSearch({ value, allProducts, onChange }) {
   const ref = useRef(null)
 
   const selected = allProducts.find(p => p.id === value)
+  const sorted = [...allProducts].sort((a, b) => {
+    if (a.is_ingredient_only && !b.is_ingredient_only) return -1
+    if (!a.is_ingredient_only && b.is_ingredient_only) return 1
+    return a.name.localeCompare(b.name)
+  })
   const filtered = query.length > 0
-    ? allProducts.filter(p => p.name.toLowerCase().includes(query.toLowerCase())).slice(0, 8)
-    : [...allProducts].sort((a, b) => {
-        if (a.is_ingredient_only && !b.is_ingredient_only) return -1
-        if (!a.is_ingredient_only && b.is_ingredient_only) return 1
-        return a.name.localeCompare(b.name)
-      }).slice(0, 8)
+    ? sorted.filter(p => p.name.toLowerCase().includes(query.toLowerCase()))
+    : sorted
 
   useEffect(() => {
     function handleClick(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
@@ -1631,22 +1632,24 @@ function ProductSearch({ value, allProducts, onChange }) {
         </button>
       )}
       {open && (
-        <div className="absolute z-20 top-full mt-1 left-0 right-0 bg-carbon-800 border border-carbon-600 rounded-xl overflow-hidden shadow-xl">
-          {filtered.length === 0 ? (
-            <p className="text-smoke-500 text-xs px-3 py-2">Sin resultados</p>
-          ) : (
-            filtered.map(p => (
-              <button
-                key={p.id}
-                type="button"
-                onMouseDown={() => select(p)}
-                className="w-full text-left px-3 py-2 text-xs hover:bg-carbon-700 flex items-center gap-2"
-              >
-                {p.is_ingredient_only && <span className="text-amber-500 text-[9px] font-bold">INSUMO</span>}
-                <span className="text-smoke-200 truncate">{p.name}</span>
-              </button>
-            ))
-          )}
+        <div className="absolute z-50 top-full mt-1 left-0 right-0 bg-carbon-800 border border-carbon-600 rounded-xl overflow-hidden shadow-xl">
+          <div className="max-h-48 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <p className="text-smoke-500 text-xs px-3 py-2">Sin resultados</p>
+            ) : (
+              filtered.map(p => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onMouseDown={() => select(p)}
+                  className="w-full text-left px-3 py-2 text-xs hover:bg-carbon-700 flex items-center gap-2"
+                >
+                  {p.is_ingredient_only && <span className="text-amber-500 text-[9px] font-bold">INSUMO</span>}
+                  <span className="text-smoke-200 truncate">{p.name}</span>
+                </button>
+              ))
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -1773,8 +1776,7 @@ function RecipeEditor({ productId, productName, productDescription, venueId, all
 }
 
 function InsumosList({ venueId, categories, allProducts, onRefresh }) {
-  const [insumos, setInsumos] = useState([])
-  const [loading, setLoading] = useState(true)
+  const insumos = [...(allProducts || [])].filter(p => p.is_ingredient_only).sort((a, b) => a.name.localeCompare(b.name))
   const [showForm, setShowForm] = useState(false)
   const [newName, setNewName] = useState('')
   const [newStock, setNewStock] = useState('')
@@ -1785,20 +1787,7 @@ function InsumosList({ venueId, categories, allProducts, onRefresh }) {
   const [editStock, setEditStock] = useState('')
   const [editAlert, setEditAlert] = useState('')
 
-  useEffect(() => { if (venueId) loadInsumos() }, [venueId])
   useEffect(() => { if (categories.length && !newCategory) setNewCategory(categories[0]?.id || '') }, [categories])
-
-  async function loadInsumos() {
-    setLoading(true)
-    const { data } = await supabaseStaff
-      .from('products')
-      .select('*')
-      .eq('venue_id', venueId)
-      .eq('is_ingredient_only', true)
-      .order('name')
-    setInsumos(data || [])
-    setLoading(false)
-  }
 
   async function createInsumo() {
     if (!newName.trim()) return
@@ -1817,7 +1806,6 @@ function InsumosList({ venueId, categories, allProducts, onRefresh }) {
     setNewName(''); setNewStock(''); setNewAlert('')
     setSaving(false)
     setShowForm(false)
-    loadInsumos()
     onRefresh?.()
   }
 
@@ -1828,13 +1816,12 @@ function InsumosList({ venueId, categories, allProducts, onRefresh }) {
       is_available: (parseInt(editStock, 10) || 0) > 0,
     }).eq('id', id)
     setEditingId(null)
-    loadInsumos()
+    onRefresh?.()
   }
 
   async function deleteInsumo(id) {
     if (!confirm('¿Eliminar este insumo?')) return
     await supabaseStaff.from('products').delete().eq('id', id)
-    loadInsumos()
     onRefresh?.()
   }
 
@@ -1872,9 +1859,7 @@ function InsumosList({ venueId, categories, allProducts, onRefresh }) {
         </div>
       )}
 
-      {loading ? (
-        <p className="text-smoke-500 text-xs">Cargando...</p>
-      ) : insumos.length === 0 ? (
+      {insumos.length === 0 ? (
         <p className="text-smoke-600 text-xs italic mt-4">No hay insumos. Creá uno manualmente o la IA los crea automáticamente al sugerir recetas.</p>
       ) : (
         <div className="space-y-2">
