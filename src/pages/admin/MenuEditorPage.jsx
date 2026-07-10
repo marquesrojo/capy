@@ -438,6 +438,9 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
   const [description, setDescription] = useState(product.description || '')
   const [categoryId, setCategoryId] = useState(product.category_id)
   const [dietaryTags, setDietaryTags] = useState(product.dietary_tags || [])
+  const [trackStock, setTrackStock] = useState(product.unit_stock != null)
+  const [unitStock, setUnitStock] = useState(product.unit_stock != null ? String(product.unit_stock) : '')
+  const [minStockAlert, setMinStockAlert] = useState(product.min_stock_alert != null ? String(product.min_stock_alert) : '')
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -473,6 +476,8 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
       category_id: categoryId,
       image_url: imageUrl,
       dietary_tags: dietaryTags,
+      unit_stock: trackStock && unitStock !== '' ? parseInt(unitStock, 10) : null,
+      min_stock_alert: trackStock && minStockAlert !== '' ? parseInt(minStockAlert, 10) : null,
     }
     await supabaseStaff.from('products').update(updates).eq('id', product.id)
     onSave({ ...product, ...updates })
@@ -537,8 +542,51 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
             })}
           </div>
         </div>
+        {/* Stock por unidad */}
+        <div className="border border-carbon-700 rounded-xl p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-smoke-400 text-[10px] uppercase tracking-wide">Control de stock</p>
+            <button
+              type="button"
+              onClick={() => { setTrackStock(v => !v); if (trackStock) { setUnitStock(''); setMinStockAlert('') } }}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 ${trackStock ? 'bg-ember-500' : 'bg-carbon-600'}`}
+            >
+              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${trackStock ? 'translate-x-4' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+          {trackStock && (
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="text-smoke-600 text-[10px] block mb-1">Stock actual</label>
+                <input
+                  className="input text-xs"
+                  type="number"
+                  min="0"
+                  placeholder="Ej: 20"
+                  value={unitStock}
+                  onChange={e => setUnitStock(e.target.value)}
+                />
+              </div>
+              <div className="flex-1">
+                <label className="text-smoke-600 text-[10px] block mb-1">Alerta cuando queden</label>
+                <div className="relative">
+                  <input
+                    className="input text-xs pr-6"
+                    type="number"
+                    min="0"
+                    placeholder="Ej: 3"
+                    value={minStockAlert}
+                    onChange={e => setMinStockAlert(e.target.value)}
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-smoke-600 text-[10px]">u.</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="flex gap-2">
-          <button onClick={() => { setEditing(false); setImageFile(null); setImagePreview(null); setDietaryTags(product.dietary_tags || []) }}
+          <button onClick={() => { setEditing(false); setImageFile(null); setImagePreview(null); setDietaryTags(product.dietary_tags || []); setTrackStock(product.unit_stock != null); setUnitStock(product.unit_stock != null ? String(product.unit_stock) : ''); setMinStockAlert(product.min_stock_alert != null ? String(product.min_stock_alert) : '') }}
             className="flex-1 border border-carbon-700 text-smoke-400 py-2 rounded-xl text-xs">
             Cancelar
           </button>
@@ -598,12 +646,23 @@ function ProductRow({ product, venueId, categories, onToggle, onDelete, onSave }
 
         <div className="min-w-0 flex-1">
           <p className="text-smoke-300 text-sm font-medium truncate">{product.name}</p>
-          <div className="flex items-center gap-1.5 mt-0.5">
+          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
             <p className="font-mono text-ember-400 text-xs">{formatPrice(product.price)}</p>
             {(product.dietary_tags || []).map(t => {
               const tag = DIETARY_TAGS.find(d => d.id === t)
               return tag ? <span key={t} className="text-smoke-400" title={tag.label}><tag.Icon size={13} /></span> : null
             })}
+            {product.unit_stock != null && (
+              <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${
+                product.unit_stock === 0
+                  ? 'bg-red-500/15 text-red-500'
+                  : product.min_stock_alert != null && product.unit_stock <= product.min_stock_alert
+                    ? 'bg-amber-500/15 text-amber-500'
+                    : 'bg-carbon-700 text-smoke-500'
+              }`}>
+                {product.unit_stock === 0 ? 'Sin stock' : `${product.unit_stock} u.`}
+              </span>
+            )}
           </div>
         </div>
 

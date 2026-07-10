@@ -543,6 +543,10 @@ async function loadZones() {
         )
       })()}
 
+      {view !== 'cocina' && profile?.role !== 'camarero' && (
+        <LowStockPanel venueId={venueId} />
+      )}
+
       {view !== 'cocina' && pendingProofOrders.length > 0 && (
         <div className="px-4 pt-4">
           <p className="text-ember-400 text-xs font-semibold uppercase tracking-wide mb-2">
@@ -1423,6 +1427,105 @@ function KanbanQRCode({ orderId }) {
             <p className="text-smoke-500 text-xs">Generando QR...</p>
           </div>
         )}
+      </div>
+    </div>
+  )
+}
+
+function LowStockPanel({ venueId }) {
+  const [items, setItems] = useState([])
+  const [adjusting, setAdjusting] = useState(null)
+  const [newStock, setNewStock] = useState('')
+  const notifiedRef = useRef(new Set())
+
+  useEffect(() => {
+    if (!venueId) return
+    loadLowStock()
+  }, [venueId])
+
+  async function loadLowStock() {
+    const { data } = await supabaseStaff
+      .from('products')
+      .select('id, name, unit_stock, min_stock_alert, is_available')
+      .eq('venue_id', venueId)
+      .not('unit_stock', 'is', null)
+    if (!data) return
+    const low = data.filter(p => p.unit_stock != null && p.min_stock_alert != null && p.unit_stock <= p.min_stock_alert)
+    setItems(low)
+    // Notificar por push (una vez por producto por sesión)
+    for (const p of low) {
+      if (!notifiedRef.current.has(p.id)) {
+        notifiedRef.current.add(p.id)
+        supabaseStaff.functions.invoke('notify-staff', {
+          body: { venue_id: venueId, title: '⚠️ Stock bajo', body: `${p.name}: quedan ${p.unit_stock} unidades` }
+        }).catch(() => {})
+      }
+    }
+  }
+
+  async function handleAdjust(productId) {
+    const qty = parseInt(newStock, 10)
+    if (isNaN(qty) || qty < 0) return
+    await supabaseStaff.from('products').update({
+      unit_stock: qty,
+      is_available: qty > 0 ? true : false,
+    }).eq('id', productId)
+    setAdjusting(null)
+    setNewStock('')
+    loadLowStock()
+  }
+
+  if (items.length === 0) return null
+
+  return (
+    <div className="px-4 pt-4">
+      <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <p className="text-amber-500 text-xs font-semibold uppercase tracking-wide">Stock bajo — {items.length} producto{items.length !== 1 ? 's' : ''}</p>
+        </div>
+        <div className="space-y-2">
+          {items.map(p => (
+            <div key={p.id} className="flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-smoke-200 text-xs font-medium truncate">{p.name}</p>
+                <p className={`text-[10px] font-semibold ${p.unit_stock === 0 ? 'text-red-400' : 'text-amber-500'}`}>
+                  {p.unit_stock === 0 ? 'Sin stock' : `${p.unit_stock} unidades`}
+                </p>
+              </div>
+              {adjusting === p.id ? (
+                <div className="flex items-center gap-1.5">
+                  <input
+                    autoFocus
+                    type="number"
+                    min="0"
+                    value={newStock}
+                    onChange={e => setNewStock(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleAdjust(p.id); if (e.key === 'Escape') { setAdjusting(null); setNewStock('') } }}
+                    className="w-16 bg-carbon-800 border border-carbon-600 text-smoke-200 text-xs px-2 py-1 rounded-lg"
+                    placeholder="0"
+                  />
+                  <button onClick={() => handleAdjust(p.id)} className="text-xs text-emerald-500 font-semibold">OK</button>
+                  <button onClick={() => { setAdjusting(null); setNewStock('') }} className="text-xs text-smoke-500">✕</button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => { setAdjusting(p.id); setNewStock(String(p.unit_stock)) }}
+                  className="text-[10px] text-amber-500 border border-amber-500/40 px-2 py-1 rounded-lg font-semibold flex-shrink-0"
+                >
+                  Ajustar
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+        <Link to="/admin/carta" className="mt-3 block text-[10px] text-smoke-500 underline text-right">
+          Editar stock en la carta →
+        </Link>
       </div>
     </div>
   )
