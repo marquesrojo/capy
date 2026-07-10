@@ -1580,6 +1580,77 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
   )
 }
 
+function ProductSearch({ value, allProducts, onChange }) {
+  const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  const selected = allProducts.find(p => p.id === value)
+  const filtered = query.length > 0
+    ? allProducts.filter(p => p.name.toLowerCase().includes(query.toLowerCase())).slice(0, 8)
+    : [...allProducts].sort((a, b) => {
+        if (a.is_ingredient_only && !b.is_ingredient_only) return -1
+        if (!a.is_ingredient_only && b.is_ingredient_only) return 1
+        return a.name.localeCompare(b.name)
+      }).slice(0, 8)
+
+  useEffect(() => {
+    function handleClick(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  function select(p) {
+    onChange(p.id)
+    setQuery('')
+    setOpen(false)
+  }
+
+  return (
+    <div ref={ref} className="flex-1 min-w-0 relative">
+      {open ? (
+        <input
+          autoFocus
+          type="text"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="Buscar producto..."
+          className="w-full text-xs bg-carbon-800 border border-ember-500/50 rounded-lg px-2 py-1.5 text-smoke-200 outline-none"
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="w-full text-left text-xs bg-carbon-800 border border-carbon-700 rounded-lg px-2 py-1.5 truncate"
+        >
+          {selected
+            ? <span className="text-smoke-200">{selected.is_ingredient_only ? '★ ' : ''}{selected.name}</span>
+            : <span className="text-smoke-500">— Buscar insumo —</span>}
+        </button>
+      )}
+      {open && (
+        <div className="absolute z-20 top-full mt-1 left-0 right-0 bg-carbon-800 border border-carbon-600 rounded-xl overflow-hidden shadow-xl">
+          {filtered.length === 0 ? (
+            <p className="text-smoke-500 text-xs px-3 py-2">Sin resultados</p>
+          ) : (
+            filtered.map(p => (
+              <button
+                key={p.id}
+                type="button"
+                onMouseDown={() => select(p)}
+                className="w-full text-left px-3 py-2 text-xs hover:bg-carbon-700 flex items-center gap-2"
+              >
+                {p.is_ingredient_only && <span className="text-amber-500 text-[9px] font-bold">INSUMO</span>}
+                <span className="text-smoke-200 truncate">{p.name}</span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function RecipeEditor({ productId, productName, productDescription, venueId, allProducts, recipe, onChange }) {
   const [suggesting, setSuggesting] = useState(false)
 
@@ -1666,25 +1737,11 @@ function RecipeEditor({ productId, productName, productDescription, venueId, all
       <div className="space-y-1.5">
         {rows.map((row, i) => (
           <div key={i} className="flex gap-1 items-center">
-            <select
+            <ProductSearch
               value={row.supply_product_id || ''}
-              onChange={e => updateRow(i, 'supply_product_id', e.target.value)}
-              className="flex-1 min-w-0 text-xs bg-carbon-800 border border-carbon-700 rounded-lg px-2 py-1.5 text-smoke-200 outline-none"
-            >
-              <option value="">— Seleccionar —</option>
-              {[...allProducts]
-                .filter(p => p.id !== productId)
-                .sort((a, b) => {
-                  if (a.is_ingredient_only && !b.is_ingredient_only) return -1
-                  if (!a.is_ingredient_only && b.is_ingredient_only) return 1
-                  return a.name.localeCompare(b.name)
-                })
-                .map(p => (
-                  <option key={p.id} value={p.id}>
-                    {p.is_ingredient_only ? '★ ' : ''}{p.name}
-                  </option>
-                ))}
-            </select>
+              allProducts={allProducts.filter(p => p.id !== productId)}
+              onChange={id => updateRow(i, 'supply_product_id', id)}
+            />
             <input
               type="number"
               value={row.quantity}
