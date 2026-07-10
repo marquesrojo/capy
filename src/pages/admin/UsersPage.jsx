@@ -520,11 +520,20 @@ function UserRow({ user, onUpdated, currentRole }) {
         if (pinErr) { setError('No se pudo guardar el PIN.'); return }
       }
 
-      // Edge function solo si cambió nombre, rol o contraseña
+      // Nombre: directo en profiles (la edge function rechaza 'propietario' como rol)
       const nameChanged = fullName.trim() !== (user.full_name || '')
+      if (nameChanged) {
+        const { error: nameErr } = await supabaseStaff
+          .from('profiles')
+          .update({ full_name: fullName.trim() })
+          .eq('id', user.id)
+        if (nameErr) { setError('No se pudo guardar el nombre.'); return }
+      }
+
+      // Edge function solo para cambios de rol o contraseña
       const roleChanged = role !== user.role
       const passwordChanged = password.trim().length > 0
-      if (nameChanged || roleChanged || passwordChanged) {
+      if (roleChanged || passwordChanged) {
         const body = { action: 'update', user_id: user.id, full_name: fullName.trim(), role }
         if (password.trim()) body.password = password.trim()
         const res = await fetch(EDGE_URL, { method: 'POST', headers: EDGE_HEADERS, body: JSON.stringify(body) })
