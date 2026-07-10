@@ -135,6 +135,13 @@ export default function PaymentPage() {
         setSessionId(session.id)
       }
 
+      const { data: openShift } = await supabaseCustomer
+        .from('shifts')
+        .select('id')
+        .eq('venue_id', ACTIVE_VENUE_ID)
+        .eq('status', 'open')
+        .maybeSingle()
+
       const { data: order, error: orderError } = await supabaseCustomer
         .from('orders')
         .insert({
@@ -153,7 +160,8 @@ export default function PaymentPage() {
           total: subtotal,
           payment_method: paymentOptions.find(o => o.id === paymentMethod)?.name || paymentMethod,
           session_id: activeSessionId,
-          is_addition: !!sessionId
+          is_addition: !!sessionId,
+          shift_id: openShift?.id || null,
         })
         .select()
         .single()
