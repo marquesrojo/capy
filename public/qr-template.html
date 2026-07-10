@@ -88,9 +88,24 @@
   .small-url { font-size: 9px; font-weight: 600; color: rgba(255,255,255,0.7); letter-spacing: 0.08em; text-align: center; position: relative; z-index: 1; }
   .small-powered { font-size: 7px; color: rgba(255,255,255,0.4); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 10px; position: relative; z-index: 1; }
 
+  .print-bar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: #111; border-bottom: 1px solid rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 24px; gap: 12px;
+  }
+  .print-bar p { font-size: 11px; color: rgba(255,255,255,0.45); }
+  .print-bar button {
+    background: var(--accent); color: white; border: none; cursor: pointer;
+    padding: 9px 20px; border-radius: 8px; font-size: 13px; font-weight: 700;
+    letter-spacing: 0.02em; white-space: nowrap; display: flex; align-items: center; gap: 8px;
+  }
+  .print-bar button:hover { opacity: 0.9; }
+
   @media print {
     body { background: white; padding: 0; }
     h2 { display: none; }
+    .print-bar { display: none; }
     .a4 { box-shadow: none; border-radius: 0; page-break-after: always; break-after: page; }
     .small { box-shadow: none; }
   }
@@ -98,7 +113,18 @@
 </head>
 <body>
 
-<h2>Template A4 — Para imprimir y colgar</h2>
+<div class="print-bar">
+  <p>Para guardar como PDF: elegí "Guardar como PDF" en el destino de impresión</p>
+  <button onclick="window.print()">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+      <rect x="6" y="14" width="12" height="8"/>
+    </svg>
+    Descargar PDF
+  </button>
+</div>
+
+<h2 style="margin-top: 72px;">Template A4 — Para imprimir y colgar</h2>
 
 <div class="a4">
   <div class="a4-content">
