@@ -457,14 +457,27 @@ function UserRow({ user, onUpdated, currentRole }) {
     setSaving(true)
     setError('')
     try {
-      const body = { action: 'update', user_id: user.id, full_name: fullName.trim(), role }
-      if (password.trim()) body.password = password.trim()
-      const res = await fetch(EDGE_URL, { method: 'POST', headers: EDGE_HEADERS, body: JSON.stringify(body) })
-      const result = await res.json()
-      if (!res.ok) { setError(result.error || 'Error al guardar.'); return }
+      // PIN se guarda directo en Supabase — no necesita edge function
       if (managerPin) {
-        await supabaseStaff.from('profiles').update({ manager_pin: managerPin }).eq('id', user.id)
+        const { error: pinErr } = await supabaseStaff
+          .from('profiles')
+          .update({ manager_pin: managerPin })
+          .eq('id', user.id)
+        if (pinErr) { setError('No se pudo guardar el PIN.'); return }
       }
+
+      // Edge function solo si cambió nombre, rol o contraseña
+      const nameChanged = fullName.trim() !== user.full_name
+      const roleChanged = role !== user.role
+      const passwordChanged = password.trim().length > 0
+      if (nameChanged || roleChanged || passwordChanged) {
+        const body = { action: 'update', user_id: user.id, full_name: fullName.trim(), role }
+        if (password.trim()) body.password = password.trim()
+        const res = await fetch(EDGE_URL, { method: 'POST', headers: EDGE_HEADERS, body: JSON.stringify(body) })
+        const result = await res.json()
+        if (!res.ok) { setError(result.error || 'Error al guardar.'); return }
+      }
+
       onUpdated({ id: user.id, full_name: fullName.trim(), role })
       setEditing(false)
       setPassword('')
