@@ -157,10 +157,12 @@ export default function UsersPage() {
     setError('')
     setSuccess('')
     try {
+      // La edge function rechaza 'propietario' — lo creamos como 'admin' y luego lo promovemos
+      const createRole = role === 'propietario' ? 'admin' : role
       const res = await fetch(EDGE_URL, {
         method: 'POST',
         headers: EDGE_HEADERS,
-        body: JSON.stringify({ action: 'create', email: email.trim(), full_name: fullName.trim(), role, password: password.trim() })
+        body: JSON.stringify({ action: 'create', email: email.trim(), full_name: fullName.trim(), role: createRole, password: password.trim() })
       })
       const result = await res.json()
       if (!res.ok) {
@@ -173,9 +175,11 @@ export default function UsersPage() {
         let venueSet = false
 
         if (newUserId) {
+          const update = { venue_id: venueId }
+          if (role === 'propietario') update.role = 'propietario'
           const { error: upErr } = await supabaseStaff
             .from('profiles')
-            .update({ venue_id: venueId })
+            .update(update)
             .eq('id', newUserId)
           venueSet = !upErr
         }
@@ -187,14 +191,15 @@ export default function UsersPage() {
             .select('id')
             .is('venue_id', null)
             .eq('full_name', fullName.trim())
-            .eq('role', role)
             .order('created_at', { ascending: false })
             .limit(1)
             .single()
           if (found) {
+            const fbUpdate = { venue_id: venueId }
+            if (role === 'propietario') fbUpdate.role = 'propietario'
             const { error: fbErr } = await supabaseStaff
               .from('profiles')
-              .update({ venue_id: venueId })
+              .update(fbUpdate)
               .eq('id', found.id)
             venueSet = !fbErr
           }
