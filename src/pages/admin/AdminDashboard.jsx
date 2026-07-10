@@ -4,7 +4,7 @@ import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice, STATUS_LABELS, STATUS_COLORS } from '../../lib/utils'
 import FloorPlanViewer from '../../components/FloorPlanViewer'
-import { UtensilsIcon, UsersIcon, PinIcon, PhoneIcon, FileTextIcon, ChefHatIcon, BellIcon, CreditCardIcon, ClockIcon } from '../../components/Icons'
+import { UtensilsIcon, PinIcon, PhoneIcon, FileTextIcon, ChefHatIcon, BellIcon, CreditCardIcon, ClockIcon } from '../../components/Icons'
 
 const BOARD_COLUMNS = ['recibido', 'en_preparacion', 'entregado']
 const PROOF_BUCKET = 'payment-proofs'
@@ -57,7 +57,6 @@ function AdminDashboardInner() {
   const [view, setView] = useState('pedidos')
   const [zones, setZones] = useState([])
   const [hasProducts, setHasProducts] = useState(true)
-  const [hasStaff, setHasStaff] = useState(true)
   const [hasLocations, setHasLocations] = useState(true)
   const [hasCamautStaff, setHasCamautStaff] = useState(true)
   const [waiterCalls, setWaiterCalls] = useState([])
@@ -98,14 +97,12 @@ function AdminDashboardInner() {
   }
 
   async function loadOnboardingChecks() {
-    const [prodRes, staffRes, zoneRes, camautRes] = await Promise.all([
+    const [prodRes, zoneRes, camautRes] = await Promise.all([
       supabaseStaff.from('products').select('id', { count: 'exact', head: true }).eq('venue_id', venueId).limit(1),
-      supabaseStaff.from('staff_names').select('id', { count: 'exact', head: true }).eq('venue_id', venueId).eq('is_active', true).limit(1),
       supabaseStaff.from('venue_zones').select('id', { count: 'exact', head: true }).eq('venue_id', venueId).limit(1),
       supabaseStaff.from('venue_staff').select('id', { count: 'exact', head: true }).eq('venue_id', venueId).limit(1),
     ])
     setHasProducts((prodRes.count ?? 0) > 0)
-    setHasStaff((staffRes.count ?? 0) > 0)
     setHasLocations((zoneRes.count ?? 0) > 0)
     setHasCamautStaff((camautRes.count ?? 0) > 0)
   }
@@ -472,7 +469,7 @@ function AdminDashboardInner() {
         </button>
       </div>
 
-      {profile?.role !== 'camarero' && (!hasProducts || !hasStaff || !hasLocations || !hasCamautStaff) && (
+      {profile?.role !== 'camarero' && (!hasProducts || !hasLocations || !hasCamautStaff) && (
         <div className="px-4 pt-4 space-y-2">
           {!hasProducts && (
             <OnboardingAlert
@@ -483,16 +480,7 @@ function AdminDashboardInner() {
               linkLabel="Crear carta →"
             />
           )}
-          {!hasStaff && (
-            <OnboardingAlert
-              Icon={UsersIcon}
-              title="Agregá al menos un camarero"
-              description="Los camareros reciben y entregan los pedidos en mesa."
-              linkTo="/admin/camareros"
-              linkLabel="Agregar camarero →"
-            />
-          )}
-          {!hasLocations && (
+              {!hasLocations && (
             <OnboardingAlert
               Icon={PinIcon}
               title="Configurá las ubicaciones del local"
