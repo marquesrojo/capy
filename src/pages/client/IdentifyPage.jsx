@@ -244,7 +244,8 @@ export default function IdentifyPage() {
       const from = fH * 60 + fM
       let to = tH * 60 + tM
       if (to <= from) to += 24 * 60
-      scheduleStatus = { isOpen: now >= from && now < to, closeTime: day.to }
+      const adjustedNow = (to > 24 * 60 && now < to - 24 * 60) ? now + 24 * 60 : now
+      scheduleStatus = { isOpen: adjustedNow >= from && adjustedNow < to, closeTime: day.to }
     }
   }
 
