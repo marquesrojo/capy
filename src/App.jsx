@@ -47,6 +47,7 @@ import TerminosPage from './pages/camaut/TerminosPage'
 import WaiterPublicPage from './pages/camaut/WaiterPublicPage'
 import SuperAdminPage from './pages/admin/SuperAdminPage'
 import ConsumoPage from './pages/admin/ConsumoPage'
+import ShiftManagerPage from './pages/admin/ShiftManagerPage'
 import WaiterCVPage from './pages/camaut/WaiterCVPage'
 import ClientAuthCallbackPage from './pages/client/ClientAuthCallbackPage'
 import AccountPage from './pages/client/AccountPage'
@@ -324,6 +325,14 @@ export default function App() {
                 element={
                   <RequireAdmin>
                     <ConsumoPage />
+                  </RequireAdmin>
+                }
+              />
+              <Route
+                path="/admin/turno"
+                element={
+                  <RequireAdmin>
+                    <ShiftManagerPage />
                   </RequireAdmin>
                 }
               />
