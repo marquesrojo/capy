@@ -151,8 +151,18 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
           const newXP = await awardXP(staffId, 'send_order', activeVenueId)
           if (newXP !== null && onXPUpdate) onXPUpdate(newXP)
         }
-        if (result.order?.id && activeVenueId === venueId && activeMenuId && activeMenuId !== 'all') {
-          await supabaseStaff.from('orders').update({ menu_id: activeMenuId }).eq('id', result.order.id)
+        if (result.order?.id) {
+          const updates = {}
+          if (activeVenueId === venueId && activeMenuId && activeMenuId !== 'all') {
+            updates.menu_id = activeMenuId
+          }
+          const { data: openShift } = await supabaseStaff
+            .from('shifts').select('id')
+            .eq('venue_id', currentVenueId).eq('status', 'open').maybeSingle()
+          if (openShift?.id) updates.shift_id = openShift.id
+          if (Object.keys(updates).length) {
+            await supabaseStaff.from('orders').update(updates).eq('id', result.order.id)
+          }
         }
         setLastOrder({ order: result.order, items: cartItems, location: locationLabel, total })
         setCart({})
@@ -908,6 +918,14 @@ function CartaVacia({ venueId, onProductsCreated }) {
 
     const result = await res.json()
     if (result.success) {
+      if (result.order?.id) {
+        const { data: openShift } = await supabaseStaff
+          .from('shifts').select('id')
+          .eq('venue_id', venueId).eq('status', 'open').maybeSingle()
+        if (openShift?.id) {
+          await supabaseStaff.from('orders').update({ shift_id: openShift.id }).eq('id', result.order.id)
+        }
+      }
       setLastOrder({ order: result.order, location: location.trim(), total })
       setItems([{ name: '', price: '' }])
       setLocation('')
