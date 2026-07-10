@@ -478,7 +478,7 @@ export default function UsersPage() {
 function UserRow({ user, onUpdated, currentRole }) {
   const canEdit = currentRole === 'propietario' || user.role === 'camarero'
   const [editing, setEditing] = useState(false)
-  const [fullName, setFullName] = useState(user.full_name)
+  const [fullName, setFullName] = useState(user.full_name || '')
   const [role, setRole] = useState(user.role)
   const [password, setPassword] = useState('')
   const [managerPin, setManagerPin] = useState('')
@@ -521,7 +521,7 @@ function UserRow({ user, onUpdated, currentRole }) {
       }
 
       // Edge function solo si cambió nombre, rol o contraseña
-      const nameChanged = fullName.trim() !== user.full_name
+      const nameChanged = fullName.trim() !== (user.full_name || '')
       const roleChanged = role !== user.role
       const passwordChanged = password.trim().length > 0
       if (nameChanged || roleChanged || passwordChanged) {
@@ -593,7 +593,7 @@ function UserRow({ user, onUpdated, currentRole }) {
   return (
     <div className="bg-carbon-900 border border-carbon-700 rounded-xl px-4 py-3 flex items-center justify-between">
       <div>
-        <p className="text-smoke-300 text-sm font-medium">{user.full_name}</p>
+        <p className="text-smoke-300 text-sm font-medium">{user.full_name || <span className="text-smoke-600 italic">Sin nombre</span>}</p>
         <p className="text-smoke-500 text-xs mt-0.5">{new Date(user.created_at).toLocaleDateString('es-AR')}</p>
         {user.is_shared_account && (
           <p className="text-blue-700 text-[10px] mt-0.5 flex items-center gap-1"><UsersIcon size={11} /> Cuenta compartida</p>
