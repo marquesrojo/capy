@@ -79,7 +79,7 @@ export default function DiscountsPage() {
               <label className="text-smoke-500 text-xs block mb-1">Código</label>
               <input
                 className="input uppercase"
-                placeholder="Ej: COWORK"
+                placeholder="Ej: DESCUENTO10"
                 value={code}
                 onChange={e => setCode(e.target.value.toUpperCase())}
               />
@@ -88,7 +88,7 @@ export default function DiscountsPage() {
               <label className="text-smoke-500 text-xs block mb-1">Descripción (opcional)</label>
               <input
                 className="input"
-                placeholder="Ej: Descuento clientes cowork"
+                placeholder="Ej: Descuento clientes habituales"
                 value={label}
                 onChange={e => setLabel(e.target.value)}
               />

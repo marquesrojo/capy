@@ -375,7 +375,7 @@ export default function PaymentPage() {
                   value={discountCode}
                   onChange={e => { setDiscountCode(e.target.value.toUpperCase()); setDiscountError('') }}
                   onKeyDown={e => e.key === 'Enter' && applyDiscount()}
-                  placeholder="Ej: COWORK"
+                  placeholder="Ej: DESCUENTO10"
                   className="input flex-1 uppercase font-mono text-sm"
                 />
                 <button
