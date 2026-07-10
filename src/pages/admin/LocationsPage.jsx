@@ -111,6 +111,13 @@ export default function LocationsPage() {
     }
   }
 
+  async function deleteZone(zone) {
+    const label = zone.type === 'mesa' ? 'esta mesa' : zone.type === 'zona' ? 'esta zona' : 'este punto de retiro'
+    if (!confirm(`¿Eliminar ${label} "${zone.name}"? Esta acción no se puede deshacer.`)) return
+    await supabaseStaff.from('venue_zones').delete().eq('id', zone.id)
+    setZones(prev => prev.filter(z => z.id !== zone.id))
+  }
+
   async function reshapeZone(zone, shape) {
     const { data } = await supabaseStaff
       .from('venue_zones')
@@ -241,6 +248,7 @@ export default function LocationsPage() {
                     parentZones={activeTab === 'mesa' ? parentZonas : []}
                     onReassign={reassignZone}
                     onReshape={activeTab === 'mesa' ? reshapeZone : null}
+                    onDelete={() => deleteZone(zone)}
                   />
                 ))}
               </div>
@@ -259,7 +267,7 @@ const SHAPES = [
   { id: 'barra',       label: 'Barra',  icon: <rect x="1" y="9" width="22" height="6" rx="1"/> },
 ]
 
-function ZoneRow({ zone, onToggle, onRename, parentZones = [], onReassign, onReshape }) {
+function ZoneRow({ zone, onToggle, onRename, parentZones = [], onReassign, onReshape, onDelete }) {
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(zone.name)
 
@@ -304,16 +312,24 @@ function ZoneRow({ zone, onToggle, onRename, parentZones = [], onReassign, onRes
             )}
           </div>
         )}
-        <button
-          onClick={onToggle}
-          className={`text-xs font-medium px-2.5 py-1 rounded-full border flex-shrink-0 ${
-            zone.is_active
-              ? 'border-emerald-500/40 text-emerald-700'
-              : 'border-smoke-500/40 text-smoke-500'
-          }`}
-        >
-          {zone.is_active ? 'Activo' : 'Inactivo'}
-        </button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={onToggle}
+            className={`text-xs font-medium px-2.5 py-1 rounded-full border ${
+              zone.is_active
+                ? 'border-emerald-500/40 text-emerald-700'
+                : 'border-smoke-500/40 text-smoke-500'
+            }`}
+          >
+            {zone.is_active ? 'Activo' : 'Inactivo'}
+          </button>
+          <button
+            onClick={onDelete}
+            className="text-smoke-600 text-xs underline hover:text-red-500"
+          >
+            Borrar
+          </button>
+        </div>
       </div>
 
       {onReshape && (

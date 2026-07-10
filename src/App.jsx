@@ -220,7 +220,7 @@ export default function App() {
               />
               <Route
                 path="/admin/ubicaciones"
-                element={<RequirePropietario><LocationsPage /></RequirePropietario>}
+                element={<RequireAdmin><LocationsPage /></RequireAdmin>}
               />
               <Route
                 path="/admin/usuarios"
