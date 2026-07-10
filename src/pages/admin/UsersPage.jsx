@@ -160,6 +160,28 @@ export default function UsersPage() {
       if (!res.ok) {
         setError(result.error || 'Error al crear el usuario.')
       } else {
+        // El perfil se crea sin venue_id via trigger — lo asignamos ahora
+        const newUserId = result.user?.id || result.id
+        if (newUserId) {
+          await supabaseStaff
+            .from('profiles')
+            .update({ venue_id: venueId })
+            .eq('id', newUserId)
+        } else {
+          // Fallback: buscar por email en profiles (si la edge function sincronizó el email)
+          const { data: found } = await supabaseStaff
+            .from('profiles')
+            .select('id')
+            .is('venue_id', null)
+            .eq('full_name', fullName.trim())
+            .eq('role', role)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single()
+          if (found) {
+            await supabaseStaff.from('profiles').update({ venue_id: venueId }).eq('id', found.id)
+          }
+        }
         setSuccess(`Usuario ${fullName.trim()} creado correctamente.`)
         setEmail(''); setFullName(''); setPassword(''); setRole('admin')
         loadUsers()
