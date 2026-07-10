@@ -320,19 +320,6 @@ export default function IdentifyPage() {
           {description && (
             <p className="text-white/60 text-sm mt-1 max-w-xs mx-auto leading-snug">{description}</p>
           )}
-          {address && (
-            <a
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 mt-1 text-white/50 text-xs hover:text-white/80 transition-colors"
-            >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 21s-7-7.5-7-12a7 7 0 0 1 14 0c0 4.5-7 12-7 12Z"/><circle cx="12" cy="9" r="2.5"/>
-              </svg>
-              {address}
-            </a>
-          )}
           {scheduleStatus && (
             <button
               onClick={() => setShowSchedule(v => !v)}
@@ -808,6 +795,21 @@ export default function IdentifyPage() {
             </svg>
             @{instagramHandle}
           </a>
+        )}
+        {address && (
+          <div>
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-[#9DAAB8] text-xs hover:text-[#1A2332] transition-colors"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 21s-7-7.5-7-12a7 7 0 0 1 14 0c0 4.5-7 12-7 12Z"/><circle cx="12" cy="9" r="2.5"/>
+              </svg>
+              {address}
+            </a>
+          </div>
         )}
         <div>
           <a href="https://capyapp.co" target="_blank" rel="noreferrer"
