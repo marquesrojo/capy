@@ -160,15 +160,22 @@ export default function UsersPage() {
       if (!res.ok) {
         setError(result.error || 'Error al crear el usuario.')
       } else {
-        // El perfil se crea sin venue_id via trigger — lo asignamos ahora
+        // Esperar a que el trigger de auth cree el perfil antes de parcharlo
+        await new Promise(r => setTimeout(r, 1500))
+
         const newUserId = result.user?.id || result.id
+        let venueSet = false
+
         if (newUserId) {
-          await supabaseStaff
+          const { error: upErr } = await supabaseStaff
             .from('profiles')
             .update({ venue_id: venueId })
             .eq('id', newUserId)
-        } else {
-          // Fallback: buscar por email en profiles (si la edge function sincronizó el email)
+          venueSet = !upErr
+        }
+
+        if (!venueSet) {
+          // Fallback: buscar por nombre+rol entre perfiles sin venue_id
           const { data: found } = await supabaseStaff
             .from('profiles')
             .select('id')
@@ -179,12 +186,23 @@ export default function UsersPage() {
             .limit(1)
             .single()
           if (found) {
-            await supabaseStaff.from('profiles').update({ venue_id: venueId }).eq('id', found.id)
+            const { error: fbErr } = await supabaseStaff
+              .from('profiles')
+              .update({ venue_id: venueId })
+              .eq('id', found.id)
+            venueSet = !fbErr
           }
         }
-        setSuccess(`Usuario ${fullName.trim()} creado correctamente.`)
+
+        if (!venueSet) {
+          setError('Usuario creado pero no se pudo asignar al local. Avisá al soporte.')
+        } else {
+          setSuccess(`Usuario ${fullName.trim()} creado correctamente.`)
+        }
         setEmail(''); setFullName(''); setPassword(''); setRole('admin')
         loadUsers()
+        // Recargar de nuevo después de 2s por si hay latencia adicional
+        setTimeout(() => loadUsers(), 2000)
       }
     } catch {
       setError('No pudimos crear el usuario. Intentá de nuevo.')
