@@ -350,51 +350,16 @@ export default function VenueSettingsPage() {
         </div>
 
         <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
-          <p className="text-smoke-300 font-medium text-sm mb-1">Colores de la página de bienvenida</p>
+          <p className="text-smoke-300 font-medium text-sm mb-1">Vista previa de bienvenida</p>
           <p className="text-smoke-500 text-xs mb-4">
-            Botones que el cliente ve al escanear el QR del local.
+            Los botones de la página de bienvenida usan los colores del encabezado.
           </p>
-          <div className="flex gap-3 mb-4">
-            <button
-              type="button"
-              onClick={() => setActivePicker(activePicker === 'self' ? null : 'self')}
-              className={`flex-1 flex items-center gap-2 rounded-lg px-2 py-1.5 border ${activePicker === 'self' ? 'border-ember-500 bg-carbon-800' : 'border-carbon-700 bg-carbon-800'}`}
-            >
-              <div className="w-8 h-8 rounded border border-carbon-600 flex-shrink-0" style={{ backgroundColor: landingSelfColor }} />
-              <div className="text-left">
-                <p className="text-smoke-400 text-[10px]">Pedir yo mismo</p>
-                <p className="text-smoke-300 text-xs font-mono">{landingSelfColor}</p>
-              </div>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActivePicker(activePicker === 'waiter' ? null : 'waiter')}
-              className={`flex-1 flex items-center gap-2 rounded-lg px-2 py-1.5 border ${activePicker === 'waiter' ? 'border-ember-500 bg-carbon-800' : 'border-carbon-700 bg-carbon-800'}`}
-            >
-              <div className="w-8 h-8 rounded border border-carbon-600 flex-shrink-0" style={{ backgroundColor: landingWaiterColor }} />
-              <div className="text-left">
-                <p className="text-smoke-400 text-[10px]">Llamar mozo</p>
-                <p className="text-smoke-300 text-xs font-mono">{landingWaiterColor}</p>
-              </div>
-            </button>
-          </div>
-          {activePicker === 'self' && (
-            <div className="mb-4 bg-carbon-800 rounded-xl p-3">
-              <ColorPicker value={landingSelfColor} onChange={setLandingSelfColor} />
-            </div>
-          )}
-          {activePicker === 'waiter' && (
-            <div className="mb-4 bg-carbon-800 rounded-xl p-3">
-              <ColorPicker value={landingWaiterColor} onChange={setLandingWaiterColor} />
-            </div>
-          )}
-          <p className="text-smoke-500 text-xs mb-2">Vista previa</p>
           <div className="space-y-2">
-            <div className="w-full py-3 rounded-xl flex items-center justify-center gap-2" style={{ backgroundColor: landingSelfColor }}>
+            <div className="w-full py-3 rounded-xl flex items-center justify-center gap-2" style={{ backgroundColor: headerBgColor }}>
               <UtensilsIcon size={16} className="text-white" />
               <span className="text-white font-semibold text-sm">Quiero pedir yo mismo</span>
             </div>
-            <div className="w-full py-3 rounded-xl flex items-center justify-center gap-2" style={{ backgroundColor: landingWaiterColor }}>
+            <div className="w-full py-3 rounded-xl flex items-center justify-center gap-2" style={{ backgroundColor: headerTextColor }}>
               <BellIcon size={16} className="text-white" />
               <span className="text-white font-semibold text-sm">Quiero que me atienda un mozo</span>
             </div>

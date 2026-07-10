@@ -39,8 +39,8 @@ export default function IdentifyPage() {
   const venueCtx = useVenueOptional()
   const venue = venueCtx?.venue
   const venueId = venue?.id || ACTIVE_VENUE_ID
-  const selfColor = venue?.landing_self_color || '#1A3A6B'
-  const waiterColor = venue?.landing_waiter_color || '#B22222'
+  const selfColor = venue?.header_bg_color || '#1A3A6B'
+  const waiterColor = venue?.header_text_color || '#B22222'
   const { setLocation, setSessionId, addItem } = useCart()
   const { customer, isAnonymous, loginWithGoogle } = useCustomer()
   const [googleError, setGoogleError] = useState('')
