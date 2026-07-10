@@ -117,6 +117,13 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
     setError('')
 
     try {
+      const { data: openShift } = await supabaseStaff
+        .from('shifts')
+        .select('id')
+        .eq('venue_id', activeVenueId)
+        .eq('status', 'open')
+        .maybeSingle()
+
       const { data: order, error: orderError } = await supabaseStaff
         .from('orders')
         .insert({
@@ -131,7 +138,8 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
           total: subtotal,
           payment_method: 'Efectivo',
           assigned_staff_id: selectedStaff?.id || null,
-          created_by_staff: true
+          created_by_staff: true,
+          shift_id: openShift?.id || null,
         })
         .select().single()
 
