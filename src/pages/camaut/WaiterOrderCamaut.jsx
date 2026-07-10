@@ -32,6 +32,8 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
   const [searchQuery, setSearchQuery] = useState('')
   const [showMap, setShowMap] = useState(false)
   const [menuQrModal, setMenuQrModal] = useState(null) // { slug, name }
+  const [discounts, setDiscounts] = useState([])
+  const [selectedDiscount, setSelectedDiscount] = useState(null)
   const [contextReady, setContextReady] = useState(() => {
     if (linkedVenues.length === 0) return true
     return !!localStorage.getItem(`capy_ctx_${venueId}`)
@@ -61,14 +63,15 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
   async function loadCarta() {
     setLoading(true)
     try {
-      const [catRes, prodRes, , staffRes, zoneRes, notesRes, menuRes] = await Promise.all([
+      const [catRes, prodRes, , staffRes, zoneRes, notesRes, menuRes, discountsRes] = await Promise.all([
         supabaseStaff.from('categories').select('id, name, menu_id').eq('venue_id', activeVenueId).order('sort_order'),
         supabaseStaff.from('products').select('id, name, price, category_id, is_daily_special').eq('venue_id', activeVenueId).eq('is_available', true),
         supabaseStaff.from('venues').select('whatsapp_number').eq('id', activeVenueId).maybeSingle(),
         supabaseStaff.from('staff_names').select('id').eq('venue_id', venueId).limit(1).maybeSingle(),
         supabaseStaff.from('venue_zones').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order'),
         supabaseStaff.from('quick_notes').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order'),
-        supabaseStaff.from('staff_menus').select('*').eq('venue_id', activeVenueId).order('created_at')
+        supabaseStaff.from('staff_menus').select('*').eq('venue_id', activeVenueId).order('created_at'),
+        supabaseStaff.from('venue_discounts').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('created_at')
       ])
       setCategories(catRes.data || [])
       setProducts(prodRes.data || [])
@@ -76,6 +79,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
       setZones(zoneRes.data || [])
       setQuickNotes(notesRes.data || [])
       setMenus(menuRes.data || [])
+      setDiscounts(discountsRes.data || [])
       if (catRes.data?.length) setActiveCategory(catRes.data[0].id)
     } catch (err) {
       console.error('loadCarta error:', err)
@@ -106,7 +110,9 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
   }
 
   const cartItems = Object.values(cart).filter(i => i.product && i.qty > 0)
-  const total = cartItems.reduce((sum, i) => sum + i.product.price * i.qty, 0)
+  const subtotal = cartItems.reduce((sum, i) => sum + i.product.price * i.qty, 0)
+  const discountAmount = selectedDiscount ? Math.round(subtotal * selectedDiscount.percent / 100) : 0
+  const total = subtotal - discountAmount
   const locationLabel = (selectedZone && selectedZone.id !== 'otra') ? selectedZone.name : location.trim()
 
   async function handleSubmit() {
@@ -160,6 +166,11 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
             .from('shifts').select('id')
             .eq('venue_id', currentVenueId).eq('status', 'open').maybeSingle()
           if (openShift?.id) updates.shift_id = openShift.id
+          if (selectedDiscount) {
+            updates.discount_amount = discountAmount
+            updates.discount_code = selectedDiscount.code
+            updates.subtotal = subtotal
+          }
           if (Object.keys(updates).length) {
             await supabaseStaff.from('orders').update(updates).eq('id', result.order.id)
           }
@@ -169,6 +180,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
         setLocation('')
         setSelectedZone(null)
         setGeneralNotes('')
+        setSelectedDiscount(null)
         setStep('carta')
       } else {
         setSubmitError(result.error || 'Error al enviar el pedido. Intentá de nuevo.')
@@ -430,12 +442,43 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
             />
           </div>
 
+          {/* Descuento */}
+          <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
+            <p className="text-[#8896A5] text-xs font-semibold mb-2">Descuento</p>
+            {discounts.length > 0 ? (
+              <select
+                value={selectedDiscount?.id || ''}
+                onChange={e => setSelectedDiscount(discounts.find(d => d.id === e.target.value) || null)}
+                className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm text-[#1A2A3A] bg-[#F8FAFC]"
+              >
+                <option value="">Sin descuento</option>
+                {discounts.map(d => (
+                  <option key={d.id} value={d.id}>
+                    {d.code} — {d.percent}%{d.label ? ` (${d.label})` : ''}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <p className="text-[#8896A5] text-xs italic">No hay descuentos configurados</p>
+            )}
+          </div>
+
           {/* Resumen */}
           <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
-            <div className="flex justify-between text-sm">
+            <div className="flex justify-between text-sm mb-1">
               <span className="text-[#8896A5] flex items-center gap-1"><PinIcon size={11} /> {locationLabel}</span>
-              <span className="font-mono font-bold text-[#008080]">{formatPrice(total)}</span>
+              {discountAmount > 0 ? (
+                <span className="font-mono text-[#8896A5] line-through text-xs">{formatPrice(subtotal)}</span>
+              ) : (
+                <span className="font-mono font-bold text-[#008080]">{formatPrice(total)}</span>
+              )}
             </div>
+            {discountAmount > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-emerald-600 text-xs font-semibold">Descuento {selectedDiscount.percent}%</span>
+                <span className="font-mono font-bold text-[#008080]">{formatPrice(total)}</span>
+              </div>
+            )}
           </div>
 
           {/* Agregar más */}
