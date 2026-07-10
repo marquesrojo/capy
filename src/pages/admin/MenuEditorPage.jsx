@@ -1241,6 +1241,12 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
     if (!API_KEY) { setError('VITE_GEMINI_API_KEY no configurada'); return }
     if (totalAvailable <= 0) return
 
+    // Evitar que la pantalla se apague y frene el proceso
+    let wakeLock = null
+    try {
+      if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen')
+    } catch { /* no soportado en este browser */ }
+
     const toProcess = noPhoto.slice(0, totalAvailable)
     setStatus('generating')
     setProgress({ current: 0, total: toProcess.length, name: '' })
@@ -1249,28 +1255,32 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
     const found = []
     let extraCreditsUsed = 0
 
-    for (let i = 0; i < toProcess.length; i++) {
-      const p = toProcess[i]
-      setProgress({ current: i + 1, total: toProcess.length, name: p.name })
-      const usingExtra = !unlimited && i >= dailyRemaining
+    try {
+      for (let i = 0; i < toProcess.length; i++) {
+        const p = toProcess[i]
+        setProgress({ current: i + 1, total: toProcess.length, name: p.name })
+        const usingExtra = !unlimited && i >= dailyRemaining
 
-      let query = p.name
-      try {
-        const desc = p.description ? ` — ${p.description}` : ''
-        const prompt = `Para el plato "${p.name}"${desc}, generá un término de búsqueda en inglés para encontrar una foto gastronómica en Unsplash. Si el nombre no es descriptivo usá la descripción para inferir qué es. Respondé ÚNICAMENTE con el término, sin texto extra. Ejemplo: "beef milanesa breaded"`
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
-          { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) }
-        )
-        const data = await res.json()
-        query = (data.candidates?.[0]?.content?.parts?.[0]?.text || p.name).trim().replace(/^"|"$/g, '')
-      } catch { /* use product name as fallback */ }
+        let query = p.name
+        try {
+          const desc = p.description ? ` — ${p.description}` : ''
+          const prompt = `Para el plato "${p.name}"${desc}, generá un término de búsqueda en inglés para encontrar una foto gastronómica en Unsplash. Si el nombre no es descriptivo usá la descripción para inferir qué es. Respondé ÚNICAMENTE con el término, sin texto extra. Ejemplo: "beef milanesa breaded"`
+          const res = await fetch(
+            `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
+            { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) }
+          )
+          const data = await res.json()
+          query = (data.candidates?.[0]?.content?.parts?.[0]?.text || p.name).trim().replace(/^"|"$/g, '')
+        } catch { /* use product name as fallback */ }
 
-      const url = await searchUnsplash(query, venueId, { skipLimit: unlimited || usingExtra })
-      if (url) {
-        found.push({ product: p, imageUrl: url, selected: true })
-        if (usingExtra) extraCreditsUsed++
+        const url = await searchUnsplash(query, venueId, { skipLimit: unlimited || usingExtra })
+        if (url) {
+          found.push({ product: p, imageUrl: url, selected: true })
+          if (usingExtra) extraCreditsUsed++
+        }
       }
+    } finally {
+      wakeLock?.release()
     }
 
     if (extraCreditsUsed > 0) {
