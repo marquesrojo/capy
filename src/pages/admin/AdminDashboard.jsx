@@ -442,6 +442,11 @@ function AdminDashboardInner() {
               Turno
             </Link>
           )}
+          {profile?.role !== 'camarero' && (
+            <Link to="/admin/auditor" className="text-smoke-400 text-xs underline">
+              Auditor
+            </Link>
+          )}
           <Link to="/admin/configuracion" className="text-smoke-400 text-xs underline">
             Mi Local
           </Link>
