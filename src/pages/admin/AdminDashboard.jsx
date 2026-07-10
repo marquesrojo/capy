@@ -57,6 +57,8 @@ function AdminDashboardInner() {
   const [view, setView] = useState('pedidos')
   const [zones, setZones] = useState([])
   const [waiterCalls, setWaiterCalls] = useState([])
+  const [lowStockCount, setLowStockCount] = useState(0)
+  const [showLowStockModal, setShowLowStockModal] = useState(false)
   const prevCallCount = useRef(0)
   const { signOut, profile, venueId, isSuperAdmin } = useAuth()
 
@@ -543,10 +545,6 @@ async function loadZones() {
         )
       })()}
 
-      {view !== 'cocina' && profile?.role !== 'camarero' && (
-        <LowStockPanel venueId={venueId} />
-      )}
-
       {view !== 'cocina' && pendingProofOrders.length > 0 && (
         <div className="px-4 pt-4">
           <p className="text-ember-400 text-xs font-semibold uppercase tracking-wide mb-2">
@@ -571,7 +569,39 @@ async function loadZones() {
       ) : view === 'cocina' ? (
         <CocinaView orders={orders} categories={categories} onUpdateStatus={updateStatus} onRefresh={load} />
       ) : (
-        <div className="flex gap-4 overflow-x-auto p-4">
+        <>
+          {profile?.role !== 'camarero' && (
+            <LowStockPanel venueId={venueId} onCount={setLowStockCount} chipOnly />
+          )}
+          {lowStockCount > 0 && profile?.role !== 'camarero' && (
+            <div className="px-4 pt-3">
+              <button
+                onClick={() => setShowLowStockModal(true)}
+                className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold px-3 py-1.5 rounded-full"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                {lowStockCount} con bajo stock
+              </button>
+            </div>
+          )}
+          {showLowStockModal && (
+            <div
+              className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
+              onClick={() => setShowLowStockModal(false)}
+            >
+              <div
+                className="w-full max-w-md bg-carbon-950 rounded-t-2xl pb-8 pt-2 max-h-[70vh] overflow-y-auto"
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="w-10 h-1 bg-carbon-600 rounded-full mx-auto mb-4" />
+                <LowStockPanel venueId={venueId} onCount={setLowStockCount} />
+              </div>
+            </div>
+          )}
+          <div className="flex gap-4 overflow-x-auto p-4">
           {BOARD_COLUMNS.map(status => (
             <Column
               key={status}
@@ -592,6 +622,7 @@ async function loadZones() {
             />
           ))}
         </div>
+        </>
       )}
     </div>
   )
@@ -1432,7 +1463,7 @@ function KanbanQRCode({ orderId }) {
   )
 }
 
-function LowStockPanel({ venueId }) {
+function LowStockPanel({ venueId, onCount, chipOnly = false }) {
   const [items, setItems] = useState([])
   const [adjusting, setAdjusting] = useState(null)
   const [newStock, setNewStock] = useState('')
@@ -1452,6 +1483,7 @@ function LowStockPanel({ venueId }) {
     if (!data) return
     const low = data.filter(p => p.unit_stock != null && p.min_stock_alert != null && p.unit_stock <= p.min_stock_alert)
     setItems(low)
+    onCount?.(low.length)
     // Notificar por push (una vez por producto por sesión)
     for (const p of low) {
       if (!notifiedRef.current.has(p.id)) {
@@ -1475,7 +1507,7 @@ function LowStockPanel({ venueId }) {
     loadLowStock()
   }
 
-  if (items.length === 0) return null
+  if (chipOnly || items.length === 0) return null
 
   return (
     <div className="px-4 pt-4">
