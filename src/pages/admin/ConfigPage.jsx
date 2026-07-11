@@ -119,7 +119,7 @@ export default function ConfigPage() {
         </div>
       )}
 
-      <main className="px-4 mt-4">
+      <main className="px-4 mt-4 space-y-4">
         <div className="grid grid-cols-2 gap-3">
           {items.map(item => (
             <Link
@@ -137,6 +137,28 @@ export default function ConfigPage() {
             </Link>
           ))}
         </div>
+
+        {venueId && (
+          <a
+            href={`/display/${venueId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 bg-carbon-900 border border-carbon-700 rounded-2xl p-4 active:opacity-70 transition-opacity"
+          >
+            <div className="w-10 h-10 rounded-xl bg-ember-500/10 flex items-center justify-center text-ember-500 flex-shrink-0">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-smoke-200 font-bold text-sm leading-tight">Pantalla de retiro</p>
+              <p className="text-smoke-500 text-[11px] mt-0.5 leading-tight">Abrí en una TV para mostrar el estado de pedidos</p>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-smoke-600 flex-shrink-0">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+          </a>
+        )}
       </main>
     </div>
   )
