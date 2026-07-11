@@ -32,6 +32,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
   const [searchQuery, setSearchQuery] = useState('')
   const [showMap, setShowMap] = useState(false)
   const [menuQrModal, setMenuQrModal] = useState(null) // { slug, name }
+  const [showCategorySheet, setShowCategorySheet] = useState(false)
   const [discounts, setDiscounts] = useState([])
   const [selectedDiscount, setSelectedDiscount] = useState(null)
   const [contextReady, setContextReady] = useState(() => {
@@ -668,9 +669,9 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
         )}
       </div>
 
-      {/* Buscador */}
-      <div className="flex-shrink-0 px-4 pt-2 pb-2">
-        <div className="relative">
+      {/* Buscador + botón de categorías */}
+      <div className="flex-shrink-0 px-4 pt-2 pb-2 flex gap-2 items-center">
+        <div className="relative flex-1">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-[#B0BEC5]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
@@ -688,7 +689,46 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
             >×</button>
           )}
         </div>
+        <button
+          onClick={() => setShowCategorySheet(true)}
+          className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-colors ${
+            activeCategory
+              ? 'bg-[#008080] text-white border-[#008080]'
+              : 'bg-white text-[#3A4A5A] border-black/10'
+          }`}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+          {activeCategory ? (filteredCategories.find(c => c.id === activeCategory)?.name || 'Categoría') : 'Categoría'}
+        </button>
       </div>
+
+      {/* Bottom sheet de categorías */}
+      {showCategorySheet && (
+        <div className="fixed inset-0 z-40 flex flex-col justify-end" onClick={() => setShowCategorySheet(false)}>
+          <div className="absolute inset-0 bg-black/40" />
+          <div className="relative bg-white rounded-t-3xl px-4 pt-4 pb-8 z-10" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-[#D0D9E0] rounded-full mx-auto mb-4" />
+            <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">Categorías</p>
+            <div className="grid grid-cols-3 gap-2">
+              {filteredCategories.map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => { setActiveCategory(cat.id); setShowCategorySheet(false) }}
+                  className={`py-3 px-2 rounded-xl border-2 text-center text-xs font-semibold leading-tight transition-all ${
+                    activeCategory === cat.id
+                      ? 'border-[#008080] bg-[#008080]/5 text-[#005f5f]'
+                      : 'border-[#E4EBF0] text-[#3A4A5A]'
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {searchResults ? (
         /* Resultados de búsqueda — scrollable */
@@ -701,17 +741,17 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
               const qty = item?.qty || 0
               return (
                 <div key={product.id} className={`bg-white rounded-xl px-4 py-3 flex items-center justify-between border shadow-sm ${product.is_daily_special ? 'border-amber-300 bg-amber-50' : 'border-black/5'}`}>
-                  <div className="flex-1 min-w-0 pr-2">
+                  <div className="flex-1 min-w-0 pr-3">
                     <div className="flex items-center gap-1.5">
                       <p className="text-sm font-semibold text-[#1A2A3A]">{product.name}</p>
                       {product.is_daily_special && <span className="text-[10px] font-bold bg-amber-400 text-white px-1.5 py-0.5 rounded-full leading-none">HOY</span>}
                     </div>
                     <p className="text-xs text-[#8896A5]">{categoryMap[product.category_id] || ''} · <span className="text-[#008080] font-semibold">{formatPrice(product.price)}</span></p>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button onClick={() => changeQty(product.id, -1)} className="w-7 h-7 rounded-lg border border-black/10 bg-[#F8FAFC] text-[#3A4A5A] font-bold text-sm flex items-center justify-center">−</button>
-                    <span className="font-bold text-[#1A2A3A] text-sm w-5 text-center">{qty}</span>
-                    <button onClick={() => changeQty(product.id, 1)} className="w-7 h-7 rounded-lg bg-[#4DD0E1] text-white font-bold text-sm flex items-center justify-center">+</button>
+                  <div className="flex items-center gap-2.5 flex-shrink-0">
+                    <button onClick={() => changeQty(product.id, -1)} className="w-11 h-11 rounded-xl border border-black/10 bg-[#F8FAFC] text-[#3A4A5A] font-bold text-lg flex items-center justify-center">−</button>
+                    <span className="font-bold text-[#1A2A3A] text-base w-6 text-center">{qty}</span>
+                    <button onClick={() => changeQty(product.id, 1)} className="w-11 h-11 rounded-xl bg-[#4DD0E1] text-white font-bold text-lg flex items-center justify-center">+</button>
                   </div>
                 </div>
               )
@@ -719,55 +759,29 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
           )}
         </div>
       ) : (
-        /* Sidebar + productos */
-        <div className="flex-1 overflow-hidden flex" style={{ minHeight: '160px' }}>
-          {/* Sidebar de categorías */}
-          <div className="w-[96px] flex-shrink-0 bg-[#E4EBF0] overflow-y-auto scrollbar-hide">
-            {filteredCategories.map(cat => (
-              <button
-                key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
-                className="w-full py-1.5 pl-0 pr-1.5 flex justify-end"
-              >
-                <div className={`w-[86px] py-3 px-2 rounded-r-xl flex flex-col items-center gap-0.5 text-center border-l-[3px] transition-all ${
-                  activeCategory === cat.id
-                    ? 'border-[#008080] bg-white shadow-sm'
-                    : 'border-transparent'
-                }`}>
-                  <span className={`text-[11px] leading-tight break-words w-full ${
-                    activeCategory === cat.id ? 'font-bold text-[#005f5f]' : 'font-medium text-[#8896A5]'
-                  }`}>
-                    {cat.name}
-                  </span>
-                </div>
-              </button>
-            ))}
-          </div>
-
-          {/* Lista de productos */}
-          <div className="flex-1 overflow-y-auto pt-2 pb-4 px-2.5 space-y-2">
-            {visibleProducts.map(product => {
-              const item = cart[product.id]
-              const qty = item?.qty || 0
-              return (
-                <div key={product.id} className={`bg-white rounded-xl px-3 py-3 flex items-center justify-between border shadow-sm ${product.is_daily_special ? 'border-amber-300 bg-amber-50' : 'border-black/5'}`}>
-                  <div className="flex-1 min-w-0 pr-2">
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-sm font-semibold text-[#1A2A3A] leading-snug">{product.name}</p>
-                      {product.is_daily_special && <span className="text-[10px] font-bold bg-amber-400 text-white px-1.5 py-0.5 rounded-full leading-none">HOY</span>}
-                    </div>
-                    <p className="text-xs text-[#008080] font-semibold mt-0.5">{formatPrice(product.price)}</p>
+        /* Lista de productos con categoría activa */
+        <div className="flex-1 overflow-y-auto pt-1 pb-4 px-4 space-y-2">
+          {visibleProducts.map(product => {
+            const item = cart[product.id]
+            const qty = item?.qty || 0
+            return (
+              <div key={product.id} className={`bg-white rounded-xl px-3 py-3 flex items-center justify-between border shadow-sm ${product.is_daily_special ? 'border-amber-300 bg-amber-50' : 'border-black/5'}`}>
+                <div className="flex-1 min-w-0 pr-3">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-semibold text-[#1A2A3A] leading-snug">{product.name}</p>
+                    {product.is_daily_special && <span className="text-[10px] font-bold bg-amber-400 text-white px-1.5 py-0.5 rounded-full leading-none">HOY</span>}
                   </div>
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <button onClick={() => changeQty(product.id, -1)} className="w-7 h-7 rounded-lg border border-black/10 bg-[#F8FAFC] text-[#3A4A5A] font-bold text-sm flex items-center justify-center">−</button>
-                    <span className="font-bold text-[#1A2A3A] text-sm w-5 text-center">{qty}</span>
-                    <button onClick={() => changeQty(product.id, 1)} className="w-7 h-7 rounded-lg bg-[#4DD0E1] text-white font-bold text-sm flex items-center justify-center">+</button>
-                  </div>
+                  <p className="text-xs text-[#008080] font-semibold mt-0.5">{formatPrice(product.price)}</p>
                 </div>
-              )
-            })}
-            <NuevoProductoInline venueId={activeVenueId} categoryId={categories[0]?.id} onAdded={loadCarta} />
-          </div>
+                <div className="flex items-center gap-2.5 flex-shrink-0">
+                  <button onClick={() => changeQty(product.id, -1)} className="w-11 h-11 rounded-xl border border-black/10 bg-[#F8FAFC] text-[#3A4A5A] font-bold text-lg flex items-center justify-center">−</button>
+                  <span className="font-bold text-[#1A2A3A] text-base w-6 text-center">{qty}</span>
+                  <button onClick={() => changeQty(product.id, 1)} className="w-11 h-11 rounded-xl bg-[#4DD0E1] text-white font-bold text-lg flex items-center justify-center">+</button>
+                </div>
+              </div>
+            )
+          })}
+          <NuevoProductoInline venueId={activeVenueId} categoryId={activeCategory || categories[0]?.id} onAdded={loadCarta} />
         </div>
       )}
 
