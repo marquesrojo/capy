@@ -1611,29 +1611,27 @@ function ProductSearch({ value, allProducts, onChange }) {
 
   return (
     <div ref={ref} className="flex-1 min-w-0 relative">
-      {open ? (
-        <input
-          autoFocus
-          type="text"
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="Buscar producto..."
-          className="w-full text-xs bg-carbon-800 border border-ember-500/50 rounded-lg px-2 py-1.5 text-smoke-200 outline-none"
-        />
-      ) : (
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="w-full text-left text-xs bg-carbon-800 border border-carbon-700 rounded-lg px-2 py-1.5 truncate"
-        >
-          {selected
-            ? <span className="text-smoke-200">{selected.is_ingredient_only ? '★ ' : ''}{selected.name}</span>
-            : <span className="text-smoke-500">— Buscar insumo —</span>}
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="w-full text-left text-xs bg-carbon-800 border border-carbon-700 rounded-lg px-2 py-1.5 truncate"
+      >
+        {selected
+          ? <span className="text-smoke-200">{selected.is_ingredient_only ? '★ ' : ''}{selected.name}</span>
+          : <span className="text-smoke-500">— Buscar insumo —</span>}
+      </button>
       {open && (
-        <div className="absolute z-50 top-full mt-1 left-0 right-0 bg-carbon-800 border border-carbon-600 rounded-xl overflow-hidden shadow-xl">
-          <div className="max-h-48 overflow-y-auto">
+        <div className="absolute z-50 bottom-full mb-1 left-0 right-0 bg-carbon-800 border border-carbon-600 rounded-xl shadow-xl overflow-hidden">
+          <div className="p-1.5 border-b border-carbon-700">
+            <input
+              type="text"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Buscar..."
+              className="w-full text-xs bg-carbon-700 border border-carbon-600 rounded-lg px-2 py-1.5 text-smoke-200 outline-none"
+            />
+          </div>
+          <div className="max-h-40 overflow-y-auto">
             {filtered.length === 0 ? (
               <p className="text-smoke-500 text-xs px-3 py-2">Sin resultados</p>
             ) : (
@@ -1700,8 +1698,7 @@ function RecipeEditor({ productId, productName, productDescription, venueId, all
       const newRows = []
       for (const s of suggested) {
         const found = allProducts.find(p =>
-          p.name.toLowerCase() === s.name.toLowerCase() ||
-          p.name.toLowerCase().includes(s.name.toLowerCase().split(' ')[0])
+          p.name.toLowerCase() === s.name.toLowerCase()
         )
         if (found) {
           newRows.push({ supply_product_id: found.id, quantity: String(s.quantity), unit: s.unit || 'u' })
