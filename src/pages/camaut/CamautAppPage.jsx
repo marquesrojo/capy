@@ -122,7 +122,7 @@ export default function CamautAppPage() {
 
       const { data: linked } = await supabaseStaff
         .from('venue_staff')
-        .select('venue:venues(id, name, slug)')
+        .select('venue:venues(id, name, slug, cash_discount_enabled, cash_discount_percent)')
         .eq('staff_profile_id', session.user.id)
         .eq('status', 'active')
       setLinkedVenues(linked?.map(l => l.venue).filter(Boolean).filter(v => v.id !== vId) || [])
