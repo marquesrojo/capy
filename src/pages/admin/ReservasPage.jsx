@@ -238,6 +238,21 @@ export default function ReservasPage() {
               </div>
             </div>
 
+            {settings.enabled && tables.filter(t => t.is_reservable && t.reservation_capacity).length === 0 && (
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-start gap-3">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#92400e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                <div className="flex-1">
+                  <p className="text-amber-700 text-xs font-semibold">Falta configurar las mesas</p>
+                  <p className="text-amber-700/80 text-xs mt-0.5">El sistema está activo pero no hay mesas habilitadas para reservar. Los clientes verán "No hay mesas disponibles".</p>
+                  <button onClick={() => setTab('mesas')} className="text-amber-700 text-xs font-semibold underline mt-1.5">
+                    Ir a Mesas →
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5 space-y-4">
               <SectionLabel>Parámetros</SectionLabel>
 
