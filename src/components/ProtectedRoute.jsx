@@ -66,14 +66,14 @@ export function RequireAdmin({ children }) {
 }
 
 export function RequirePropietario({ children }) {
-  const { user, profile, loading, profileLoading, isPropietario, venueId } = useAuth()
+  const { user, profile, loading, profileLoading, isAdmin, venueId } = useAuth()
 
   useEffect(() => { if (venueId) setActiveVenueId(venueId) }, [venueId])
 
   if (loading || profileLoading) return <FullScreenLoader />
   if (!user) return <Navigate to="/admin/login" replace />
   if (!profile) return <Navigate to="/admin/login" replace />
-  if (!isPropietario) return <Navigate to="/admin" replace />
+  if (!isAdmin) return <Navigate to="/admin" replace />
   if (!venueId) return <Navigate to="/admin/onboarding" replace />
   return (
     <>
