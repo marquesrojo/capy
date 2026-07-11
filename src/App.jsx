@@ -57,6 +57,7 @@ import ClientAuthCallbackPage from './pages/client/ClientAuthCallbackPage'
 import AccountPage from './pages/client/AccountPage'
 import ReservasPage from './pages/admin/ReservasPage'
 import ReservationBookingPage from './pages/client/ReservationBookingPage'
+import UpgradeResultPage from './pages/admin/UpgradeResultPage'
 
 function CapyChatOverlay() {
   const location = useLocation()
@@ -284,6 +285,9 @@ export default function App() {
                 path="/admin/reservas"
                 element={<RequirePropietario><ReservasPage /></RequirePropietario>}
               />
+              <Route path="/admin/upgrade-success" element={<RequirePropietario><UpgradeResultPage /></RequirePropietario>} />
+              <Route path="/admin/upgrade-failed" element={<RequirePropietario><UpgradeResultPage /></RequirePropietario>} />
+              <Route path="/admin/upgrade-pending" element={<RequirePropietario><UpgradeResultPage /></RequirePropietario>} />
               <Route
                 path="/admin/consumo"
                 element={
