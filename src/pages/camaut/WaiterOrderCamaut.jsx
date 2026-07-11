@@ -80,13 +80,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
       ])
       setCategories(catRes.data || [])
       setProducts(prodRes.data || [])
-      const linkedVenue = linkedVenues.find(v => v.id === activeVenueId)
-      if (linkedVenue) {
-        setCashDiscount({
-          enabled: linkedVenue.cash_discount_enabled || false,
-          percent: linkedVenue.cash_discount_percent || 0,
-        })
-      } else if (venueRes.data) {
+      if (venueRes.data) {
         setCashDiscount({
           enabled: venueRes.data.cash_discount_enabled || false,
           percent: venueRes.data.cash_discount_percent || 0,
@@ -506,9 +500,6 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
                   <option key={m.id} value={m.id}>{m.name}</option>
                 ))}
               </select>
-              <p className="text-[#B0BEC5] text-[10px] mt-1 font-mono">
-                dbg: enabled={String(cashDiscount.enabled)} pct={cashDiscount.percent} efectivo={String(isEfectivo)}
-              </p>
               {isEfectivo && cashDiscount.enabled && cashDiscount.percent > 0 && (
                 <p className="text-emerald-600 text-xs mt-1.5 font-medium">
                   Se aplica {cashDiscount.percent}% de descuento por pago en efectivo
