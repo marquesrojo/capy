@@ -155,6 +155,8 @@ export default function ReservationBookingPage() {
     if (!name.trim() || !phone.trim()) return
     setSubmitting(true)
     setSubmitError('')
+    const { data: sessionData } = await supabaseCustomer.auth.getSession()
+    const customerId = sessionData?.session?.user?.id || null
     const { data, error } = await supabaseCustomer.from('reservations').insert({
       venue_id: venueId,
       date: selectedDate,
@@ -167,6 +169,7 @@ export default function ReservationBookingPage() {
       guest_email: email.trim() || null,
       notes: notes.trim() || null,
       status: 'confirmed',
+      customer_id: customerId,
     }).select().single()
 
     if (error || !data) {

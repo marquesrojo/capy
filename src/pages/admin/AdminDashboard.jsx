@@ -59,6 +59,8 @@ function AdminDashboardInner() {
   const [waiterCalls, setWaiterCalls] = useState([])
   const [lowStockCount, setLowStockCount] = useState(0)
   const [showLowStockModal, setShowLowStockModal] = useState(false)
+  const [todayReservations, setTodayReservations] = useState([])
+  const [showReservationsModal, setShowReservationsModal] = useState(false)
   const prevCallCount = useRef(0)
   const { signOut, profile, venueId, isSuperAdmin, isAdmin } = useAuth()
 
@@ -76,6 +78,7 @@ function AdminDashboardInner() {
     loadVenue()
     loadZones()
     loadWaiterCalls()
+    loadTodayReservations()
   }, [venueId])
 
   function playChime() {
@@ -101,6 +104,18 @@ async function loadZones() {
       .eq('venue_id', venueId)
       .order('sort_order')
     setZones(data || [])
+  }
+
+  async function loadTodayReservations() {
+    const today = new Date().toISOString().slice(0, 10)
+    const { data } = await supabaseStaff
+      .from('reservations')
+      .select('id, slot_time, guests, table_shape, table_capacity, guest_name, guest_phone, notes')
+      .eq('venue_id', venueId)
+      .eq('date', today)
+      .eq('status', 'confirmed')
+      .order('slot_time')
+    setTodayReservations(data || [])
   }
 
   async function loadWaiterCalls() {
@@ -571,6 +586,50 @@ async function loadZones() {
                 </svg>
                 {lowStockCount} con bajo stock
               </button>
+            </div>
+          )}
+          {todayReservations.length > 0 && profile?.role !== 'camarero' && (
+            <div className="px-4 pt-2">
+              <button
+                onClick={() => setShowReservationsModal(true)}
+                className="flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-semibold px-3 py-1.5 rounded-full"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                {todayReservations.length} {todayReservations.length === 1 ? 'reserva' : 'reservas'} hoy
+              </button>
+            </div>
+          )}
+          {showReservationsModal && (
+            <div
+              className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
+              onClick={() => setShowReservationsModal(false)}
+            >
+              <div
+                className="w-full max-w-md bg-carbon-950 rounded-t-2xl pb-8 pt-2 max-h-[70vh] overflow-y-auto"
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="w-10 h-1 bg-carbon-600 rounded-full mx-auto mb-4" />
+                <div className="px-4">
+                  <p className="text-smoke-300 font-semibold text-sm mb-3">Reservas de hoy</p>
+                  <div className="space-y-2">
+                    {todayReservations.map(r => (
+                      <div key={r.id} className="bg-carbon-900 border border-carbon-700 rounded-xl p-3">
+                        <div className="flex items-center justify-between mb-0.5">
+                          <p className="text-smoke-200 font-bold text-sm">{r.slot_time?.slice(0, 5)} — {r.guest_name}</p>
+                          <span className="text-smoke-500 text-xs">{r.guests} pers.</span>
+                        </div>
+                        {r.table_shape && (
+                          <p className="text-smoke-500 text-xs capitalize">{r.table_shape}{r.table_capacity ? ` · ${r.table_capacity} cap.` : ''}</p>
+                        )}
+                        <p className="text-smoke-600 text-xs">{r.guest_phone}</p>
+                        {r.notes && <p className="text-smoke-600 text-xs mt-1 italic">{r.notes}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
           {showLowStockModal && (
