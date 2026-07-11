@@ -1308,7 +1308,79 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
   )
 }
 
-const CAPY_SUPPORT_WA = 'https://wa.me/5491168064524?text=Hola%20Capy%2C%20me%20qued%C3%A9%20sin%20cr%C3%A9ditos%20de%20im%C3%A1genes.%20%C2%BFMe%20pod%C3%A9s%20recargar%3F'
+const PHOTO_PACK_PRICE = 5000
+const PHOTO_PACK_CREDITS = 25
+
+function BuyPhotoPackBanner({ venueId, noPhotoCount, dailyLimit }) {
+  const [loading, setLoading] = useState(false)
+  const [err, setErr] = useState('')
+
+  async function buyPack() {
+    setLoading(true)
+    setErr('')
+    try {
+      const { data, error } = await supabaseStaff.functions.invoke('create-upgrade-payment', {
+        body: {
+          venueId,
+          featureKey: 'extra_photos',
+          featureName: `Pack ${PHOTO_PACK_CREDITS} fotos IA`,
+          price: PHOTO_PACK_PRICE,
+        },
+      })
+      if (error || !data?.init_point) {
+        setErr('No se pudo iniciar el pago. Intentá de nuevo.')
+        return
+      }
+      window.location.href = data.init_point
+    } catch {
+      setErr('No se pudo iniciar el pago. Intentá de nuevo.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="w-full mb-4 bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-4">
+      <div className="flex items-start gap-3">
+        <div className="w-9 h-9 rounded-xl bg-ember-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-smoke-300 font-semibold text-sm">Sin créditos de fotos</p>
+          <p className="text-smoke-500 text-xs mt-1">
+            Usaste las {dailyLimit} búsquedas de hoy. Tenés {noPhotoCount} producto{noPhotoCount !== 1 ? 's' : ''} sin foto.
+          </p>
+          <div className="mt-3 bg-carbon-800 border border-carbon-700 rounded-xl px-3 py-2.5 flex items-center justify-between">
+            <div>
+              <p className="text-smoke-200 font-bold text-sm">{PHOTO_PACK_CREDITS} fotos IA</p>
+              <p className="text-smoke-500 text-xs">Créditos adicionales, no vencen</p>
+            </div>
+            <p className="text-ember-400 font-bold text-base">${PHOTO_PACK_PRICE.toLocaleString('es-AR')}</p>
+          </div>
+          {err && <p className="text-red-400 text-xs mt-2">{err}</p>}
+          <button
+            onClick={buyPack}
+            disabled={loading}
+            className="mt-3 w-full bg-[#009ee3] hover:bg-[#0081c8] disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+              </svg>
+            )}
+            {loading ? 'Iniciando pago...' : 'Pagar con Mercado Pago'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCredits = 0, onExtraCreditsChanged, isSuperAdmin = false }) {
   const [open, setOpen] = useState(false)
@@ -1431,36 +1503,9 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
     )
   }
 
-  // Sin créditos: alerta con CTA
+  // Sin créditos: CTA para comprar pack
   if (outOfCredits) {
-    return (
-      <div className="w-full mb-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl px-4 py-4">
-        <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-xl bg-amber-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-            </svg>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-amber-700 font-semibold text-sm">Sin créditos de imagen</p>
-            <p className="text-amber-700/70 text-xs mt-1">
-              Usaste todas las búsquedas de hoy ({UNSPLASH_DAILY_LIMIT}/día). El cupo diario se renueva a medianoche.
-            </p>
-            <p className="text-amber-700/70 text-xs mt-1">
-              Tenés {noPhoto.length} producto{noPhoto.length !== 1 ? 's' : ''} sin foto. Para generarlas antes de mañana, solicitá créditos adicionales.
-            </p>
-            <a
-              href={CAPY_SUPPORT_WA}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block mt-3 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-4 py-2 rounded-xl"
-            >
-              Solicitar créditos →
-            </a>
-          </div>
-        </div>
-      </div>
-    )
+    return <BuyPhotoPackBanner venueId={venueId} noPhotoCount={noPhoto.length} dailyLimit={UNSPLASH_DAILY_LIMIT} />
   }
 
   if (!open) {
