@@ -18,6 +18,7 @@ export default function MenuEditorPage() {
   const unlimitedPhotos = isSuperAdmin || (isPropietario && today === '2026-07-10')
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
+  const [supplyProductIds, setSupplyProductIds] = useState([])
   const [extraCredits, setExtraCredits] = useState(0)
   const [loading, setLoading] = useState(true)
   const [showProductForm, setShowProductForm] = useState(false)
@@ -30,9 +31,23 @@ export default function MenuEditorPage() {
       supabaseStaff.from('products').select('*').eq('venue_id', venueId).order('sort_order'),
       supabaseStaff.from('venues').select('extra_image_credits').eq('id', venueId).single()
     ])
+    const allProds = prodRes.data || []
     setCategories(catRes.data || [])
-    setProducts(prodRes.data || [])
+    setProducts(allProds)
     setExtraCredits(venueRes.data?.extra_image_credits || 0)
+
+    const productIds = allProds.map(p => p.id)
+    if (productIds.length > 0) {
+      const { data: piData } = await supabaseStaff
+        .from('product_ingredients')
+        .select('supply_product_id')
+        .in('product_id', productIds)
+        .not('supply_product_id', 'is', null)
+      setSupplyProductIds([...new Set((piData || []).map(r => r.supply_product_id))])
+    } else {
+      setSupplyProductIds([])
+    }
+
     setLoading(false)
   }
 
@@ -109,7 +124,7 @@ export default function MenuEditorPage() {
         </div>
 
         {activeTab === 'insumos' ? (
-          <InsumosList venueId={venueId} categories={categories} allProducts={products} onRefresh={loadAll} />
+          <InsumosList venueId={venueId} categories={categories} allProducts={products} supplyProductIds={supplyProductIds} onRefresh={loadAll} />
         ) : (
           <>
             <div className="flex gap-2 mb-4">
@@ -1598,19 +1613,15 @@ function ProductSearch({ value, allProducts, onChange }) {
     : sorted
 
   useEffect(() => {
-    function handleClick(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    function handleClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) { setOpen(false); setQuery('') }
+    }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
-  function select(p) {
-    onChange(p.id)
-    setQuery('')
-    setOpen(false)
-  }
-
   return (
-    <div ref={ref} className="flex-1 min-w-0 relative">
+    <div ref={ref} className="w-full">
       <button
         type="button"
         onClick={() => setOpen(v => !v)}
@@ -1621,17 +1632,15 @@ function ProductSearch({ value, allProducts, onChange }) {
           : <span className="text-smoke-500">— Buscar insumo —</span>}
       </button>
       {open && (
-        <div className="absolute z-50 bottom-full mb-1 left-0 right-0 bg-carbon-800 border border-carbon-600 rounded-xl shadow-xl overflow-hidden">
-          <div className="p-1.5 border-b border-carbon-700">
-            <input
-              type="text"
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              placeholder="Buscar..."
-              className="w-full text-xs bg-carbon-700 border border-carbon-600 rounded-lg px-2 py-1.5 text-smoke-200 outline-none"
-            />
-          </div>
-          <div className="max-h-40 overflow-y-auto">
+        <div className="mt-1 bg-carbon-800 border border-carbon-600 rounded-xl overflow-hidden">
+          <input
+            type="text"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Buscar..."
+            className="w-full text-xs border-b border-carbon-600 bg-carbon-800 px-3 py-2 text-smoke-200 outline-none"
+          />
+          <div className="max-h-36 overflow-y-auto">
             {filtered.length === 0 ? (
               <p className="text-smoke-500 text-xs px-3 py-2">Sin resultados</p>
             ) : (
@@ -1639,8 +1648,8 @@ function ProductSearch({ value, allProducts, onChange }) {
                 <button
                   key={p.id}
                   type="button"
-                  onMouseDown={() => select(p)}
-                  className="w-full text-left px-3 py-2 text-xs hover:bg-carbon-700 flex items-center gap-2"
+                  onMouseDown={() => { onChange(p.id); setQuery(''); setOpen(false) }}
+                  className="w-full text-left px-3 py-2 text-xs active:bg-carbon-700 flex items-center gap-2"
                 >
                   {p.is_ingredient_only && <span className="text-amber-500 text-[9px] font-bold">INSUMO</span>}
                   <span className="text-smoke-200 truncate">{p.name}</span>
@@ -1741,29 +1750,31 @@ function RecipeEditor({ productId, productName, productDescription, venueId, all
       {recipe === null && <p className="text-smoke-500 text-[10px]">Cargando receta...</p>}
       <div className="space-y-1.5">
         {rows.map((row, i) => (
-          <div key={i} className="flex gap-1 items-center">
+          <div key={i} className="space-y-1 border border-carbon-700 rounded-lg p-2">
             <ProductSearch
               value={row.supply_product_id || ''}
               allProducts={allProducts.filter(p => p.id !== productId)}
               onChange={id => updateRow(i, 'supply_product_id', id)}
             />
-            <input
-              type="number"
-              value={row.quantity}
-              onChange={e => updateRow(i, 'quantity', e.target.value)}
-              placeholder="Cant."
-              min="0"
-              step="any"
-              className="w-16 text-xs bg-carbon-800 border border-carbon-700 rounded-lg px-2 py-1.5 text-ember-400 text-right font-mono outline-none"
-            />
-            <select
-              value={row.unit || 'u'}
-              onChange={e => updateRow(i, 'unit', e.target.value)}
-              className="text-[10px] bg-carbon-800 border border-carbon-700 rounded-lg px-1 py-1.5 text-smoke-400 outline-none"
-            >
-              {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-            </select>
-            <button type="button" onClick={() => removeRow(i)} className="text-smoke-600 hover:text-red-500 text-sm leading-none px-1">×</button>
+            <div className="flex gap-1 items-center">
+              <input
+                type="number"
+                value={row.quantity}
+                onChange={e => updateRow(i, 'quantity', e.target.value)}
+                placeholder="Cant."
+                min="0"
+                step="any"
+                className="flex-1 text-xs bg-carbon-800 border border-carbon-700 rounded-lg px-2 py-1.5 text-ember-400 text-right font-mono outline-none"
+              />
+              <select
+                value={row.unit || 'u'}
+                onChange={e => updateRow(i, 'unit', e.target.value)}
+                className="text-[10px] bg-carbon-800 border border-carbon-700 rounded-lg px-1 py-1.5 text-smoke-400 outline-none"
+              >
+                {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+              </select>
+              <button type="button" onClick={() => removeRow(i)} className="text-smoke-500 hover:text-red-500 text-sm leading-none px-1.5">✕</button>
+            </div>
           </div>
         ))}
       </div>
@@ -1772,8 +1783,10 @@ function RecipeEditor({ productId, productName, productDescription, venueId, all
   )
 }
 
-function InsumosList({ venueId, categories, allProducts, onRefresh }) {
-  const insumos = [...(allProducts || [])].filter(p => p.is_ingredient_only).sort((a, b) => a.name.localeCompare(b.name))
+function InsumosList({ venueId, categories, allProducts, supplyProductIds = [], onRefresh }) {
+  const insumos = [...(allProducts || [])]
+    .filter(p => p.is_ingredient_only || supplyProductIds.includes(p.id))
+    .sort((a, b) => a.name.localeCompare(b.name))
   const [showForm, setShowForm] = useState(false)
   const [newName, setNewName] = useState('')
   const [newStock, setNewStock] = useState('')
@@ -1865,11 +1878,12 @@ function InsumosList({ venueId, categories, allProducts, onRefresh }) {
               <div className="flex-1 min-w-0">
                 <p className="text-smoke-200 text-sm font-medium truncate">{p.name}</p>
                 <p className={`text-[10px] font-semibold ${
-                  p.unit_stock === 0 ? 'text-red-400'
+                  p.unit_stock == null ? 'text-smoke-600'
+                  : p.unit_stock === 0 ? 'text-red-400'
                   : p.min_stock_alert != null && p.unit_stock <= p.min_stock_alert ? 'text-amber-500'
                   : 'text-smoke-500'
                 }`}>
-                  {p.unit_stock === 0 ? 'Sin stock' : `${p.unit_stock} u.`}
+                  {p.unit_stock == null ? 'Sin control de stock' : p.unit_stock === 0 ? 'Sin stock' : `${p.unit_stock} u.`}
                   {p.min_stock_alert != null && ` · alerta ≤ ${p.min_stock_alert}`}
                 </p>
               </div>
