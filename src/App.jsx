@@ -55,6 +55,8 @@ import OrderAuditorPage from './pages/admin/OrderAuditorPage'
 import WaiterCVPage from './pages/camaut/WaiterCVPage'
 import ClientAuthCallbackPage from './pages/client/ClientAuthCallbackPage'
 import AccountPage from './pages/client/AccountPage'
+import ReservasPage from './pages/admin/ReservasPage'
+import ReservationBookingPage from './pages/client/ReservationBookingPage'
 
 function CapyChatOverlay() {
   const location = useLocation()
@@ -191,6 +193,7 @@ export default function App() {
                 />
                 <Route path="pedido-enviado/:orderId" element={<OrderConfirmedPage />} />
                 <Route path="pedido/:orderId" element={<OrderStatusPage />} />
+                <Route path="reservar" element={<ReservationBookingPage />} />
               </Route>
 
               {/* Staff: camarero y admin, con login real */}
@@ -276,6 +279,10 @@ export default function App() {
               <Route
                 path="/admin/inventario"
                 element={<RequirePropietario><InventarioPage /></RequirePropietario>}
+              />
+              <Route
+                path="/admin/reservas"
+                element={<RequirePropietario><ReservasPage /></RequirePropietario>}
               />
               <Route
                 path="/admin/consumo"
