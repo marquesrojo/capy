@@ -8,14 +8,21 @@ const MAX_PROOF_SIZE_MB = 8
 export default function BillRequest({ order, onUpdated, venueColor = '#002F6C' }) {
   const [mpEnabled, setMpEnabled] = useState(false)
   const [paymentMethods, setPaymentMethods] = useState([])
+  const [cashDiscount, setCashDiscount] = useState({ enabled: false, percent: 0 })
 
   useEffect(() => {
     async function loadVenue() {
       const [venueRes, methodsRes] = await Promise.all([
-        supabaseCustomer.from('venues').select('mp_enabled').eq('id', ACTIVE_VENUE_ID).single(),
+        supabaseCustomer.from('venues').select('mp_enabled, cash_discount_enabled, cash_discount_percent').eq('id', ACTIVE_VENUE_ID).single(),
         supabaseCustomer.from('payment_methods').select('id, name').eq('venue_id', ACTIVE_VENUE_ID).eq('is_active', true).order('sort_order')
       ])
-      if (venueRes.data) setMpEnabled(venueRes.data.mp_enabled || false)
+      if (venueRes.data) {
+        setMpEnabled(venueRes.data.mp_enabled || false)
+        setCashDiscount({
+          enabled: venueRes.data.cash_discount_enabled || false,
+          percent: venueRes.data.cash_discount_percent || 0,
+        })
+      }
       setPaymentMethods(methodsRes.data || [])
     }
     loadVenue()
@@ -61,6 +68,7 @@ export default function BillRequest({ order, onUpdated, venueColor = '#002F6C' }
       mpEnabled={mpEnabled}
       paymentMethods={paymentMethods}
       venueColor={venueColor}
+      cashDiscount={cashDiscount}
     />
   )
 }
@@ -79,7 +87,7 @@ function getMethodIcon(name) {
   return ICON.mp
 }
 
-function RequestBillForm({ order, onUpdated, mpEnabled, paymentMethods, venueColor = '#002F6C' }) {
+function RequestBillForm({ order, onUpdated, mpEnabled, paymentMethods, venueColor = '#002F6C', cashDiscount = { enabled: false, percent: 0 } }) {
   const accent = accentColor(venueColor)
   const [showOptions, setShowOptions] = useState(false)
   const [selectedMethod, setSelectedMethod] = useState(null)
@@ -93,16 +101,26 @@ function RequestBillForm({ order, onUpdated, mpEnabled, paymentMethods, venueCol
     ? paymentMethods
     : [{ id: 'efectivo', name: 'Efectivo' }, { id: 'posnet', name: 'Posnet / Tarjeta' }]
 
+  const cashDiscountAmt = (cashDiscount.enabled && cashDiscount.percent > 0)
+    ? Math.round(order.total * cashDiscount.percent / 100)
+    : 0
+  const discountedTotal = order.total - cashDiscountAmt
+
   async function handleRequestBill(method) {
     setSubmitting(true)
     setError('')
+    const isCash = method.toLowerCase().includes('efectivo')
     try {
       const updates = {
         payment_status: 'cuenta_solicitada',
         payment_method: method,
         bill_requested_at: new Date().toISOString()
       }
-      if (method === 'Efectivo' && cashAmount) {
+      if (isCash && cashDiscountAmt > 0) {
+        updates.cash_discount_amount = cashDiscountAmt
+        updates.total = discountedTotal
+      }
+      if (isCash && cashAmount) {
         updates.cash_amount = Number(cashAmount)
       }
       const { data, error: updateError } = await supabaseCustomer
@@ -215,17 +233,23 @@ function RequestBillForm({ order, onUpdated, mpEnabled, paymentMethods, venueCol
 
             {isCash && isSelected && (
               <div className="space-y-2 px-1 mt-2">
+                {cashDiscountAmt > 0 && (
+                  <div className="flex items-center justify-between text-emerald-500 text-xs font-medium py-1">
+                    <span>Descuento efectivo {cashDiscount.percent}%</span>
+                    <span className="font-mono">−{formatPrice(cashDiscountAmt)} → {formatPrice(discountedTotal)}</span>
+                  </div>
+                )}
                 <input
                   type="number"
                   inputMode="decimal"
                   value={cashAmount}
                   onChange={e => setCashAmount(e.target.value)}
-                  placeholder={`Mínimo ${formatPrice(order.total)}`}
+                  placeholder={`Mínimo ${formatPrice(discountedTotal)}`}
                   className="input text-sm"
                 />
-                {cashAmount && Number(cashAmount) >= order.total && (
+                {cashAmount && Number(cashAmount) >= discountedTotal && (
                   <p className="text-smoke-500 text-xs">
-                    Vuelto: {formatPrice(Number(cashAmount) - order.total)}
+                    Vuelto: {formatPrice(Number(cashAmount) - discountedTotal)}
                   </p>
                 )}
                 <button
@@ -233,7 +257,11 @@ function RequestBillForm({ order, onUpdated, mpEnabled, paymentMethods, venueCol
                   disabled={submitting}
                   className="w-full bg-ember-500 text-white font-semibold py-3 rounded-xl text-sm disabled:opacity-50"
                 >
-                  {submitting ? 'Enviando...' : `Confirmar — cobran en ${method.name.toLowerCase()}`}
+                  {submitting
+                    ? 'Enviando...'
+                    : cashDiscountAmt > 0
+                      ? `Confirmar — ${cashDiscount.percent}% off · cobran efectivo`
+                      : `Confirmar — cobran en ${method.name.toLowerCase()}`}
                 </button>
               </div>
             )}
