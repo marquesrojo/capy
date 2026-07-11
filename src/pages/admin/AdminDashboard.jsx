@@ -60,7 +60,7 @@ function AdminDashboardInner() {
   const [lowStockCount, setLowStockCount] = useState(0)
   const [showLowStockModal, setShowLowStockModal] = useState(false)
   const prevCallCount = useRef(0)
-  const { signOut, profile, venueId, isSuperAdmin } = useAuth()
+  const { signOut, profile, venueId, isSuperAdmin, isAdmin } = useAuth()
 
   useEffect(() => {
     const orderCalls = orders.filter(o => o.waiter_called_at).length
@@ -431,7 +431,7 @@ async function loadZones() {
               Auditor
             </Link>
           )}
-          {profile?.role === 'propietario' && (
+          {isAdmin && (
             <Link to="/admin/configuracion" className="text-smoke-400 text-xs underline">
               Mi Local
             </Link>
@@ -779,20 +779,40 @@ function CocinaView({ orders, categories, onUpdateStatus, onRefresh }) {
 function MapaView({ orders, zones, venueId }) {
   const containerRef = useRef(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [cssFull, setCssFull] = useState(false)
 
   useEffect(() => {
-    const handler = () => setIsFullscreen(!!document.fullscreenElement)
+    const handler = () => {
+      const active = !!(document.fullscreenElement || document.webkitFullscreenElement)
+      setIsFullscreen(active)
+      if (!active) setCssFull(false)
+    }
     document.addEventListener('fullscreenchange', handler)
-    return () => document.removeEventListener('fullscreenchange', handler)
+    document.addEventListener('webkitfullscreenchange', handler)
+    return () => {
+      document.removeEventListener('fullscreenchange', handler)
+      document.removeEventListener('webkitfullscreenchange', handler)
+    }
   }, [])
 
   function toggleFullscreen() {
-    if (!document.fullscreenElement) {
-      containerRef.current?.requestFullscreen?.()
+    const effectivelyFull = isFullscreen || cssFull
+    if (effectivelyFull) {
+      if (document.exitFullscreen) document.exitFullscreen()
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen()
+      setCssFull(false)
     } else {
-      document.exitFullscreen?.()
+      const el = containerRef.current
+      const req = el?.requestFullscreen || el?.webkitRequestFullscreen
+      if (req) {
+        req.call(el).catch(() => setCssFull(true))
+      } else {
+        setCssFull(true)
+      }
     }
   }
+
+  const effectiveFullscreen = isFullscreen || cssFull
 
   const activeOrders = orders.filter(o => ['recibido', 'en_preparacion', 'listo', 'pendiente_aprobacion'].includes(o.status))
   const listoOrders = orders.filter(o => o.status === 'listo')
@@ -801,7 +821,7 @@ function MapaView({ orders, zones, venueId }) {
   return (
     <div
       ref={containerRef}
-      className={`${isFullscreen ? 'bg-carbon-950 flex flex-col p-6' : 'px-4 pt-4 pb-6'}`}
+      className={`${effectiveFullscreen ? 'fixed inset-0 z-50 bg-carbon-950 flex flex-col p-6 overflow-y-auto' : 'px-4 pt-4 pb-6'}`}
     >
       {/* Stats strip + fullscreen button */}
       <div className="flex items-center justify-between mb-4">
@@ -827,7 +847,7 @@ function MapaView({ orders, zones, venueId }) {
           onClick={toggleFullscreen}
           className="flex items-center gap-1.5 text-smoke-500 border border-carbon-700 rounded-lg px-2.5 py-1.5 text-xs hover:text-smoke-300 transition-colors"
         >
-          {isFullscreen ? (
+          {effectiveFullscreen ? (
             <>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
@@ -846,7 +866,7 @@ function MapaView({ orders, zones, venueId }) {
       </div>
 
       {/* Floor plan */}
-      <div className={isFullscreen ? 'flex-1' : ''}>
+      <div className={effectiveFullscreen ? 'flex-1' : ''}>
         <FloorPlanViewer
           zones={zones}
           venueId={venueId}
