@@ -133,7 +133,6 @@ export default function IdentifyPage() {
         const clientMapOn = !!venueData?.client_floor_map_enabled
         if (clientMapOn && zd.some(z => z.type === 'mesa' && z.pos_x != null)) {
           setZonePickerView('mapa')
-          setShowZonePicker(true)
         }
       }).catch(() => {})
     } else {
