@@ -31,6 +31,7 @@ export default function PaymentPage() {
   const [appliedDiscount, setAppliedDiscount] = useState(null)
   const [discountError, setDiscountError] = useState('')
   const [discountLoading, setDiscountLoading] = useState(false)
+  const [cashDiscount, setCashDiscount] = useState({ enabled: false, percent: 0 })
 
   useEffect(() => {
     if (itemCount === 0) navigate(`${base}/carta`)
@@ -54,7 +55,7 @@ export default function PaymentPage() {
           .order('sort_order'),
         supabaseCustomer
           .from('venues')
-          .select('header_bg_color, mp_enabled')
+          .select('header_bg_color, mp_enabled, cash_discount_enabled, cash_discount_percent')
           .eq('id', ACTIVE_VENUE_ID)
           .single()
       ])
@@ -67,6 +68,12 @@ export default function PaymentPage() {
       }
       setQuickNotes(notesRes.data || [])
       if (venueRes.data?.header_bg_color) setVenueColor(venueRes.data.header_bg_color)
+      if (venueRes.data) {
+        setCashDiscount({
+          enabled: venueRes.data.cash_discount_enabled || false,
+          percent: venueRes.data.cash_discount_percent || 0,
+        })
+      }
     }
     loadData()
   }, [])
@@ -75,7 +82,12 @@ export default function PaymentPage() {
 
   const accent = accentColor(venueColor)
   const discountAmount = appliedDiscount ? Math.round(subtotal * appliedDiscount.percent / 100) : 0
-  const total = subtotal - discountAmount
+  const selectedMethodName = paymentOptions.find(o => o.id === paymentMethod)?.name || ''
+  const isEfectivo = selectedMethodName.toLowerCase().includes('efectivo')
+  const cashDiscountAmt = (isEfectivo && cashDiscount.enabled && cashDiscount.percent > 0)
+    ? Math.round(subtotal * cashDiscount.percent / 100)
+    : 0
+  const total = subtotal - discountAmount - cashDiscountAmt
 
   async function applyDiscount() {
     if (!discountCode.trim()) return
@@ -186,6 +198,7 @@ export default function PaymentPage() {
           subtotal,
           discount_amount: discountAmount || null,
           discount_code: appliedDiscount?.code || null,
+          cash_discount_amount: cashDiscountAmt || null,
           total,
           payment_method: paymentOptions.find(o => o.id === paymentMethod)?.name || paymentMethod,
           session_id: activeSessionId,
@@ -432,6 +445,12 @@ export default function PaymentPage() {
             <span className="font-mono text-sm font-semibold">−{formatPrice(discountAmount)}</span>
           </div>
         )}
+        {cashDiscountAmt > 0 && (
+          <div className="flex items-center justify-between text-emerald-600">
+            <span className="text-sm font-medium">Descuento efectivo {cashDiscount.percent}%</span>
+            <span className="font-mono text-sm font-semibold">−{formatPrice(cashDiscountAmt)}</span>
+          </div>
+        )}
         <div className="flex items-center justify-between text-[#1A2332]">
           <span className="font-medium">Total</span>
           <span className="font-mono font-bold text-lg" style={{ color: accent }}>{formatPrice(total)}</span>
@@ -442,7 +461,11 @@ export default function PaymentPage() {
           className="w-full disabled:opacity-50 text-white font-semibold py-4 rounded-xl"
           style={{ backgroundColor: accent }}
         >
-          {submitting ? 'Procesando...' : 'Confirmar pedido →'}
+          {submitting
+            ? 'Procesando...'
+            : cashDiscountAmt > 0
+              ? `Confirmar — ${cashDiscount.percent}% off en efectivo →`
+              : 'Confirmar pedido →'}
         </button>
       </div>
     </div>
