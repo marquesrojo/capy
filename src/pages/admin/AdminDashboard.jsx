@@ -804,6 +804,10 @@ function MapaView({ orders, zones, venueId }) {
   const listoOrders = orders.filter(o => o.status === 'listo')
   const ocupadas = [...new Set(activeOrders.map(o => o.location_label).filter(Boolean))].length
 
+  const allMesas = zones.filter(z => z.is_active && z.pos_x != null && z.pos_y != null && z.type !== 'zona' && z.type !== 'retiro')
+  const zonaIdsWithMesas = new Set(allMesas.map(m => m.parent_zone_id).filter(Boolean))
+  const relevantZonas = zones.filter(z => z.type === 'zona' && z.is_active && zonaIdsWithMesas.has(z.id))
+
   return (
     <div
       ref={containerRef}
@@ -852,13 +856,26 @@ function MapaView({ orders, zones, venueId }) {
       </div>
 
       {/* Floor plan */}
-      <div className={effectiveFullscreen ? 'flex-1' : ''}>
-        <FloorPlanViewer
-          zones={zones}
-          venueId={venueId}
-          supabaseClient={supabaseStaff}
-          showAll={effectiveFullscreen}
-        />
+      <div className={effectiveFullscreen ? 'flex-1 flex gap-4 overflow-hidden' : ''}>
+        {effectiveFullscreen && relevantZonas.length > 1 ? (
+          relevantZonas.map(zona => (
+            <div key={zona.id} className="flex-1 flex flex-col min-w-0">
+              <p className="text-smoke-500 text-[10px] font-semibold uppercase tracking-widest mb-2">{zona.name}</p>
+              <FloorPlanViewer
+                zones={zones}
+                venueId={venueId}
+                supabaseClient={supabaseStaff}
+                filterZoneId={zona.id}
+              />
+            </div>
+          ))
+        ) : (
+          <FloorPlanViewer
+            zones={zones}
+            venueId={venueId}
+            supabaseClient={supabaseStaff}
+          />
+        )}
       </div>
     </div>
   )
