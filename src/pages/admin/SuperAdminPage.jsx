@@ -8,6 +8,7 @@ const TABS = [
   { id: 'venues', label: 'Venues' },
   { id: 'camaut', label: 'Camaut' },
   { id: 'soporte', label: 'Soporte' },
+  { id: 'pagos', label: 'Pagos' },
   { id: 'docs', label: 'Docs Capy' },
 ]
 
@@ -48,6 +49,7 @@ export default function SuperAdminPage() {
         {tab === 'venues' && <VenuesTab />}
         {tab === 'camaut' && <CamautTab />}
         {tab === 'soporte' && <SoporteTab />}
+        {tab === 'pagos' && <PagosTab />}
         {tab === 'docs' && <DocsTab />}
       </div>
     </div>
@@ -338,6 +340,88 @@ function SoporteTab() {
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+function PagosTab() {
+  const [mpToken, setMpToken] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    supabaseStaff
+      .from('capy_settings')
+      .select('mp_access_token')
+      .eq('id', 1)
+      .single()
+      .then(({ data }) => {
+        if (data?.mp_access_token) setMpToken(data.mp_access_token)
+        setLoading(false)
+      })
+  }, [])
+
+  async function save() {
+    setSaving(true)
+    await supabaseStaff
+      .from('capy_settings')
+      .upsert({ id: 1, mp_access_token: mpToken.trim(), updated_at: new Date().toISOString() })
+    setSaving(false)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
+  if (loading) return <p className="text-smoke-500 text-sm">Cargando...</p>
+
+  return (
+    <div className="space-y-5">
+      <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5 space-y-4">
+        <div>
+          <p className="text-smoke-300 font-medium text-sm">Token de Mercado Pago — Capy</p>
+          <p className="text-smoke-500 text-xs mt-0.5">
+            Se usa para cobrar upgrades premium a los locales (importación con IA, créditos, etc.)
+          </p>
+        </div>
+        <div className="space-y-2 pt-1 border-t border-carbon-700">
+          <p className="text-smoke-400 text-xs">Access Token</p>
+          <p className="text-smoke-500 text-[11px]">Encontralo en tu cuenta MP → Tu negocio → Credenciales</p>
+          <div className="flex gap-2">
+            <input
+              type="password"
+              value={mpToken}
+              onChange={e => { setMpToken(e.target.value); setSaved(false) }}
+              placeholder="APP_USR-..."
+              className="input flex-1 font-mono text-xs"
+            />
+            <button
+              onClick={save}
+              disabled={saving || !mpToken.trim()}
+              className="bg-blue-500 hover:bg-blue-600 disabled:opacity-40 text-white font-semibold px-4 rounded-xl text-sm flex-shrink-0"
+            >
+              {saving ? '...' : saved ? '✓' : 'Guardar'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5 space-y-3">
+        <p className="text-smoke-300 font-medium text-sm">Upgrades disponibles</p>
+        <p className="text-smoke-500 text-xs">
+          Próximamente: configurar precio y activar/desactivar cada feature para que los locales puedan comprarlos desde su panel.
+        </p>
+        <div className="space-y-2 opacity-50">
+          {[
+            { key: 'ai_import', name: 'Importación con IA', desc: 'Importar carta completa con fotos y descripción generadas por IA' },
+            { key: 'extra_photos', name: 'Pack de fotos IA', desc: 'Créditos adicionales para búsqueda automática de fotos con IA' },
+          ].map(f => (
+            <div key={f.key} className="border border-carbon-700 rounded-xl px-4 py-3">
+              <p className="text-smoke-300 text-sm font-medium">{f.name}</p>
+              <p className="text-smoke-500 text-xs mt-0.5">{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
