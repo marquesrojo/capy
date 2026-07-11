@@ -506,6 +506,9 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
                   <option key={m.id} value={m.id}>{m.name}</option>
                 ))}
               </select>
+              <p className="text-[#B0BEC5] text-[10px] mt-1 font-mono">
+                dbg: enabled={String(cashDiscount.enabled)} pct={cashDiscount.percent} efectivo={String(isEfectivo)}
+              </p>
               {isEfectivo && cashDiscount.enabled && cashDiscount.percent > 0 && (
                 <p className="text-emerald-600 text-xs mt-1.5 font-medium">
                   Se aplica {cashDiscount.percent}% de descuento por pago en efectivo
