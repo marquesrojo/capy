@@ -11,6 +11,9 @@ export default function PaymentMethodsPage() {
   const [adding, setAdding] = useState(false)
   const [mpEnabled, setMpEnabled] = useState(false)
   const [mpSaving, setMpSaving] = useState(false)
+  const [mpToken, setMpToken] = useState('')
+  const [mpTokenSaving, setMpTokenSaving] = useState(false)
+  const [mpTokenSaved, setMpTokenSaved] = useState(false)
 
   useEffect(() => {
     if (!venueId) return
@@ -20,10 +23,11 @@ export default function PaymentMethodsPage() {
   async function loadAll() {
     const [methodsRes, venueRes] = await Promise.all([
       supabaseStaff.from('payment_methods').select('*').eq('venue_id', venueId).order('sort_order'),
-      supabaseStaff.from('venues').select('mp_enabled').eq('id', venueId).single()
+      supabaseStaff.from('venues').select('mp_enabled, mp_access_token').eq('id', venueId).single()
     ])
     setMethods(methodsRes.data || [])
     if (venueRes.data?.mp_enabled !== undefined) setMpEnabled(venueRes.data.mp_enabled)
+    if (venueRes.data?.mp_access_token) setMpToken(venueRes.data.mp_access_token)
     setLoading(false)
   }
 
@@ -33,6 +37,14 @@ export default function PaymentMethodsPage() {
     setMpSaving(true)
     await supabaseStaff.from('venues').update({ mp_enabled: newVal }).eq('id', venueId)
     setMpSaving(false)
+  }
+
+  async function saveMpToken() {
+    setMpTokenSaving(true)
+    await supabaseStaff.from('venues').update({ mp_access_token: mpToken.trim() }).eq('id', venueId)
+    setMpTokenSaving(false)
+    setMpTokenSaved(true)
+    setTimeout(() => setMpTokenSaved(false), 2000)
   }
 
   async function toggleActive(method) {
@@ -81,7 +93,7 @@ export default function PaymentMethodsPage() {
       </header>
 
       <main className="px-5 mt-4 space-y-4">
-        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
+        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5 space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-smoke-300 font-medium text-sm">Mercado Pago</p>
@@ -99,6 +111,27 @@ export default function PaymentMethodsPage() {
                 mpEnabled ? 'translate-x-6' : 'translate-x-1'
               }`} />
             </button>
+          </div>
+
+          <div className="space-y-2 pt-1 border-t border-carbon-700">
+            <p className="text-smoke-400 text-xs">Access Token de Mercado Pago</p>
+            <p className="text-smoke-500 text-[11px]">Encontralo en tu cuenta MP → Tu negocio → Credenciales</p>
+            <div className="flex gap-2">
+              <input
+                type="password"
+                value={mpToken}
+                onChange={e => { setMpToken(e.target.value); setMpTokenSaved(false) }}
+                placeholder="APP_USR-..."
+                className="input flex-1 font-mono text-xs"
+              />
+              <button
+                onClick={saveMpToken}
+                disabled={mpTokenSaving || !mpToken.trim()}
+                className="bg-blue-500 hover:bg-blue-600 disabled:opacity-40 text-white font-semibold px-4 rounded-xl text-sm flex-shrink-0"
+              >
+                {mpTokenSaving ? '...' : mpTokenSaved ? '✓' : 'Guardar'}
+              </button>
+            </div>
           </div>
         </div>
 

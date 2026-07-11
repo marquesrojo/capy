@@ -143,7 +143,8 @@ function RequestBillForm({ order, onUpdated, mpEnabled, paymentMethods, venueCol
         body: JSON.stringify({
           orderId: order.id,
           total: order.total,
-          orderNumber: order.daily_number
+          orderNumber: order.daily_number,
+          venueId: ACTIVE_VENUE_ID
         })
       })
       const data = await res.json()
