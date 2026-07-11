@@ -49,6 +49,7 @@ import TerminosPage from './pages/camaut/TerminosPage'
 import WaiterPublicPage from './pages/camaut/WaiterPublicPage'
 import SuperAdminPage from './pages/admin/SuperAdminPage'
 import ConsumoPage from './pages/admin/ConsumoPage'
+import InventarioPage from './pages/admin/InventarioPage'
 import ShiftManagerPage from './pages/admin/ShiftManagerPage'
 import OrderAuditorPage from './pages/admin/OrderAuditorPage'
 import WaiterCVPage from './pages/camaut/WaiterCVPage'
@@ -271,6 +272,10 @@ export default function App() {
                     <ShiftSummaryPage />
                   </RequireStaff>
                 }
+              />
+              <Route
+                path="/admin/inventario"
+                element={<RequirePropietario><InventarioPage /></RequirePropietario>}
               />
               <Route
                 path="/admin/consumo"
