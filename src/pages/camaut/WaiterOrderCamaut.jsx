@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import QRCode from 'qrcode'
-import { supabaseStaff, supabaseCustomer } from '../../lib/supabase'
+import { supabaseStaff } from '../../lib/supabase'
 import { PinIcon } from '../../components/Icons'
 import { formatPrice } from '../../lib/utils'
 import { awardXP } from '../../lib/xpUtils'
@@ -67,10 +67,9 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
   async function loadCarta() {
     setLoading(true)
     try {
-      const [catRes, prodRes, venueRes, staffRes, zoneRes, notesRes, menuRes, discountsRes, payMethodsRes] = await Promise.all([
+      const [catRes, prodRes, staffRes, zoneRes, notesRes, menuRes, discountsRes, payMethodsRes] = await Promise.all([
         supabaseStaff.from('categories').select('id, name, menu_id').eq('venue_id', activeVenueId).order('sort_order'),
         supabaseStaff.from('products').select('id, name, price, category_id, is_daily_special').eq('venue_id', activeVenueId).eq('is_available', true),
-        supabaseCustomer.from('venues').select('cash_discount_enabled, cash_discount_percent').eq('id', activeVenueId).maybeSingle(),
         supabaseStaff.from('staff_names').select('id').eq('venue_id', venueId).limit(1).maybeSingle(),
         supabaseStaff.from('venue_zones').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order'),
         supabaseStaff.from('quick_notes').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order'),
@@ -80,23 +79,14 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
       ])
       setCategories(catRes.data || [])
       setProducts(prodRes.data || [])
-      const linkedVenue = linkedVenues.find(v => v.id === activeVenueId)
-      if (linkedVenue) {
-        setCashDiscount({
-          enabled: linkedVenue.cash_discount_enabled || false,
-          percent: linkedVenue.cash_discount_percent || 0,
-        })
-      } else if (venueRes.data) {
-        setCashDiscount({
-          enabled: venueRes.data.cash_discount_enabled || false,
-          percent: venueRes.data.cash_discount_percent || 0,
-        })
-      }
       setStaffId(staffRes.data?.id || null)
       setZones(zoneRes.data || [])
       setQuickNotes(notesRes.data || [])
       setMenus(menuRes.data || [])
-      setDiscounts(discountsRes.data || [])
+      const allDiscounts = discountsRes.data || []
+      const cashEntry = allDiscounts.find(d => d.is_cash_discount)
+      setDiscounts(allDiscounts.filter(d => !d.is_cash_discount))
+      setCashDiscount({ enabled: !!cashEntry, percent: cashEntry?.percent || 0 })
       setPaymentMethods(payMethodsRes.data || [])
       if (catRes.data?.length) setActiveCategory(catRes.data[0].id)
     } catch (err) {
@@ -506,9 +496,6 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
                   <option key={m.id} value={m.id}>{m.name}</option>
                 ))}
               </select>
-              <p className="text-[#B0BEC5] text-[10px] mt-1 font-mono">
-                dbg: enabled={String(cashDiscount.enabled)} pct={cashDiscount.percent} efectivo={String(isEfectivo)}
-              </p>
               {isEfectivo && cashDiscount.enabled && cashDiscount.percent > 0 && (
                 <p className="text-emerald-600 text-xs mt-1.5 font-medium">
                   Se aplica {cashDiscount.percent}% de descuento por pago en efectivo
