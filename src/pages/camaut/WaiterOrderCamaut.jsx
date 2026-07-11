@@ -80,7 +80,13 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
       ])
       setCategories(catRes.data || [])
       setProducts(prodRes.data || [])
-      if (venueRes.data) {
+      const linkedVenue = linkedVenues.find(v => v.id === activeVenueId)
+      if (linkedVenue) {
+        setCashDiscount({
+          enabled: linkedVenue.cash_discount_enabled || false,
+          percent: linkedVenue.cash_discount_percent || 0,
+        })
+      } else if (venueRes.data) {
         setCashDiscount({
           enabled: venueRes.data.cash_discount_enabled || false,
           percent: venueRes.data.cash_discount_percent || 0,
