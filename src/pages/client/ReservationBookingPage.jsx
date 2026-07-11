@@ -144,7 +144,25 @@ export default function ReservationBookingPage() {
   function getSlotsForDate(dateStr) {
     const date = new Date(dateStr + 'T12:00:00')
     const dow = date.getDay()
-    return weeklySlots.filter(s => s.day_of_week === dow)
+    const windows = weeklySlots.filter(s => s.day_of_week === dow)
+    const duration = settings?.slot_duration_minutes || 90
+    const slots = []
+    for (const win of windows) {
+      const [startH, startM] = win.start_time.split(':').map(Number)
+      const [endH, endM] = win.end_time.split(':').map(Number)
+      let cur = startH * 60 + startM
+      const end = endH * 60 + endM
+      while (cur + duration <= end) {
+        const h = Math.floor(cur / 60)
+        const m = cur % 60
+        slots.push({
+          ...win,
+          start_time: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`,
+        })
+        cur += duration
+      }
+    }
+    return slots
   }
 
   async function selectDate(dateStr) {
@@ -167,7 +185,7 @@ export default function ReservationBookingPage() {
     setSubmitError('')
     const { data: sessionData } = await supabaseCustomer.auth.getSession()
     const customerId = sessionData?.session?.user?.id || null
-    const { data, error } = await supabaseCustomer.from('reservations').insert({
+    const payload = {
       venue_id: venueId,
       date: selectedDate,
       slot_time: selectedSlot.start_time,
@@ -179,8 +197,14 @@ export default function ReservationBookingPage() {
       guest_email: email.trim() || null,
       notes: notes.trim() || null,
       status: 'confirmed',
-      customer_id: customerId,
-    }).select().single()
+    }
+    if (customerId) payload.customer_id = customerId
+    let { data, error } = await supabaseCustomer.from('reservations').insert(payload).select().single()
+    // Retry without customer_id if the column doesn't exist yet (migration pending)
+    if (error?.message?.includes('customer_id')) {
+      delete payload.customer_id
+      ;({ data, error } = await supabaseCustomer.from('reservations').insert(payload).select().single())
+    }
 
     if (error || !data) {
       setSubmitError('No pudimos confirmar la reserva. Intentá de nuevo.')
@@ -370,7 +394,7 @@ export default function ReservationBookingPage() {
                 >
                   <div>
                     <p className="text-[#1A2332] font-bold text-sm">
-                      {slot.start_time.slice(0,5)} – {slot.end_time.slice(0,5)}
+                      {slot.start_time.slice(0,5)}
                     </p>
                     {slot.label && <p className="text-[#9DAAB8] text-xs mt-0.5">{slot.label}</p>}
                   </div>
