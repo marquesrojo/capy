@@ -534,6 +534,7 @@ function ProductRow({ product, venueId, categories, allProducts = [], onToggle, 
     }
 
     onSave({ ...product, ...updates })
+    if (stockMode === 'ingredient') onRefreshProducts?.()
     setSaving(false)
     setEditing(false)
     setImageFile(null)
