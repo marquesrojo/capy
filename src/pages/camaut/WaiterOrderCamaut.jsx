@@ -35,6 +35,9 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
   const [showCategorySheet, setShowCategorySheet] = useState(false)
   const [discounts, setDiscounts] = useState([])
   const [selectedDiscount, setSelectedDiscount] = useState(null)
+  const [paymentMethods, setPaymentMethods] = useState([])
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null)
+  const [cashDiscount, setCashDiscount] = useState({ enabled: false, percent: 0 })
   const [contextReady, setContextReady] = useState(() => {
     if (linkedVenues.length === 0) return true
     return !!localStorage.getItem(`capy_ctx_${venueId}`)
@@ -64,23 +67,31 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
   async function loadCarta() {
     setLoading(true)
     try {
-      const [catRes, prodRes, , staffRes, zoneRes, notesRes, menuRes, discountsRes] = await Promise.all([
+      const [catRes, prodRes, venueRes, staffRes, zoneRes, notesRes, menuRes, discountsRes, payMethodsRes] = await Promise.all([
         supabaseStaff.from('categories').select('id, name, menu_id').eq('venue_id', activeVenueId).order('sort_order'),
         supabaseStaff.from('products').select('id, name, price, category_id, is_daily_special').eq('venue_id', activeVenueId).eq('is_available', true),
-        supabaseStaff.from('venues').select('whatsapp_number').eq('id', activeVenueId).maybeSingle(),
+        supabaseStaff.from('venues').select('cash_discount_enabled, cash_discount_percent').eq('id', activeVenueId).maybeSingle(),
         supabaseStaff.from('staff_names').select('id').eq('venue_id', venueId).limit(1).maybeSingle(),
         supabaseStaff.from('venue_zones').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order'),
         supabaseStaff.from('quick_notes').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order'),
         supabaseStaff.from('staff_menus').select('*').eq('venue_id', activeVenueId).order('created_at'),
-        supabaseStaff.from('venue_discounts').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('created_at')
+        supabaseStaff.from('venue_discounts').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('created_at'),
+        supabaseStaff.from('payment_methods').select('id, name').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order')
       ])
       setCategories(catRes.data || [])
       setProducts(prodRes.data || [])
+      if (venueRes.data) {
+        setCashDiscount({
+          enabled: venueRes.data.cash_discount_enabled || false,
+          percent: venueRes.data.cash_discount_percent || 0,
+        })
+      }
       setStaffId(staffRes.data?.id || null)
       setZones(zoneRes.data || [])
       setQuickNotes(notesRes.data || [])
       setMenus(menuRes.data || [])
       setDiscounts(discountsRes.data || [])
+      setPaymentMethods(payMethodsRes.data || [])
       if (catRes.data?.length) setActiveCategory(catRes.data[0].id)
     } catch (err) {
       console.error('loadCarta error:', err)
@@ -113,7 +124,11 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
   const cartItems = Object.values(cart).filter(i => i.product && i.qty > 0)
   const subtotal = cartItems.reduce((sum, i) => sum + i.product.price * i.qty, 0)
   const discountAmount = selectedDiscount ? Math.round(subtotal * selectedDiscount.percent / 100) : 0
-  const total = subtotal - discountAmount
+  const selectedPaymentName = selectedPaymentMethod?.name || ''
+  const isEfectivo = selectedPaymentName.toLowerCase().includes('efectivo')
+  const cashDiscountAmt = (isEfectivo && cashDiscount.enabled && cashDiscount.percent > 0)
+    ? Math.round(subtotal * cashDiscount.percent / 100) : 0
+  const total = subtotal - discountAmount - cashDiscountAmt
   const locationLabel = (selectedZone && selectedZone.id !== 'otra') ? selectedZone.name : location.trim()
 
   async function handleSubmit() {
@@ -172,6 +187,12 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
             updates.discount_code = selectedDiscount.code
             updates.subtotal = subtotal
           }
+          if (selectedPaymentMethod) {
+            updates.payment_method = selectedPaymentMethod.name
+          }
+          if (isEfectivo && cashDiscountAmt > 0) {
+            updates.cash_discount_amount = cashDiscountAmt
+          }
           if (Object.keys(updates).length) {
             await supabaseStaff.from('orders').update(updates).eq('id', result.order.id)
           }
@@ -182,6 +203,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
         setSelectedZone(null)
         setGeneralNotes('')
         setSelectedDiscount(null)
+        setSelectedPaymentMethod(null)
         setStep('carta')
       } else {
         setSubmitError(result.error || 'Error al enviar el pedido. Intentá de nuevo.')
@@ -464,19 +486,53 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
             )}
           </div>
 
+          {/* Medio de pago */}
+          {paymentMethods.length > 0 && (
+            <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
+              <p className="text-[#8896A5] text-xs font-semibold mb-2">Medio de pago</p>
+              <select
+                value={selectedPaymentMethod?.id || ''}
+                onChange={e => setSelectedPaymentMethod(paymentMethods.find(m => m.id === e.target.value) || null)}
+                className="w-full border border-black/10 rounded-xl px-3 py-2 text-sm text-[#1A2A3A] bg-[#F8FAFC]"
+              >
+                <option value="">Sin especificar</option>
+                {paymentMethods.map(m => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+              {isEfectivo && cashDiscount.enabled && cashDiscount.percent > 0 && (
+                <p className="text-emerald-600 text-xs mt-1.5 font-medium">
+                  Se aplica {cashDiscount.percent}% de descuento por pago en efectivo
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Resumen */}
           <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
             <div className="flex justify-between text-sm mb-1">
               <span className="text-[#8896A5] flex items-center gap-1"><PinIcon size={11} /> {locationLabel}</span>
-              {discountAmount > 0 ? (
+              {(discountAmount > 0 || cashDiscountAmt > 0) ? (
                 <span className="font-mono text-[#8896A5] line-through text-xs">{formatPrice(subtotal)}</span>
               ) : (
                 <span className="font-mono font-bold text-[#008080]">{formatPrice(total)}</span>
               )}
             </div>
             {discountAmount > 0 && (
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-sm mb-0.5">
                 <span className="text-emerald-600 text-xs font-semibold">Descuento {selectedDiscount.percent}%</span>
+                <span className="font-mono text-sm text-[#3A4A5A]">−{formatPrice(discountAmount)}</span>
+              </div>
+            )}
+            {cashDiscountAmt > 0 && (
+              <div className="flex justify-between text-sm mb-0.5">
+                <span className="text-emerald-600 text-xs font-semibold">Efectivo {cashDiscount.percent}%</span>
+                <span className="font-mono text-sm text-[#3A4A5A]">−{formatPrice(cashDiscountAmt)}</span>
+              </div>
+            )}
+            {(discountAmount > 0 || cashDiscountAmt > 0) && (
+              <div className="flex justify-between text-sm">
+                <span className="text-[#8896A5] text-xs font-semibold">Total</span>
                 <span className="font-mono font-bold text-[#008080]">{formatPrice(total)}</span>
               </div>
             )}
@@ -501,7 +557,9 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
             disabled={submitting || cartItems.length === 0}
             className="w-full bg-[#008080] disabled:opacity-50 text-white font-bold py-4 rounded-2xl text-base"
           >
-            {submitting ? 'Enviando...' : `Confirmar pedido · ${formatPrice(total)}`}
+            {submitting ? 'Enviando...' : cashDiscountAmt > 0
+              ? `Confirmar · ${formatPrice(total)} (${cashDiscount.percent}% off efectivo)`
+              : `Confirmar pedido · ${formatPrice(total)}`}
           </button>
         </div>
       </div>
