@@ -22,12 +22,13 @@ export default function FloorPlanViewer({ zones, venueId, selectedZone, onSelect
   useEffect(() => {
     if (!venueId) return
     loadActive()
+    const channelName = `floor-viewer-${venueId}${filterZoneId ? `-${filterZoneId}` : ''}`
     const channel = supabaseClient
-      .channel(`floor-viewer-${venueId}`)
+      .channel(channelName)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `venue_id=eq.${venueId}` }, loadActive)
       .subscribe()
     return () => supabaseClient.removeChannel(channel)
-  }, [venueId])
+  }, [venueId, filterZoneId])
 
   async function loadActive() {
     const { data } = await supabaseClient
