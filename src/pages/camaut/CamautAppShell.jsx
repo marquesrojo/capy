@@ -90,7 +90,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
   const [appInstalled, setAppInstalled] = useState(false)
   const [showInstallModal, setShowInstallModal] = useState(false)
   const [installBannerDismissed, setInstallBannerDismissed] = useState(
-    () => sessionStorage.getItem('camaut-install-dismissed') === '1'
+    () => localStorage.getItem('camaut-install-dismissed') === '1'
   )
 
   useEffect(() => {
@@ -105,7 +105,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
   }, [])
 
   function dismissInstallBanner() {
-    sessionStorage.setItem('camaut-install-dismissed', '1')
+    localStorage.setItem('camaut-install-dismissed', '1')
     setInstallBannerDismissed(true)
   }
 
@@ -208,8 +208,6 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
   const xp = staffXP || 0
   const level = getLevel(xp)
   const progress = getXPProgress(xp)
-  // Only show once data is loaded; hide permanently once the user has any XP
-  // (server value — immune to localStorage being cleared between sessions).
   const showGettingStarted = staffLoaded && xp === 0 && !gsState.dismissed && !(gsState.perfil && gsState.carta && gsState.ubicaciones)
 
   async function handleSignOut() {
@@ -217,9 +215,6 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
     navigate('/camaut/login')
   }
 
-  // Onboarding — camarero nuevo sin venue ni vinculación.
-  // Also check a localStorage flag set on first completion so the loop
-  // can't repeat if the profile query returns null on a re-login.
   let alreadyOnboarded = false
   try {
     const raw = localStorage.getItem('sb-camaut-auth') || localStorage.getItem('sb-staff-auth')
@@ -299,7 +294,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
         </button>
       )}
 
-      {/* Install reminder — once per session, dismissible with X */}
+      {/* Install reminder — dismissible permanently via localStorage */}
       {showInstallBanner && (
         <div className="mx-3 mt-3 bg-[#E8F5F5] border border-[#008080]/20 rounded-2xl px-4 py-3 flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-[#008080]/15 flex items-center justify-center flex-shrink-0 text-[#008080]">
@@ -847,7 +842,6 @@ function MenuZonasTab({ venueId }) {
 
   return (
     <div className="space-y-4">
-      {/* Selector de carta */}
       <div>
         <p className="text-[#8896A5] text-[10px] font-semibold uppercase tracking-wide mb-2">Carta</p>
         <div className="flex gap-2 overflow-x-auto pb-1">
@@ -876,7 +870,6 @@ function MenuZonasTab({ venueId }) {
         )}
       </div>
 
-      {/* Lista de zonas */}
       <div>
         <p className="text-[#8896A5] text-[10px] font-semibold uppercase tracking-wide mb-2">
           Mesas · {selectedLabel}
@@ -905,7 +898,6 @@ function MenuZonasTab({ venueId }) {
         )}
       </div>
 
-      {/* Agregar zona */}
       <div>
         <p className="text-[#8896A5] text-[10px] font-semibold uppercase tracking-wide mb-2">Agregar mesa</p>
         <div className="flex gap-2">
@@ -1137,7 +1129,6 @@ function SoporteTab({ staffId, staffName }) {
 
   return (
     <div className="space-y-4">
-      {/* Historial de tickets */}
       {tickets.length > 0 && (
         <div className="space-y-2">
           <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide">Mis mensajes anteriores</p>
@@ -1167,7 +1158,6 @@ function SoporteTab({ staffId, staffName }) {
         </div>
       )}
 
-      {/* Nuevo mensaje */}
       <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide">Nuevo mensaje</p>
       <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
         <p className="text-[#8896A5] text-xs mb-1">De</p>
