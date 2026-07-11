@@ -22,7 +22,6 @@ as $$
   from orders o
   left join customers c on c.id = o.customer_id
   where o.venue_id = p_venue_id
-    and o.location_type = 'retiro_externo'
     and o.status::text = any(array['recibido', 'en_preparacion', 'listo'])
   order by o.created_at;
 $$;
