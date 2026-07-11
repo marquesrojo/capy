@@ -280,7 +280,7 @@ function CategoryNameEditor({ cat, onSave }) {
 
 const UNITS = ['g', 'kg', 'ml', 'l', 'unidad', 'taza', 'cdita', 'cda', 'porción']
 
-function IngredientsPanel({ productId, productName, productDescription, currentImageUrl, onPhotoSaved, venueId, onClose }) {
+function IngredientsPanel({ productId, productName, productDescription, currentImageUrl, onPhotoSaved, venueId, onClose, onRefreshProducts }) {
   const [ingredients, setIngredients] = useState(null) // null = loading
   const [saving, setSaving] = useState(false)
   const [suggesting, setSuggesting] = useState(false)
@@ -292,6 +292,7 @@ function IngredientsPanel({ productId, productName, productDescription, currentI
       .from('product_ingredients')
       .select('id, ingredient_name, quantity, unit')
       .eq('product_id', productId)
+      .not('ingredient_name', 'is', null)
       .then(({ data }) => setIngredients(data || []))
   }, [productId])
 
@@ -353,19 +354,50 @@ function IngredientsPanel({ productId, productName, productDescription, currentI
   async function handleSave() {
     const valid = (ingredients || []).filter(r => r.ingredient_name.trim() && Number(r.quantity) > 0)
     setSaving(true)
-    await supabaseStaff.from('product_ingredients').delete().eq('product_id', productId)
+
+    // Load existing is_ingredient_only products for this venue to find/create matches
+    const { data: existingInsumos } = await supabaseStaff
+      .from('products')
+      .select('id, name')
+      .eq('venue_id', venueId)
+      .eq('is_ingredient_only', true)
+
+    const insumoByName = Object.fromEntries(
+      (existingInsumos || []).map(p => [p.name.toLowerCase(), p.id])
+    )
+
+    // Create missing ingredient products
+    const namesToCreate = [...new Set(
+      valid.map(r => r.ingredient_name.trim()).filter(n => !insumoByName[n.toLowerCase()])
+    )]
+    if (namesToCreate.length > 0) {
+      const { data: newProds } = await supabaseStaff
+        .from('products')
+        .insert(namesToCreate.map(name => ({
+          venue_id: venueId, name, price: 0, is_available: false,
+          is_ingredient_only: true, stock_mode: 'unit', unit_stock: 0,
+        })))
+        .select('id, name')
+      if (newProds) newProds.forEach(p => { insumoByName[p.name.toLowerCase()] = p.id })
+    }
+
+    // Replace all ingredient_name rows for this product
+    await supabaseStaff.from('product_ingredients').delete().eq('product_id', productId).not('ingredient_name', 'is', null)
     if (valid.length > 0) {
       await supabaseStaff.from('product_ingredients').insert(
         valid.map(r => ({
           product_id: productId,
           ingredient_name: r.ingredient_name.trim(),
+          supply_product_id: insumoByName[r.ingredient_name.trim().toLowerCase()] ?? null,
           quantity: Number(r.quantity),
           unit: r.unit,
         }))
       )
     }
+
     setIngredients(valid.map(r => ({ ...r, id: null })))
     setSaving(false)
+    onRefreshProducts?.()
     onClose?.()
   }
 
@@ -808,6 +840,7 @@ function ProductRow({ product, venueId, categories, allProducts = [], onToggle, 
           onPhotoSaved={url => onSave({ ...product, image_url: url })}
           venueId={venueId}
           onClose={() => setShowIngredients(false)}
+          onRefreshProducts={onRefreshProducts}
         />
       )}
     </div>
