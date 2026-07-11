@@ -397,20 +397,6 @@ async function loadZones() {
           <p className="text-smoke-500 text-xs mt-0.5">{profile?.full_name}</p>
         </div>
         <div className="flex gap-3 items-center">
-          <button
-            onClick={() => load()}
-            disabled={refreshing}
-            className="flex items-center gap-1 text-smoke-400 text-xs border border-carbon-700 rounded-full px-2.5 py-1 disabled:opacity-50"
-          >
-            <svg
-              width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-              className={refreshing ? 'animate-spin' : ''}
-            >
-              <path d="M21 12a9 9 0 1 1-2.64-6.36" strokeLinecap="round"/>
-              <path d="M21 3v6h-6" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            {refreshing ? 'Actualizando...' : 'Actualizar'}
-          </button>
           {isSuperAdmin && (
             <Link to="/admin/superadmin" className="text-ember-500 text-xs underline font-semibold">
               Superadmin
@@ -871,6 +857,7 @@ function MapaView({ orders, zones, venueId }) {
           zones={zones}
           venueId={venueId}
           supabaseClient={supabaseStaff}
+          showAll={effectiveFullscreen}
         />
       </div>
     </div>
