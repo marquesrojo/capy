@@ -53,10 +53,28 @@ export default function PaymentMethodsPage() {
     setTimeout(() => setMpTokenSaved(false), 2000)
   }
 
+  async function syncCashDiscountToVenueDiscounts(enabled, percent) {
+    if (percent <= 0) return
+    const { data: existing } = await supabaseStaff
+      .from('venue_discounts')
+      .select('id')
+      .eq('venue_id', venueId)
+      .eq('is_cash_discount', true)
+      .maybeSingle()
+    if (existing) {
+      await supabaseStaff.from('venue_discounts').update({ is_active: enabled, percent }).eq('id', existing.id)
+    } else {
+      await supabaseStaff.from('venue_discounts').insert({
+        venue_id: venueId, code: 'EFECTIVO', percent, is_active: enabled, is_cash_discount: true, label: 'Descuento efectivo',
+      })
+    }
+  }
+
   async function toggleCashDiscount() {
     const newVal = !cashDiscountEnabled
     setCashDiscountEnabled(newVal)
     await supabaseStaff.from('venues').update({ cash_discount_enabled: newVal }).eq('id', venueId)
+    await syncCashDiscountToVenueDiscounts(newVal, parseFloat(cashDiscountPercent) || 0)
   }
 
   async function saveCashDiscountPercent() {
@@ -64,6 +82,7 @@ export default function PaymentMethodsPage() {
     setCashDiscountPercent(String(val))
     setCashSaving(true)
     await supabaseStaff.from('venues').update({ cash_discount_percent: val }).eq('id', venueId)
+    await syncCashDiscountToVenueDiscounts(cashDiscountEnabled, val)
     setCashSaving(false)
     setCashSaved(true)
     setTimeout(() => setCashSaved(false), 2000)
