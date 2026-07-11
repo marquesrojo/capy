@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 
 const ACTIVE_STATUSES = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo']
 
-export default function FloorPlanViewer({ zones, venueId, selectedZone, onSelect, supabaseClient }) {
+export default function FloorPlanViewer({ zones, venueId, selectedZone, onSelect, supabaseClient, showAll }) {
   const [occupiedIds, setOccupiedIds] = useState(new Set())
 
   const mesas = zones.filter(z => z.is_active && z.pos_x != null && z.pos_y != null && z.type !== 'zona' && z.type !== 'retiro')
@@ -13,9 +13,9 @@ export default function FloorPlanViewer({ zones, venueId, selectedZone, onSelect
 
   const [activeZoneId, setActiveZoneId] = useState(() => relevantZonas[0]?.id ?? null)
 
-  const visibleMesas = hasZoneTabs
-    ? mesas.filter(m => m.parent_zone_id === activeZoneId)
-    : mesas
+  const visibleMesas = (showAll || !hasZoneTabs)
+    ? mesas
+    : mesas.filter(m => m.parent_zone_id === activeZoneId)
 
   useEffect(() => {
     if (!venueId) return
@@ -52,7 +52,7 @@ export default function FloorPlanViewer({ zones, venueId, selectedZone, onSelect
 
   return (
     <div>
-      {hasZoneTabs && (
+      {hasZoneTabs && !showAll && (
         <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
           {relevantZonas.map(z => (
             <button
