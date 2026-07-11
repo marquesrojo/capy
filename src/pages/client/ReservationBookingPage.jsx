@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabaseCustomer } from '../../lib/supabase'
-import { useVenueOptional } from '../../hooks/useVenue'
-import { useClientBase } from '../../hooks/useVenue'
+import { useVenueOptional, useClientBase } from '../../hooks/useVenue'
+import { useCustomer } from '../../hooks/useCustomer'
 
 const SHAPE_LABELS = { cuadrada: 'Cuadrada', redonda: 'Redonda', rectangular: 'Rectangular', barra: 'Barra' }
 const DAYS_ES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
@@ -21,6 +21,8 @@ export default function ReservationBookingPage() {
   const venueId = venue?.id
   const base = useClientBase()
   const selfColor = venue?.header_bg_color || '#1A3A6B'
+  const { customer, isAnonymous, userEmail, loginWithGoogle } = useCustomer()
+  const [loginError, setLoginError] = useState('')
 
   const [loading, setLoading] = useState(true)
   const [settings, setSettings] = useState(null)
@@ -43,6 +45,14 @@ export default function ReservationBookingPage() {
 
   // Calendar state
   const [calMonth, setCalMonth] = useState(() => { const d = new Date(); return { year: d.getFullYear(), month: d.getMonth() } })
+
+  // Auto-fill datos from customer profile
+  useEffect(() => {
+    if (!customer || isAnonymous) return
+    if (customer.full_name) setName(customer.full_name)
+    if (customer.whatsapp) setPhone(customer.whatsapp)
+    if (userEmail) setEmail(userEmail)
+  }, [customer?.id, isAnonymous])
 
   useEffect(() => {
     if (venueId) loadConfig()
@@ -178,6 +188,48 @@ export default function ReservationBookingPage() {
       return
     }
     setConfirmed(data)
+  }
+
+  // Login gate — must have a Google-linked account to reserve
+  if (!customer || isAnonymous) {
+    return (
+      <div className="min-h-screen bg-[#FAF9F6] flex flex-col">
+        <div className="px-4 pt-5 pb-4 flex items-center gap-3 border-b border-black/[0.06]">
+          <button onClick={() => navigate(base)} className="text-[#6B7A8D] text-sm">← Volver</button>
+          <div>
+            <p className="text-[#1A2332] font-black text-base">Reservar mesa</p>
+            {venue?.name && <p className="text-[#9DAAB8] text-xs">{venue.name}</p>}
+          </div>
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5" style={{ backgroundColor: `${selfColor}15` }}>
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke={selfColor} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+          </div>
+          <h2 className="text-[#1A2332] font-black text-xl mb-2">Iniciá sesión para reservar</h2>
+          <p className="text-[#9DAAB8] text-sm mb-8 max-w-xs leading-relaxed">
+            Tu reserva queda guardada en tu cuenta para que puedas consultarla cuando quieras.
+          </p>
+          <button
+            onClick={async () => {
+              const r = await loginWithGoogle(`${base}/reservar`)
+              if (r?.error) setLoginError(r.error.message)
+            }}
+            className="flex items-center gap-3 bg-white border border-black/[0.10] shadow-sm font-semibold text-[#1A2332] text-sm px-6 py-3.5 rounded-2xl"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            Continuar con Google
+          </button>
+          {loginError && <p className="text-red-500 text-xs mt-3">{loginError}</p>}
+        </div>
+      </div>
+    )
   }
 
   if (loading) {
