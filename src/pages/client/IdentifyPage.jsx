@@ -636,29 +636,6 @@ export default function IdentifyPage() {
           </svg>
         </button>
 
-        {/* ── Reservar una mesa ── */}
-        {reservationEnabled && (
-          <button
-            onClick={() => navigate(`${base}/reservar`)}
-            className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl shadow-md border active:scale-[0.98] transition-transform bg-white"
-            style={{ borderColor: `${selfColor}30` }}
-          >
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: `${selfColor}15` }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={selfColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-              </svg>
-            </div>
-            <div className="flex-1 text-left">
-              <p className="font-black text-sm leading-tight" style={{ color: selfColor }}>Reservar una mesa</p>
-              <p className="text-[#9DAAB8] text-xs mt-0.5">Elegí día, horario y cantidad de personas</p>
-            </div>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={selfColor} strokeWidth="2.5" strokeOpacity="0.5">
-              <polyline points="9 18 15 12 9 6"/>
-            </svg>
-          </button>
-        )}
-
         {/* ── ¿Ya tenés un pedido? ── */}
         <div>
           <button
@@ -778,6 +755,29 @@ export default function IdentifyPage() {
               </div>
             )}
           </div>
+        )}
+
+        {/* ── Reservar una mesa ── */}
+        {reservationEnabled && (
+          <button
+            onClick={() => navigate(`${base}/reservar`)}
+            className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl shadow-md border active:scale-[0.98] transition-transform bg-white"
+            style={{ borderColor: `${selfColor}30` }}
+          >
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: `${selfColor}15` }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={selfColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+            </div>
+            <div className="flex-1 text-left">
+              <p className="font-black text-sm leading-tight" style={{ color: selfColor }}>Reservar una mesa</p>
+              <p className="text-[#9DAAB8] text-xs mt-0.5">Elegí día, horario y cantidad de personas</p>
+            </div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={selfColor} strokeWidth="2.5" strokeOpacity="0.5">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
         )}
 
         {/* ── Sugerencias del chef ── */}

@@ -84,6 +84,12 @@ export default function ReservasPage() {
     setLoading(false)
   }
 
+  async function toggleEnabled() {
+    const newVal = !settings.enabled
+    setSettings(s => ({ ...s, enabled: newVal }))
+    await supabaseStaff.from('reservation_settings').upsert({ venue_id: venueId, ...settings, enabled: newVal }, { onConflict: 'venue_id' })
+  }
+
   async function saveConfig() {
     setSavingConfig(true)
     await supabaseStaff.from('reservation_settings').upsert({ venue_id: venueId, ...settings }, { onConflict: 'venue_id' })
@@ -228,7 +234,7 @@ export default function ReservasPage() {
                   <p className="text-smoke-300 font-semibold text-sm">Sistema de reservas</p>
                   <p className="text-smoke-500 text-xs mt-0.5">Aparece el botón de reserva en la home del local</p>
                 </div>
-                <Toggle value={settings.enabled} onChange={v => setSettings(s => ({ ...s, enabled: v }))} />
+                <Toggle value={settings.enabled} onChange={toggleEnabled} />
               </div>
             </div>
 
