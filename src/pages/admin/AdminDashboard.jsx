@@ -466,12 +466,12 @@ async function loadZones() {
           Pedidos
         </button>
         <button
-          onClick={() => setView('salon')}
+          onClick={() => setView('mapa')}
           className={`px-3 py-1.5 rounded-full text-xs font-medium border ${
-            view === 'salon' ? 'bg-ember-500 text-white border-ember-500' : 'border-carbon-700 text-smoke-400'
+            view === 'mapa' ? 'bg-ember-500 text-white border-ember-500' : 'border-carbon-700 text-smoke-400'
           }`}
         >
-          Salón
+          Mapa
         </button>
         <button
           onClick={() => setView('cocina')}
@@ -564,8 +564,8 @@ async function loadZones() {
         </div>
       )}
 
-      {view === 'salon' ? (
-        <SalonView orders={orders} zones={zones} venueId={venueId} />
+      {view === 'mapa' ? (
+        <MapaView orders={orders} zones={zones} venueId={venueId} />
       ) : view === 'cocina' ? (
         <CocinaView orders={orders} categories={categories} onUpdateStatus={updateStatus} onRefresh={load} />
       ) : (
@@ -776,88 +776,87 @@ function CocinaView({ orders, categories, onUpdateStatus, onRefresh }) {
   )
 }
 
-function SalonView({ orders, zones, venueId }) {
-  const [typeFilter, setTypeFilter] = useState('todos')
+function MapaView({ orders, zones, venueId }) {
+  const containerRef = useRef(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
 
-  const filtered = orders.filter(o => typeFilter === 'todos' || o.location_type === typeFilter)
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', handler)
+    return () => document.removeEventListener('fullscreenchange', handler)
+  }, [])
 
-  const grouped = filtered.reduce((acc, order) => {
-    const key = order.location_label || 'Sin ubicación'
-    if (!acc[key]) acc[key] = []
-    acc[key].push(order)
-    return acc
-  }, {})
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      containerRef.current?.requestFullscreen?.()
+    } else {
+      document.exitFullscreen?.()
+    }
+  }
 
-  const typesPresent = [...new Set(orders.map(o => o.location_type))]
+  const activeOrders = orders.filter(o => ['recibido', 'en_preparacion', 'listo', 'pendiente_aprobacion'].includes(o.status))
+  const listoOrders = orders.filter(o => o.status === 'listo')
+  const ocupadas = [...new Set(activeOrders.map(o => o.location_label).filter(Boolean))].length
 
   return (
-    <div className="px-4 pt-4 space-y-4">
-      <FloorPlanViewer
-        zones={zones}
-        venueId={venueId}
-        supabaseClient={supabaseStaff}
-      />
-
-      {typesPresent.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          <button
-            onClick={() => setTypeFilter('todos')}
-            className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border ${
-              typeFilter === 'todos' ? 'bg-ember-500 text-white border-ember-500' : 'border-carbon-700 text-smoke-400'
-            }`}
-          >
-            Todos
-          </button>
-          {typesPresent.map(type => (
-            <button
-              key={type}
-              onClick={() => setTypeFilter(type)}
-              className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border ${
-                typeFilter === type ? 'bg-ember-500 text-white border-ember-500' : 'border-carbon-700 text-smoke-400'
-              }`}
-            >
-              {TYPE_FILTER_LABELS[type] || type}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {Object.keys(grouped).length === 0 ? (
-        <p className="text-smoke-500 text-sm text-center py-6">No hay pedidos activos.</p>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {Object.entries(grouped).map(([location, locationOrders]) => (
-            <div key={location} className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4">
-              <p className="text-smoke-300 font-medium text-sm mb-3 flex items-center gap-1"><PinIcon size={14} /> {location}</p>
-              <div className="space-y-2">
-                {locationOrders.map(order => (
-                  <SalonOrderRow key={order.id} order={order} />
-                ))}
-              </div>
+    <div
+      ref={containerRef}
+      className={`${isFullscreen ? 'bg-carbon-950 flex flex-col p-6' : 'px-4 pt-4 pb-6'}`}
+    >
+      {/* Stats strip + fullscreen button */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex gap-5">
+          <div>
+            <p className="text-smoke-600 text-[10px] font-semibold uppercase tracking-widest">Activos</p>
+            <p className="text-smoke-200 font-bold text-xl font-mono leading-none mt-0.5">{activeOrders.length}</p>
+          </div>
+          {ocupadas > 0 && (
+            <div>
+              <p className="text-smoke-600 text-[10px] font-semibold uppercase tracking-widest">Ubicaciones</p>
+              <p className="text-smoke-200 font-bold text-xl font-mono leading-none mt-0.5">{ocupadas}</p>
             </div>
-          ))}
+          )}
+          {listoOrders.length > 0 && (
+            <div>
+              <p className="text-smoke-600 text-[10px] font-semibold uppercase tracking-widest">Listos</p>
+              <p className="text-emerald-400 font-bold text-xl font-mono leading-none mt-0.5">{listoOrders.length}</p>
+            </div>
+          )}
         </div>
-      )}
+        <button
+          onClick={toggleFullscreen}
+          className="flex items-center gap-1.5 text-smoke-500 border border-carbon-700 rounded-lg px-2.5 py-1.5 text-xs hover:text-smoke-300 transition-colors"
+        >
+          {isFullscreen ? (
+            <>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+              </svg>
+              Salir
+            </>
+          ) : (
+            <>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+              </svg>
+              Pantalla completa
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Floor plan */}
+      <div className={isFullscreen ? 'flex-1' : ''}>
+        <FloorPlanViewer
+          zones={zones}
+          venueId={venueId}
+          supabaseClient={supabaseStaff}
+        />
+      </div>
     </div>
   )
 }
 
-const TYPE_FILTER_LABELS = {
-  mesa: 'Mesas',
-  zona: 'Zonas',
-  retiro: 'Retiro',
-  punto_mapa: 'Mapa'
-}
-
-// Codigo de color por METODO de pago (no por status), para que se
-// distinga de lejos en una TV/tablet fija en el salon:
-//  - efectivo: verde, con el vuelto a llevar si el cliente lo indico
-//  - tarjeta/QR: azul, posnet
-//  - transferencia en revision: ambar, solo informativo para caja
-// Los metodos de pago ahora vienen de la tabla dinamica payment_methods
-// (ej. "Efectivo", "Tarjeta / QR", "Transferencia"), no de un enum fijo en
-// minuscula. Esta funcion los normaliza a una de 3 categorias conocidas
-// para poder elegir estilos/textos sin depender del string exacto.
 function normalizePaymentMethod(method) {
   const m = (method || '').toLowerCase()
   if (m.includes('transfer')) return 'transferencia'
