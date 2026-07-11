@@ -60,6 +60,10 @@ export default function AccountPage() {
   // Dietary preferences
   const [dietaryPrefs, setDietaryPrefs] = useState([])
 
+  // Mis reservas
+  const [myReservations, setMyReservations] = useState([])
+  const [resLoading, setResLoading] = useState(true)
+
   // Load top 3 most ordered products
   useEffect(() => {
     if (!customer?.id || !venueId) { setTop3Loading(false); return }
@@ -149,6 +153,27 @@ export default function AccountPage() {
     loadRank()
   }, [customer?.id, venueId])
 
+  // Load upcoming reservations for this customer
+  useEffect(() => {
+    if (!customer?.id) { setResLoading(false); return }
+    async function loadReservations() {
+      const { data: sessionData } = await supabaseCustomer.auth.getSession()
+      const userId = sessionData?.session?.user?.id
+      if (!userId) { setResLoading(false); return }
+      const today = new Date().toISOString().slice(0, 10)
+      const { data } = await supabaseCustomer
+        .from('reservations')
+        .select('id, date, slot_time, guests, table_shape, status, venues(name)')
+        .eq('customer_id', userId)
+        .gte('date', today)
+        .order('date')
+        .order('slot_time')
+      setMyReservations(data || [])
+      setResLoading(false)
+    }
+    loadReservations()
+  }, [customer?.id])
+
   // Pre-fill billing and dietary prefs from customer data
   useEffect(() => {
     if (customer) {
@@ -203,6 +228,15 @@ export default function AccountPage() {
     addItem({ id: item.id, name: item.name || item.product_name, price: item.price || 0 })
     setAddedId(item.id)
     setTimeout(() => setAddedId(null), 1500)
+  }
+
+  function fmtResDate(dateStr) {
+    if (!dateStr) return ''
+    const [y, m, d] = dateStr.split('-')
+    const days = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb']
+    const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+    const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d))
+    return `${days[date.getDay()]} ${parseInt(d)} ${months[date.getMonth()]}`
   }
 
   // Rank calculation
@@ -308,6 +342,35 @@ export default function AccountPage() {
                 </div>
               </>
             )}
+          </div>
+        )}
+
+        {/* Mis reservas */}
+        {!resLoading && myReservations.length > 0 && (
+          <div className="bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-4">
+            <h2 className="text-smoke-400 text-[10px] font-bold uppercase tracking-widest mb-3">Mis reservas</h2>
+            <div className="space-y-2">
+              {myReservations.map(r => (
+                <div key={r.id} className="bg-carbon-950 rounded-xl px-3 py-2.5 flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-smoke-200 font-semibold text-sm leading-tight">
+                      {fmtResDate(r.date)} · {r.slot_time?.slice(0, 5)}
+                    </p>
+                    {r.venues?.name && <p className="text-smoke-500 text-xs mt-0.5">{r.venues.name}</p>}
+                    <p className="text-smoke-600 text-xs mt-0.5">
+                      {r.guests} {r.guests === 1 ? 'persona' : 'personas'}{r.table_shape ? ` · Mesa ${r.table_shape}` : ''}
+                    </p>
+                  </div>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 mt-0.5 ${
+                    r.status === 'confirmed' ? 'bg-emerald-500/15 text-emerald-600' :
+                    r.status === 'cancelled' ? 'bg-red-500/15 text-red-500' :
+                    'bg-carbon-700 text-smoke-500'
+                  }`}>
+                    {r.status === 'confirmed' ? 'Confirmada' : r.status === 'cancelled' ? 'Cancelada' : 'Completada'}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
