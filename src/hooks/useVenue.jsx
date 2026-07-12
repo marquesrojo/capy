@@ -52,5 +52,8 @@ export function useVenueOptional() {
 
 export function useClientBase() {
   const ctx = useContext(VenueContext)
-  return ctx?.venue?.slug ? `/r/${ctx.venue.slug}` : ''
+  if (ctx?.venue?.slug) return `/r/${ctx.venue.slug}`
+  // Fallback for flat routes (/pedido/:id, etc.) outside VenueLayout
+  const lastSlug = localStorage.getItem('capy-last-venue-slug')
+  return lastSlug ? `/r/${lastSlug}` : ''
 }
