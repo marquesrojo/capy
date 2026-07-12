@@ -344,6 +344,18 @@ export default function OrderStatusPage() {
               <span className="font-mono text-sm" style={{ color: venueColor }}>{formatPrice(item.line_total)}</span>
             </div>
           ))}
+          {order.cash_discount_amount > 0 && (
+            <>
+              <div className="flex justify-between text-smoke-500 px-1 text-sm">
+                <span>Subtotal</span>
+                <span className="font-mono">{formatPrice(order.total + order.cash_discount_amount)}</span>
+              </div>
+              <div className="flex justify-between text-emerald-500 px-1 text-sm font-medium">
+                <span>Descuento efectivo</span>
+                <span className="font-mono">−{formatPrice(order.cash_discount_amount)}</span>
+              </div>
+            </>
+          )}
           <div className="flex justify-between text-smoke-300 px-1 pt-1">
             <span className="font-medium">Total</span>
             <span className="font-mono" style={{ color: venueColor }}>{formatPrice(order.total)}</span>
