@@ -36,6 +36,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
   const [voiceState, setVoiceState] = useState(null) // null | 'listening' | 'processing' | 'results'
   const [voiceTranscript, setVoiceTranscript] = useState('')
   const [voiceResults, setVoiceResults] = useState([])
+  const [voiceZone, setVoiceZone] = useState(null)
   const recognitionRef = useRef(null)
   const [discounts, setDiscounts] = useState([])
   const [selectedDiscount, setSelectedDiscount] = useState(null)
@@ -84,12 +85,23 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
         const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-voice-order`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` },
-          body: JSON.stringify({ transcript: finalTranscript, venue_id: activeVenueId })
+          body: JSON.stringify({
+            transcript: finalTranscript,
+            venue_id: activeVenueId,
+            zones: zones.filter(z => z.type === 'mesa').map(z => ({ id: z.id, name: z.name }))
+          })
         })
         const data = await res.json()
         setVoiceResults(data.items || [])
+        if (data.zone_id) {
+          const matched = zones.find(z => z.id === data.zone_id)
+          setVoiceZone(matched || null)
+        } else {
+          setVoiceZone(null)
+        }
       } catch {
         setVoiceResults([])
+        setVoiceZone(null)
       }
       setVoiceState('results')
     }
@@ -99,6 +111,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
     recognitionRef.current = r
     setVoiceTranscript('')
     setVoiceResults([])
+    setVoiceZone(null)
     setVoiceState('listening')
     r.start()
   }
@@ -984,6 +997,14 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
                     : 'Sin resultados'}
                 </p>
 
+                {voiceZone && (
+                  <div className="flex items-center gap-2 bg-[#E8F5F0] rounded-xl px-4 py-2.5 mb-3">
+                    <PinIcon size={14} className="text-[#008080] flex-shrink-0" />
+                    <span className="text-[#008080] font-bold text-sm">{voiceZone.name}</span>
+                    <span className="text-[#8896A5] text-xs ml-auto">auto-detectada</span>
+                  </div>
+                )}
+
                 {voiceResults.length === 0 ? (
                   <div className="text-center py-4">
                     <p className="text-[#3A4A5A] text-sm mb-5">No reconocí ningún producto de la carta.</p>
@@ -995,24 +1016,33 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
                     </button>
                   </div>
                 ) : (
-                  <div className="space-y-2 mb-4 max-h-56 overflow-y-auto">
+                  <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
                     {voiceResults.map((item, idx) => (
-                      <div key={item.product_id} className="bg-[#F8FAFC] rounded-xl px-4 py-3 flex items-center justify-between border border-black/5">
-                        <div className="flex-1 min-w-0 pr-3">
-                          <p className="text-sm font-semibold text-[#1A2A3A]">{item.product_name}</p>
-                          <p className="text-xs text-[#008080] font-semibold">{formatPrice(item.product_price)}</p>
+                      <div key={item.product_id} className="bg-[#F8FAFC] rounded-xl px-4 py-3 border border-black/5">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex-1 min-w-0 pr-3">
+                            <p className="text-sm font-semibold text-[#1A2A3A]">{item.product_name}</p>
+                            <p className="text-xs text-[#008080] font-semibold">{formatPrice(item.product_price)}</p>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <button
+                              onClick={() => setVoiceResults(prev => prev.map((r, i) => i === idx ? { ...r, quantity: Math.max(1, r.quantity - 1) } : r))}
+                              className="w-8 h-8 rounded-full bg-white border border-black/10 text-[#3A4A5A] font-bold text-base flex items-center justify-center"
+                            >−</button>
+                            <span className="font-bold text-[#1A2A3A] text-base w-5 text-center">{item.quantity}</span>
+                            <button
+                              onClick={() => setVoiceResults(prev => prev.map((r, i) => i === idx ? { ...r, quantity: r.quantity + 1 } : r))}
+                              className="w-8 h-8 rounded-full bg-[#008080] text-white font-bold text-base flex items-center justify-center"
+                            >+</button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <button
-                            onClick={() => setVoiceResults(prev => prev.map((r, i) => i === idx ? { ...r, quantity: Math.max(1, r.quantity - 1) } : r))}
-                            className="w-8 h-8 rounded-full bg-white border border-black/10 text-[#3A4A5A] font-bold text-base flex items-center justify-center"
-                          >−</button>
-                          <span className="font-bold text-[#1A2A3A] text-base w-5 text-center">{item.quantity}</span>
-                          <button
-                            onClick={() => setVoiceResults(prev => prev.map((r, i) => i === idx ? { ...r, quantity: r.quantity + 1 } : r))}
-                            className="w-8 h-8 rounded-full bg-[#008080] text-white font-bold text-base flex items-center justify-center"
-                          >+</button>
-                        </div>
+                        <input
+                          type="text"
+                          value={item.note || ''}
+                          onChange={e => setVoiceResults(prev => prev.map((r, i) => i === idx ? { ...r, note: e.target.value } : r))}
+                          placeholder="Nota para este ítem..."
+                          className="w-full border border-black/10 rounded-lg px-3 py-1.5 text-xs text-[#1A2A3A] bg-white"
+                        />
                       </div>
                     ))}
                   </div>
@@ -1028,7 +1058,11 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
                   {voiceResults.length > 0 && (
                     <button
                       onClick={() => {
-                        voiceResults.forEach(item => changeQty(item.product_id, item.quantity))
+                        voiceResults.forEach(item => {
+                          changeQty(item.product_id, item.quantity)
+                          if (item.note?.trim()) setItemNote(item.product_id, item.note.trim())
+                        })
+                        if (voiceZone) { setSelectedZone(voiceZone); setLocation('') }
                         setVoiceState(null)
                       }}
                       className="flex-[2] bg-[#008080] text-white font-bold py-3 rounded-2xl text-sm"
