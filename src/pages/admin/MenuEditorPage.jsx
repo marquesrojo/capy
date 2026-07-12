@@ -1311,6 +1311,43 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
 const PHOTO_PACK_PRICE = 10000
 const PHOTO_PACK_CREDITS = 25
 
+function BuyMoreCreditsRow({ venueId }) {
+  const [loading, setLoading] = useState(false)
+
+  async function buy() {
+    setLoading(true)
+    try {
+      const { data, error } = await supabaseStaff.functions.invoke('create-upgrade-payment', {
+        body: { venueId, featureKey: 'extra_photos', featureName: `Pack ${PHOTO_PACK_CREDITS} fotos IA`, price: PHOTO_PACK_PRICE },
+      })
+      if (!error && data?.init_point) window.location.href = data.init_point
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="border-t border-carbon-800 pt-3 flex items-center justify-between gap-3">
+      <div>
+        <p className="text-smoke-500 text-xs">+{PHOTO_PACK_CREDITS} créditos extra</p>
+        <p className="text-smoke-600 text-[10px]">${PHOTO_PACK_PRICE.toLocaleString('es-AR')} · no vencen</p>
+      </div>
+      <button
+        onClick={buy}
+        disabled={loading}
+        className="flex-shrink-0 bg-[#009ee3] hover:bg-[#0081c8] disabled:opacity-50 text-white text-xs font-semibold px-3 py-2 rounded-xl transition-colors flex items-center gap-1.5"
+      >
+        {loading ? (
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+        ) : (
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        )}
+        Comprar más
+      </button>
+    </div>
+  )
+}
+
 function BuyPhotoPackBanner({ venueId, noPhotoCount, dailyLimit }) {
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
@@ -1672,6 +1709,7 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
           Generar fotos
         </button>
       </div>
+      {!unlimited && <BuyMoreCreditsRow venueId={venueId} />}
     </div>
   )
 }
