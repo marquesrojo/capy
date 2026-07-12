@@ -228,7 +228,9 @@ function RequestBillForm({ order, onUpdated, mpEnabled, paymentMethods, venueCol
               }`}
             >
               {getMethodIcon(method.name)}
-              {method.name}
+              {isCash && cashDiscount.enabled && cashDiscount.percent > 0
+                ? `${method.name} · ${cashDiscount.percent}% off`
+                : method.name}
             </button>
 
             {isCash && isSelected && (
