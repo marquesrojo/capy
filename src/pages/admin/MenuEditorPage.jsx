@@ -1308,7 +1308,7 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
   )
 }
 
-const PHOTO_PACK_PRICE = 5000
+const PHOTO_PACK_PRICE = 10000
 const PHOTO_PACK_CREDITS = 25
 
 function BuyPhotoPackBanner({ venueId, noPhotoCount, dailyLimit }) {
