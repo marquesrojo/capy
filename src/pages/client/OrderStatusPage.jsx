@@ -9,6 +9,7 @@ import BillRequest from '../../components/BillRequest'
 import SplitCalculator from '../../components/SplitCalculator'
 import { useClientBase } from '../../hooks/useVenue'
 import { PinIcon, ChefHatIcon, ClockIcon } from '../../components/Icons'
+import BottomNav from '../../components/BottomNav'
 
 function PrepCountdown({ prepStartedAt, prepTimeMinutes }) {
   const [remaining, setRemaining] = useState(null)
@@ -174,7 +175,7 @@ export default function OrderStatusPage() {
   const currentStepIndex = STATUS_FLOW.indexOf(order.status)
 
   return (
-    <div className="min-h-screen bg-carbon-950 px-5 pt-6 pb-10">
+    <div className="min-h-screen bg-carbon-950 px-5 pt-6 pb-24">
       <Link
         to={order.session_id
           ? `${base}/carta?session_id=${order.session_id}&zone_id=${order.zone_id || ''}&location_label=${encodeURIComponent(order.location_label || '')}&location_type=${order.location_type || 'zona'}`
@@ -425,6 +426,8 @@ export default function OrderStatusPage() {
       {!isCancelado && (
         <OrderFeedback orderId={order.id} staffId={order.assigned_staff_id} />
       )}
+
+      <BottomNav />
     </div>
   )
 }
