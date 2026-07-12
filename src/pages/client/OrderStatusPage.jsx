@@ -63,12 +63,43 @@ export default function OrderStatusPage() {
   const [calling, setCalling] = useState(false)
   const [showQR, setShowQR] = useState(false)
   const [venueColor, setVenueColor] = useState('#002F6C')
+  const [discountCode, setDiscountCode] = useState('')
+  const [discountLoading, setDiscountLoading] = useState(false)
+  const [discountError, setDiscountError] = useState('')
+  const [appliedDiscount, setAppliedDiscount] = useState(null)
   const prevStatusRef = useState(null)
 
   useEffect(() => {
     supabaseCustomer.from('venues').select('header_bg_color').eq('id', ACTIVE_VENUE_ID).single()
       .then(({ data }) => { if (data?.header_bg_color) setVenueColor(accentColor(data.header_bg_color)) })
   }, [])
+
+  async function applyDiscount() {
+    if (!discountCode.trim()) return
+    setDiscountLoading(true)
+    setDiscountError('')
+    const { data } = await supabaseCustomer
+      .from('venue_discounts')
+      .select('*')
+      .eq('venue_id', ACTIVE_VENUE_ID)
+      .eq('code', discountCode.trim().toUpperCase())
+      .eq('is_active', true)
+      .maybeSingle()
+    if (!data) {
+      setDiscountError('Código inválido o inactivo.')
+      setDiscountLoading(false)
+      return
+    }
+    const discountAmt = Math.round(order.total * data.percent / 100)
+    const newTotal = order.total - discountAmt
+    await supabaseCustomer
+      .from('orders')
+      .update({ total: newTotal, discount_code: data.code })
+      .eq('id', order.id)
+    setAppliedDiscount({ ...data, amount: discountAmt })
+    setOrder(prev => ({ ...prev, total: newTotal, discount_code: data.code }))
+    setDiscountLoading(false)
+  }
 
   function handleAddMore() {
     const params = new URLSearchParams({
@@ -374,6 +405,43 @@ export default function OrderStatusPage() {
         >
           + Agregar más ítems
         </button>
+      )}
+
+      {!isCancelado && order.payment_status !== 'aprobado' && !order.discount_code && !appliedDiscount && (
+        <div className="mt-4 bg-carbon-900 border border-carbon-700 rounded-2xl p-4">
+          <p className="text-smoke-400 text-xs font-semibold uppercase tracking-wide mb-3">¿Tenés un código de descuento?</p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={discountCode}
+              onChange={e => { setDiscountCode(e.target.value); setDiscountError('') }}
+              onKeyDown={e => e.key === 'Enter' && applyDiscount()}
+              placeholder="Ej: DESCUENTO10"
+              className="flex-1 bg-carbon-800 border border-carbon-600 rounded-xl px-3 py-2.5 text-smoke-200 text-sm placeholder:text-smoke-600 focus:outline-none focus:border-smoke-500 uppercase"
+            />
+            <button
+              onClick={applyDiscount}
+              disabled={discountLoading || !discountCode.trim()}
+              className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-40 transition-colors"
+              style={{ backgroundColor: venueColor }}
+            >
+              {discountLoading ? '...' : 'Aplicar'}
+            </button>
+          </div>
+          {discountError && <p className="text-red-400 text-xs mt-2">{discountError}</p>}
+        </div>
+      )}
+
+      {!isCancelado && appliedDiscount && (
+        <div className="mt-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl px-4 py-3 flex items-center gap-3">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          <div>
+            <p className="text-emerald-500 text-sm font-semibold">{appliedDiscount.code} — {appliedDiscount.percent}% off</p>
+            <p className="text-emerald-500/70 text-xs">−{formatPrice(appliedDiscount.amount)} aplicado al total</p>
+          </div>
+        </div>
       )}
 
       {!isCancelado && (
