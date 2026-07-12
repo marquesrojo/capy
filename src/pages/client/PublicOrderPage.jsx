@@ -64,7 +64,7 @@ export default function PublicOrderPage() {
 
     const { data: orderData } = await supabasePublic
       .from('orders')
-      .select('id, status, location_label, total, daily_number, created_at, prep_time_minutes, prep_started_at, waiter_called_at, assigned_staff_id, payment_status, notes, venue_id, created_by_staff')
+      .select('id, status, location_label, total, daily_number, created_at, prep_time_minutes, prep_started_at, waiter_called_at, assigned_staff_id, payment_status, notes, venue_id, created_by_staff, cash_discount_amount')
       .eq('id', id)
       .single()
 
@@ -243,6 +243,18 @@ export default function PublicOrderPage() {
           <div className="px-4 py-3 border-t border-carbon-700">
             <p className="text-smoke-500 text-xs italic flex items-center gap-1"><FileTextIcon size={12} /> {order.notes}</p>
           </div>
+        )}
+        {order.cash_discount_amount > 0 && (
+          <>
+            <div className="px-4 py-2 border-t border-carbon-700 flex justify-between">
+              <span className="text-smoke-500 text-sm">Subtotal</span>
+              <span className="font-mono text-smoke-500 text-sm">{formatPrice(order.total + order.cash_discount_amount)}</span>
+            </div>
+            <div className="px-4 py-2 flex justify-between">
+              <span className="text-emerald-500 text-sm font-medium">Descuento efectivo</span>
+              <span className="font-mono text-emerald-500 text-sm font-medium">−{formatPrice(order.cash_discount_amount)}</span>
+            </div>
+          </>
         )}
         <div className="px-4 py-3 border-t border-carbon-700 flex justify-between">
           <span className="text-smoke-400 text-sm">Total</span>
