@@ -20,21 +20,24 @@ export default function MenuEditorPage() {
   const [products, setProducts] = useState([])
   const [supplyProductIds, setSupplyProductIds] = useState([])
   const [extraCredits, setExtraCredits] = useState(0)
+  const [photoPackPrice, setPhotoPackPrice] = useState(10000)
   const [loading, setLoading] = useState(true)
   const [showProductForm, setShowProductForm] = useState(false)
   const [showCategoryForm, setShowCategoryForm] = useState(false)
   const [activeTab, setActiveTab] = useState('carta') // 'carta' | 'insumos'
 
   async function loadAll() {
-    const [catRes, prodRes, venueRes] = await Promise.all([
+    const [catRes, prodRes, venueRes, settingsRes] = await Promise.all([
       supabaseStaff.from('categories').select('*').eq('venue_id', venueId).order('sort_order'),
       supabaseStaff.from('products').select('*').eq('venue_id', venueId).order('sort_order'),
-      supabaseStaff.from('venues').select('extra_image_credits').eq('id', venueId).single()
+      supabaseStaff.from('venues').select('extra_image_credits').eq('id', venueId).single(),
+      supabaseStaff.from('capy_settings').select('photo_pack_price').eq('id', 1).single()
     ])
     const allProds = prodRes.data || []
     setCategories(catRes.data || [])
     setProducts(allProds)
     setExtraCredits(venueRes.data?.extra_image_credits || 0)
+    if (settingsRes.data?.photo_pack_price) setPhotoPackPrice(settingsRes.data.photo_pack_price)
 
     const productIds = allProds.map(p => p.id)
     if (productIds.length > 0) {
@@ -143,7 +146,7 @@ export default function MenuEditorPage() {
             </div>
 
             <ImportarConIA venueId={venueId} onImported={loadAll} unlimited={unlimitedPhotos} />
-            <FotosConIA venueId={venueId} products={products.filter(p => !p.is_ingredient_only)} onUpdated={loadAll} unlimited={unlimitedPhotos} extraCredits={extraCredits} onExtraCreditsChanged={setExtraCredits} isSuperAdmin={isSuperAdmin} />
+            <FotosConIA venueId={venueId} products={products.filter(p => !p.is_ingredient_only)} onUpdated={loadAll} unlimited={unlimitedPhotos} extraCredits={extraCredits} onExtraCreditsChanged={setExtraCredits} isSuperAdmin={isSuperAdmin} photoPackPrice={photoPackPrice} />
 
             {showCategoryForm && (
               <NewCategoryForm
@@ -1308,17 +1311,16 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
   )
 }
 
-const PHOTO_PACK_PRICE = 10000
 const PHOTO_PACK_CREDITS = 25
 
-function BuyMoreCreditsRow({ venueId }) {
+function BuyMoreCreditsRow({ venueId, price = 10000 }) {
   const [loading, setLoading] = useState(false)
 
   async function buy() {
     setLoading(true)
     try {
       const { data, error } = await supabaseStaff.functions.invoke('create-upgrade-payment', {
-        body: { venueId, featureKey: 'extra_photos', featureName: `Pack ${PHOTO_PACK_CREDITS} fotos IA`, price: PHOTO_PACK_PRICE },
+        body: { venueId, featureKey: 'extra_photos', featureName: `Pack ${PHOTO_PACK_CREDITS} fotos IA`, price },
       })
       if (!error && data?.init_point) window.location.href = data.init_point
     } finally {
@@ -1330,7 +1332,7 @@ function BuyMoreCreditsRow({ venueId }) {
     <div className="border-t border-carbon-800 pt-3 flex items-center justify-between gap-3">
       <div>
         <p className="text-smoke-500 text-xs">+{PHOTO_PACK_CREDITS} créditos extra</p>
-        <p className="text-smoke-600 text-[10px]">${PHOTO_PACK_PRICE.toLocaleString('es-AR')} · no vencen</p>
+        <p className="text-smoke-600 text-[10px]">${price.toLocaleString('es-AR')} · no vencen</p>
       </div>
       <button
         onClick={buy}
@@ -1348,7 +1350,7 @@ function BuyMoreCreditsRow({ venueId }) {
   )
 }
 
-function BuyPhotoPackBanner({ venueId, noPhotoCount, dailyLimit }) {
+function BuyPhotoPackBanner({ venueId, noPhotoCount, dailyLimit, price = 10000 }) {
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
 
@@ -1361,7 +1363,7 @@ function BuyPhotoPackBanner({ venueId, noPhotoCount, dailyLimit }) {
           venueId,
           featureKey: 'extra_photos',
           featureName: `Pack ${PHOTO_PACK_CREDITS} fotos IA`,
-          price: PHOTO_PACK_PRICE,
+          price,
         },
       })
       if (error || !data?.init_point) {
@@ -1394,7 +1396,7 @@ function BuyPhotoPackBanner({ venueId, noPhotoCount, dailyLimit }) {
               <p className="text-smoke-200 font-bold text-sm">{PHOTO_PACK_CREDITS} fotos IA</p>
               <p className="text-smoke-500 text-xs">Créditos adicionales, no vencen</p>
             </div>
-            <p className="text-ember-400 font-bold text-base">${PHOTO_PACK_PRICE.toLocaleString('es-AR')}</p>
+            <p className="text-ember-400 font-bold text-base">${price.toLocaleString('es-AR')}</p>
           </div>
           {err && <p className="text-red-400 text-xs mt-2">{err}</p>}
           <button
@@ -1419,7 +1421,7 @@ function BuyPhotoPackBanner({ venueId, noPhotoCount, dailyLimit }) {
   )
 }
 
-function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCredits = 0, onExtraCreditsChanged, isSuperAdmin = false }) {
+function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCredits = 0, onExtraCreditsChanged, isSuperAdmin = false, photoPackPrice = 10000 }) {
   const [open, setOpen] = useState(false)
   const [status, setStatus] = useState('idle') // idle | generating | review | saving
   const [progress, setProgress] = useState({ current: 0, total: 0, name: '' })
@@ -1542,7 +1544,7 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
 
   // Sin créditos: CTA para comprar pack
   if (outOfCredits) {
-    return <BuyPhotoPackBanner venueId={venueId} noPhotoCount={noPhoto.length} dailyLimit={UNSPLASH_DAILY_LIMIT} />
+    return <BuyPhotoPackBanner venueId={venueId} noPhotoCount={noPhoto.length} dailyLimit={UNSPLASH_DAILY_LIMIT} price={photoPackPrice} />
   }
 
   if (!open) {
@@ -1709,7 +1711,7 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
           Generar fotos
         </button>
       </div>
-      {!unlimited && <BuyMoreCreditsRow venueId={venueId} />}
+      {!unlimited && <BuyMoreCreditsRow venueId={venueId} price={photoPackPrice} />}
     </div>
   )
 }

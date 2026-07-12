@@ -346,18 +346,22 @@ function SoporteTab() {
 
 function PagosTab() {
   const [mpToken, setMpToken] = useState('')
+  const [photoPackPrice, setPhotoPackPrice] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [savingPrice, setSavingPrice] = useState(false)
+  const [savedPrice, setSavedPrice] = useState(false)
 
   useEffect(() => {
     supabaseStaff
       .from('capy_settings')
-      .select('mp_access_token')
+      .select('mp_access_token, photo_pack_price')
       .eq('id', 1)
       .single()
       .then(({ data }) => {
         if (data?.mp_access_token) setMpToken(data.mp_access_token)
+        if (data?.photo_pack_price != null) setPhotoPackPrice(String(data.photo_pack_price))
         setLoading(false)
       })
   }, [])
@@ -370,6 +374,18 @@ function PagosTab() {
     setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
+  }
+
+  async function savePrice() {
+    const val = parseInt(photoPackPrice, 10)
+    if (!val || val < 0) return
+    setSavingPrice(true)
+    await supabaseStaff
+      .from('capy_settings')
+      .upsert({ id: 1, photo_pack_price: val, updated_at: new Date().toISOString() })
+    setSavingPrice(false)
+    setSavedPrice(true)
+    setTimeout(() => setSavedPrice(false), 2000)
   }
 
   if (loading) return <p className="text-smoke-500 text-sm">Cargando...</p>
@@ -405,23 +421,38 @@ function PagosTab() {
         </div>
       </div>
 
-      <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5 space-y-3">
-        <p className="text-smoke-300 font-medium text-sm">Upgrades disponibles</p>
-        <p className="text-smoke-500 text-xs">
-          Próximamente: configurar precio y activar/desactivar cada feature para que los locales puedan comprarlos desde su panel.
-        </p>
-        <div className="space-y-2 opacity-50">
-          {[
-            { key: 'ai_import', name: 'Importación con IA', desc: 'Importar carta completa con fotos y descripción generadas por IA' },
-            { key: 'extra_photos', name: 'Pack de fotos IA', desc: 'Créditos adicionales para búsqueda automática de fotos con IA' },
-          ].map(f => (
-            <div key={f.key} className="border border-carbon-700 rounded-xl px-4 py-3">
-              <p className="text-smoke-300 text-sm font-medium">{f.name}</p>
-              <p className="text-smoke-500 text-xs mt-0.5">{f.desc}</p>
-            </div>
-          ))}
+      <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5 space-y-4">
+        <p className="text-smoke-300 font-medium text-sm">Upgrades — Precios</p>
+        <div className="border border-carbon-700 rounded-xl p-4 space-y-3">
+          <div>
+            <p className="text-smoke-300 text-sm font-medium">Pack de fotos IA</p>
+            <p className="text-smoke-500 text-xs mt-0.5">25 créditos adicionales para búsqueda automática de fotos</p>
+          </div>
+          <div className="flex gap-2 items-center">
+            <span className="text-smoke-500 text-sm">$</span>
+            <input
+              type="number"
+              min={0}
+              value={photoPackPrice}
+              onChange={e => { setPhotoPackPrice(e.target.value); setSavedPrice(false) }}
+              placeholder="10000"
+              className="input flex-1 text-sm"
+            />
+            <button
+              onClick={savePrice}
+              disabled={savingPrice || !photoPackPrice}
+              className="bg-ember-500 hover:bg-ember-600 disabled:opacity-40 text-white font-semibold px-4 py-2 rounded-xl text-sm flex-shrink-0"
+            >
+              {savingPrice ? '...' : savedPrice ? '✓' : 'Guardar'}
+            </button>
+          </div>
+        </div>
+        <div className="border border-carbon-700 rounded-xl px-4 py-3 opacity-40">
+          <p className="text-smoke-300 text-sm font-medium">Importación con IA</p>
+          <p className="text-smoke-500 text-xs mt-0.5">Próximamente</p>
         </div>
       </div>
+    </div>
     </div>
   )
 }
