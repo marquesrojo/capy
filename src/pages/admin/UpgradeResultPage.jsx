@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { supabaseStaff } from '../../lib/supabase'
 
 export default function UpgradeResultPage() {
   const [params] = useSearchParams()
@@ -13,15 +12,21 @@ export default function UpgradeResultPage() {
     : path.includes('upgrade-failed') ? 'failure'
     : 'pending'
 
-  // MP passes payment_id (or collection_id) in the redirect URL — use it to
-  // trigger the webhook manually in case the IPN notification never arrived.
+  // MP passes payment_id in the redirect URL — trigger webhook with anon key
+  // so it works even without an active session (e.g. incognito flow).
   useEffect(() => {
     if (result !== 'success' || called.current) return
     called.current = true
     const paymentId = params.get('payment_id') || params.get('collection_id')
     if (!paymentId) return
-    supabaseStaff.functions.invoke('mp-upgrade-webhook', {
-      body: { id: paymentId, topic: 'payment' },
+    fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mp-upgrade-webhook`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({ id: paymentId, topic: 'payment' }),
     }).catch(() => { /* best-effort */ })
   }, [result])
 
