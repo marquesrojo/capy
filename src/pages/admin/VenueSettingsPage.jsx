@@ -49,6 +49,7 @@ export default function VenueSettingsPage() {
   const [announcement, setAnnouncement] = useState('')
   const [schedule, setSchedule] = useState(DEFAULT_SCHEDULE)
   const [address, setAddress] = useState('')
+  const [notifyWhatsapp, setNotifyWhatsapp] = useState('')
   const [slug, setSlug] = useState('')
   const [copied, setCopied] = useState(false)
   const [activePicker, setActivePicker] = useState(null)
@@ -93,10 +94,11 @@ export default function VenueSettingsPage() {
       try {
         const { data: addr } = await supabaseStaff
           .from('venues')
-          .select('address')
+          .select('address, notify_whatsapp')
           .eq('id', venueId)
           .single()
         if (addr?.address) setAddress(addr.address)
+        if (addr?.notify_whatsapp) setNotifyWhatsapp(addr.notify_whatsapp)
       } catch (_) {}
 
       setLoading(false)
@@ -188,7 +190,10 @@ export default function VenueSettingsPage() {
       try {
         await supabaseStaff
           .from('venues')
-          .update({ address: address.trim() || null })
+          .update({
+            address: address.trim() || null,
+            notify_whatsapp: notifyWhatsapp.trim() || null,
+          })
           .eq('id', venueId)
       } catch (_) {}
 
@@ -560,6 +565,20 @@ export default function VenueSettingsPage() {
               )
             })}
           </div>
+        </div>
+
+        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
+          <p className="text-smoke-300 font-medium text-sm mb-1">WhatsApp de alertas (operador)</p>
+          <p className="text-smoke-500 text-xs mb-4">
+            Número que recibe notificaciones de nuevos pedidos y reservas. Formato internacional sin signos: ej. 5491123456789
+          </p>
+          <input
+            type="text"
+            value={notifyWhatsapp}
+            onChange={e => setNotifyWhatsapp(e.target.value)}
+            placeholder="5491123456789"
+            className="input w-full"
+          />
         </div>
 
         {error && <p className="text-red-700 text-xs px-1">{error}</p>}

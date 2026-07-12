@@ -223,6 +223,17 @@ export default function PaymentPage() {
       const { error: itemsError } = await supabaseCustomer.from('order_items').insert(orderItems)
       if (itemsError) throw itemsError
 
+      // best-effort WA notification — don't block navigation on failure
+      fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ order_id: order.id, event_type: 'created' }),
+      }).catch(() => {})
+
       clearCart()
       navigate(`${base}/pedido-enviado/${order.id}`)
     } catch (err) {

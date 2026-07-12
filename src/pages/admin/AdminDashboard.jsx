@@ -337,6 +337,17 @@ async function loadZones() {
   async function updateStatus(orderId, newStatus, extraFields = {}) {
     setOrders(prev => prev.map(o => (o.id === orderId ? { ...o, status: newStatus, ...extraFields } : o)))
     await supabaseStaff.from('orders').update({ status: newStatus, ...extraFields }).eq('id', orderId)
+    if (newStatus === 'listo' || newStatus === 'entregado' || newStatus === 'rechazado') {
+      fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ order_id: orderId, event_type: newStatus }),
+      }).catch(() => {})
+    }
   }
 
   async function dismissWaiterCall(orderId) {

@@ -211,6 +211,17 @@ export default function ReservationBookingPage() {
       setSubmitting(false)
       return
     }
+
+    fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-order`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({ reservation_id: data.id, event_type: 'reservation_created' }),
+    }).catch(() => {})
+
     setConfirmed(data)
   }
 
