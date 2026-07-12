@@ -33,6 +33,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
   const [showMap, setShowMap] = useState(false)
   const [menuQrModal, setMenuQrModal] = useState(null) // { slug, name }
   const [showCategorySheet, setShowCategorySheet] = useState(false)
+  const [showLocationSheet, setShowLocationSheet] = useState(false)
   const [voiceState, setVoiceState] = useState(null) // null | 'listening' | 'processing' | 'results'
   const [voiceTranscript, setVoiceTranscript] = useState('')
   const [voiceResults, setVoiceResults] = useState([])
@@ -293,6 +294,11 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
         ? mesaZones.filter(z => z.parent_zone_id === menuZoneId)
         : mesaZones.filter(z => z.menu_id === activeMenuId))
     : mesaZones
+
+  const locationZones = activeVenueId !== venueId
+    ? zones.filter(z => z.type === 'mesa')
+    : (filteredZones.length > 0 ? filteredZones : mesaZones)
+  const hasMap = activeVenueId !== venueId && zones.some(z => z.pos_x != null)
 
   const visibleProducts = products
     .filter(p => p.category_id === activeCategory)
@@ -733,69 +739,8 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
         </div>
       )}
 
-      {/* Ubicación */}
-      <div className="flex-shrink-0 px-4 pt-4 pb-2">
-        <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-2">Ubicación</p>
-        {activeVenueId !== venueId ? (
-          zones.some(z => z.pos_x != null) ? (
-            <div>
-              <button
-                onClick={() => setShowMap(p => !p)}
-                className="w-full flex items-center justify-between bg-white border border-black/10 rounded-xl px-4 py-3 text-sm mb-2"
-              >
-                <span className={`font-semibold ${selectedZone ? 'text-[#008080]' : 'text-[#3A4A5A]'}`}>
-                  {selectedZone ? <><PinIcon size={11} /> {selectedZone.name}</> : 'Seleccionar mesa'}
-                </span>
-                <span className="text-[#8896A5] text-xs">{showMap ? 'Ocultar ↑' : 'Ver mapa ↓'}</span>
-              </button>
-              {showMap && (
-                <FloorPlanViewer
-                  zones={zones}
-                  venueId={activeVenueId}
-                  selectedZone={selectedZone}
-                  onSelect={zone => { setSelectedZone(zone); setLocation(''); setShowMap(false) }}
-                  supabaseClient={supabaseStaff}
-                />
-              )}
-            </div>
-          ) : zones.filter(z => z.type === 'mesa').length > 0 ? (
-            <ZoneSelector
-              zones={zones.filter(z => z.type === 'mesa')}
-              selectedZone={selectedZone}
-              onSelect={zone => { setSelectedZone(zone); setLocation('') }}
-              location={location}
-              onLocationChange={setLocation}
-            />
-          ) : (
-            <input
-              type="text"
-              value={location}
-              onChange={e => setLocation(e.target.value)}
-              placeholder="Ej: Mesa 4, Barra, Terraza..."
-              className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-white text-[#1A2A3A]"
-            />
-          )
-        ) : mesaZones.length > 0 ? (
-          <ZoneSelector
-            zones={filteredZones.length > 0 ? filteredZones : mesaZones}
-            selectedZone={selectedZone}
-            onSelect={zone => { setSelectedZone(zone); setLocation('') }}
-            location={location}
-            onLocationChange={setLocation}
-          />
-        ) : (
-          <input
-            type="text"
-            value={location}
-            onChange={e => setLocation(e.target.value)}
-            placeholder="Ej: Mesa 4, Barra, Terraza..."
-            className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-white text-[#1A2A3A]"
-          />
-        )}
-      </div>
-
-      {/* Buscador + botón de categorías */}
-      <div className="flex-shrink-0 px-4 pt-2 pb-2 flex gap-2 items-center">
+      {/* Buscador + botón IA */}
+      <div className="flex-shrink-0 px-4 pt-3 pb-1 flex gap-2 items-center">
         <div className="relative flex-1">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-[#B0BEC5]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -816,19 +761,24 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
         </div>
         <button
           onClick={startVoice}
-          className="flex-shrink-0 w-10 h-10 rounded-xl bg-white border border-black/10 flex items-center justify-center text-[#008080]"
-          title="Dictado por voz"
+          className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-sm font-semibold bg-white border-black/10 text-[#008080] transition-colors"
+          title="Comanda por voz con IA"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
             <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
             <line x1="12" y1="19" x2="12" y2="23"/>
             <line x1="8" y1="23" x2="16" y2="23"/>
           </svg>
+          IA
         </button>
+      </div>
+
+      {/* Categoría + Ubicación */}
+      <div className="flex-shrink-0 px-4 pt-1 pb-2 flex gap-2">
         <button
           onClick={() => setShowCategorySheet(true)}
-          className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-colors ${
+          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-colors ${
             activeCategory
               ? 'bg-[#008080] text-white border-[#008080]'
               : 'bg-white text-[#3A4A5A] border-black/10'
@@ -838,6 +788,17 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
             <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
           </svg>
           Categoría
+        </button>
+        <button
+          onClick={() => setShowLocationSheet(true)}
+          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-colors min-w-0 ${
+            locationLabel
+              ? 'bg-[#008080] text-white border-[#008080]'
+              : 'bg-white text-[#3A4A5A] border-black/10'
+          }`}
+        >
+          <PinIcon size={14} className="flex-shrink-0" />
+          <span className="truncate">{locationLabel || 'Ubicación'}</span>
         </button>
       </div>
 
@@ -862,6 +823,77 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
                   {cat.name}
                 </button>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom sheet de ubicación */}
+      {showLocationSheet && (
+        <div className="fixed inset-0 z-40 flex flex-col justify-end" onClick={() => setShowLocationSheet(false)}>
+          <div className="absolute inset-0 bg-black/40" />
+          <div className="relative bg-white rounded-t-3xl px-4 pt-4 pb-8 z-10 max-h-[75vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-[#D0D9E0] rounded-full mx-auto mb-4" />
+            <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">Ubicación</p>
+
+            {hasMap ? (
+              <div>
+                <button
+                  onClick={() => setShowMap(p => !p)}
+                  className="w-full flex items-center justify-between bg-[#F8FAFC] border border-black/10 rounded-xl px-4 py-3 text-sm mb-2"
+                >
+                  <span className={`font-semibold flex items-center gap-1 ${selectedZone && selectedZone.id !== 'otra' ? 'text-[#008080]' : 'text-[#3A4A5A]'}`}>
+                    {selectedZone && selectedZone.id !== 'otra' ? <><PinIcon size={11} />{selectedZone.name}</> : 'Ver mapa'}
+                  </span>
+                  <span className="text-[#8896A5] text-xs">{showMap ? 'Ocultar ↑' : 'Abrir ↓'}</span>
+                </button>
+                {showMap && (
+                  <FloorPlanViewer
+                    zones={zones}
+                    venueId={activeVenueId}
+                    selectedZone={selectedZone}
+                    onSelect={zone => { setSelectedZone(zone); setLocation(''); setShowMap(false); setShowLocationSheet(false) }}
+                    supabaseClient={supabaseStaff}
+                  />
+                )}
+              </div>
+            ) : locationZones.length > 0 ? (
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {locationZones.map(zone => (
+                  <button
+                    key={zone.id}
+                    onClick={() => { setSelectedZone(zone); setLocation(''); setShowLocationSheet(false) }}
+                    className={`py-3 px-2 rounded-xl border-2 text-center text-xs font-semibold leading-tight transition-all ${
+                      selectedZone?.id === zone.id
+                        ? 'border-[#008080] bg-[#008080]/5 text-[#008080]'
+                        : 'border-[#E4EBF0] text-[#3A4A5A]'
+                    }`}
+                  >
+                    {zone.name}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            <div className={locationZones.length > 0 && !hasMap ? 'mt-2' : ''}>
+              {locationZones.length > 0 && !hasMap && (
+                <p className="text-[#8896A5] text-[10px] font-semibold uppercase tracking-wider mb-2">Otra ubicación</p>
+              )}
+              <input
+                type="text"
+                value={selectedZone?.id === 'otra' ? location : ''}
+                onChange={e => { setLocation(e.target.value); setSelectedZone({ id: 'otra', name: null }) }}
+                placeholder="Ej: Mesa 4, Barra, Terraza..."
+                className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-[#F8FAFC] text-[#1A2A3A]"
+              />
+              {selectedZone?.id === 'otra' && location.trim() && (
+                <button
+                  onClick={() => setShowLocationSheet(false)}
+                  className="w-full mt-2 bg-[#008080] text-white font-bold py-3 rounded-xl text-sm"
+                >
+                  Confirmar
+                </button>
+              )}
             </div>
           </div>
         </div>
