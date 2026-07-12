@@ -1,16 +1,29 @@
+import { useEffect, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
+import { supabaseStaff } from '../../lib/supabase'
 
 export default function UpgradeResultPage() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
-  const status = params.get('status') // success | failure | pending (set by back_url path)
   const feature = params.get('feature')
+  const called = useRef(false)
 
-  // Detect which result page we're on from the pathname
   const path = window.location.pathname
   const result = path.includes('upgrade-success') ? 'success'
     : path.includes('upgrade-failed') ? 'failure'
     : 'pending'
+
+  // MP passes payment_id (or collection_id) in the redirect URL — use it to
+  // trigger the webhook manually in case the IPN notification never arrived.
+  useEffect(() => {
+    if (result !== 'success' || called.current) return
+    called.current = true
+    const paymentId = params.get('payment_id') || params.get('collection_id')
+    if (!paymentId) return
+    supabaseStaff.functions.invoke('mp-upgrade-webhook', {
+      body: { id: paymentId, topic: 'payment' },
+    }).catch(() => { /* best-effort */ })
+  }, [result])
 
   const config = {
     success: {
