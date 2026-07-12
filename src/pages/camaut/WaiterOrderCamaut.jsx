@@ -225,7 +225,9 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
         : mesaZones.filter(z => z.menu_id === activeMenuId))
     : mesaZones
 
-  const visibleProducts = products.filter(p => p.category_id === activeCategory)
+  const visibleProducts = products
+    .filter(p => p.category_id === activeCategory)
+    .sort((a, b) => (b.is_daily_special ? 1 : 0) - (a.is_daily_special ? 1 : 0))
 
   const categoryMap = Object.fromEntries(categories.map(c => [c.id, c.name]))
   const q = searchQuery.trim().toLowerCase()
