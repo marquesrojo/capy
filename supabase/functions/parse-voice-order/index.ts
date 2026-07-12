@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const { transcript, venue_id } = await req.json()
+    const { transcript, venue_id, zones } = await req.json()
 
     if (!transcript || !venue_id) {
       return new Response(JSON.stringify({ error: 'transcript and venue_id required' }), {
@@ -40,23 +40,30 @@ Deno.serve(async (req) => {
 
     const menuLines = products.map((p, i) => `${i}: ${p.name} — $${p.price}`).join('\n')
 
+    type Zone = { id: string; name: string }
+    const zonesArr = zones as Zone[] | undefined
+    const zonesSection = zonesArr?.length
+      ? `\n\nMESAS/UBICACIONES DISPONIBLES (formato id|nombre):\n${zonesArr.map(z => `${z.id}|${z.name}`).join('\n')}\n- Si el mozo mencionó una mesa o ubicación, incluí su id exacto en "zone_id".\n- Si no mencionó ninguna, no incluyas "zone_id".`
+      : ''
+
     const prompt = `Sos un asistente de toma de pedidos para un restaurante en Argentina. El mozo dictó por voz lo que pidió una mesa.
 
 DICTADO DEL MOZO:
 "${transcript}"
 
 CARTA DISPONIBLE (formato índice: nombre — precio):
-${menuLines}
+${menuLines}${zonesSection}
 
 INSTRUCCIONES:
-- Identificá qué productos de la carta mencionó el mozo y en qué cantidad.
+- Identificá qué productos mencionó el mozo, en qué cantidad, y si hay notas para cada ítem (ej: "sin sal", "bien cocido", "sin hielo", "a punto").
 - Si dice "una", "un", "uno" sin cantidad explícita, asumí 1.
-- Si menciona un apodo o variante coloquial de un producto (ej: "Quilmes" por una cerveza, "napolitana" por milanesa napolitana), buscá el más parecido en la carta.
+- Si menciona un apodo o variante coloquial (ej: "Quilmes" por cerveza, "napolitana" por milanesa napolitana), usá el más parecido de la carta.
 - Si menciona algo que no existe en la carta, ignoralo.
+- Para "note": solo aclaraciones específicas del ítem. Si no hay nota, usá "".
 - Respondé ÚNICAMENTE con JSON válido, sin markdown ni texto adicional.
 
-FORMATO (usá los índices de la carta):
-{"items":[{"index":0,"quantity":2},{"index":3,"quantity":1}]}`
+FORMATO:
+{"zone_id":"id-si-fue-mencionado","items":[{"index":0,"quantity":2,"note":"sin sal"},{"index":3,"quantity":1,"note":""}]}`
 
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
@@ -66,7 +73,7 @@ FORMATO (usá los índices de la carta):
         body: JSON.stringify({
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
           generationConfig: {
-            maxOutputTokens: 512,
+            maxOutputTokens: 1024,
             temperature: 0.1,
             thinkingConfig: { thinkingBudget: 0 },
           },
@@ -85,12 +92,12 @@ FORMATO (usá los índices de la carta):
     const raw = parts.filter(p => !p.thought).map(p => p.text || '').join('')
 
     console.log('[parse-voice-order] transcript:', transcript)
-    console.log('[parse-voice-order] raw response:', raw.substring(0, 300))
+    console.log('[parse-voice-order] raw:', raw.substring(0, 400))
 
     const jsonMatch = raw.match(/\{[\s\S]*\}/)
-    let parsed: { items?: Array<{ index: number; quantity: number }> } = {}
+    let parsed: { zone_id?: string; items?: Array<{ index: number; quantity: number; note?: string }> } = {}
     if (jsonMatch) {
-      try { parsed = JSON.parse(jsonMatch[0]) } catch { /* fallback to empty */ }
+      try { parsed = JSON.parse(jsonMatch[0]) } catch { /* fallback */ }
     }
 
     const result = (parsed.items || [])
@@ -100,11 +107,16 @@ FORMATO (usá los índices de la carta):
         product_name: products[item.index].name,
         product_price: products[item.index].price,
         quantity: Math.max(1, Math.round(item.quantity || 1)),
+        note: item.note || '',
       }))
 
-    console.log('[parse-voice-order] result items:', result.length)
+    const zone_id = parsed.zone_id && zonesArr?.some(z => z.id === parsed.zone_id)
+      ? parsed.zone_id
+      : undefined
 
-    return new Response(JSON.stringify({ items: result }), {
+    console.log('[parse-voice-order] items:', result.length, '| zone_id:', zone_id)
+
+    return new Response(JSON.stringify({ items: result, zone_id }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err: unknown) {
