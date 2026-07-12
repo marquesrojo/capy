@@ -194,10 +194,15 @@ export default function OrderStatusPage() {
   if (!order) {
     return (
       <div className="min-h-screen bg-carbon-950 flex items-center justify-center px-5">
-        <p className="text-smoke-400 text-sm text-center">
-          No encontramos este pedido desde este dispositivo. Si lo hiciste desde otro
-          celular, pedile a alguien en el local que consulte el número de pedido.
-        </p>
+        <div className="text-center space-y-3 max-w-xs">
+          <p className="text-smoke-400 text-sm">
+            No encontramos este pedido desde este dispositivo. Si lo hiciste desde otro
+            celular, pedile a alguien en el local que consulte el número de pedido.
+          </p>
+          <p className="text-smoke-600 text-xs">
+            Creá una cuenta para que tus pedidos queden guardados en todos tus dispositivos.
+          </p>
+        </div>
       </div>
     )
   }
@@ -376,18 +381,35 @@ export default function OrderStatusPage() {
               <span className="font-mono text-sm" style={{ color: venueColor }}>{formatPrice(item.line_total)}</span>
             </div>
           ))}
-          {order.cash_discount_amount > 0 && (
-            <>
-              <div className="flex justify-between text-smoke-500 px-1 text-sm">
-                <span>Subtotal</span>
-                <span className="font-mono">{formatPrice(order.total + order.cash_discount_amount)}</span>
-              </div>
-              <div className="flex justify-between text-emerald-500 px-1 text-sm font-medium">
-                <span>Descuento efectivo</span>
-                <span className="font-mono">−{formatPrice(order.cash_discount_amount)}</span>
-              </div>
-            </>
-          )}
+          {(() => {
+            const itemsSubtotal = items.reduce((s, i) => s + (i.line_total || 0), 0)
+            const cashDiscount = order.cash_discount_amount || 0
+            const codeDiscountAmt = appliedDiscount?.amount ||
+              (order.discount_code ? Math.max(0, itemsSubtotal - order.total - cashDiscount) : 0)
+            const hasAnyDiscount = cashDiscount > 0 || codeDiscountAmt > 0
+            return (
+              <>
+                {hasAnyDiscount && (
+                  <div className="flex justify-between text-smoke-500 px-1 text-sm">
+                    <span>Subtotal</span>
+                    <span className="font-mono">{formatPrice(itemsSubtotal)}</span>
+                  </div>
+                )}
+                {cashDiscount > 0 && (
+                  <div className="flex justify-between text-emerald-500 px-1 text-sm font-medium">
+                    <span>Descuento efectivo</span>
+                    <span className="font-mono">−{formatPrice(cashDiscount)}</span>
+                  </div>
+                )}
+                {codeDiscountAmt > 0 && (
+                  <div className="flex justify-between text-emerald-500 px-1 text-sm font-medium">
+                    <span>Descuento {order.discount_code || appliedDiscount?.code}</span>
+                    <span className="font-mono">−{formatPrice(codeDiscountAmt)}</span>
+                  </div>
+                )}
+              </>
+            )
+          })()}
           <div className="flex justify-between text-smoke-300 px-1 pt-1">
             <span className="font-medium">Total</span>
             <span className="font-mono" style={{ color: venueColor }}>{formatPrice(order.total)}</span>

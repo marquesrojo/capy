@@ -1,16 +1,14 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { createClient } from '@supabase/supabase-js'
 import { formatPrice } from '../../lib/utils'
 import OrderFeedback from '../../components/OrderFeedback'
 import { supabaseCustomer } from '../../lib/supabase'
 import { SearchIcon, PinIcon, ChefHatIcon, FileTextIcon } from '../../components/Icons'
 
-const supabasePublic = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY,
-  { auth: { persistSession: false } }
-)
+// supabaseCustomer is used for all requests — it holds the anonymous auth
+// session (auth.uid()), which the RLS policies require for order access.
+// The session is auto-created on first visit via signInAnonymously().
+const supabasePublic = supabaseCustomer
 
 const STATUS_INFO = {
   pendiente_aprobacion: {
