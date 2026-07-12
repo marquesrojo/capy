@@ -33,6 +33,10 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
   const [showMap, setShowMap] = useState(false)
   const [menuQrModal, setMenuQrModal] = useState(null) // { slug, name }
   const [showCategorySheet, setShowCategorySheet] = useState(false)
+  const [voiceState, setVoiceState] = useState(null) // null | 'listening' | 'processing' | 'results'
+  const [voiceTranscript, setVoiceTranscript] = useState('')
+  const [voiceResults, setVoiceResults] = useState([])
+  const recognitionRef = useRef(null)
   const [discounts, setDiscounts] = useState([])
   const [selectedDiscount, setSelectedDiscount] = useState(null)
   const [paymentMethods, setPaymentMethods] = useState([])
@@ -49,6 +53,58 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
     setShowMap(false)
     setSelectedZone(null)
     localStorage.setItem(`capy_ctx_${venueId}`, id)
+  }
+
+  function startVoice() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SR) {
+      alert('Tu navegador no soporta dictado por voz. Usá Chrome.')
+      return
+    }
+    const r = new SR()
+    r.lang = 'es-AR'
+    r.continuous = false
+    r.interimResults = true
+    let finalTranscript = ''
+
+    r.onresult = (e) => {
+      let interim = ''
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) finalTranscript += e.results[i][0].transcript
+        else interim += e.results[i][0].transcript
+      }
+      setVoiceTranscript(finalTranscript + interim)
+    }
+
+    r.onend = async () => {
+      recognitionRef.current = null
+      if (!finalTranscript.trim()) { setVoiceState(null); return }
+      setVoiceState('processing')
+      try {
+        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-voice-order`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` },
+          body: JSON.stringify({ transcript: finalTranscript, venue_id: activeVenueId })
+        })
+        const data = await res.json()
+        setVoiceResults(data.items || [])
+      } catch {
+        setVoiceResults([])
+      }
+      setVoiceState('results')
+    }
+
+    r.onerror = () => { recognitionRef.current = null; setVoiceState(null) }
+
+    recognitionRef.current = r
+    setVoiceTranscript('')
+    setVoiceResults([])
+    setVoiceState('listening')
+    r.start()
+  }
+
+  function stopVoice() {
+    recognitionRef.current?.stop()
   }
 
   useEffect(() => {
@@ -746,6 +802,18 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
           )}
         </div>
         <button
+          onClick={startVoice}
+          className="flex-shrink-0 w-10 h-10 rounded-xl bg-white border border-black/10 flex items-center justify-center text-[#008080]"
+          title="Dictado por voz"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+        </button>
+        <button
           onClick={() => setShowCategorySheet(true)}
           className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-colors ${
             activeCategory
@@ -856,6 +924,121 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
             >
               Revisar →
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Overlay de dictado por voz */}
+      {voiceState && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end">
+          <div className="absolute inset-0 bg-black/40" onClick={() => { stopVoice(); setVoiceState(null) }} />
+          <div className="relative bg-white rounded-t-3xl px-5 pt-4 pb-10 z-10">
+            <div className="w-10 h-1 bg-[#D0D9E0] rounded-full mx-auto mb-5" />
+
+            {voiceState === 'listening' && (
+              <div className="text-center py-2">
+                <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4 animate-pulse">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" y1="19" x2="12" y2="23"/>
+                    <line x1="8" y1="23" x2="16" y2="23"/>
+                  </svg>
+                </div>
+                <p className="text-[#1A2A3A] font-bold text-base mb-1">Hablá ahora...</p>
+                <p className="text-[#8896A5] text-sm mb-4">Dictá los ítems del pedido</p>
+                {voiceTranscript && (
+                  <p className="text-[#3A4A5A] text-sm mb-5 px-4 italic bg-[#F8FAFC] rounded-xl py-3 text-left">
+                    "{voiceTranscript}"
+                  </p>
+                )}
+                <button
+                  onClick={stopVoice}
+                  className="bg-[#1A2A3A] text-white font-bold py-3 px-10 rounded-2xl text-sm"
+                >
+                  Listo
+                </button>
+              </div>
+            )}
+
+            {voiceState === 'processing' && (
+              <div className="text-center py-6">
+                <div className="w-16 h-16 rounded-full bg-[#008080]/10 flex items-center justify-center mx-auto mb-4">
+                  <svg className="animate-spin text-[#008080]" width="28" height="28" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.2"/>
+                    <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+                  </svg>
+                </div>
+                <p className="text-[#1A2A3A] font-bold text-base mb-1">Procesando con IA...</p>
+                {voiceTranscript && (
+                  <p className="text-[#8896A5] text-sm italic px-4">"{voiceTranscript}"</p>
+                )}
+              </div>
+            )}
+
+            {voiceState === 'results' && (
+              <div>
+                <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">
+                  {voiceResults.length > 0
+                    ? `${voiceResults.length} ítem${voiceResults.length !== 1 ? 's' : ''} reconocido${voiceResults.length !== 1 ? 's' : ''}`
+                    : 'Sin resultados'}
+                </p>
+
+                {voiceResults.length === 0 ? (
+                  <div className="text-center py-4">
+                    <p className="text-[#3A4A5A] text-sm mb-5">No reconocí ningún producto de la carta.</p>
+                    <button
+                      onClick={startVoice}
+                      className="text-[#008080] font-semibold text-sm border border-[#008080]/30 px-5 py-2.5 rounded-xl"
+                    >
+                      Intentar de nuevo
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2 mb-4 max-h-56 overflow-y-auto">
+                    {voiceResults.map((item, idx) => (
+                      <div key={item.product_id} className="bg-[#F8FAFC] rounded-xl px-4 py-3 flex items-center justify-between border border-black/5">
+                        <div className="flex-1 min-w-0 pr-3">
+                          <p className="text-sm font-semibold text-[#1A2A3A]">{item.product_name}</p>
+                          <p className="text-xs text-[#008080] font-semibold">{formatPrice(item.product_price)}</p>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button
+                            onClick={() => setVoiceResults(prev => prev.map((r, i) => i === idx ? { ...r, quantity: Math.max(1, r.quantity - 1) } : r))}
+                            className="w-8 h-8 rounded-full bg-white border border-black/10 text-[#3A4A5A] font-bold text-base flex items-center justify-center"
+                          >−</button>
+                          <span className="font-bold text-[#1A2A3A] text-base w-5 text-center">{item.quantity}</span>
+                          <button
+                            onClick={() => setVoiceResults(prev => prev.map((r, i) => i === idx ? { ...r, quantity: r.quantity + 1 } : r))}
+                            className="w-8 h-8 rounded-full bg-[#008080] text-white font-bold text-base flex items-center justify-center"
+                          >+</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-1">
+                  <button
+                    onClick={() => setVoiceState(null)}
+                    className="flex-1 border border-black/10 text-[#8896A5] font-semibold py-3 rounded-2xl text-sm"
+                  >
+                    Cancelar
+                  </button>
+                  {voiceResults.length > 0 && (
+                    <button
+                      onClick={() => {
+                        voiceResults.forEach(item => changeQty(item.product_id, item.quantity))
+                        setVoiceState(null)
+                      }}
+                      className="flex-[2] bg-[#008080] text-white font-bold py-3 rounded-2xl text-sm"
+                    >
+                      Agregar al pedido
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
