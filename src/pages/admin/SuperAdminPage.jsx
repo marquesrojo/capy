@@ -453,7 +453,6 @@ function PagosTab() {
         </div>
       </div>
     </div>
-    </div>
   )
 }
 
