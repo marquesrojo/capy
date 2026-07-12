@@ -285,9 +285,9 @@ export default function App() {
                 path="/admin/reservas"
                 element={<RequirePropietario><ReservasPage /></RequirePropietario>}
               />
-              <Route path="/admin/upgrade-success" element={<RequirePropietario><UpgradeResultPage /></RequirePropietario>} />
-              <Route path="/admin/upgrade-failed" element={<RequirePropietario><UpgradeResultPage /></RequirePropietario>} />
-              <Route path="/admin/upgrade-pending" element={<RequirePropietario><UpgradeResultPage /></RequirePropietario>} />
+              <Route path="/admin/upgrade-success" element={<UpgradeResultPage />} />
+              <Route path="/admin/upgrade-failed" element={<UpgradeResultPage />} />
+              <Route path="/admin/upgrade-pending" element={<UpgradeResultPage />} />
               <Route
                 path="/admin/consumo"
                 element={
