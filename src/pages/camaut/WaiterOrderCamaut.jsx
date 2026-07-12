@@ -1068,11 +1068,35 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
                             >+</button>
                           </div>
                         </div>
+                        {quickNotes.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mb-1.5">
+                            {quickNotes.map(qn => {
+                              const active = (item.note || '').includes(qn.label)
+                              return (
+                                <button
+                                  key={qn.id}
+                                  onClick={() => {
+                                    const current = item.note || ''
+                                    const next = active
+                                      ? current.replace(qn.label, '').replace(/,\s*,/g, ',').replace(/^,\s*|,\s*$/g, '').trim()
+                                      : current ? `${current}, ${qn.label}` : qn.label
+                                    setVoiceResults(prev => prev.map((r, i) => i === idx ? { ...r, note: next } : r))
+                                  }}
+                                  className={`text-xs px-2.5 py-1 rounded-full border ${
+                                    active ? 'bg-[#008080] text-white border-[#008080]' : 'border-black/10 text-[#8896A5]'
+                                  }`}
+                                >
+                                  {qn.label}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )}
                         <input
                           type="text"
                           value={item.note || ''}
                           onChange={e => setVoiceResults(prev => prev.map((r, i) => i === idx ? { ...r, note: e.target.value } : r))}
-                          placeholder="Nota para este ítem..."
+                          placeholder="Nota libre..."
                           className="w-full border border-black/10 rounded-lg px-3 py-1.5 text-xs text-[#1A2A3A] bg-white"
                         />
                       </div>
