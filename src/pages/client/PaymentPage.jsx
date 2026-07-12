@@ -411,6 +411,8 @@ export default function PaymentPage() {
             <div className="flex flex-wrap gap-2">
               {paymentOptions.map(opt => {
                 const active = paymentMethod === opt.id
+                const isCashOpt = opt.name.toLowerCase().includes('efectivo')
+                const showCashBadge = isCashOpt && cashDiscount.enabled && cashDiscount.percent > 0
                 return (
                   <button
                     key={opt.id}
@@ -422,7 +424,7 @@ export default function PaymentPage() {
                       : { borderColor: '#D1D9E0', color: '#4A5568' }
                     }
                   >
-                    {opt.name}
+                    {showCashBadge ? `${opt.name} · ${cashDiscount.percent}% off` : opt.name}
                   </button>
                 )
               })}
