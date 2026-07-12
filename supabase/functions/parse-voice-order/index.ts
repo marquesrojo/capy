@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
     type Zone = { id: string; name: string }
     const zonesArr = zones as Zone[] | undefined
     const zonesSection = zonesArr?.length
-      ? `\n\nMESAS/UBICACIONES DISPONIBLES (formato id|nombre):\n${zonesArr.map(z => `${z.id}|${z.name}`).join('\n')}\n- Si el mozo mencionó una mesa o ubicación, incluí su id exacto en "zone_id".\n- Si no mencionó ninguna, no incluyas "zone_id".`
+      ? `\n\nMESAS/UBICACIONES DISPONIBLES (índice: nombre):\n${zonesArr.map((z, i) => `${i}: ${z.name}`).join('\n')}\n- Si el mozo mencionó una mesa o ubicación, incluí su índice numérico en "zone_index".\n- Si no mencionó ninguna, omití "zone_index".`
       : ''
 
     const prompt = `Sos un asistente de toma de pedidos para un restaurante en Argentina. El mozo dictó por voz lo que pidió una mesa.
@@ -63,7 +63,7 @@ INSTRUCCIONES:
 - Respondé ÚNICAMENTE con JSON válido, sin markdown ni texto adicional.
 
 FORMATO:
-{"zone_id":"id-si-fue-mencionado","items":[{"index":0,"quantity":2,"note":"sin sal"},{"index":3,"quantity":1,"note":""}]}`
+{"zone_index":2,"items":[{"index":0,"quantity":2,"note":"sin sal"},{"index":3,"quantity":1,"note":""}]}`
 
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
@@ -95,7 +95,7 @@ FORMATO:
     console.log('[parse-voice-order] raw:', raw.substring(0, 400))
 
     const jsonMatch = raw.match(/\{[\s\S]*\}/)
-    let parsed: { zone_id?: string; items?: Array<{ index: number; quantity: number; note?: string }> } = {}
+    let parsed: { zone_index?: number; items?: Array<{ index: number; quantity: number; note?: string }> } = {}
     if (jsonMatch) {
       try { parsed = JSON.parse(jsonMatch[0]) } catch { /* fallback */ }
     }
@@ -110,8 +110,10 @@ FORMATO:
         note: item.note || '',
       }))
 
-    const zone_id = parsed.zone_id && zonesArr?.some(z => z.id === parsed.zone_id)
-      ? parsed.zone_id
+    const zone_id = typeof parsed.zone_index === 'number' &&
+      parsed.zone_index >= 0 &&
+      zonesArr && parsed.zone_index < zonesArr.length
+      ? zonesArr[parsed.zone_index].id
       : undefined
 
     console.log('[parse-voice-order] items:', result.length, '| zone_id:', zone_id)
