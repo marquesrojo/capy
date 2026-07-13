@@ -890,7 +890,7 @@ function NewProductForm({ venueId, categories, onClose, onCreated }) {
     setSaving(true)
     const { data: newProduct } = await supabaseStaff
       .from('products')
-      .insert({ venue_id: venueId, category_id: categoryId, name, description, price: Number(price), dietary_tags: dietaryTags })
+      .insert({ venue_id: venueId, category_id: categoryId, name, description, price: Number(price), dietary_tags: dietaryTags, is_available: true })
       .select('id')
       .single()
 

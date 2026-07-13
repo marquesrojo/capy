@@ -72,7 +72,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
     const [catRes, prodRes, staffRes, zoneRes, notesRes, menuRes, discountsRes, payMethodsRes] = await Promise.all([
       supabaseStaff.from('categories').select('id, name, menu_id').eq('venue_id', vId).order('sort_order'),
       // is_ingredient_only may be NULL in older rows — treat NULL as false
-      supabaseStaff.from('products').select('id, name, price, category_id, is_daily_special').eq('venue_id', vId).eq('is_available', true).or('is_ingredient_only.is.null,is_ingredient_only.eq.false'),
+      supabaseStaff.from('products').select('id, name, price, category_id, is_daily_special').eq('venue_id', vId).or('is_available.is.null,is_available.eq.true').or('is_ingredient_only.is.null,is_ingredient_only.eq.false'),
       supabaseStaff.from('staff_names').select('id').eq('venue_id', venueId).limit(1).maybeSingle(),
       supabaseStaff.from('venue_zones').select('*').eq('venue_id', vId).eq('is_active', true).order('sort_order'),
       supabaseStaff.from('quick_notes').select('*').eq('venue_id', vId).eq('is_active', true).order('sort_order'),
