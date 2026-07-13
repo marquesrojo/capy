@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabaseCamaut, supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice } from '../../lib/utils'
+import { geminiGenerate } from '../../lib/gemini'
 
 export default function CamautConfigPage({ initialTab, embedded }) {
   const { profile, signOut } = useAuth()
@@ -922,45 +923,25 @@ function ImportarConIA({ venueId, menuId, onImported }) {
       const base64 = ev.target.result.split(',')[1]
       setPreview(ev.target.result)
       try {
-        const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
-        if (!API_KEY) throw new Error('API key no configurada')
-        
-        const BASE_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`
-
         // PASO 1: Transcribir el texto de la imagen
-        const transcriptRes = await fetch(BASE_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [
-                { inline_data: { mime_type: file.type, data: base64 } },
-                { text: 'Transcribí exactamente todo el texto que ves en esta imagen. Incluí nombres, precios y categorías tal como aparecen. No agregues nada extra.' }
-              ]
-            }]
-          })
-        })
-        const transcriptData = await transcriptRes.json()
-        
-        // Mostrar error real si hay
+        const transcriptData = await geminiGenerate([{
+          parts: [
+            { inline_data: { mime_type: file.type, data: base64 } },
+            { text: 'Transcribí exactamente todo el texto que ves en esta imagen. Incluí nombres, precios y categorías tal como aparecen. No agregues nada extra.' }
+          ]
+        }])
+
         if (transcriptData.error) throw new Error(transcriptData.error.message)
-        
+
         const transcriptText = transcriptData.candidates?.[0]?.content?.parts?.[0]?.text || ''
         if (!transcriptText) throw new Error('Gemini no devolvió texto. Respuesta: ' + JSON.stringify(transcriptData).slice(0, 200))
 
         // PASO 2: Convertir el texto a JSON de productos
-        const parseRes = await fetch(BASE_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: `Este es el texto de un menú de restaurante:\n\n${transcriptText}\n\nConvertí esto a un JSON array de productos. Para cada producto incluí: name (nombre), price (precio como número sin símbolo), category (categoría en español). Respondé ÚNICAMENTE con el JSON array, sin texto adicional, sin backticks. Ejemplo: [{"name":"Milanesa","price":2500,"category":"Platos principales"}]`
-              }]
-            }]
-          })
-        })
-        const parseData = await parseRes.json()
+        const parseData = await geminiGenerate([{
+          parts: [{
+            text: `Este es el texto de un menú de restaurante:\n\n${transcriptText}\n\nConvertí esto a un JSON array de productos. Para cada producto incluí: name (nombre), price (precio como número sin símbolo), category (categoría en español). Respondé ÚNICAMENTE con el JSON array, sin texto adicional, sin backticks. Ejemplo: [{"name":"Milanesa","price":2500,"category":"Platos principales"}]`
+          }]
+        }])
         const parseText = parseData.candidates?.[0]?.content?.parts?.[0]?.text || '[]'
         const jsonMatch = parseText.match(/\[[\s\S]*\]/)
         const clean = jsonMatch ? jsonMatch[0] : '[]'

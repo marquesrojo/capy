@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
+import { geminiGenerate } from '../../lib/gemini'
 
 function todayLocal() {
   const d = new Date()
@@ -202,15 +203,9 @@ export default function ConsumoPage() {
     setAiLoading(true)
     setAiSummary('')
     try {
-      const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
-      if (!API_KEY) throw new Error('VITE_GEMINI_API_KEY no configurada')
       const list = result.rows.map(r => `- ${r.name}: ${formatQty(r.total)} ${r.unit}`).join('\n')
       const prompt = `Sos el asistente de un restaurante. El resumen de consumo de materia prima del día ${date} fue:\n\n${list}\n\nEscribí un párrafo breve (máximo 4 oraciones) en español que resuma el consumo del día y destaque los ingredientes más utilizados. Sin asteriscos ni markdown.`
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) }
-      )
-      const data = await res.json()
+      const data = await geminiGenerate([{ parts: [{ text: prompt }] }])
       setAiSummary(data.candidates?.[0]?.content?.parts?.[0]?.text || '')
     } catch {
       setAiSummary('No se pudo generar el resumen.')

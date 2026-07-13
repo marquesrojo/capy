@@ -4,6 +4,7 @@ import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice } from '../../lib/utils'
 import { CameraIcon, StarIcon, DIETARY_TAGS } from '../../components/Icons'
+import { geminiGenerate } from '../../lib/gemini'
 
 const KIND_LABELS = { bebida: 'Bebida', comida: 'Comida', otro: 'Otro' }
 const KIND_COLORS = {
@@ -312,22 +313,12 @@ function IngredientsPanel({ productId, productName, productDescription, currentI
   }
 
   async function suggestWithAI() {
-    const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
-    if (!API_KEY) return
     setSuggesting(true)
     setFoundPhoto(null)
     try {
       const desc = productDescription ? ` — ${productDescription}` : ''
       const prompt = `Sos un chef. Para el plato "${productName}"${desc}, respondé con un JSON objeto (sin texto extra ni backticks) con dos campos: "photo_query" (término de búsqueda en inglés para Unsplash — si el nombre no es descriptivo usá la descripción o la categoría para inferir qué es el plato, siempre términos concretos del plato en inglés) e "ingredients" (array de hasta 8 ingredientes principales con cantidad por porción individual, usando solo estas unidades: g, kg, ml, l, unidad, taza, cdita, cda, porción). Ejemplo: {"photo_query":"beef milanesa breaded","ingredients":[{"name":"Carne","quantity":200,"unit":"g"},{"name":"Huevo","quantity":1,"unit":"unidad"}]}`
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-        }
-      )
-      const data = await res.json()
+      const data = await geminiGenerate([{ parts: [{ text: prompt }] }])
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}'
       const match = text.match(/\{[\s\S]*\}/)
       const parsed = JSON.parse(match ? match[0] : '{}')
@@ -694,19 +685,13 @@ function ProductRow({ product, venueId, categories, allProducts = [], onToggle, 
   }
 
   async function searchPhoto() {
-    const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
-    if (!API_KEY) return
     if (getUnsplashCount(venueId) >= UNSPLASH_DAILY_LIMIT) return
     setPhotoSearching(true)
     setFoundPhoto(null)
     try {
       const desc = product.description ? ` — ${product.description}` : ''
       const prompt = `Para el plato "${product.name}"${desc}, generá un término de búsqueda en inglés para encontrar una foto gastronómica en Unsplash. Si el nombre no es descriptivo usá la descripción para inferir qué es el plato. Respondé ÚNICAMENTE con el término de búsqueda, sin texto extra. Ejemplo: "beef milanesa breaded"`
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) }
-      )
-      const data = await res.json()
+      const data = await geminiGenerate([{ parts: [{ text: prompt }] }])
       const query = (data.candidates?.[0]?.content?.parts?.[0]?.text || product.name).trim().replace(/^"|"$/g, '')
       const url = await searchUnsplash(query, venueId)
       if (url) setFoundPhoto(url)
@@ -1061,21 +1046,10 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
       const base64 = ev.target.result.split(',')[1]
       setPreview(ev.target.result)
       try {
-        const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
-        if (!API_KEY) throw new Error('VITE_GEMINI_API_KEY no configurada')
-        const BASE_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`
-
-        const transcriptRes = await fetch(BASE_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [
-              { inline_data: { mime_type: file.type, data: base64 } },
-              { text: 'Transcribí exactamente todo el texto que ves en esta imagen. Incluí nombres, precios y categorías tal como aparecen. No agregues nada extra.' }
-            ]}]
-          })
-        })
-        const transcriptData = await transcriptRes.json()
+        const transcriptData = await geminiGenerate([{ parts: [
+          { inline_data: { mime_type: file.type, data: base64 } },
+          { text: 'Transcribí exactamente todo el texto que ves en esta imagen. Incluí nombres, precios y categorías tal como aparecen. No agregues nada extra.' }
+        ]}])
         if (transcriptData.error) throw new Error(transcriptData.error.message)
         const transcriptText = transcriptData.candidates?.[0]?.content?.parts?.[0]?.text || ''
         if (!transcriptText) throw new Error('No se pudo leer texto de la imagen')
@@ -1085,12 +1059,7 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
           ? `Este es el texto de un menú de restaurante:\n\n${transcriptText}\n\nConvertí esto a un JSON array de productos. Para cada producto incluí: name (nombre), price (precio como número sin símbolo), category (categoría en español), description (descripción del plato si aparece en el menú, sino cadena vacía ""), photo_query (término de búsqueda en inglés para encontrar una foto gastronómica del plato en Unsplash — reglas en orden de prioridad: 1) si hay descripción en el menú usala para describir el plato en inglés, 2) si el nombre no es descriptivo pero hay categoría, combiná categoría + nombre para inferir qué es (ej: categoría "Sandwiches" + nombre "El Porteño" → "argentinian beef sandwich"; categoría "Postres" + nombre "La Abuela" → "homemade cake dessert"), 3) si el nombre ya es descriptivo traducilo al inglés; siempre términos concretos del plato en inglés, nunca el nombre propio). Respondé ÚNICAMENTE con el JSON array, sin texto adicional, sin backticks. Ejemplo: [{"name":"El Porteño","price":2500,"category":"Sandwiches","description":"Sándwich de lomo con queso y jamón","photo_query":"steak sandwich cheese ham"}]`
           : `Este es el texto de un menú de restaurante:\n\n${transcriptText}\n\nConvertí esto a un JSON array de productos. Para cada producto incluí: name (nombre), price (precio como número sin símbolo), category (categoría en español). Respondé ÚNICAMENTE con el JSON array, sin texto adicional, sin backticks. Ejemplo: [{"name":"Milanesa","price":2500,"category":"Platos principales"}]`
 
-        const parseRes = await fetch(BASE_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: parsePrompt }] }] })
-        })
-        const parseData = await parseRes.json()
+        const parseData = await geminiGenerate([{ parts: [{ text: parsePrompt }] }])
         const parseText = parseData.candidates?.[0]?.content?.parts?.[0]?.text || '[]'
         const jsonMatch = parseText.match(/\[[\s\S]*\]/)
         const items = JSON.parse(jsonMatch ? jsonMatch[0] : '[]')
@@ -1445,8 +1414,6 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
   }
 
   async function generate() {
-    const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
-    if (!API_KEY) { setError('VITE_GEMINI_API_KEY no configurada'); return }
     if (totalAvailable <= 0) return
 
     // Evitar que la pantalla se apague y frene el proceso
@@ -1474,11 +1441,7 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
         try {
           const desc = p.description ? ` — ${p.description}` : ''
           const prompt = `Para el plato "${p.name}"${desc}, generá un término de búsqueda en inglés para encontrar una foto gastronómica en Unsplash. Si el nombre no es descriptivo usá la descripción para inferir qué es. Respondé ÚNICAMENTE con el término, sin texto extra. Ejemplo: "beef milanesa breaded"`
-          const res = await fetch(
-            `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
-            { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) }
-          )
-          const data = await res.json()
+          const data = await geminiGenerate([{ parts: [{ text: prompt }] }])
           query = (data.candidates?.[0]?.content?.parts?.[0]?.text || p.name).trim().replace(/^"|"$/g, '')
         } catch { /* use product name as fallback */ }
 
@@ -1808,17 +1771,11 @@ function RecipeEditor({ productId, productName, productDescription, venueId, all
   }
 
   async function suggestWithAI() {
-    const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
-    if (!API_KEY) return
     setSuggesting(true)
     try {
       const desc = productDescription ? ` — ${productDescription}` : ''
       const prompt = `Sos un chef profesional. Para el plato "${productName}"${desc}, listá los ingredientes principales con cantidades para una porción. Respondé ÚNICAMENTE con un JSON array sin texto extra ni backticks. Ejemplo: [{"name":"Harina 000","quantity":200,"unit":"g"},{"name":"Huevo","quantity":1,"unit":"u"}]. Unidades permitidas: g, kg, ml, l, u, cdita, cda, taza, porción.`
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) }
-      )
-      const data = await res.json()
+      const data = await geminiGenerate([{ parts: [{ text: prompt }] }])
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]'
       const match = text.match(/\[[\s\S]*\]/)
       const suggested = JSON.parse(match ? match[0] : '[]')
