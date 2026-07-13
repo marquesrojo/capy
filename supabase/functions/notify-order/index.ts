@@ -158,7 +158,7 @@ Deno.serve(async (req) => {
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .select(`
-        id, order_number, total, location_label, status,
+        id, daily_number, total, location_label, status,
         customer:customers(full_name, whatsapp),
         venue:venues(name, notify_whatsapp),
         order_items(product_name, quantity)
@@ -174,7 +174,7 @@ Deno.serve(async (req) => {
 
     const shared = {
       customerName: order.customer?.full_name || 'Cliente',
-      orderNumber: order.order_number,
+      orderNumber: order.daily_number,
       venueName: order.venue?.name || 'el local',
       total: order.total,
       locationLabel: order.location_label,
