@@ -114,8 +114,10 @@ export default function PublicOrderPage() {
       .update({ waiter_called_at: new Date().toISOString() })
       .eq('id', id)
     setOrder(prev => ({ ...prev, waiter_called_at: new Date().toISOString() }))
-    supabaseCustomer.functions.invoke('notify-waiter-call', {
-      body: { zone_id: order.zone_id, venue_id: order.venue_id, location_label: order.location_label },
+    fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-waiter-call`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: import.meta.env.VITE_SUPABASE_ANON_KEY },
+      body: JSON.stringify({ zone_id: order.zone_id, venue_id: order.venue_id, location_label: order.location_label }),
     }).catch(() => {})
     setCalling(false)
   }
