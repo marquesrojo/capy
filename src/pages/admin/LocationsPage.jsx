@@ -19,6 +19,7 @@ const TYPE_TABS = [
 export default function LocationsPage() {
   const { venueId } = useAuth()
   const [zones, setZones] = useState([])
+  const [staffNames, setStaffNames] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('mesa')
   const [viewMode, setViewMode] = useState('lista') // 'lista' | 'mapa'
@@ -35,6 +36,12 @@ export default function LocationsPage() {
       .eq('id', venueId)
       .single()
       .then(({ data }) => { if (data) setClientMapEnabled(data.client_floor_map_enabled) })
+    supabaseStaff
+      .from('staff_names')
+      .select('id, full_name, whatsapp_number')
+      .eq('venue_id', venueId)
+      .order('full_name')
+      .then(({ data }) => setStaffNames(data || []))
   }, [venueId])
 
   async function load() {
@@ -116,6 +123,18 @@ export default function LocationsPage() {
     if (!confirm(`¿Eliminar ${label} "${zone.name}"? Esta acción no se puede deshacer.`)) return
     await supabaseStaff.from('venue_zones').delete().eq('id', zone.id)
     setZones(prev => prev.filter(z => z.id !== zone.id))
+  }
+
+  async function assignWaiter(zone, staffId) {
+    const { data } = await supabaseStaff
+      .from('venue_zones')
+      .update({ current_waiter_id: staffId || null })
+      .eq('id', zone.id)
+      .select()
+      .single()
+    if (data) {
+      setZones(prev => prev.map(z => (z.id === zone.id ? data : z)))
+    }
   }
 
   async function reshapeZone(zone, shape) {
@@ -249,6 +268,8 @@ export default function LocationsPage() {
                     onReassign={reassignZone}
                     onReshape={activeTab === 'mesa' ? reshapeZone : null}
                     onDelete={() => deleteZone(zone)}
+                    staffList={activeTab === 'mesa' ? staffNames : []}
+                    onAssignWaiter={activeTab === 'mesa' ? assignWaiter : null}
                   />
                 ))}
               </div>
@@ -267,7 +288,7 @@ const SHAPES = [
   { id: 'barra',       label: 'Barra',  icon: <rect x="1" y="9" width="22" height="6" rx="1"/> },
 ]
 
-function ZoneRow({ zone, onToggle, onRename, parentZones = [], onReassign, onReshape, onDelete }) {
+function ZoneRow({ zone, onToggle, onRename, parentZones = [], onReassign, onReshape, onDelete, staffList = [], onAssignWaiter }) {
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(zone.name)
 
@@ -351,6 +372,24 @@ function ZoneRow({ zone, onToggle, onRename, parentZones = [], onReassign, onRes
               {s.label}
             </button>
           ))}
+        </div>
+      )}
+
+      {onAssignWaiter && staffList.length > 0 && (
+        <div className="flex items-center gap-2 mt-2.5">
+          <span className="text-smoke-500 text-[10px]">Camarero:</span>
+          <select
+            value={zone.current_waiter_id || ''}
+            onChange={e => onAssignWaiter(zone, e.target.value || null)}
+            className="flex-1 text-[10px] text-smoke-300 bg-carbon-800 border border-carbon-700 rounded-lg px-2 py-1"
+          >
+            <option value="">Sin asignar</option>
+            {staffList.map(s => (
+              <option key={s.id} value={s.id}>
+                {s.full_name}{s.whatsapp_number ? '' : ' ⚠️ sin WA'}
+              </option>
+            ))}
+          </select>
         </div>
       )}
     </div>
