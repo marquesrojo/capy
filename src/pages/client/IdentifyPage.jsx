@@ -47,6 +47,8 @@ export default function IdentifyPage() {
     const r = parseInt(c.substr(0,2),16), g = parseInt(c.substr(2,2),16), b = parseInt(c.substr(4,2),16)
     return (0.299*r + 0.587*g + 0.114*b)/255 > 0.6 ? '#1A2332' : 'white'
   })()
+  // Color to use when the icon/text sits on a WHITE background (not selfColor background)
+  const accentOnWhite = selfTextColor === '#1A2332' ? waiterColor : selfColor
   const { setLocation, setSessionId, addItem } = useCart()
   const { customer, isAnonymous, loginWithGoogle } = useCustomer()
   const [googleError, setGoogleError] = useState('')
@@ -711,8 +713,8 @@ export default function IdentifyPage() {
                 onClick={() => setShowExternalOptions(true)}
                 className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl bg-white border border-black/[0.06] shadow-sm active:scale-[0.98] transition-transform text-left"
               >
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${selfColor}15` }}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={selfColor} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${accentOnWhite}15` }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={accentOnWhite} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
                   </svg>
                 </div>
@@ -735,14 +737,14 @@ export default function IdentifyPage() {
                     <button
                       onClick={() => { setLocation({ type: 'retiro_externo', label: 'Retiro en local' }); navigate(`${base}/carta`) }}
                       className="border-2 rounded-2xl p-4 text-left active:scale-[0.97] transition-transform"
-                      style={{ borderColor: `${selfColor}40`, backgroundColor: `${selfColor}08` }}
+                      style={{ borderColor: `${accentOnWhite}40`, backgroundColor: `${accentOnWhite}08` }}
                     >
-                      <div className="w-9 h-9 rounded-xl mb-2.5 flex items-center justify-center" style={{ backgroundColor: `${selfColor}15` }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={selfColor} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                      <div className="w-9 h-9 rounded-xl mb-2.5 flex items-center justify-center" style={{ backgroundColor: `${accentOnWhite}15` }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={accentOnWhite} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
                         </svg>
                       </div>
-                      <p className="font-bold text-sm leading-tight" style={{ color: selfColor }}>Retiro en local</p>
+                      <p className="font-bold text-sm leading-tight" style={{ color: accentOnWhite }}>Retiro en local</p>
                       <p className="text-[#9DAAB8] text-xs mt-0.5">Pasás a buscar</p>
                     </button>
                   )}
@@ -750,14 +752,14 @@ export default function IdentifyPage() {
                     <button
                       onClick={() => { setLocation({ type: 'delivery', label: 'Delivery' }); navigate(`${base}/carta`) }}
                       className="border-2 rounded-2xl p-4 text-left active:scale-[0.97] transition-transform"
-                      style={{ borderColor: `${selfColor}40`, backgroundColor: `${selfColor}08` }}
+                      style={{ borderColor: `${accentOnWhite}40`, backgroundColor: `${accentOnWhite}08` }}
                     >
-                      <div className="w-9 h-9 rounded-xl mb-2.5 flex items-center justify-center" style={{ backgroundColor: `${selfColor}15` }}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={selfColor} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                      <div className="w-9 h-9 rounded-xl mb-2.5 flex items-center justify-center" style={{ backgroundColor: `${accentOnWhite}15` }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={accentOnWhite} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                           <rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
                         </svg>
                       </div>
-                      <p className="font-bold text-sm leading-tight" style={{ color: selfColor }}>Delivery</p>
+                      <p className="font-bold text-sm leading-tight" style={{ color: accentOnWhite }}>Delivery</p>
                       <p className="text-[#9DAAB8] text-xs mt-0.5">Te lo llevamos</p>
                     </button>
                   )}
@@ -775,16 +777,16 @@ export default function IdentifyPage() {
             style={{ borderColor: `${selfColor}30` }}
           >
             <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: `${selfColor}15` }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={selfColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              style={{ backgroundColor: `${accentOnWhite}15` }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={accentOnWhite} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
               </svg>
             </div>
             <div className="flex-1 text-left">
-              <p className="font-black text-sm leading-tight" style={{ color: selfColor }}>Reservar una mesa</p>
+              <p className="font-black text-sm leading-tight" style={{ color: accentOnWhite }}>Reservar una mesa</p>
               <p className="text-[#9DAAB8] text-xs mt-0.5">Elegí día, horario y cantidad de personas</p>
             </div>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={selfColor} strokeWidth="2.5" strokeOpacity="0.5">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={accentOnWhite} strokeWidth="2.5" strokeOpacity="0.5">
               <polyline points="9 18 15 12 9 6"/>
             </svg>
           </button>
