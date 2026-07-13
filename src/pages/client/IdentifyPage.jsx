@@ -41,6 +41,12 @@ export default function IdentifyPage() {
   const venueId = venue?.id || ACTIVE_VENUE_ID
   const selfColor = venue?.header_bg_color || '#1A3A6B'
   const waiterColor = venue?.header_text_color || '#B22222'
+  const selfTextColor = (() => {
+    const c = selfColor.replace('#', '')
+    if (c.length < 6) return 'white'
+    const r = parseInt(c.substr(0,2),16), g = parseInt(c.substr(2,2),16), b = parseInt(c.substr(4,2),16)
+    return (0.299*r + 0.587*g + 0.114*b)/255 > 0.6 ? '#1A2332' : 'white'
+  })()
   const { setLocation, setSessionId, addItem } = useCart()
   const { customer, isAnonymous, loginWithGoogle } = useCustomer()
   const [googleError, setGoogleError] = useState('')
@@ -606,14 +612,14 @@ export default function IdentifyPage() {
           className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl shadow-lg active:scale-[0.98] transition-transform"
           style={{ backgroundColor: selfColor }}
         >
-          <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
-            <UtensilsIcon size={22} className="text-white" />
+          <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${selfTextColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.08)'}` }}>
+            <UtensilsIcon size={22} style={{ color: selfTextColor }} />
           </div>
           <div className="flex-1 text-left">
-            <p className="text-white font-black text-sm leading-tight">Quiero pedir yo mismo</p>
-            <p className="text-white/70 text-xs mt-0.5">Ver la carta y hacer mi pedido</p>
+            <p className="font-black text-sm leading-tight" style={{ color: selfTextColor }}>Quiero pedir yo mismo</p>
+            <p className="text-xs mt-0.5" style={{ color: selfTextColor, opacity: 0.7 }}>Ver la carta y hacer mi pedido</p>
           </div>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeOpacity="0.6">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={selfTextColor} strokeWidth="2.5" strokeOpacity="0.6">
             <polyline points="9 18 15 12 9 6"/>
           </svg>
         </button>
