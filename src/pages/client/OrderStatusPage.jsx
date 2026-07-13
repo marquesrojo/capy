@@ -172,6 +172,9 @@ export default function OrderStatusPage() {
           }),
         }).catch(() => {})
       }
+      supabaseCustomer.functions.invoke('notify-waiter-call', {
+        body: { zone_id: order.zone_id, venue_id: order.venue_id || ACTIVE_VENUE_ID, location_label: order.location_label },
+      }).catch(() => {})
     }
   }
 

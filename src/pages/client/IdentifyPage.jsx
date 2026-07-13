@@ -214,6 +214,9 @@ export default function IdentifyPage() {
         body: locationLabel,
       }),
     }).catch(() => {})
+    supabaseCustomer.functions.invoke('notify-waiter-call', {
+      body: { zone_id: zoneId, venue_id: venueId, location_label: locationLabel },
+    }).catch(() => {})
     setCallLoading(false)
     setCallSent(true)
   }

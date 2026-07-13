@@ -62,7 +62,7 @@ export default function PublicOrderPage() {
 
     const { data: orderData } = await supabasePublic
       .from('orders')
-      .select('id, status, location_label, total, daily_number, created_at, prep_time_minutes, prep_started_at, waiter_called_at, assigned_staff_id, payment_status, notes, venue_id, created_by_staff, cash_discount_amount')
+      .select('id, status, location_label, zone_id, total, daily_number, created_at, prep_time_minutes, prep_started_at, waiter_called_at, assigned_staff_id, payment_status, notes, venue_id, created_by_staff, cash_discount_amount')
       .eq('id', id)
       .single()
 
@@ -114,6 +114,9 @@ export default function PublicOrderPage() {
       .update({ waiter_called_at: new Date().toISOString() })
       .eq('id', id)
     setOrder(prev => ({ ...prev, waiter_called_at: new Date().toISOString() }))
+    supabaseCustomer.functions.invoke('notify-waiter-call', {
+      body: { zone_id: order.zone_id, venue_id: order.venue_id, location_label: order.location_label },
+    }).catch(() => {})
     setCalling(false)
   }
 
