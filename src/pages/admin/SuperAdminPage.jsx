@@ -418,30 +418,17 @@ function PagosTab() {
     setWaTestLoading(true)
     setWaTestResult(null)
     try {
-      const { data: lastOrder } = await supabaseStaff
-        .from('orders')
-        .select('id, order_number')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
-
-      if (!lastOrder) {
-        setWaTestResult({ ok: false, error: 'No hay pedidos en la DB para probar' })
-        setWaTestLoading(false)
-        return
-      }
-
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-order`, {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-whatsapp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         },
-        body: JSON.stringify({ order_id: lastOrder.id, event_type: 'created' }),
+        body: JSON.stringify({ to: '5491122497772', message: '✅ Test de WA desde Capy SuperAdmin — configuración OK.' }),
       })
       const data = await res.json()
-      setWaTestResult({ ok: res.ok, status: res.status, data, orderId: lastOrder.id, orderNumber: lastOrder.order_number })
+      setWaTestResult({ ok: res.ok, status: res.status, data })
     } catch (e) {
       setWaTestResult({ ok: false, error: e.message })
     }
