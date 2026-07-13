@@ -357,6 +357,8 @@ function PagosTab() {
   const [savedPrice, setSavedPrice] = useState(false)
   const [savingWa, setSavingWa] = useState(false)
   const [savedWa, setSavedWa] = useState(false)
+  const [waTestLoading, setWaTestLoading] = useState(false)
+  const [waTestResult, setWaTestResult] = useState(null)
 
   useEffect(() => {
     supabaseStaff
@@ -410,6 +412,40 @@ function PagosTab() {
     setSavingWa(false)
     setSavedWa(true)
     setTimeout(() => setSavedWa(false), 2000)
+  }
+
+  async function testWa() {
+    setWaTestLoading(true)
+    setWaTestResult(null)
+    try {
+      const { data: lastOrder } = await supabaseStaff
+        .from('orders')
+        .select('id, order_number')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (!lastOrder) {
+        setWaTestResult({ ok: false, error: 'No hay pedidos en la DB para probar' })
+        setWaTestLoading(false)
+        return
+      }
+
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ order_id: lastOrder.id, event_type: 'created' }),
+      })
+      const data = await res.json()
+      setWaTestResult({ ok: res.ok, status: res.status, data, orderId: lastOrder.id, orderNumber: lastOrder.order_number })
+    } catch (e) {
+      setWaTestResult({ ok: false, error: e.message })
+    }
+    setWaTestLoading(false)
   }
 
   if (loading) return <p className="text-smoke-500 text-sm">Cargando...</p>
@@ -516,13 +552,29 @@ function PagosTab() {
               className="input w-full font-mono text-xs"
             />
           </div>
-          <button
-            onClick={saveWa}
-            disabled={savingWa || (!waPhoneNumberId.trim() && !waAccessToken.trim())}
-            className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-semibold px-4 py-2 rounded-xl text-sm"
-          >
-            {savingWa ? 'Guardando...' : savedWa ? '✓ Guardado' : 'Guardar configuración WA'}
-          </button>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={saveWa}
+              disabled={savingWa || (!waPhoneNumberId.trim() && !waAccessToken.trim())}
+              className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-semibold px-4 py-2 rounded-xl text-sm"
+            >
+              {savingWa ? 'Guardando...' : savedWa ? '✓ Guardado' : 'Guardar configuración WA'}
+            </button>
+            <button
+              onClick={testWa}
+              disabled={waTestLoading}
+              className="bg-carbon-700 hover:bg-carbon-600 disabled:opacity-40 text-smoke-300 font-semibold px-4 py-2 rounded-xl text-sm"
+            >
+              {waTestLoading ? 'Probando...' : 'Probar WA'}
+            </button>
+          </div>
+          {waTestResult && (
+            <div className={`rounded-xl p-3 text-xs font-mono whitespace-pre-wrap break-all ${waTestResult.ok ? 'bg-emerald-900/40 text-emerald-300' : 'bg-red-900/40 text-red-300'}`}>
+              {waTestResult.orderNumber && <p className="mb-1 font-sans font-semibold">Pedido #{waTestResult.orderNumber}</p>}
+              {waTestResult.status && <p className="mb-1 font-sans text-smoke-400">HTTP {waTestResult.status}</p>}
+              {JSON.stringify(waTestResult.data ?? waTestResult.error, null, 2)}
+            </div>
+          )}
         </div>
       </div>
     </div>
