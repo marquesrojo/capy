@@ -58,6 +58,7 @@ import AccountPage from './pages/client/AccountPage'
 import ReservasPage from './pages/admin/ReservasPage'
 import ReservationBookingPage from './pages/client/ReservationBookingPage'
 import UpgradeResultPage from './pages/admin/UpgradeResultPage'
+import WhatsAppPage from './pages/admin/WhatsAppPage'
 
 function CapyChatOverlay() {
   const location = useLocation()
@@ -284,6 +285,10 @@ export default function App() {
               <Route
                 path="/admin/reservas"
                 element={<RequirePropietario><ReservasPage /></RequirePropietario>}
+              />
+              <Route
+                path="/admin/whatsapp"
+                element={<RequirePropietario><WhatsAppPage /></RequirePropietario>}
               />
               <Route path="/admin/upgrade-success" element={<UpgradeResultPage />} />
               <Route path="/admin/upgrade-failed" element={<UpgradeResultPage />} />

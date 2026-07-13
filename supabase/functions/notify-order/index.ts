@@ -160,7 +160,7 @@ Deno.serve(async (req) => {
       .select(`
         id, daily_number, total, location_label, status,
         customer:customers(full_name, whatsapp),
-        venue:venues(name, notify_whatsapp),
+        venue:venues(id, name, notify_whatsapp),
         order_items(product_name, quantity)
       `)
       .eq('id', order_id)
@@ -170,6 +170,30 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Order not found', detail: orderError?.message, code: orderError?.code }), {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
+    }
+
+    // Load per-venue WA toggles (graceful: defaults to true if migration not run yet)
+    const waToggles = {
+      wa_notify_new_order: true,
+      wa_notify_listo: true,
+      wa_notify_entregado: true,
+      wa_notify_rechazado: true,
+      wa_notify_reservation: true,
+    }
+    if (order.venue?.id) {
+      const { data: vt } = await supabase
+        .from('venues')
+        .select('wa_notify_new_order, wa_notify_listo, wa_notify_entregado, wa_notify_rechazado, wa_notify_reservation')
+        .eq('id', order.venue.id)
+        .single()
+      if (vt) Object.assign(waToggles, vt)
+    }
+
+    const eventToToggle: Record<string, string> = {
+      created: 'wa_notify_new_order',
+      listo: 'wa_notify_listo',
+      entregado: 'wa_notify_entregado',
+      rechazado: 'wa_notify_rechazado',
     }
 
     const shared = {
@@ -183,26 +207,21 @@ Deno.serve(async (req) => {
     const clientMsg = buildClientMessage(event_type, shared)
     const venueMsg = buildVenueMessage(event_type, { ...shared, items: order.order_items })
 
-    if (clientMsg && order.customer?.whatsapp) {
-      sends.push(sendWA(supabaseUrl, serviceKey, order.customer.whatsapp, clientMsg))
-    }
+    const toggleKey = eventToToggle[event_type]
+    const toggleOn = !toggleKey || waToggles[toggleKey as keyof typeof waToggles] !== false
 
-    if (venueMsg && order.venue?.notify_whatsapp) {
-      sends.push(sendWA(supabaseUrl, serviceKey, order.venue.notify_whatsapp, venueMsg))
+    if (toggleOn) {
+      if (clientMsg && order.customer?.whatsapp) {
+        sends.push(sendWA(supabaseUrl, serviceKey, order.customer.whatsapp, clientMsg))
+      }
+      if (venueMsg && order.venue?.notify_whatsapp) {
+        sends.push(sendWA(supabaseUrl, serviceKey, order.venue.notify_whatsapp, venueMsg))
+      }
     }
 
     await Promise.allSettled(sends)
 
-    return new Response(JSON.stringify({
-      ok: true,
-      sent: sends.length,
-      debug: {
-        customerWhatsapp: order.customer?.whatsapp ?? null,
-        venueNotifyWhatsapp: order.venue?.notify_whatsapp ?? null,
-        clientMsgBuilt: !!clientMsg,
-        venueMsgBuilt: !!venueMsg,
-      }
-    }), {
+    return new Response(JSON.stringify({ ok: true, sent: sends.length }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {

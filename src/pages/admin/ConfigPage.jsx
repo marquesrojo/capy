@@ -59,6 +59,10 @@ const MI_LOCAL_ITEMS = [
     icon: <svg {...ICON_PROPS}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
   },
   {
+    to: '/admin/whatsapp', label: 'WhatsApp', desc: 'Alertas automáticas y campañas', adminOnly: true,
+    icon: <svg {...ICON_PROPS}><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.86 9.86 0 0 0 12.04 2" fill="none"/></svg>
+  },
+  {
     to: '/admin/kpis', label: 'KPIs', desc: 'Facturación y rendimiento', adminOnly: true,
     icon: <svg {...ICON_PROPS}><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
   },
