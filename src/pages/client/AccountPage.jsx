@@ -275,9 +275,12 @@ export default function AccountPage() {
                     value={editWhatsapp}
                     onChange={e => setEditWhatsapp(e.target.value)}
                     className="w-full bg-carbon-950 border border-carbon-700 rounded-xl px-3 py-2 text-smoke-200 text-sm outline-none focus:border-ember-500"
-                    placeholder="+54 9 ..."
+                    placeholder="+54 9 11 ..."
                     type="tel"
                   />
+                  <p className="text-smoke-600 text-[10px] mt-1.5">
+                    Usamos tu número para enviarte notificaciones de tus pedidos y reservas si el local tiene alertas activadas.
+                  </p>
                 </div>
                 {saveError && <p className="text-red-500 text-xs">{saveError}</p>}
                 <div className="flex gap-2 pt-1">
@@ -301,8 +304,10 @@ export default function AccountPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-smoke-200 font-semibold text-base leading-tight">{customer.full_name}</p>
-                    {customer.whatsapp && (
+                    {customer.whatsapp ? (
                       <p className="text-smoke-500 text-xs mt-0.5">{customer.whatsapp}</p>
+                    ) : (
+                      <p className="text-amber-500 text-xs mt-0.5">Sin WhatsApp — tocá Editar para agregarlo</p>
                     )}
                   </div>
                   <button onClick={startEdit} className="text-ember-500 text-xs font-bold shrink-0 mt-0.5">
