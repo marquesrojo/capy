@@ -25,6 +25,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
   const activeVenueIdRef = useRef(venueId)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [refreshDone, setRefreshDone] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [lastOrder, setLastOrder] = useState(null)
   const [staffId, setStaffId] = useState(null)
@@ -66,11 +67,12 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
     }
   }, [prefillLocation])
 
-  async function fetchCarta(vid) {
+  async function fetchCarta(vid, resetCategory = false) {
     const vId = vid ?? activeVenueId
     const [catRes, prodRes, staffRes, zoneRes, notesRes, menuRes, discountsRes, payMethodsRes] = await Promise.all([
       supabaseStaff.from('categories').select('id, name, menu_id').eq('venue_id', vId).order('sort_order'),
-      supabaseStaff.from('products').select('id, name, price, category_id, is_daily_special').eq('venue_id', vId).eq('is_available', true).eq('is_ingredient_only', false),
+      // is_ingredient_only may be NULL in older rows — treat NULL as false
+      supabaseStaff.from('products').select('id, name, price, category_id, is_daily_special').eq('venue_id', vId).eq('is_available', true).or('is_ingredient_only.is.null,is_ingredient_only.eq.false'),
       supabaseStaff.from('staff_names').select('id').eq('venue_id', venueId).limit(1).maybeSingle(),
       supabaseStaff.from('venue_zones').select('*').eq('venue_id', vId).eq('is_active', true).order('sort_order'),
       supabaseStaff.from('quick_notes').select('*').eq('venue_id', vId).eq('is_active', true).order('sort_order'),
@@ -89,20 +91,28 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
     setDiscounts(allDiscounts.filter(d => !d.is_cash_discount))
     setCashDiscount({ enabled: !!cashEntry, percent: cashEntry?.percent || 0 })
     setPaymentMethods(payMethodsRes.data || [])
-    if (catRes.data?.length) setActiveCategory(catRes.data[0].id)
+    if (resetCategory && catRes.data?.length) setActiveCategory(catRes.data[0].id)
   }
 
   async function loadCarta() {
     setLoading(true)
-    try { await fetchCarta() } catch (err) { console.error('loadCarta error:', err) }
+    try { await fetchCarta(undefined, true) } catch (err) { console.error('loadCarta error:', err) }
     finally { setLoading(false) }
   }
 
   async function refreshCarta() {
     if (refreshing) return
     setRefreshing(true)
-    try { await fetchCarta() } catch (err) { console.error('refreshCarta error:', err) }
-    finally { setRefreshing(false) }
+    setRefreshDone(false)
+    try {
+      await fetchCarta()
+      setRefreshDone(true)
+      setTimeout(() => setRefreshDone(false), 1500)
+    } catch (err) {
+      console.error('refreshCarta error:', err)
+    } finally {
+      setRefreshing(false)
+    }
   }
 
   function changeQty(productId, delta) {
@@ -702,11 +712,21 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
           onClick={refreshCarta}
           disabled={refreshing}
           title="Actualizar carta"
-          className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-xl border border-black/10 bg-white text-[#8896A5] active:bg-[#E8F5F5] disabled:opacity-40"
+          className={`flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-xl border transition-colors disabled:opacity-40 ${
+            refreshDone
+              ? 'border-emerald-400 bg-emerald-50 text-emerald-500'
+              : 'border-black/10 bg-white text-[#8896A5] active:bg-[#E8F5F5]'
+          }`}
         >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={refreshing ? 'animate-spin' : ''}>
-            <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
-          </svg>
+          {refreshDone ? (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          ) : (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={refreshing ? 'animate-spin' : ''}>
+              <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
+            </svg>
+          )}
         </button>
       </div>
 
