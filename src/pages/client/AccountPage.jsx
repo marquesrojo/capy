@@ -32,6 +32,8 @@ export default function AccountPage() {
   const [editing, setEditing] = useState(false)
   const [editName, setEditName] = useState('')
   const [editWhatsapp, setEditWhatsapp] = useState('')
+  const [editUsername, setEditUsername] = useState('')
+  const [editDeliveryAddress, setEditDeliveryAddress] = useState('')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [googleError, setGoogleError] = useState('')
@@ -188,6 +190,8 @@ export default function AccountPage() {
   function startEdit() {
     setEditName(customer?.full_name || '')
     setEditWhatsapp(customer?.whatsapp || '')
+    setEditUsername(customer?.username || '')
+    setEditDeliveryAddress(customer?.delivery_address || '')
     setSaveError('')
     setEditing(true)
   }
@@ -195,7 +199,10 @@ export default function AccountPage() {
   async function saveEdit() {
     setSaving(true)
     setSaveError('')
-    const { error } = await updateCustomer(editName.trim(), editWhatsapp.trim())
+    const { error } = await updateCustomer(editName.trim(), editWhatsapp.trim(), {
+      username: editUsername.trim(),
+      deliveryAddress: editDeliveryAddress.trim(),
+    })
     setSaving(false)
     if (error) { setSaveError(error.message); return }
     setEditing(false)
@@ -260,6 +267,7 @@ export default function AccountPage() {
           <div className="bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-4 space-y-3">
             {editing ? (
               <>
+                <p className="text-smoke-300 font-semibold text-sm">Editar perfil</p>
                 <div>
                   <label className="text-smoke-500 text-[10px] font-bold uppercase tracking-wide block mb-1">Nombre</label>
                   <input
@@ -270,6 +278,18 @@ export default function AccountPage() {
                   />
                 </div>
                 <div>
+                  <label className="text-smoke-500 text-[10px] font-bold uppercase tracking-wide block mb-1">Usuario</label>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-smoke-500 text-sm">@</span>
+                    <input
+                      value={editUsername}
+                      onChange={e => setEditUsername(e.target.value.replace(/[^a-z0-9._]/gi, '').toLowerCase())}
+                      className="flex-1 bg-carbon-950 border border-carbon-700 rounded-xl px-3 py-2 text-smoke-200 text-sm outline-none focus:border-ember-500"
+                      placeholder="tunombre"
+                    />
+                  </div>
+                </div>
+                <div>
                   <label className="text-smoke-500 text-[10px] font-bold uppercase tracking-wide block mb-1">WhatsApp</label>
                   <input
                     value={editWhatsapp}
@@ -278,9 +298,17 @@ export default function AccountPage() {
                     placeholder="+54 9 11 ..."
                     type="tel"
                   />
-                  <p className="text-smoke-600 text-[10px] mt-1.5">
-                    Usamos tu número para enviarte notificaciones de tus pedidos y reservas si el local tiene alertas activadas.
-                  </p>
+                  <p className="text-smoke-600 text-[10px] mt-1">Para notificaciones de pedidos y reservas.</p>
+                </div>
+                <div>
+                  <label className="text-smoke-500 text-[10px] font-bold uppercase tracking-wide block mb-1">Dirección de delivery</label>
+                  <input
+                    value={editDeliveryAddress}
+                    onChange={e => setEditDeliveryAddress(e.target.value)}
+                    className="w-full bg-carbon-950 border border-carbon-700 rounded-xl px-3 py-2 text-smoke-200 text-sm outline-none focus:border-ember-500"
+                    placeholder="Av. Corrientes 1234, CABA"
+                  />
+                  <p className="text-smoke-600 text-[10px] mt-1">Se usa como dirección predeterminada al pedir delivery.</p>
                 </div>
                 {saveError && <p className="text-red-500 text-xs">{saveError}</p>}
                 <div className="flex gap-2 pt-1">
@@ -302,17 +330,42 @@ export default function AccountPage() {
             ) : (
               <>
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-smoke-200 font-semibold text-base leading-tight">{customer.full_name}</p>
-                    {customer.whatsapp ? (
-                      <p className="text-smoke-500 text-xs mt-0.5">{customer.whatsapp}</p>
-                    ) : (
-                      <p className="text-amber-500 text-xs mt-0.5">Sin WhatsApp — tocá Editar para agregarlo</p>
-                    )}
-                  </div>
-                  <button onClick={startEdit} className="text-ember-500 text-xs font-bold shrink-0 mt-0.5">
+                  <p className="text-smoke-300 font-semibold text-sm">Perfil</p>
+                  <button onClick={startEdit} className="text-ember-500 text-xs font-bold shrink-0">
                     Editar
                   </button>
+                </div>
+
+                <div className="space-y-2.5">
+                  {/* Nombre */}
+                  <div className="flex items-center gap-3">
+                    <span className="text-smoke-500 text-xs w-20 shrink-0">Nombre</span>
+                    <span className="text-smoke-200 text-sm font-medium">{customer.full_name}</span>
+                  </div>
+                  {/* Usuario */}
+                  <div className="flex items-center gap-3">
+                    <span className="text-smoke-500 text-xs w-20 shrink-0">Usuario</span>
+                    {customer.username
+                      ? <span className="text-smoke-300 text-sm">@{customer.username}</span>
+                      : <span className="text-smoke-600 text-xs italic">Sin usuario</span>
+                    }
+                  </div>
+                  {/* WhatsApp */}
+                  <div className="flex items-center gap-3">
+                    <span className="text-smoke-500 text-xs w-20 shrink-0">WhatsApp</span>
+                    {customer.whatsapp
+                      ? <span className="text-smoke-300 text-sm">{customer.whatsapp}</span>
+                      : <span className="text-amber-500 text-xs">Sin número — agregalo para recibir alertas</span>
+                    }
+                  </div>
+                  {/* Dirección */}
+                  <div className="flex items-start gap-3">
+                    <span className="text-smoke-500 text-xs w-20 shrink-0 pt-0.5">Dirección</span>
+                    {customer.delivery_address
+                      ? <span className="text-smoke-300 text-sm">{customer.delivery_address}</span>
+                      : <span className="text-smoke-600 text-xs italic">Sin dirección</span>
+                    }
+                  </div>
                 </div>
 
                 {isAnonymous ? (

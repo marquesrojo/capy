@@ -86,14 +86,19 @@ export function CustomerProvider({ children }) {
   // "Olvidarse" en este dispositivo: cierra la sesion anonima actual.
   // La proxima vez que entre, se crea una sesion anonima nueva y se le
   // vuelve a pedir nombre+whatsapp.
-  async function updateCustomer(fullName, whatsapp) {
+  async function updateCustomer(fullName, whatsapp, { username, deliveryAddress } = {}) {
     const { data: sessionData } = await supabaseCustomer.auth.getSession()
     const userId = sessionData.session?.user?.id
     if (!userId) return { error: new Error('Sin sesion activa') }
 
     const { data, error } = await supabaseCustomer
       .from('customers')
-      .update({ full_name: fullName, whatsapp })
+      .update({
+        full_name: fullName,
+        whatsapp,
+        ...(username !== undefined && { username: username || null }),
+        ...(deliveryAddress !== undefined && { delivery_address: deliveryAddress || null }),
+      })
       .eq('id', userId)
       .select()
       .single()
