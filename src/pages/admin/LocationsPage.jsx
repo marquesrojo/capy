@@ -38,11 +38,12 @@ export default function LocationsPage() {
       .then(({ data }) => { if (data) setClientMapEnabled(data.client_floor_map_enabled) })
     supabaseStaff
       .from('staff_names')
-      .select('id, full_name, whatsapp_number')
+      .select('id, full_name')
       .eq('venue_id', venueId)
       .order('full_name')
       .then(({ data, error }) => {
         if (error) console.error('staff_names query error:', error)
+        else console.log('staff_names loaded:', data)
         setStaffNames(data || [])
       })
   }, [venueId])
@@ -391,9 +392,7 @@ function ZoneRow({ zone, onToggle, onRename, parentZones = [], onReassign, onRes
             >
               <option value="">Sin asignar</option>
               {staffList.map(s => (
-                <option key={s.id} value={s.id}>
-                  {s.full_name}{s.whatsapp_number ? '' : ' ⚠️ sin WA'}
-                </option>
+                <option key={s.id} value={s.id}>{s.full_name}</option>
               ))}
             </select>
           )}
