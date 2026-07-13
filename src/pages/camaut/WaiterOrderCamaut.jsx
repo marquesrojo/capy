@@ -24,6 +24,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
   })
   const activeVenueIdRef = useRef(venueId)
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [lastOrder, setLastOrder] = useState(null)
   const [staffId, setStaffId] = useState(null)
@@ -34,11 +35,6 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
   const [menuQrModal, setMenuQrModal] = useState(null) // { slug, name }
   const [showCategorySheet, setShowCategorySheet] = useState(false)
   const [showLocationSheet, setShowLocationSheet] = useState(false)
-  const [voiceState, setVoiceState] = useState(null) // null | 'listening' | 'processing' | 'results'
-  const [voiceTranscript, setVoiceTranscript] = useState('')
-  const [voiceResults, setVoiceResults] = useState([])
-  const [voiceZone, setVoiceZone] = useState(null)
-  const recognitionRef = useRef(null)
   const [discounts, setDiscounts] = useState([])
   const [selectedDiscount, setSelectedDiscount] = useState(null)
   const [paymentMethods, setPaymentMethods] = useState([])
@@ -57,70 +53,6 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
     localStorage.setItem(`capy_ctx_${venueId}`, id)
   }
 
-  function startVoice() {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!SR) {
-      alert('Tu navegador no soporta dictado por voz. Usá Chrome.')
-      return
-    }
-    const r = new SR()
-    r.lang = 'es-AR'
-    r.continuous = false
-    r.interimResults = true
-    let finalTranscript = ''
-
-    r.onresult = (e) => {
-      let interim = ''
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) finalTranscript += e.results[i][0].transcript
-        else interim += e.results[i][0].transcript
-      }
-      setVoiceTranscript(finalTranscript + interim)
-    }
-
-    r.onend = async () => {
-      recognitionRef.current = null
-      if (!finalTranscript.trim()) { setVoiceState(null); return }
-      setVoiceState('processing')
-      try {
-        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-voice-order`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` },
-          body: JSON.stringify({
-            transcript: finalTranscript,
-            venue_id: activeVenueId,
-            zones: zones.filter(z => z.type === 'mesa').map(z => ({ id: z.id, name: z.name }))
-          })
-        })
-        const data = await res.json()
-        setVoiceResults(data.items || [])
-        if (data.zone_id) {
-          const matched = zones.find(z => z.id === data.zone_id)
-          setVoiceZone(matched || null)
-        } else {
-          setVoiceZone(null)
-        }
-      } catch {
-        setVoiceResults([])
-        setVoiceZone(null)
-      }
-      setVoiceState('results')
-    }
-
-    r.onerror = () => { recognitionRef.current = null; setVoiceState(null) }
-
-    recognitionRef.current = r
-    setVoiceTranscript('')
-    setVoiceResults([])
-    setVoiceZone(null)
-    setVoiceState('listening')
-    r.start()
-  }
-
-  function stopVoice() {
-    recognitionRef.current?.stop()
-  }
-
   useEffect(() => {
     activeVenueIdRef.current = activeVenueId
     if (activeVenueId) loadCarta()
@@ -134,36 +66,43 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
     }
   }, [prefillLocation])
 
+  async function fetchCarta(vid) {
+    const vId = vid ?? activeVenueId
+    const [catRes, prodRes, staffRes, zoneRes, notesRes, menuRes, discountsRes, payMethodsRes] = await Promise.all([
+      supabaseStaff.from('categories').select('id, name, menu_id').eq('venue_id', vId).order('sort_order'),
+      supabaseStaff.from('products').select('id, name, price, category_id, is_daily_special').eq('venue_id', vId).eq('is_available', true).eq('is_ingredient_only', false),
+      supabaseStaff.from('staff_names').select('id').eq('venue_id', venueId).limit(1).maybeSingle(),
+      supabaseStaff.from('venue_zones').select('*').eq('venue_id', vId).eq('is_active', true).order('sort_order'),
+      supabaseStaff.from('quick_notes').select('*').eq('venue_id', vId).eq('is_active', true).order('sort_order'),
+      supabaseStaff.from('staff_menus').select('*').eq('venue_id', vId).order('created_at'),
+      supabaseStaff.from('venue_discounts').select('*').eq('venue_id', vId).eq('is_active', true).order('created_at'),
+      supabaseStaff.from('payment_methods').select('id, name').eq('venue_id', vId).eq('is_active', true).order('sort_order')
+    ])
+    setCategories(catRes.data || [])
+    setProducts(prodRes.data || [])
+    setStaffId(staffRes.data?.id || null)
+    setZones(zoneRes.data || [])
+    setQuickNotes(notesRes.data || [])
+    setMenus(menuRes.data || [])
+    const allDiscounts = discountsRes.data || []
+    const cashEntry = allDiscounts.find(d => d.is_cash_discount)
+    setDiscounts(allDiscounts.filter(d => !d.is_cash_discount))
+    setCashDiscount({ enabled: !!cashEntry, percent: cashEntry?.percent || 0 })
+    setPaymentMethods(payMethodsRes.data || [])
+    if (catRes.data?.length) setActiveCategory(catRes.data[0].id)
+  }
+
   async function loadCarta() {
     setLoading(true)
-    try {
-      const [catRes, prodRes, staffRes, zoneRes, notesRes, menuRes, discountsRes, payMethodsRes] = await Promise.all([
-        supabaseStaff.from('categories').select('id, name, menu_id').eq('venue_id', activeVenueId).order('sort_order'),
-        supabaseStaff.from('products').select('id, name, price, category_id, is_daily_special').eq('venue_id', activeVenueId).eq('is_available', true),
-        supabaseStaff.from('staff_names').select('id').eq('venue_id', venueId).limit(1).maybeSingle(),
-        supabaseStaff.from('venue_zones').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order'),
-        supabaseStaff.from('quick_notes').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order'),
-        supabaseStaff.from('staff_menus').select('*').eq('venue_id', activeVenueId).order('created_at'),
-        supabaseStaff.from('venue_discounts').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('created_at'),
-        supabaseStaff.from('payment_methods').select('id, name').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order')
-      ])
-      setCategories(catRes.data || [])
-      setProducts(prodRes.data || [])
-      setStaffId(staffRes.data?.id || null)
-      setZones(zoneRes.data || [])
-      setQuickNotes(notesRes.data || [])
-      setMenus(menuRes.data || [])
-      const allDiscounts = discountsRes.data || []
-      const cashEntry = allDiscounts.find(d => d.is_cash_discount)
-      setDiscounts(allDiscounts.filter(d => !d.is_cash_discount))
-      setCashDiscount({ enabled: !!cashEntry, percent: cashEntry?.percent || 0 })
-      setPaymentMethods(payMethodsRes.data || [])
-      if (catRes.data?.length) setActiveCategory(catRes.data[0].id)
-    } catch (err) {
-      console.error('loadCarta error:', err)
-    } finally {
-      setLoading(false)
-    }
+    try { await fetchCarta() } catch (err) { console.error('loadCarta error:', err) }
+    finally { setLoading(false) }
+  }
+
+  async function refreshCarta() {
+    if (refreshing) return
+    setRefreshing(true)
+    try { await fetchCarta() } catch (err) { console.error('refreshCarta error:', err) }
+    finally { setRefreshing(false) }
   }
 
   function changeQty(productId, delta) {
@@ -739,18 +678,8 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
         </div>
       )}
 
-      {/* Buscador + botones */}
+      {/* Buscador + refresh */}
       <div className="flex-shrink-0 px-4 pt-3 pb-1 flex gap-2 items-center">
-        <button
-          onClick={loadCarta}
-          disabled={loading}
-          title="Actualizar carta"
-          className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-xl border border-black/10 bg-white text-[#8896A5] disabled:opacity-40"
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={loading ? 'animate-spin' : ''}>
-            <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
-          </svg>
-        </button>
         <div className="relative flex-1">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-[#B0BEC5]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -770,17 +699,14 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
           )}
         </div>
         <button
-          onClick={startVoice}
-          className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-sm font-semibold bg-white border-black/10 text-[#008080] transition-colors"
-          title="Comanda por voz con IA"
+          onClick={refreshCarta}
+          disabled={refreshing}
+          title="Actualizar carta"
+          className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-xl border border-black/10 bg-white text-[#8896A5] active:bg-[#E8F5F5] disabled:opacity-40"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-            <line x1="12" y1="19" x2="12" y2="23"/>
-            <line x1="8" y1="23" x2="16" y2="23"/>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={refreshing ? 'animate-spin' : ''}>
+            <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
           </svg>
-          IA
         </button>
       </div>
 
@@ -983,165 +909,6 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
         </div>
       )}
 
-      {/* Overlay de dictado por voz */}
-      {voiceState && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end">
-          <div className="absolute inset-0 bg-black/40" onClick={() => { stopVoice(); setVoiceState(null) }} />
-          <div className="relative bg-white rounded-t-3xl px-5 pt-4 pb-10 z-10">
-            <div className="w-10 h-1 bg-[#D0D9E0] rounded-full mx-auto mb-5" />
-
-            {voiceState === 'listening' && (
-              <div className="text-center py-2">
-                <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4 animate-pulse">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                    <line x1="12" y1="19" x2="12" y2="23"/>
-                    <line x1="8" y1="23" x2="16" y2="23"/>
-                  </svg>
-                </div>
-                <p className="text-[#1A2A3A] font-bold text-base mb-1">Hablá ahora...</p>
-                <p className="text-[#8896A5] text-sm mb-4">Dictá los ítems del pedido</p>
-                {voiceTranscript && (
-                  <p className="text-[#3A4A5A] text-sm mb-5 px-4 italic bg-[#F8FAFC] rounded-xl py-3 text-left">
-                    "{voiceTranscript}"
-                  </p>
-                )}
-                <button
-                  onClick={stopVoice}
-                  className="bg-[#1A2A3A] text-white font-bold py-3 px-10 rounded-2xl text-sm"
-                >
-                  Listo
-                </button>
-              </div>
-            )}
-
-            {voiceState === 'processing' && (
-              <div className="text-center py-6">
-                <div className="w-16 h-16 rounded-full bg-[#008080]/10 flex items-center justify-center mx-auto mb-4">
-                  <svg className="animate-spin text-[#008080]" width="28" height="28" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.2"/>
-                    <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
-                  </svg>
-                </div>
-                <p className="text-[#1A2A3A] font-bold text-base mb-1">Procesando con IA...</p>
-                {voiceTranscript && (
-                  <p className="text-[#8896A5] text-sm italic px-4">"{voiceTranscript}"</p>
-                )}
-              </div>
-            )}
-
-            {voiceState === 'results' && (
-              <div>
-                <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">
-                  {voiceResults.length > 0
-                    ? `${voiceResults.length} ítem${voiceResults.length !== 1 ? 's' : ''} reconocido${voiceResults.length !== 1 ? 's' : ''}`
-                    : 'Sin resultados'}
-                </p>
-
-                {voiceZone && (
-                  <div className="flex items-center gap-2 bg-[#E8F5F0] rounded-xl px-4 py-2.5 mb-3">
-                    <PinIcon size={14} className="text-[#008080] flex-shrink-0" />
-                    <span className="text-[#008080] font-bold text-sm">{voiceZone.name}</span>
-                    <span className="text-[#8896A5] text-xs ml-auto">auto-detectada</span>
-                  </div>
-                )}
-
-                {voiceResults.length === 0 ? (
-                  <div className="text-center py-4">
-                    <p className="text-[#3A4A5A] text-sm mb-5">No reconocí ningún producto de la carta.</p>
-                    <button
-                      onClick={startVoice}
-                      className="text-[#008080] font-semibold text-sm border border-[#008080]/30 px-5 py-2.5 rounded-xl"
-                    >
-                      Intentar de nuevo
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
-                    {voiceResults.map((item, idx) => (
-                      <div key={item.product_id} className="bg-[#F8FAFC] rounded-xl px-4 py-3 border border-black/5">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <div className="flex-1 min-w-0 pr-3">
-                            <p className="text-sm font-semibold text-[#1A2A3A]">{item.product_name}</p>
-                            <p className="text-xs text-[#008080] font-semibold">{formatPrice(item.product_price)}</p>
-                          </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <button
-                              onClick={() => setVoiceResults(prev => prev.map((r, i) => i === idx ? { ...r, quantity: Math.max(1, r.quantity - 1) } : r))}
-                              className="w-8 h-8 rounded-full bg-white border border-black/10 text-[#3A4A5A] font-bold text-base flex items-center justify-center"
-                            >−</button>
-                            <span className="font-bold text-[#1A2A3A] text-base w-5 text-center">{item.quantity}</span>
-                            <button
-                              onClick={() => setVoiceResults(prev => prev.map((r, i) => i === idx ? { ...r, quantity: r.quantity + 1 } : r))}
-                              className="w-8 h-8 rounded-full bg-[#008080] text-white font-bold text-base flex items-center justify-center"
-                            >+</button>
-                          </div>
-                        </div>
-                        {quickNotes.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 mb-1.5">
-                            {quickNotes.map(qn => {
-                              const active = (item.note || '').includes(qn.label)
-                              return (
-                                <button
-                                  key={qn.id}
-                                  onClick={() => {
-                                    const current = item.note || ''
-                                    const next = active
-                                      ? current.replace(qn.label, '').replace(/,\s*,/g, ',').replace(/^,\s*|,\s*$/g, '').trim()
-                                      : current ? `${current}, ${qn.label}` : qn.label
-                                    setVoiceResults(prev => prev.map((r, i) => i === idx ? { ...r, note: next } : r))
-                                  }}
-                                  className={`text-xs px-2.5 py-1 rounded-full border ${
-                                    active ? 'bg-[#008080] text-white border-[#008080]' : 'border-black/10 text-[#8896A5]'
-                                  }`}
-                                >
-                                  {qn.label}
-                                </button>
-                              )
-                            })}
-                          </div>
-                        )}
-                        <input
-                          type="text"
-                          value={item.note || ''}
-                          onChange={e => setVoiceResults(prev => prev.map((r, i) => i === idx ? { ...r, note: e.target.value } : r))}
-                          placeholder="Nota libre..."
-                          className="w-full border border-black/10 rounded-lg px-3 py-1.5 text-xs text-[#1A2A3A] bg-white"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="flex gap-2 pt-1">
-                  <button
-                    onClick={() => setVoiceState(null)}
-                    className="flex-1 border border-black/10 text-[#8896A5] font-semibold py-3 rounded-2xl text-sm"
-                  >
-                    Cancelar
-                  </button>
-                  {voiceResults.length > 0 && (
-                    <button
-                      onClick={() => {
-                        voiceResults.forEach(item => {
-                          changeQty(item.product_id, item.quantity)
-                          if (item.note?.trim()) setItemNote(item.product_id, item.note.trim())
-                        })
-                        if (voiceZone) { setSelectedZone(voiceZone); setLocation('') }
-                        setVoiceState(null)
-                      }}
-                      className="flex-[2] bg-[#008080] text-white font-bold py-3 rounded-2xl text-sm"
-                    >
-                      Agregar al pedido
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
