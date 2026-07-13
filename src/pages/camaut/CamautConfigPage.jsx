@@ -67,6 +67,7 @@ function PerfilTab({ profile }) {
   const [linkedin, setLinkedin] = useState('')
   const [docNumber, setDocNumber] = useState('')
   const [aliasBancario, setAliasBancario] = useState('')
+  const [waPhone, setWaPhone] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [uploadError, setUploadError] = useState('')
@@ -106,6 +107,7 @@ function PerfilTab({ profile }) {
       setDocNumber(data.document_number || '')
       setAliasBancario(data.alias_bancario || '')
       setAvatarUrl(data.avatar_url || '')
+      setWaPhone(data.whatsapp_number || '')
     }
   }
 
@@ -157,7 +159,8 @@ function PerfilTab({ profile }) {
         linkedin_url: linkedin.trim() || null,
         document_number: docNumber.trim() || null,
         alias_bancario: aliasBancario.trim() || null,
-        avatar_url: avatarUrl || null
+        avatar_url: avatarUrl || null,
+        whatsapp_number: waPhone.trim() || null
       })
       .eq('id', staffData.id)
 
@@ -260,6 +263,13 @@ function PerfilTab({ profile }) {
             placeholder="Ej: matias.borges.mp"
             className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-[#F8FAFC] text-[#1A2A3A]" />
           <p className="text-[#B0BEC5] text-[10px] mt-1">Aparece en el QR del pedido para que el cliente te deje propina</p>
+        </label>
+        <label className="block">
+          <span className="text-[#8896A5] text-xs block mb-1.5">WhatsApp (para avisos de llamada)</span>
+          <input type="tel" value={waPhone} onChange={e => setWaPhone(e.target.value)}
+            placeholder="+54 9 11 1234 5678"
+            className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-[#F8FAFC] text-[#1A2A3A]" />
+          <p className="text-[#B0BEC5] text-[10px] mt-1">Recibís un mensaje cuando un cliente de tu mesa llama al camarero</p>
         </label>
       </div>
 
@@ -551,6 +561,7 @@ function CartaTab({ profile }) {
 function WhatsappTab({ profile }) {
   const [venueId, setVenueId] = useState(null)
   const [whatsapp, setWhatsapp] = useState('')
+  const [waiterAlertWa, setWaiterAlertWa] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -565,15 +576,21 @@ function WhatsappTab({ profile }) {
     if (!profileData?.venue_id) return
     setVenueId(profileData.venue_id)
     const { data } = await supabaseCamaut
-      .from('venues').select('whatsapp_number').eq('id', profileData.venue_id).single()
-    if (data) setWhatsapp(data.whatsapp_number || '')
+      .from('venues').select('whatsapp_number, waiter_alert_whatsapp').eq('id', profileData.venue_id).single()
+    if (data) {
+      setWhatsapp(data.whatsapp_number || '')
+      setWaiterAlertWa(data.waiter_alert_whatsapp || '')
+    }
   }
 
   async function handleSave(e) {
     e.preventDefault()
     if (!venueId) return
     setSaving(true)
-    await supabaseCamaut.from('venues').update({ whatsapp_number: whatsapp.trim() }).eq('id', venueId)
+    await supabaseCamaut.from('venues').update({
+      whatsapp_number: whatsapp.trim() || null,
+      waiter_alert_whatsapp: waiterAlertWa.trim() || null,
+    }).eq('id', venueId)
     setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
@@ -581,16 +598,29 @@ function WhatsappTab({ profile }) {
 
   return (
     <form onSubmit={handleSave} className="space-y-4">
-      <div className="bg-white rounded-2xl p-5 border border-black/5 shadow-sm">
-        <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-1">WhatsApp de cocina</p>
-        <p className="text-[#B0BEC5] text-xs mb-4">Las comandas se envían a este número</p>
-        <input
-          type="tel"
-          value={whatsapp}
-          onChange={e => setWhatsapp(e.target.value)}
-          placeholder="+54 9 11 1234 5678"
-          className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-[#F8FAFC] text-[#1A2A3A]"
-        />
+      <div className="bg-white rounded-2xl p-5 border border-black/5 shadow-sm space-y-4">
+        <div>
+          <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-1">WhatsApp de cocina</p>
+          <p className="text-[#B0BEC5] text-xs mb-3">Las comandas se envían a este número</p>
+          <input
+            type="tel"
+            value={whatsapp}
+            onChange={e => setWhatsapp(e.target.value)}
+            placeholder="+54 9 11 1234 5678"
+            className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-[#F8FAFC] text-[#1A2A3A]"
+          />
+        </div>
+        <div>
+          <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-1">WhatsApp para llamadas al camarero</p>
+          <p className="text-[#B0BEC5] text-xs mb-3">Número de respaldo si la mesa no tiene camarero asignado</p>
+          <input
+            type="tel"
+            value={waiterAlertWa}
+            onChange={e => setWaiterAlertWa(e.target.value)}
+            placeholder="+54 9 11 1234 5678"
+            className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-[#F8FAFC] text-[#1A2A3A]"
+          />
+        </div>
       </div>
       {saved && <p className="text-emerald-600 text-xs text-center">¡Guardado!</p>}
       <button type="submit" disabled={saving}

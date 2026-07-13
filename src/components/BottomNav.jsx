@@ -80,6 +80,9 @@ export default function BottomNav() {
       zone_id: zoneId,
       location_label: locationLabel,
     })
+    supabaseCustomer.functions.invoke('notify-waiter-call', {
+      body: { zone_id: zoneId, venue_id: venueId, location_label: locationLabel },
+    }).catch(() => {})
     setCallLoading(false)
     setCallSent(true)
   }
