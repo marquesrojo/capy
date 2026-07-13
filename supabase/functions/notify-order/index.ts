@@ -193,7 +193,16 @@ Deno.serve(async (req) => {
 
     await Promise.allSettled(sends)
 
-    return new Response(JSON.stringify({ ok: true, sent: sends.length }), {
+    return new Response(JSON.stringify({
+      ok: true,
+      sent: sends.length,
+      debug: {
+        customerWhatsapp: order.customer?.whatsapp ?? null,
+        venueNotifyWhatsapp: order.venue?.notify_whatsapp ?? null,
+        clientMsgBuilt: !!clientMsg,
+        venueMsgBuilt: !!venueMsg,
+      }
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {
