@@ -359,6 +359,7 @@ function PagosTab() {
   const [savedWa, setSavedWa] = useState(false)
   const [waTestLoading, setWaTestLoading] = useState(false)
   const [waTestResult, setWaTestResult] = useState(null)
+  const [waTestOrderId, setWaTestOrderId] = useState('')
 
   useEffect(() => {
     supabaseStaff
@@ -426,6 +427,28 @@ function PagosTab() {
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({ to: '5491122497772', message: '✅ Test de WA desde Capy SuperAdmin — configuración OK.' }),
+      })
+      const data = await res.json()
+      setWaTestResult({ ok: res.ok, status: res.status, data })
+    } catch (e) {
+      setWaTestResult({ ok: false, error: e.message })
+    }
+    setWaTestLoading(false)
+  }
+
+  async function testNotifyOrder() {
+    if (!waTestOrderId.trim()) return
+    setWaTestLoading(true)
+    setWaTestResult(null)
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ order_id: waTestOrderId.trim(), event_type: 'created' }),
       })
       const data = await res.json()
       setWaTestResult({ ok: res.ok, status: res.status, data })
@@ -555,9 +578,28 @@ function PagosTab() {
               {waTestLoading ? 'Probando...' : 'Probar WA'}
             </button>
           </div>
+          <div className="pt-1 border-t border-carbon-700">
+            <p className="text-smoke-400 text-xs mb-1">Probar notify-order con un pedido real</p>
+            <p className="text-smoke-500 text-[11px] mb-2">Supabase → Table Editor → orders → copiar un ID de pedido reciente</p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={waTestOrderId}
+                onChange={e => setWaTestOrderId(e.target.value)}
+                placeholder="uuid del pedido..."
+                className="input flex-1 font-mono text-xs"
+              />
+              <button
+                onClick={testNotifyOrder}
+                disabled={waTestLoading || !waTestOrderId.trim()}
+                className="bg-carbon-700 hover:bg-carbon-600 disabled:opacity-40 text-smoke-300 font-semibold px-3 py-2 rounded-xl text-sm whitespace-nowrap"
+              >
+                {waTestLoading ? '...' : 'Probar pedido'}
+              </button>
+            </div>
+          </div>
           {waTestResult && (
             <div className={`rounded-xl p-3 text-xs font-mono whitespace-pre-wrap break-all ${waTestResult.ok ? 'bg-emerald-900/40 text-emerald-300' : 'bg-red-900/40 text-red-300'}`}>
-              {waTestResult.orderNumber && <p className="mb-1 font-sans font-semibold">Pedido #{waTestResult.orderNumber}</p>}
               {waTestResult.status && <p className="mb-1 font-sans text-smoke-400">HTTP {waTestResult.status}</p>}
               {JSON.stringify(waTestResult.data ?? waTestResult.error, null, 2)}
             </div>
