@@ -146,8 +146,7 @@ export default function MenuEditorPage() {
               </button>
             </div>
 
-            <ImportarConIA venueId={venueId} onImported={loadAll} unlimited={unlimitedPhotos} />
-            <FotosConIA venueId={venueId} products={products.filter(p => !p.is_ingredient_only)} onUpdated={loadAll} unlimited={unlimitedPhotos} extraCredits={extraCredits} onExtraCreditsChanged={setExtraCredits} isSuperAdmin={isSuperAdmin} photoPackPrice={photoPackPrice} />
+            {/* ImportarConIA y FotosConIA — ocultos mientras Gemini API no está disponible */}
 
             {showCategoryForm && (
               <NewCategoryForm
@@ -407,13 +406,7 @@ function IngredientsPanel({ productId, productName, productDescription, currentI
     <div className="px-3 pb-3 pt-1 border-t border-carbon-800 mt-1 space-y-2">
       <div className="flex items-center justify-between">
         <p className="text-smoke-500 text-[10px] uppercase tracking-wide font-medium">Ingredientes por porción</p>
-        <button
-          onClick={suggestWithAI}
-          disabled={suggesting}
-          className="text-[10px] text-ember-500 underline disabled:opacity-50"
-        >
-          {suggesting ? 'Consultando IA...' : 'Sugerir con IA'}
-        </button>
+        {/* Sugerir con IA — oculto mientras Gemini API no está disponible */}
       </div>
 
       {foundPhoto && (
@@ -773,19 +766,7 @@ function ProductRow({ product, venueId, categories, allProducts = [], onToggle, 
           >
             {product.is_available ? 'Disp.' : 'Agot.'}
           </button>
-          <button
-            onClick={searchPhoto}
-            disabled={photoSearching}
-            title="Buscar foto con IA"
-            className="text-[10px] font-semibold text-smoke-500 hover:text-ember-500 disabled:opacity-40 transition-colors flex items-center gap-0.5"
-          >
-            {photoSearching ? (
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-            ) : (
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            )}
-            IA
-          </button>
+          {/* Buscar foto con IA — oculto mientras Gemini API no está disponible */}
           <button
             onClick={() => { setShowIngredients(v => !v); setEditing(false) }}
             className={`text-xs underline ${showIngredients ? 'text-ember-500' : 'text-smoke-500'}`}

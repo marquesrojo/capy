@@ -234,17 +234,7 @@ export default function MenuPage() {
           </div>
         </div>
 
-        {/* Recommend button */}
-        <button
-          onClick={() => setShowRecommend(true)}
-          className="mt-2 w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all active:scale-[0.98]"
-          style={{ backgroundColor: `${accentText}15`, color: accentText }}
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-          </svg>
-          ¿No sabés qué comer? Te recomendamos algo
-        </button>
+        {/* Recommend button — hidden while Gemini API is unavailable */}
       </header>
 
       {search ? (
@@ -380,14 +370,7 @@ export default function MenuPage() {
 
       <BottomNav />
 
-      {showRecommend && (
-        <RecommendModal
-          venueId={ACTIVE_VENUE_ID}
-          accentColor={contentAccent}
-          onAddToCart={handleRecommendAdd}
-          onClose={() => setShowRecommend(false)}
-        />
-      )}
+      {/* RecommendModal — hidden while Gemini API is unavailable */}
     </div>
   )
 }

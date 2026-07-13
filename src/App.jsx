@@ -61,9 +61,8 @@ import UpgradeResultPage from './pages/admin/UpgradeResultPage'
 import WhatsAppPage from './pages/admin/WhatsAppPage'
 
 function CapyChatOverlay() {
-  const location = useLocation()
-  if (!location.pathname.startsWith('/admin')) return null
-  return <CapyChat />
+  // Oculto mientras Gemini API no está disponible
+  return null
 }
 
 function VenueGuard() {
