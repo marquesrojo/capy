@@ -347,21 +347,29 @@ function SoporteTab() {
 function PagosTab() {
   const [mpToken, setMpToken] = useState('')
   const [photoPackPrice, setPhotoPackPrice] = useState('')
+  const [waPhoneNumberId, setWaPhoneNumberId] = useState('')
+  const [waAccessToken, setWaAccessToken] = useState('')
+  const [waEnabled, setWaEnabled] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [savingPrice, setSavingPrice] = useState(false)
   const [savedPrice, setSavedPrice] = useState(false)
+  const [savingWa, setSavingWa] = useState(false)
+  const [savedWa, setSavedWa] = useState(false)
 
   useEffect(() => {
     supabaseStaff
       .from('capy_settings')
-      .select('mp_access_token, photo_pack_price')
+      .select('mp_access_token, photo_pack_price, wa_phone_number_id, wa_access_token, wa_enabled')
       .eq('id', 1)
       .single()
       .then(({ data }) => {
         if (data?.mp_access_token) setMpToken(data.mp_access_token)
         if (data?.photo_pack_price != null) setPhotoPackPrice(String(data.photo_pack_price))
+        if (data?.wa_phone_number_id) setWaPhoneNumberId(data.wa_phone_number_id)
+        if (data?.wa_access_token) setWaAccessToken(data.wa_access_token)
+        if (data?.wa_enabled != null) setWaEnabled(data.wa_enabled)
         setLoading(false)
       })
   }, [])
@@ -386,6 +394,22 @@ function PagosTab() {
     setSavingPrice(false)
     setSavedPrice(true)
     setTimeout(() => setSavedPrice(false), 2000)
+  }
+
+  async function saveWa() {
+    setSavingWa(true)
+    await supabaseStaff
+      .from('capy_settings')
+      .upsert({
+        id: 1,
+        wa_phone_number_id: waPhoneNumberId.trim(),
+        wa_access_token: waAccessToken.trim(),
+        wa_enabled: waEnabled,
+        updated_at: new Date().toISOString(),
+      })
+    setSavingWa(false)
+    setSavedWa(true)
+    setTimeout(() => setSavedWa(false), 2000)
   }
 
   if (loading) return <p className="text-smoke-500 text-sm">Cargando...</p>
@@ -450,6 +474,51 @@ function PagosTab() {
         <div className="border border-carbon-700 rounded-xl px-4 py-3 opacity-40">
           <p className="text-smoke-300 text-sm font-medium">Importación con IA</p>
           <p className="text-smoke-500 text-xs mt-0.5">Próximamente</p>
+        </div>
+      </div>
+
+      <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-smoke-300 font-medium text-sm">WhatsApp Business API</p>
+            <p className="text-smoke-500 text-xs mt-0.5">Notificaciones automáticas a clientes y locales</p>
+          </div>
+          <button
+            onClick={() => setWaEnabled(v => !v)}
+            className={`relative w-11 h-6 rounded-full transition-colors ${waEnabled ? 'bg-emerald-500' : 'bg-carbon-700'}`}
+          >
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${waEnabled ? 'translate-x-5' : ''}`} />
+          </button>
+        </div>
+        <div className="space-y-3 pt-1 border-t border-carbon-700">
+          <div>
+            <p className="text-smoke-400 text-xs mb-1">Phone Number ID</p>
+            <input
+              type="text"
+              value={waPhoneNumberId}
+              onChange={e => { setWaPhoneNumberId(e.target.value); setSavedWa(false) }}
+              placeholder="1049361104917181"
+              className="input w-full font-mono text-xs"
+            />
+          </div>
+          <div>
+            <p className="text-smoke-400 text-xs mb-1">Access Token</p>
+            <p className="text-smoke-500 text-[11px] mb-1">Meta Developers → CAPY app → WhatsApp → API Setup → Generate access token</p>
+            <input
+              type="password"
+              value={waAccessToken}
+              onChange={e => { setWaAccessToken(e.target.value); setSavedWa(false) }}
+              placeholder="EAAxxxxxxxxx..."
+              className="input w-full font-mono text-xs"
+            />
+          </div>
+          <button
+            onClick={saveWa}
+            disabled={savingWa || (!waPhoneNumberId.trim() && !waAccessToken.trim())}
+            className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-semibold px-4 py-2 rounded-xl text-sm"
+          >
+            {savingWa ? 'Guardando...' : savedWa ? '✓ Guardado' : 'Guardar configuración WA'}
+          </button>
         </div>
       </div>
     </div>
