@@ -484,7 +484,11 @@ function PagosTab() {
             <p className="text-smoke-500 text-xs mt-0.5">Notificaciones automáticas a clientes y locales</p>
           </div>
           <button
-            onClick={() => setWaEnabled(v => !v)}
+            onClick={async () => {
+              const next = !waEnabled
+              setWaEnabled(next)
+              await supabaseStaff.from('capy_settings').upsert({ id: 1, wa_enabled: next, updated_at: new Date().toISOString() })
+            }}
             className={`relative w-11 h-6 rounded-full transition-colors ${waEnabled ? 'bg-emerald-500' : 'bg-carbon-700'}`}
           >
             <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${waEnabled ? 'translate-x-5' : ''}`} />
