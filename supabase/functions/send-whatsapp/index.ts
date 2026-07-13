@@ -19,9 +19,9 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const { to, message } = await req.json()
-    if (!to || !message) {
-      return new Response(JSON.stringify({ error: 'to and message are required' }), {
+    const { to, message, template } = await req.json()
+    if (!to || (!message && !template)) {
+      return new Response(JSON.stringify({ error: 'to and message or template are required' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
@@ -59,20 +59,16 @@ Deno.serve(async (req) => {
       })
     }
 
+    const waBody = template
+      ? { messaging_product: 'whatsapp', to: toNorm, type: 'template', template }
+      : { messaging_product: 'whatsapp', to: toNorm, type: 'text', text: { body: message } }
+
     const res = await fetch(
       `https://graph.facebook.com/v20.0/${phoneNumberId}/messages`,
       {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messaging_product: 'whatsapp',
-          to: toNorm,
-          type: 'text',
-          text: { body: message },
-        }),
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(waBody),
       }
     )
 

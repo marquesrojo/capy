@@ -69,7 +69,7 @@ function buildVenueMessage(event: EventType, data: {
   }
 }
 
-async function sendWA(supabaseUrl: string, serviceKey: string, to: string, message: string) {
+async function sendWA(supabaseUrl: string, serviceKey: string, to: string, message: string | null, template?: object) {
   return fetch(`${supabaseUrl}/functions/v1/send-whatsapp`, {
     method: 'POST',
     headers: {
@@ -77,7 +77,7 @@ async function sendWA(supabaseUrl: string, serviceKey: string, to: string, messa
       apikey: serviceKey,
       Authorization: `Bearer ${serviceKey}`,
     },
-    body: JSON.stringify({ to, message }),
+    body: JSON.stringify(template ? { to, template } : { to, message }),
   })
 }
 
@@ -211,8 +211,26 @@ Deno.serve(async (req) => {
     const toggleOn = !toggleKey || waToggles[toggleKey as keyof typeof waToggles] !== false
 
     if (toggleOn) {
-      if (clientMsg && order.customer?.whatsapp) {
-        sends.push(sendWA(supabaseUrl, serviceKey, order.customer.whatsapp, clientMsg))
+      if (order.customer?.whatsapp) {
+        if (event_type === 'created' && clientMsg) {
+          const firstName = (order.customer?.full_name || 'Cliente').split(' ')[0]
+          sends.push(sendWA(supabaseUrl, serviceKey, order.customer.whatsapp, null, {
+            name: 'pedido_recibido',
+            language: { code: 'es' },
+            components: [{
+              type: 'body',
+              parameters: [
+                { type: 'text', text: firstName },
+                { type: 'text', text: String(shared.orderNumber) },
+                { type: 'text', text: shared.venueName },
+                { type: 'text', text: shared.locationLabel || 'Sin especificar' },
+                { type: 'text', text: shared.total ? formatARS(shared.total) : '0' },
+              ],
+            }],
+          }))
+        } else if (clientMsg) {
+          sends.push(sendWA(supabaseUrl, serviceKey, order.customer.whatsapp, clientMsg))
+        }
       }
       if (venueMsg && order.venue?.notify_whatsapp) {
         sends.push(sendWA(supabaseUrl, serviceKey, order.venue.notify_whatsapp, venueMsg))

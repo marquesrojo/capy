@@ -105,8 +105,6 @@ Deno.serve(async (req) => {
       })
     }
 
-    const message = `🔔 Llamada al camarero\n📍 ${location_label || 'Ubicación no especificada'}`
-
     const res = await fetch(
       `https://graph.facebook.com/v20.0/${wa_phone_number_id}/messages`,
       {
@@ -118,8 +116,17 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           messaging_product: 'whatsapp',
           to: toNorm,
-          type: 'text',
-          text: { body: message },
+          type: 'template',
+          template: {
+            name: 'llamada_camarero',
+            language: { code: 'es' },
+            components: [{
+              type: 'body',
+              parameters: [
+                { type: 'text', text: location_label || 'Sin especificar' },
+              ],
+            }],
+          },
         }),
       }
     )
