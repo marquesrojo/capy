@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { data: order } = await supabase
+    const { data: order, error: orderError } = await supabase
       .from('orders')
       .select(`
         id, order_number, total, location_label, status,
@@ -167,7 +167,7 @@ Deno.serve(async (req) => {
       .single()
 
     if (!order) {
-      return new Response(JSON.stringify({ error: 'Order not found' }), {
+      return new Response(JSON.stringify({ error: 'Order not found', detail: orderError?.message, code: orderError?.code }), {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
