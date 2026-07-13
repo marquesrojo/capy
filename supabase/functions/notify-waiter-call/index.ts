@@ -19,8 +19,12 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const { zone_id, venue_id, location_label } = await req.json()
+    const body = await req.json()
+    const { zone_id, venue_id, location_label } = body
+    console.log('[notify-waiter-call] received', { zone_id, venue_id, location_label })
+
     if (!venue_id) {
+      console.log('[notify-waiter-call] missing venue_id')
       return new Response(JSON.stringify({ error: 'venue_id required' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -31,36 +35,40 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
 
-    // Determine target phone: zone's assigned waiter first, then venue fallback
     let targetPhone: string | null = null
 
     if (zone_id) {
-      const { data: zone } = await supabase
+      const { data: zone, error: zoneErr } = await supabase
         .from('venue_zones')
         .select('current_waiter_id')
         .eq('id', zone_id)
         .single()
+      console.log('[notify-waiter-call] zone lookup', { zone, zoneErr })
 
       if (zone?.current_waiter_id) {
-        const { data: waiter } = await supabase
+        const { data: waiter, error: waiterErr } = await supabase
           .from('staff_names')
           .select('whatsapp_number')
           .eq('id', zone.current_waiter_id)
           .single()
+        console.log('[notify-waiter-call] waiter lookup', { waiter, waiterErr })
 
         if (waiter?.whatsapp_number) targetPhone = waiter.whatsapp_number
       }
     }
 
     if (!targetPhone) {
-      const { data: venue } = await supabase
+      const { data: venue, error: venueErr } = await supabase
         .from('venues')
         .select('waiter_alert_whatsapp')
         .eq('id', venue_id)
         .single()
+      console.log('[notify-waiter-call] venue fallback', { venue, venueErr })
 
       if (venue?.waiter_alert_whatsapp) targetPhone = venue.waiter_alert_whatsapp
     }
+
+    console.log('[notify-waiter-call] targetPhone', targetPhone)
 
     if (!targetPhone) {
       return new Response(JSON.stringify({ skipped: true, reason: 'no_target_phone' }), {
@@ -68,11 +76,12 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { data: settings } = await supabase
+    const { data: settings, error: settingsErr } = await supabase
       .from('capy_settings')
       .select('wa_phone_number_id, wa_access_token, wa_enabled')
       .eq('id', 1)
       .single()
+    console.log('[notify-waiter-call] settings', { wa_enabled: settings?.wa_enabled, has_phone_id: !!settings?.wa_phone_number_id, has_token: !!settings?.wa_access_token, settingsErr })
 
     if (!settings?.wa_enabled) {
       return new Response(JSON.stringify({ skipped: true, reason: 'wa_disabled' }), {
@@ -88,6 +97,8 @@ Deno.serve(async (req) => {
     }
 
     const toNorm = normalizePhone(targetPhone)
+    console.log('[notify-waiter-call] normalized phone', { raw: targetPhone, normalized: toNorm })
+
     if (!toNorm) {
       return new Response(JSON.stringify({ error: 'Invalid phone number' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -114,6 +125,7 @@ Deno.serve(async (req) => {
     )
 
     const data = await res.json()
+    console.log('[notify-waiter-call] meta response', { status: res.status, data })
 
     if (!res.ok) {
       return new Response(JSON.stringify({ error: data }), {
@@ -125,6 +137,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {
+    console.log('[notify-waiter-call] exception', err.message)
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
