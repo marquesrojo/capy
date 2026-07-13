@@ -41,7 +41,10 @@ export default function LocationsPage() {
       .select('id, full_name, whatsapp_number')
       .eq('venue_id', venueId)
       .order('full_name')
-      .then(({ data }) => setStaffNames(data || []))
+      .then(({ data, error }) => {
+        if (error) console.error('staff_names query error:', error)
+        setStaffNames(data || [])
+      })
   }, [venueId])
 
   async function load() {
@@ -375,21 +378,25 @@ function ZoneRow({ zone, onToggle, onRename, parentZones = [], onReassign, onRes
         </div>
       )}
 
-      {onAssignWaiter && staffList.length > 0 && (
+      {onAssignWaiter && (
         <div className="flex items-center gap-2 mt-2.5">
           <span className="text-smoke-500 text-[10px]">Camarero:</span>
-          <select
-            value={zone.current_waiter_id || ''}
-            onChange={e => onAssignWaiter(zone, e.target.value || null)}
-            className="flex-1 text-[10px] text-smoke-300 bg-carbon-800 border border-carbon-700 rounded-lg px-2 py-1"
-          >
-            <option value="">Sin asignar</option>
-            {staffList.map(s => (
-              <option key={s.id} value={s.id}>
-                {s.full_name}{s.whatsapp_number ? '' : ' ⚠️ sin WA'}
-              </option>
-            ))}
-          </select>
+          {staffList.length === 0 ? (
+            <span className="text-smoke-600 text-[10px]">Sin camaurers registrados</span>
+          ) : (
+            <select
+              value={zone.current_waiter_id || ''}
+              onChange={e => onAssignWaiter(zone, e.target.value || null)}
+              className="flex-1 text-[10px] text-smoke-300 bg-carbon-800 border border-carbon-700 rounded-lg px-2 py-1"
+            >
+              <option value="">Sin asignar</option>
+              {staffList.map(s => (
+                <option key={s.id} value={s.id}>
+                  {s.full_name}{s.whatsapp_number ? '' : ' ⚠️ sin WA'}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
       )}
     </div>
