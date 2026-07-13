@@ -37,13 +37,18 @@ export default function LocationsPage() {
       .single()
       .then(({ data }) => { if (data) setClientMapEnabled(data.client_floor_map_enabled) })
     supabaseStaff
-      .from('staff_names')
-      .select('id, full_name')
+      .from('venue_staff')
+      .select('staff_profile_id')
       .eq('venue_id', venueId)
-      .order('full_name')
-      .then(({ data, error }) => {
-        if (error) console.error('staff_names query error:', error)
-        else console.log('staff_names loaded:', data)
+      .eq('status', 'active')
+      .then(async ({ data: linked }) => {
+        const profileIds = (linked || []).map(l => l.staff_profile_id).filter(Boolean)
+        if (!profileIds.length) { setStaffNames([]); return }
+        const { data } = await supabaseStaff
+          .from('staff_names')
+          .select('id, full_name')
+          .in('profile_id', profileIds)
+          .order('full_name')
         setStaffNames(data || [])
       })
   }, [venueId])
