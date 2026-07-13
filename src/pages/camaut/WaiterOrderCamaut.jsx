@@ -739,8 +739,18 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
         </div>
       )}
 
-      {/* Buscador + botón IA */}
+      {/* Buscador + botones */}
       <div className="flex-shrink-0 px-4 pt-3 pb-1 flex gap-2 items-center">
+        <button
+          onClick={loadCarta}
+          disabled={loading}
+          title="Actualizar carta"
+          className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-xl border border-black/10 bg-white text-[#8896A5] disabled:opacity-40"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={loading ? 'animate-spin' : ''}>
+            <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
+          </svg>
+        </button>
         <div className="relative flex-1">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-[#B0BEC5]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
