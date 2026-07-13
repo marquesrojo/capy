@@ -232,7 +232,7 @@ export default function PaymentPage() {
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({ order_id: order.id, event_type: 'created' }),
-      }).catch(() => {})
+      }).then(r => r.json().then(d => console.log('[notify-order]', r.status, d))).catch(e => console.error('[notify-order] fetch error:', e))
 
       clearCart()
       navigate(`${base}/pedido-enviado/${order.id}`)
