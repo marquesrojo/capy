@@ -1057,17 +1057,34 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
     setImageCount(files.length)
     setPreview(URL.createObjectURL(files[0]))
 
-    const readBase64 = (file) => new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = ev => resolve({ base64: ev.target.result.split(',')[1], type: file.type })
-      reader.onerror = reject
-      reader.readAsDataURL(file)
+    // Resize to max 1200px and compress to JPEG before sending — phone photos
+    // can be 5-10 MB, exceeding Edge Function body limits.
+    const resizeToBase64 = (file) => new Promise((resolve, reject) => {
+      const img = new Image()
+      const url = URL.createObjectURL(file)
+      img.onerror = reject
+      img.onload = () => {
+        URL.revokeObjectURL(url)
+        const MAX = 1200
+        const scale = Math.min(1, MAX / Math.max(img.width, img.height))
+        const canvas = document.createElement('canvas')
+        canvas.width = Math.round(img.width * scale)
+        canvas.height = Math.round(img.height * scale)
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+        canvas.toBlob(blob => {
+          const reader = new FileReader()
+          reader.onload = ev => resolve({ base64: ev.target.result.split(',')[1], type: 'image/jpeg' })
+          reader.onerror = reject
+          reader.readAsDataURL(blob)
+        }, 'image/jpeg', 0.85)
+      }
+      img.src = url
     })
 
     try {
       let combinedText = ''
       for (const file of files) {
-        const { base64, type } = await readBase64(file)
+        const { base64, type } = await resizeToBase64(file)
         const transcriptData = await geminiGenerate([{ parts: [
           { inline_data: { mime_type: type, data: base64 } },
           { text: 'Transcribí exactamente todo el texto que ves en esta imagen. Incluí nombres, precios y categorías tal como aparecen. No agregues nada extra.' }
@@ -1080,7 +1097,7 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
       if (!transcriptText) throw new Error('No se pudo leer texto de las imágenes')
 
         const isRich = mode === 'rich'
-        const multiPageNote = imageCount > 1
+        const multiPageNote = files.length > 1
           ? 'El texto proviene de varias páginas/fotos del mismo menú en orden. Una categoría que aparece al final de una página aplica a los productos de la página siguiente hasta que aparezca una nueva categoría. '
           : ''
         const dedupeNote = 'Si el mismo producto aparece más de una vez (por estar en páginas distintas o repetido), incluirlo una sola vez con el precio más reciente. '
@@ -1307,6 +1324,8 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
           </button>
         </>
       )}
+
+          <p className="text-smoke-600 text-[10px] text-center">Podés seleccionar varias fotos a la vez</p>
 
       {error && <p className="text-red-500 text-xs text-center">{error}</p>}
     </div>
