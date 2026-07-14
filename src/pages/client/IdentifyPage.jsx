@@ -182,14 +182,20 @@ export default function IdentifyPage() {
   }, [venueId])
 
   function pickSector(sector) {
+    const hasMesas = zones.some(z => z.type === 'mesa' && z.parent_zone_id === sector.id)
     if (pickedSector?.id === sector.id) {
-      setPickedSector(null)
-      setPickedZone(null)
-      setLocation(null)
+      if (!hasMesas) {
+        setPickedSector(null)
+        setPickedZone(null)
+        setLocation(null)
+      } else {
+        // Re-click on sector with mesas: reset mesa so user can pick again
+        setPickedZone(null)
+        setLocation(null)
+      }
       return
     }
     setPickedSector(sector)
-    const hasMesas = zones.some(z => z.type === 'mesa' && z.parent_zone_id === sector.id)
     if (!hasMesas) {
       setPickedZone(sector)
       setLocation({ type: sector.type, zoneId: sector.id, label: sector.name })

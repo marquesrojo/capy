@@ -30,8 +30,26 @@ export default function OrdersPage() {
     else setLoading(false)
   }, [customer, customerLoading])
 
+  // Group orders by session_id; orders without one are standalone
+  function groupBySession(orderList) {
+    const seen = new Map()
+    const groups = []
+    orderList.forEach(order => {
+      const key = order.session_id || `solo_${order.id}`
+      if (seen.has(key)) {
+        groups[seen.get(key)].push(order)
+      } else {
+        seen.set(key, groups.length)
+        groups.push([order])
+      }
+    })
+    return groups
+  }
+
   const activeOrders = orders.filter(o => ACTIVE_STATUSES.includes(o.status))
   const closedOrders = orders.filter(o => CLOSED_STATUSES.includes(o.status))
+  const activeGroups = groupBySession(activeOrders)
+  const closedGroups = groupBySession(closedOrders)
 
   return (
     <div className="min-h-screen bg-carbon-950 pb-24">
@@ -59,34 +77,85 @@ export default function OrdersPage() {
           </div>
         )}
 
-        {!loading && activeOrders.length > 0 && (
+        {!loading && activeGroups.length > 0 && (
           <div>
-            <p className="text-smoke-400 text-xs font-semibold uppercase tracking-wide mb-2">
-              En curso
-            </p>
+            <p className="text-smoke-400 text-xs font-semibold uppercase tracking-wide mb-2">En curso</p>
             <div className="space-y-2">
-              {activeOrders.map(order => (
-                <OrderRow key={order.id} order={order} onClick={() => navigate(`/pedido/${order.id}`)} />
-              ))}
+              {activeGroups.map((group, i) =>
+                group.length === 1 ? (
+                  <OrderRow key={group[0].id} order={group[0]} onClick={() => navigate(`/pedido/${group[0].id}`)} />
+                ) : (
+                  <SessionGroup key={group[0].session_id || i} group={group} onNavigate={id => navigate(`/pedido/${id}`)} />
+                )
+              )}
             </div>
           </div>
         )}
 
-        {!loading && closedOrders.length > 0 && (
+        {!loading && closedGroups.length > 0 && (
           <div>
-            <p className="text-smoke-400 text-xs font-semibold uppercase tracking-wide mb-2">
-              Históricos
-            </p>
+            <p className="text-smoke-400 text-xs font-semibold uppercase tracking-wide mb-2">Históricos</p>
             <div className="space-y-2">
-              {closedOrders.map(order => (
-                <OrderRow key={order.id} order={order} onClick={() => navigate(`/pedido/${order.id}`)} />
-              ))}
+              {closedGroups.map((group, i) =>
+                group.length === 1 ? (
+                  <OrderRow key={group[0].id} order={group[0]} onClick={() => navigate(`/pedido/${group[0].id}`)} />
+                ) : (
+                  <SessionGroup key={group[0].session_id || i} group={group} onNavigate={id => navigate(`/pedido/${id}`)} />
+                )
+              )}
             </div>
           </div>
         )}
       </main>
 
       <BottomNav />
+    </div>
+  )
+}
+
+function SessionGroup({ group, onNavigate }) {
+  const totalAmount = group.reduce((sum, o) => sum + (o.total || 0), 0)
+  const worstStatus = (() => {
+    const priority = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo', 'entregado', 'cancelado']
+    return group.map(o => o.status).sort((a, b) => priority.indexOf(a) - priority.indexOf(b))[0]
+  })()
+
+  return (
+    <div className="bg-carbon-900 border border-carbon-700 rounded-2xl overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-carbon-800 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <PinIcon size={12} className="text-smoke-500" />
+          <span className="text-smoke-300 text-xs font-semibold">{group[0].location_label}</span>
+          <span className={`text-[10px] px-2 py-0.5 rounded-full border ${STATUS_COLORS[worstStatus]}`}>
+            {STATUS_LABELS[worstStatus]}
+          </span>
+        </div>
+        <span className="font-mono text-ember-400 text-xs font-semibold">{formatPrice(totalAmount)}</span>
+      </div>
+      <div className="divide-y divide-carbon-800">
+        {group.map((order, i) => (
+          <button
+            key={order.id}
+            onClick={() => onNavigate(order.id)}
+            className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-carbon-800 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-ember-500 text-xs font-bold">
+                {order.daily_number ? `#${order.daily_number}` : `Pedido ${i + 1}`}
+              </span>
+              {order.is_addition && (
+                <span className="text-[10px] text-violet-400 font-medium">+ adición</span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`text-[10px] px-2 py-0.5 rounded-full border ${STATUS_COLORS[order.status]}`}>
+                {STATUS_LABELS[order.status]}
+              </span>
+              <span className="font-mono text-smoke-400 text-xs">{formatPrice(order.total)}</span>
+            </div>
+          </button>
+        ))}
+      </div>
     </div>
   )
 }

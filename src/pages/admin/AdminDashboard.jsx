@@ -1299,24 +1299,70 @@ function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssi
   const columnLabel = status === 'en_preparacion' ? 'Preparación' : STATUS_LABELS[status]
   const totalCount = orders.length + pendingInPersonOrders.length + paidOrders.length
 
+  // Group orders by session_id preserving sort order
+  const seen = new Map()
+  const renderItems = []
+  orders.forEach(order => {
+    if (!order.session_id) {
+      renderItems.push({ type: 'single', order })
+      return
+    }
+    if (seen.has(order.session_id)) {
+      renderItems[seen.get(order.session_id)].orders.push(order)
+    } else {
+      seen.set(order.session_id, renderItems.length)
+      renderItems.push({ type: 'group', orders: [order], sessionId: order.session_id })
+    }
+  })
+
   return (
     <div className="flex-1 min-w-80">
       <div className={`px-3 py-2 rounded-lg border text-sm font-semibold mb-3 ${STATUS_COLORS[status]}`}>
         {columnLabel} · {totalCount}
       </div>
       <div className="space-y-3">
-        {orders.map(order => (
-          <OrderCard
-            key={order.id}
-            order={order}
-            nextStatus={nextStatus}
-            prevStatus={prevStatus}
-            onUpdateStatus={onUpdateStatus}
-            onDismissCall={onDismissCall}
-            waiters={waiters}
-            onAssignWaiter={onAssignWaiter}
-          />
-        ))}
+        {renderItems.map(item => {
+          if (item.type === 'single' || item.orders.length === 1) {
+            const order = item.type === 'single' ? item.order : item.orders[0]
+            return (
+              <OrderCard
+                key={order.id}
+                order={order}
+                nextStatus={nextStatus}
+                prevStatus={prevStatus}
+                onUpdateStatus={onUpdateStatus}
+                onDismissCall={onDismissCall}
+                waiters={waiters}
+                onAssignWaiter={onAssignWaiter}
+              />
+            )
+          }
+          // Session group with multiple orders
+          return (
+            <div key={item.sessionId} className="rounded-2xl border border-violet-500/30 overflow-hidden bg-violet-500/5">
+              <div className="px-3 py-1.5 border-b border-violet-500/20">
+                <span className="text-violet-400 text-[10px] font-bold uppercase tracking-wider">
+                  Sesión · {item.orders[0].location_label} · {item.orders.length} pedidos
+                </span>
+              </div>
+              <div className="divide-y divide-carbon-800">
+                {item.orders.map(order => (
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    nextStatus={nextStatus}
+                    prevStatus={prevStatus}
+                    onUpdateStatus={onUpdateStatus}
+                    onDismissCall={onDismissCall}
+                    waiters={waiters}
+                    onAssignWaiter={onAssignWaiter}
+                    inGroup
+                  />
+                ))}
+              </div>
+            </div>
+          )
+        })}
 
         {/* Cobros dentro de Entregado */}
         {pendingInPersonOrders.length > 0 && (
@@ -1371,7 +1417,7 @@ function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssi
   )
 }
 
-function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCall, waiters, onAssignWaiter }) {
+function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCall, waiters, onAssignWaiter, inGroup }) {
   const [showWaiterSelect, setShowWaiterSelect] = useState(false)
   const [showQR, setShowQR] = useState(false)
   const elapsedMin = Math.round((Date.now() - new Date(order.created_at).getTime()) / 60000)
@@ -1396,10 +1442,15 @@ function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCal
           : 'border-carbon-700'
 
   return (
-    <div className={`bg-carbon-900 border rounded-2xl p-4 ${borderColor}`}>
-      {order.is_addition && (
+    <div className={`bg-carbon-900 p-4 ${inGroup ? '' : `border rounded-2xl ${borderColor}`}`}>
+      {order.is_addition && !inGroup && (
         <div className="flex items-center gap-1.5 mb-2 bg-violet-500/10 border border-violet-500/30 rounded-lg px-2.5 py-1.5">
           <span className="text-violet-400 text-xs font-semibold">+ ADICIÓN · misma mesa</span>
+        </div>
+      )}
+      {order.is_addition && inGroup && (
+        <div className="flex items-center gap-1 mb-2">
+          <span className="text-violet-400 text-[10px] font-bold uppercase tracking-wide">+ Ronda {order.daily_number}</span>
         </div>
       )}
       {order.status === 'listo' && (

@@ -33,7 +33,7 @@ export default function OrderConfirmedPage() {
       const [orderRes, venueRes] = await Promise.all([
         supabaseCustomer
           .from('orders')
-          .select('id, status, location_label, location_type, daily_number, created_by_staff')
+          .select('id, status, location_label, location_type, daily_number, created_by_staff, is_addition, session_id')
           .eq('id', orderId)
           .single(),
         supabaseCustomer
@@ -160,10 +160,12 @@ export default function OrderConfirmedPage() {
           </svg>
         </div>
         <h1 className="font-display text-3xl tracking-wide mb-2" style={{ color: accent }}>
-          ¡PEDIDO ENVIADO!
+          {order?.is_addition ? '¡ADICIÓN ENVIADA!' : '¡PEDIDO ENVIADO!'}
         </h1>
         <p className="text-smoke-300 text-sm mb-8">
-          Tu pedido fue enviado. En la sección Pedidos vas a poder ver su estado.
+          {order?.is_addition
+            ? `Tu nuevo pedido se sumó a la cuenta de ${order.location_label}. Podés ver todo junto en Pedidos.`
+            : 'Tu pedido fue enviado. En la sección Pedidos vas a poder ver su estado.'}
         </p>
 
         <div className="space-y-3">
