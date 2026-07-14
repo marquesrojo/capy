@@ -137,12 +137,8 @@ export default function PaymentPage() {
 
     let activeCustomer = customer
     if (!activeCustomer) {
-      if (!guestName.trim()) {
-        setError('Contanos tu nombre para continuar.')
-        return
-      }
       setSubmitting(true)
-      const { data, error: registerError } = await registerCustomer(guestName.trim(), null)
+      const { data, error: registerError } = await registerCustomer(guestName.trim() || null, null)
       if (registerError) {
         setError(`Error al guardar tus datos: ${registerError?.message || JSON.stringify(registerError)}`)
         setSubmitting(false)
@@ -304,7 +300,10 @@ export default function PaymentPage() {
 
         {!customerLoading && !customer && (
           <div className="bg-white border border-black/[0.06] rounded-2xl p-4 shadow-sm space-y-2">
-            <p className="text-[#1A2332] text-sm font-medium">¿Cómo te llamás?</p>
+            <div className="flex items-center gap-2">
+              <p className="text-[#1A2332] text-sm font-medium">¿Cómo te llamás?</p>
+              <span className="text-[10px] text-[#C0CBDA] font-medium">opcional</span>
+            </div>
             <input
               type="text"
               value={guestName}
