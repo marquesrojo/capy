@@ -657,20 +657,20 @@ export default function IdentifyPage() {
         <button
           onClick={openWaiterCall}
           className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl shadow-md border active:scale-[0.98] transition-transform bg-white"
-          style={{ borderColor: `${waiterColor}30` }}
+          style={{ borderColor: `${accentOnWhite}30` }}
         >
           <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: `${waiterColor}15` }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={waiterColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            style={{ backgroundColor: `${accentOnWhite}15` }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={accentOnWhite} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
               <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
             </svg>
           </div>
           <div className="flex-1 text-left">
-            <p className="font-black text-sm leading-tight" style={{ color: waiterColor }}>Llamar a un camarero/a</p>
+            <p className="font-black text-sm leading-tight" style={{ color: accentOnWhite }}>Llamar a un camarero/a</p>
             <p className="text-[#9DAAB8] text-xs mt-0.5">Un camarero viene a tu mesa</p>
           </div>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={waiterColor} strokeWidth="2.5" strokeOpacity="0.5">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={accentOnWhite} strokeWidth="2.5" strokeOpacity="0.5">
             <polyline points="9 18 15 12 9 6"/>
           </svg>
         </button>
