@@ -18,8 +18,11 @@ serve(async (req) => {
     const paymentId = body?.data?.id || body?.id
     const topic = body?.topic || body?.action || ''
 
+    const json = (body: unknown, status = 200) =>
+      new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+
     if (!paymentId || (!topic.includes('payment') && !topic.includes('merchant_order'))) {
-      return new Response('ignored', { status: 200, headers: corsHeaders })
+      return json({ ok: false, reason: 'ignored' })
     }
 
     const supabase = createClient(
@@ -35,7 +38,7 @@ serve(async (req) => {
 
     const accessToken = settings?.mp_access_token || Deno.env.get('MP_ACCESS_TOKEN')
     if (!accessToken) {
-      return new Response('no token', { status: 500, headers: corsHeaders })
+      return json({ ok: false, reason: 'no_token' }, 500)
     }
 
     const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
@@ -44,13 +47,13 @@ serve(async (req) => {
     const payment = await mpRes.json()
 
     if (payment.status !== 'approved') {
-      return new Response('not approved', { status: 200, headers: corsHeaders })
+      return json({ ok: false, reason: 'not_approved', status: payment.status })
     }
 
     // external_reference format: "${venueId}:extra_photos"
     const [venueId, featureKey] = (payment.external_reference || '').split(':')
     if (!venueId || featureKey !== 'extra_photos') {
-      return new Response('not extra_photos', { status: 200, headers: corsHeaders })
+      return json({ ok: false, reason: 'not_extra_photos' })
     }
 
     // Idempotency: check if this payment was already processed
@@ -61,7 +64,7 @@ serve(async (req) => {
       .single()
 
     if (existing) {
-      return new Response('already processed', { status: 200, headers: corsHeaders })
+      return json({ ok: true, already: true })
     }
 
     // Record the purchase
@@ -87,9 +90,9 @@ serve(async (req) => {
       .update({ extra_image_credits: current + 25 })
       .eq('id', venueId)
 
-    return new Response('ok', { status: 200, headers: corsHeaders })
+    return json({ ok: true })
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ ok: false, error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
