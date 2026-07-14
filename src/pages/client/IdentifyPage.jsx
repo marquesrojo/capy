@@ -85,6 +85,7 @@ export default function IdentifyPage() {
   const prefillLabel = searchParams.get('location_label')
   const prefillType = searchParams.get('location_type') || 'zona'
   const prefillSession = searchParams.get('session_id')
+  const isMostrador = searchParams.get('mostrador') === '1'
   const decodedLabel = prefillLabel ? decodeURIComponent(prefillLabel) : null
 
   const activeZoneId = prefillZoneId || pickedZone?.id || null
@@ -101,6 +102,12 @@ export default function IdentifyPage() {
     }
     if (prefillSession) setSessionId(prefillSession)
   }, [])
+
+  useEffect(() => {
+    if (!isMostrador || !base) return
+    setLocation({ type: 'mostrador', label: 'Mostrador' })
+    navigate(`${base}/carta`, { replace: true })
+  }, [isMostrador, base])
 
   useEffect(() => {
     if (!venueId) return
