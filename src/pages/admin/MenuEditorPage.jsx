@@ -16,7 +16,7 @@ const KIND_COLORS = {
 export default function MenuEditorPage() {
   const { venueId, isSuperAdmin, isPropietario } = useAuth()
   const today = new Date().toISOString().slice(0, 10)
-  const unlimitedPhotos = isSuperAdmin || isPropietario
+  const unlimitedPhotos = isSuperAdmin
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
   const [supplyProductIds, setSupplyProductIds] = useState([])
