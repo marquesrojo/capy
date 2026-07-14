@@ -136,7 +136,8 @@ function VenuesTab() {
     const venue = venues.find(v => v.id === venueId)
     if (!venue) return
     const newTotal = (venue.extra_image_credits || 0) + amount
-    await supabaseStaff.from('venues').update({ extra_image_credits: newTotal }).eq('id', venueId)
+    const { error } = await supabaseStaff.from('venues').update({ extra_image_credits: newTotal }).eq('id', venueId)
+    if (error) { alert('Error al cargar créditos: ' + error.message); return }
     setVenues(prev => prev.map(v => v.id === venueId ? { ...v, extra_image_credits: newTotal } : v))
     setCreditInputs(prev => ({ ...prev, [venueId]: '' }))
   }

@@ -352,9 +352,11 @@ function IngredientsPanel({ productId, productName, productDescription, currentI
   async function handleSavePhoto() {
     if (!foundPhoto) return
     setSavingPhoto(true)
-    await supabaseStaff.from('products').update({ image_url: foundPhoto }).eq('id', productId)
-    onPhotoSaved?.(foundPhoto)
-    setFoundPhoto(null)
+    const { error } = await supabaseStaff.from('products').update({ image_url: foundPhoto }).eq('id', productId)
+    if (!error) {
+      onPhotoSaved?.(foundPhoto)
+      setFoundPhoto(null)
+    }
     setSavingPhoto(false)
   }
 
@@ -716,9 +718,11 @@ function ProductRow({ product, venueId, categories, allProducts = [], onToggle, 
   async function saveFoundPhoto() {
     if (!foundPhoto) return
     setSavingPhoto(true)
-    await supabaseStaff.from('products').update({ image_url: foundPhoto }).eq('id', product.id)
-    onSave({ ...product, image_url: foundPhoto })
-    setFoundPhoto(null)
+    const { error } = await supabaseStaff.from('products').update({ image_url: foundPhoto }).eq('id', product.id)
+    if (!error) {
+      onSave({ ...product, image_url: foundPhoto })
+      setFoundPhoto(null)
+    }
     setSavingPhoto(false)
   }
 
@@ -1456,11 +1460,13 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
         const url = await searchUnsplash(query, venueId, { skipLimit: unlimited || usingExtra })
         if (url) {
           // Guardar inmediatamente — si el proceso se interrumpe, las fotos ya guardadas no se pierden
-          await supabaseStaff.from('products').update({ image_url: url }).eq('id', p.id)
-          found.push({ product: p, imageUrl: url, selected: true })
-          savedCount++
-          setProgress({ current: i + 1, total: toProcess.length, name: p.name, saved: savedCount })
-          if (usingExtra) extraCreditsUsed++
+          const { error: saveErr } = await supabaseStaff.from('products').update({ image_url: url }).eq('id', p.id)
+          if (!saveErr) {
+            found.push({ product: p, imageUrl: url, selected: true })
+            savedCount++
+            setProgress({ current: i + 1, total: toProcess.length, name: p.name, saved: savedCount })
+            if (usingExtra) extraCreditsUsed++
+          }
         }
       }
     } finally {
