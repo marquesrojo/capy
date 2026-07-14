@@ -66,9 +66,10 @@ export default function OrderConfirmedPage() {
   if (needsWhatsapp) {
     const ticketNum = order.daily_number ? `#${order.daily_number}` : `#${orderId.slice(0, 4).toUpperCase()}`
     const who = customer?.full_name || 'un cliente'
+    const orderUrl = `${window.location.origin}/pedido/${orderId}`
     const message = isRetiro
-      ? `Hola! Soy ${who}, confirmo mi pedido de retiro ${ticketNum}`
-      : `Hola! Soy ${who}, confirmo mi pedido ${ticketNum} — estoy en ${order.location_label}`
+      ? `Hola! Soy ${who}, confirmo mi pedido de retiro ${ticketNum}\nIngresá a: ${orderUrl}`
+      : `Hola! Soy ${who}, confirmo mi pedido ${ticketNum} — estoy en ${order.location_label}\nIngresá a: ${orderUrl}`
     const waLink = `https://wa.me/${venueWhatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`
 
     return (
