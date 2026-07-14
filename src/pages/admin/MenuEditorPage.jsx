@@ -1080,14 +1080,24 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
       if (!transcriptText) throw new Error('No se pudo leer texto de las imágenes')
 
         const isRich = mode === 'rich'
+        const multiPageNote = imageCount > 1
+          ? 'El texto proviene de varias páginas/fotos del mismo menú en orden. Una categoría que aparece al final de una página aplica a los productos de la página siguiente hasta que aparezca una nueva categoría. '
+          : ''
+        const dedupeNote = 'Si el mismo producto aparece más de una vez (por estar en páginas distintas o repetido), incluirlo una sola vez con el precio más reciente. '
         const parsePrompt = isRich
-          ? `Este es el texto de un menú de restaurante:\n\n${transcriptText}\n\nConvertí esto a un JSON array de productos. Para cada producto incluí: name (nombre), price (precio como número sin símbolo), category (categoría en español), description (descripción del plato si aparece en el menú, sino cadena vacía ""), photo_query (término de búsqueda en inglés para encontrar una foto gastronómica del plato en Unsplash — reglas en orden de prioridad: 1) si hay descripción en el menú usala para describir el plato en inglés, 2) si el nombre no es descriptivo pero hay categoría, combiná categoría + nombre para inferir qué es (ej: categoría "Sandwiches" + nombre "El Porteño" → "argentinian beef sandwich"; categoría "Postres" + nombre "La Abuela" → "homemade cake dessert"), 3) si el nombre ya es descriptivo traducilo al inglés; siempre términos concretos del plato en inglés, nunca el nombre propio). Respondé ÚNICAMENTE con el JSON array, sin texto adicional, sin backticks. Ejemplo: [{"name":"El Porteño","price":2500,"category":"Sandwiches","description":"Sándwich de lomo con queso y jamón","photo_query":"steak sandwich cheese ham"}]`
-          : `Este es el texto de un menú de restaurante:\n\n${transcriptText}\n\nConvertí esto a un JSON array de productos. Para cada producto incluí: name (nombre), price (precio como número sin símbolo), category (categoría en español). Respondé ÚNICAMENTE con el JSON array, sin texto adicional, sin backticks. Ejemplo: [{"name":"Milanesa","price":2500,"category":"Platos principales"}]`
+          ? `Este es el texto de un menú de restaurante:\n\n${transcriptText}\n\n${multiPageNote}${dedupeNote}Convertí esto a un JSON array de productos. Para cada producto incluí: name (nombre), price (precio como número sin símbolo), category (categoría en español), description (descripción del plato si aparece en el menú, sino cadena vacía ""), photo_query (término de búsqueda en inglés para encontrar una foto gastronómica del plato en Unsplash — reglas en orden de prioridad: 1) si hay descripción en el menú usala para describir el plato en inglés, 2) si el nombre no es descriptivo pero hay categoría, combiná categoría + nombre para inferir qué es (ej: categoría "Sandwiches" + nombre "El Porteño" → "argentinian beef sandwich"; categoría "Postres" + nombre "La Abuela" → "homemade cake dessert"), 3) si el nombre ya es descriptivo traducilo al inglés; siempre términos concretos del plato en inglés, nunca el nombre propio). Respondé ÚNICAMENTE con el JSON array, sin texto adicional, sin backticks. Ejemplo: [{"name":"El Porteño","price":2500,"category":"Sandwiches","description":"Sándwich de lomo con queso y jamón","photo_query":"steak sandwich cheese ham"}]`
+          : `Este es el texto de un menú de restaurante:\n\n${transcriptText}\n\n${multiPageNote}${dedupeNote}Convertí esto a un JSON array de productos. Para cada producto incluí: name (nombre), price (precio como número sin símbolo), category (categoría en español). Respondé ÚNICAMENTE con el JSON array, sin texto adicional, sin backticks. Ejemplo: [{"name":"Milanesa","price":2500,"category":"Platos principales"}]`
 
         const parseData = await geminiGenerate([{ parts: [{ text: parsePrompt }] }])
         const parseText = parseData.candidates?.[0]?.content?.parts?.[0]?.text || '[]'
         const jsonMatch = parseText.match(/\[[\s\S]*\]/)
-        const items = JSON.parse(jsonMatch ? jsonMatch[0] : '[]')
+        const rawItems = JSON.parse(jsonMatch ? jsonMatch[0] : '[]')
+        // Client-side dedup as safety net: keep last occurrence by name (case-insensitive)
+        const seen = new Map()
+        for (const item of rawItems) {
+          seen.set(item.name?.toLowerCase().trim(), item)
+        }
+        const items = Array.from(seen.values())
 
         if (isRich) {
           setStep('enriching')
