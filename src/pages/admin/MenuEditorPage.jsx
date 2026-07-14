@@ -1033,6 +1033,7 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
   const [step, setStep] = useState('idle') // idle | pick_mode | analyzing | enriching | review | saving
   const [mode, setMode] = useState('basic') // 'basic' | 'rich'
   const [preview, setPreview] = useState(null)
+  const [imageCount, setImageCount] = useState(1)
   const [detected, setDetected] = useState([])
   const [error, setError] = useState('')
   const fileRef = useRef(null)
@@ -1048,24 +1049,35 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
   }
 
   async function handleFile(e) {
-    const file = e.target.files?.[0]
-    if (!file) { setStep('idle'); return }
-    // reset so same file can be re-selected
+    const files = Array.from(e.target.files || [])
+    if (!files.length) { setStep('idle'); return }
     e.target.value = ''
     setError('')
     setStep('analyzing')
-    const reader = new FileReader()
-    reader.onload = async (ev) => {
-      const base64 = ev.target.result.split(',')[1]
-      setPreview(ev.target.result)
-      try {
+    setImageCount(files.length)
+    setPreview(URL.createObjectURL(files[0]))
+
+    const readBase64 = (file) => new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = ev => resolve({ base64: ev.target.result.split(',')[1], type: file.type })
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+
+    try {
+      let combinedText = ''
+      for (const file of files) {
+        const { base64, type } = await readBase64(file)
         const transcriptData = await geminiGenerate([{ parts: [
-          { inline_data: { mime_type: file.type, data: base64 } },
+          { inline_data: { mime_type: type, data: base64 } },
           { text: 'Transcribí exactamente todo el texto que ves en esta imagen. Incluí nombres, precios y categorías tal como aparecen. No agregues nada extra.' }
         ]}])
         if (transcriptData.error) throw new Error(transcriptData.error.message)
-        const transcriptText = transcriptData.candidates?.[0]?.content?.parts?.[0]?.text || ''
-        if (!transcriptText) throw new Error('No se pudo leer texto de la imagen')
+        const text = transcriptData.candidates?.[0]?.content?.parts?.[0]?.text || ''
+        if (text) combinedText += text + '\n\n'
+      }
+      const transcriptText = combinedText.trim()
+      if (!transcriptText) throw new Error('No se pudo leer texto de las imágenes')
 
         const isRich = mode === 'rich'
         const parsePrompt = isRich
@@ -1097,11 +1109,9 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
         const isOverloaded = /high demand|overload|capacity|try again later/i.test(msg)
         setError(isOverloaded
           ? 'La IA tiene mucha demanda en este momento. Esperá unos minutos e intentá de nuevo.'
-          : 'No se pudo analizar la imagen. Intentá de nuevo.')
+          : 'No se pudo analizar las imágenes. Intentá de nuevo.')
         setStep('idle')
       }
-    }
-    reader.readAsDataURL(file)
   }
 
   async function handleSave() {
@@ -1228,7 +1238,7 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
 
   return (
     <div className="mb-4 space-y-2">
-      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+      <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFile} />
 
       {busy ? (
         <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4 flex items-center gap-3">
@@ -1239,7 +1249,7 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
           </div>
           <div>
             <p className="font-semibold text-smoke-300 text-sm">
-              {step === 'enriching' ? 'Buscando fotos...' : 'Analizando imagen...'}
+              {step === 'enriching' ? 'Buscando fotos...' : imageCount > 1 ? `Analizando ${imageCount} imágenes...` : 'Analizando imagen...'}
             </p>
             <p className="text-smoke-500 text-xs">
               {step === 'enriching' ? 'Obteniendo imágenes para cada producto' : 'Gemini está leyendo tu menú'}
