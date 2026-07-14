@@ -81,6 +81,12 @@ export default function PaymentPage() {
   if (!location || itemCount === 0) return null
 
   const accent = accentColor(venueColor)
+  const headerTextColor = (() => {
+    const hex = venueColor.replace('#', '')
+    if (hex.length !== 6) return 'white'
+    const r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16), b = parseInt(hex.slice(4,6),16)
+    return (0.299*r + 0.587*g + 0.114*b)/255 > 0.6 ? '#1A2332' : 'white'
+  })()
   const discountAmount = appliedDiscount ? Math.round(subtotal * appliedDiscount.percent / 100) : 0
   const selectedMethodName = paymentOptions.find(o => o.id === paymentMethod)?.name || ''
   const isEfectivo = selectedMethodName.toLowerCase().includes('efectivo')
@@ -242,9 +248,9 @@ export default function PaymentPage() {
 
   return (
     <div className="min-h-screen bg-[#F0F4F8] pb-40" style={{ '--input-focus-color': accent }}>
-      <header className="px-5 pt-6 pb-4" style={{ backgroundColor: venueColor }}>
-        <h1 className="font-display text-3xl text-white tracking-wide">TU PEDIDO</h1>
-        <p className="text-white/70 text-sm flex items-center gap-1"><PinIcon size={14} /> {location.label}</p>
+      <header className="px-5 pt-6 pb-4" style={{ backgroundColor: venueColor, color: headerTextColor }}>
+        <h1 className="font-display text-3xl tracking-wide">TU PEDIDO</h1>
+        <p className="text-sm flex items-center gap-1" style={{ opacity: 0.7 }}><PinIcon size={14} /> {location.label}</p>
       </header>
 
       <main className="px-5 pt-4 space-y-3">

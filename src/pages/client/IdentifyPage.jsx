@@ -47,8 +47,17 @@ export default function IdentifyPage() {
     const r = parseInt(c.substr(0,2),16), g = parseInt(c.substr(2,2),16), b = parseInt(c.substr(4,2),16)
     return (0.299*r + 0.587*g + 0.114*b)/255 > 0.6 ? '#1A2332' : 'white'
   })()
-  // Color to use when the icon/text sits on a WHITE background (not selfColor background)
-  const accentOnWhite = selfTextColor === '#1A2332' ? waiterColor : selfColor
+  // Color guaranteed to be legible on a white/light background
+  const accentOnWhite = (() => {
+    if (selfTextColor !== '#1A2332') return selfColor // selfColor is dark enough
+    // selfColor is light — try waiterColor
+    const wc = waiterColor.replace('#', '')
+    if (wc.length === 6) {
+      const r = parseInt(wc.substr(0,2),16), g = parseInt(wc.substr(2,2),16), b = parseInt(wc.substr(4,2),16)
+      if ((0.299*r + 0.587*g + 0.114*b)/255 <= 0.6) return waiterColor
+    }
+    return '#1A2332' // both colors are light, fall back to dark
+  })()
   const { setLocation, setSessionId, addItem } = useCart()
   const { customer, isAnonymous, loginWithGoogle } = useCustomer()
   const [googleError, setGoogleError] = useState('')
@@ -470,7 +479,7 @@ export default function IdentifyPage() {
                       className="flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize"
                       style={zonePickerView === mode
                         ? { backgroundColor: selfColor, color: 'white' }
-                        : { color: selfColor }
+                        : { color: accentOnWhite }
                       }
                     >
                       {mode === 'mapa' ? (
@@ -826,7 +835,7 @@ export default function IdentifyPage() {
                   )}
                   <div className="p-3">
                     <p className="text-xs font-bold text-[#1A2332] leading-tight line-clamp-2 mb-1">{p.name}</p>
-                    <p className="text-sm font-black" style={{ color: selfColor }}>{formatPrice(p.price)}</p>
+                    <p className="text-sm font-black" style={{ color: accentOnWhite }}>{formatPrice(p.price)}</p>
                   </div>
                 </button>
               ))}
