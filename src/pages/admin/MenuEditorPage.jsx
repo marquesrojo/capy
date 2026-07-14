@@ -1685,9 +1685,6 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
           />
         </div>
       )}
-      {!unlimited && canProcess < noPhoto.length && canProcess > 0 && (
-        <p className="text-amber-400/80 text-xs">Cupo disponible: {canProcess}. El cupo diario se renueva mañana.</p>
-      )}
       {error && <p className="text-red-500 text-xs">{error}</p>}
       <div className="flex gap-2">
         <button onClick={reset} className="flex-1 border border-carbon-700 text-smoke-400 text-sm py-2.5 rounded-xl">Cancelar</button>
