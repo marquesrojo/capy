@@ -16,7 +16,7 @@ const KIND_COLORS = {
 export default function MenuEditorPage() {
   const { venueId, isSuperAdmin, isPropietario } = useAuth()
   const today = new Date().toISOString().slice(0, 10)
-  const unlimitedPhotos = isSuperAdmin || (isPropietario && today === '2026-07-10')
+  const unlimitedPhotos = isSuperAdmin || isPropietario
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
   const [supplyProductIds, setSupplyProductIds] = useState([])
@@ -146,7 +146,21 @@ export default function MenuEditorPage() {
               </button>
             </div>
 
-            {/* ImportarConIA y FotosConIA — ocultos mientras Gemini API no está disponible */}
+            <ImportarConIA
+              venueId={venueId}
+              onImported={loadAll}
+              unlimited={unlimitedPhotos}
+            />
+            <FotosConIA
+              venueId={venueId}
+              products={products.filter(p => !p.is_ingredient_only)}
+              onUpdated={loadAll}
+              unlimited={unlimitedPhotos}
+              extraCredits={extraCredits}
+              onExtraCreditsChanged={setExtraCredits}
+              isSuperAdmin={isSuperAdmin}
+              photoPackPrice={photoPackPrice}
+            />
 
             {showCategoryForm && (
               <NewCategoryForm
@@ -406,7 +420,14 @@ function IngredientsPanel({ productId, productName, productDescription, currentI
     <div className="px-3 pb-3 pt-1 border-t border-carbon-800 mt-1 space-y-2">
       <div className="flex items-center justify-between">
         <p className="text-smoke-500 text-[10px] uppercase tracking-wide font-medium">Ingredientes por porción</p>
-        {/* Sugerir con IA — oculto mientras Gemini API no está disponible */}
+        <button
+          type="button"
+          onClick={suggestWithAI}
+          disabled={suggesting}
+          className="text-[10px] text-ember-500 underline disabled:opacity-50"
+        >
+          {suggesting ? 'Consultando IA...' : 'Sugerir con IA'}
+        </button>
       </div>
 
       {foundPhoto && (
@@ -766,7 +787,13 @@ function ProductRow({ product, venueId, categories, allProducts = [], onToggle, 
           >
             {product.is_available ? 'Disp.' : 'Agot.'}
           </button>
-          {/* Buscar foto con IA — oculto mientras Gemini API no está disponible */}
+          <button
+            onClick={searchPhoto}
+            disabled={photoSearching}
+            className="text-[10px] text-ember-500 underline disabled:opacity-50"
+          >
+            {photoSearching ? 'Buscando...' : 'Foto IA'}
+          </button>
           <button
             onClick={() => { setShowIngredients(v => !v); setEditing(false) }}
             className={`text-xs underline ${showIngredients ? 'text-ember-500' : 'text-smoke-500'}`}
