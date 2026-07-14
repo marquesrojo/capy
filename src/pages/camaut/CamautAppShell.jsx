@@ -253,7 +253,14 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
               </div>
             </div>
           </div>
-          <button onClick={handleSignOut} className="text-[#8896A5] text-xs underline">Salir</button>
+          <div className="flex items-center gap-3">
+            <button onClick={() => window.location.reload()} className="text-[#8896A5]" title="Actualizar">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
+              </svg>
+            </button>
+            <button onClick={handleSignOut} className="text-[#8896A5] text-xs underline">Salir</button>
+          </div>
         </div>
 
         <div className="flex">
