@@ -1462,7 +1462,9 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
         const url = await searchUnsplash(query, venueId, { skipLimit: unlimited || usingExtra })
         if (url === 'RATE_LIMIT') {
           rateLimited = true
-          setError('Límite de Unsplash alcanzado (50/hora). Esperá unos minutos e intentá de nuevo.')
+          setError(isSuperAdmin
+            ? 'Límite de Unsplash alcanzado (50/hora). Esperá unos minutos e intentá de nuevo.'
+            : 'No se pudieron buscar fotos en este momento. Intentá de nuevo más tarde.')
           break
         }
         if (url) {
