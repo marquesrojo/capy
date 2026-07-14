@@ -370,7 +370,28 @@ export default function MenuPage() {
 
       <BottomNav />
 
-      {/* RecommendModal — hidden while Gemini API is unavailable */}
+      {itemCount === 0 && !showRecommend && (
+        <button
+          onClick={() => setShowRecommend(true)}
+          className="fixed bottom-20 left-4 z-20 flex items-center gap-1.5 px-4 py-3 rounded-full shadow-lg font-semibold text-sm active:scale-95 transition-transform"
+          style={{ backgroundColor: contentAccent, color: contentAccentText }}
+        >
+          <span>✨</span>
+          <span>¿Qué como?</span>
+        </button>
+      )}
+
+      {showRecommend && itemCount === 0 && (
+        <RecommendModal
+          venueId={ACTIVE_VENUE_ID}
+          accentColor={contentAccent}
+          onAddToCart={(name) => {
+            const product = products.find(p => p.name === name)
+            if (product) addItem(product)
+          }}
+          onClose={() => setShowRecommend(false)}
+        />
+      )}
     </div>
   )
 }
