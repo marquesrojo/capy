@@ -109,7 +109,7 @@ function VenuePWAMeta() {
     const manifest = {
       name: venue.name,
       short_name: venue.name,
-      start_url: `/r/${venue.slug}`,
+      start_url: `/r/${venue.slug}/`,
       scope: `/r/${venue.slug}/`,
       display: 'standalone',
       background_color: venue.header_bg_color || '#0F1923',
@@ -148,6 +148,8 @@ const MANIFESTS = {
 function ManifestSwap() {
   const { pathname } = useLocation()
   useEffect(() => {
+    // Venue routes are handled by VenuePWAMeta — don't override the blob manifest
+    if (pathname.startsWith('/r/')) return
     const m = pathname.startsWith('/camaut') ? MANIFESTS.waiter
             : pathname.startsWith('/admin')  ? MANIFESTS.admin
             : MANIFESTS.client
