@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet, Link, useLocation } from 'react-router-dom'
+import { useEffect } from 'react'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import CapyChat from './components/CapyChat'
 import { CustomerProvider } from './hooks/useCustomer'
@@ -97,12 +98,33 @@ function VenueLayout() {
   )
 }
 
+const MANIFESTS = {
+  waiter: { href: '/manifest-waiter.json', title: 'Capy Camarero' },
+  admin:  { href: '/manifest-admin.json',  title: 'Capy Admin' },
+  client: { href: '/manifest.json',        title: 'Capy' },
+}
+
+function ManifestSwap() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    const m = pathname.startsWith('/camaut') ? MANIFESTS.waiter
+            : pathname.startsWith('/admin')  ? MANIFESTS.admin
+            : MANIFESTS.client
+    const link = document.querySelector('link[rel="manifest"]')
+    if (link) link.href = m.href
+    const appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]')
+    if (appleTitle) appleTitle.content = m.title
+  }, [pathname])
+  return null
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <CustomerProvider>
         <CartProvider>
           <BrowserRouter>
+            <ManifestSwap />
             <Routes>
               {/* Hub de descubrimiento */}
               <Route path="/" element={<HubPage />} />
