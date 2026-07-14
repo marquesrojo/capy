@@ -248,7 +248,9 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
     setVoiceTranscript(''); setVoiceItems([]); setVoiceZoneId(null); setVoiceError('')
     setVoiceState('recording')
 
+    let gotResult = false
     recognition.onresult = async (e) => {
+      gotResult = true
       const transcript = Array.from(e.results).map(r => r[0].transcript).join(' ')
       setVoiceTranscript(transcript)
       setVoiceState('processing')
@@ -269,6 +271,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
       }
     }
     recognition.onerror = (e) => {
+      if (gotResult) return // cleanup errors after successful capture — ignorar
       setVoiceError(e.error === 'no-speech' ? 'No se detectó voz. Intentá de nuevo.' : `Error: ${e.error}`)
       setVoiceState('error')
     }
