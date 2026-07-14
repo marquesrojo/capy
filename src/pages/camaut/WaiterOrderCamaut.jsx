@@ -46,6 +46,13 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
     return !!localStorage.getItem(`capy_ctx_${venueId}`)
   })
 
+  const [voiceState, setVoiceState] = useState('idle') // 'idle' | 'recording' | 'processing' | 'result' | 'error'
+  const [voiceTranscript, setVoiceTranscript] = useState('')
+  const [voiceItems, setVoiceItems] = useState([])
+  const [voiceZoneId, setVoiceZoneId] = useState(null)
+  const [voiceError, setVoiceError] = useState('')
+  const recognitionRef = useRef(null)
+
   function updateActiveVenue(id) {
     setActiveVenueId(id)
     activeVenueIdRef.current = id
@@ -228,6 +235,60 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
       setSubmitError(`Error de red: ${err?.message || 'desconocido'}`)
     }
     setSubmitting(false)
+  }
+
+  function startVoiceRecording() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SR) { setVoiceError('Tu dispositivo no soporta reconocimiento de voz.'); setVoiceState('error'); return }
+    const recognition = new SR()
+    recognition.lang = 'es-AR'
+    recognition.continuous = false
+    recognition.interimResults = false
+    recognitionRef.current = recognition
+    setVoiceTranscript(''); setVoiceItems([]); setVoiceZoneId(null); setVoiceError('')
+    setVoiceState('recording')
+
+    recognition.onresult = async (e) => {
+      const transcript = Array.from(e.results).map(r => r[0].transcript).join(' ')
+      setVoiceTranscript(transcript)
+      setVoiceState('processing')
+      try {
+        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-voice-order`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` },
+          body: JSON.stringify({ transcript, venue_id: activeVenueId, zones: locationZones.map(z => ({ id: z.id, name: z.name })) }),
+        })
+        const data = await res.json()
+        if (data.error) throw new Error(data.error)
+        setVoiceItems(data.items || [])
+        setVoiceZoneId(data.zone_id || null)
+        setVoiceState('result')
+      } catch (err) {
+        setVoiceError(err.message || 'Error al procesar el pedido.')
+        setVoiceState('error')
+      }
+    }
+    recognition.onerror = (e) => {
+      setVoiceError(e.error === 'no-speech' ? 'No se detectó voz. Intentá de nuevo.' : `Error: ${e.error}`)
+      setVoiceState('error')
+    }
+    recognition.onend = () => { recognitionRef.current = null }
+    recognition.start()
+  }
+
+  function applyVoiceResult() {
+    for (const item of voiceItems) {
+      const product = { id: item.product_id, name: item.product_name, price: item.product_price }
+      setCart(prev => {
+        const current = prev[item.product_id]
+        return { ...prev, [item.product_id]: { product, qty: (current?.qty || 0) + item.quantity, notes: item.note || current?.notes || '' } }
+      })
+    }
+    if (voiceZoneId) {
+      const zone = locationZones.find(z => z.id === voiceZoneId)
+      if (zone) { setSelectedZone(zone); setLocation('') }
+    }
+    setVoiceState('idle')
   }
 
   const filteredCategories = activeVenueId === venueId && activeMenuId !== 'all'
@@ -728,7 +789,117 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
             </svg>
           )}
         </button>
+        <button
+          onClick={startVoiceRecording}
+          title="Pedido por voz"
+          className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-xl border border-[#008080]/40 bg-[#E8F5F5] text-[#008080] active:bg-[#008080] active:text-white"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+        </button>
       </div>
+
+      {/* Modal de voz */}
+      {voiceState !== 'idle' && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center" onClick={() => voiceState === 'error' && setVoiceState('idle')}>
+          <div className="bg-white rounded-t-3xl w-full max-w-lg px-6 pt-6 pb-10" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-[#D0D9E0] rounded-full mx-auto mb-6" />
+
+            {voiceState === 'recording' && (
+              <div className="text-center">
+                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-red-50 flex items-center justify-center relative">
+                  <span className="absolute inset-0 rounded-full bg-red-400/30 animate-ping" />
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" y1="19" x2="12" y2="23"/>
+                    <line x1="8" y1="23" x2="16" y2="23"/>
+                  </svg>
+                </div>
+                <p className="font-bold text-[#1A2A3A] text-lg mb-1">Escuchando...</p>
+                <p className="text-[#8896A5] text-sm mb-6">Decí los ítems y la mesa. Ej: "dos medialunas y un café, mesa 4"</p>
+                <button
+                  onClick={() => recognitionRef.current?.stop()}
+                  className="w-full bg-red-500 text-white font-bold py-3.5 rounded-2xl"
+                >
+                  Listo, procesar
+                </button>
+              </div>
+            )}
+
+            {voiceState === 'processing' && (
+              <div className="text-center py-4">
+                <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-[#E8F5F5] flex items-center justify-center">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#008080" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
+                    <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
+                  </svg>
+                </div>
+                <p className="font-bold text-[#1A2A3A] mb-1">Procesando...</p>
+                {voiceTranscript && <p className="text-[#8896A5] text-sm italic">"{voiceTranscript}"</p>}
+              </div>
+            )}
+
+            {voiceState === 'result' && (
+              <div>
+                {voiceTranscript && (
+                  <p className="text-[#8896A5] text-xs italic mb-4 text-center">"{voiceTranscript}"</p>
+                )}
+                {voiceItems.length > 0 ? (
+                  <div className="space-y-2 mb-4">
+                    {voiceZoneId && (() => {
+                      const z = locationZones.find(z => z.id === voiceZoneId)
+                      return z ? (
+                        <div className="flex items-center gap-2 bg-[#E8F5F5] rounded-xl px-4 py-2.5 text-sm font-semibold text-[#008080]">
+                          <PinIcon size={13} /> {z.name}
+                        </div>
+                      ) : null
+                    })()}
+                    {voiceItems.map((item, i) => (
+                      <div key={i} className="flex items-center justify-between bg-[#F8FAFC] rounded-xl px-4 py-2.5 border border-black/5">
+                        <div>
+                          <p className="text-sm font-semibold text-[#1A2A3A]">{item.quantity}× {item.product_name}</p>
+                          {item.note && <p className="text-xs text-[#8896A5]">{item.note}</p>}
+                        </div>
+                        <p className="font-mono text-[#008080] text-sm font-semibold">{formatPrice(item.product_price * item.quantity)}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[#8896A5] text-sm text-center mb-4">No se detectaron ítems de la carta.</p>
+                )}
+                <div className="flex gap-3">
+                  <button onClick={() => setVoiceState('idle')} className="flex-1 border border-black/10 text-[#8896A5] font-semibold py-3 rounded-2xl text-sm">
+                    Cancelar
+                  </button>
+                  {voiceItems.length > 0 && (
+                    <button onClick={applyVoiceResult} className="flex-1 bg-[#008080] text-white font-bold py-3 rounded-2xl text-sm">
+                      Agregar al pedido
+                    </button>
+                  )}
+                </div>
+                <button onClick={startVoiceRecording} className="w-full mt-2 text-[#008080] text-sm font-semibold py-2">
+                  Volver a grabar
+                </button>
+              </div>
+            )}
+
+            {voiceState === 'error' && (
+              <div className="text-center">
+                <p className="text-red-500 font-semibold mb-2">Error</p>
+                <p className="text-[#8896A5] text-sm mb-5">{voiceError}</p>
+                <div className="flex gap-3">
+                  <button onClick={() => setVoiceState('idle')} className="flex-1 border border-black/10 text-[#8896A5] font-semibold py-3 rounded-2xl text-sm">Cerrar</button>
+                  <button onClick={startVoiceRecording} className="flex-1 bg-[#008080] text-white font-bold py-3 rounded-2xl text-sm">Reintentar</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Categoría + Ubicación */}
       <div className="flex-shrink-0 px-4 pt-1 pb-2 flex gap-2">
