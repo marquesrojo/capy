@@ -90,9 +90,50 @@ function VenueGuard() {
   return <Outlet />
 }
 
+let _venueBlobUrl = null
+
+function VenuePWAMeta() {
+  const { venue } = useVenue()
+  useEffect(() => {
+    if (!venue) return
+
+    const appleIcon = document.querySelector('link[rel="apple-touch-icon"]')
+    const appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]')
+    const manifestLink = document.querySelector('link[rel="manifest"]')
+
+    if (appleTitle) appleTitle.content = venue.name
+
+    const iconUrl = venue.logo_url || '/icon-512.png'
+    if (appleIcon) appleIcon.href = iconUrl
+
+    const manifest = {
+      name: venue.name,
+      short_name: venue.name,
+      start_url: `/r/${venue.slug}`,
+      scope: `/r/${venue.slug}/`,
+      display: 'standalone',
+      background_color: venue.header_bg_color || '#0F1923',
+      theme_color: venue.header_bg_color || '#008080',
+      icons: [{ src: iconUrl, sizes: 'any', type: 'image/png' }],
+    }
+    if (_venueBlobUrl) URL.revokeObjectURL(_venueBlobUrl)
+    _venueBlobUrl = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: 'application/json' }))
+    if (manifestLink) manifestLink.href = _venueBlobUrl
+
+    return () => {
+      if (appleIcon) appleIcon.href = 'https://ycgptakgpsvmstoftkdk.supabase.co/storage/v1/object/public/icons/apple-touch-icon.png'
+      if (appleTitle) appleTitle.content = 'Capy'
+      if (manifestLink) manifestLink.href = '/manifest.json'
+      if (_venueBlobUrl) { URL.revokeObjectURL(_venueBlobUrl); _venueBlobUrl = null }
+    }
+  }, [venue])
+  return null
+}
+
 function VenueLayout() {
   return (
     <VenueProvider>
+      <VenuePWAMeta />
       <VenueGuard />
     </VenueProvider>
   )
