@@ -47,16 +47,18 @@ export default function IdentifyPage() {
     const r = parseInt(c.substr(0,2),16), g = parseInt(c.substr(2,2),16), b = parseInt(c.substr(4,2),16)
     return (0.299*r + 0.587*g + 0.114*b)/255 > 0.6 ? '#1A2332' : 'white'
   })()
-  // Color guaranteed to be legible on a white/light background
+  // Color guaranteed to be legible on a white/light background.
+  // Threshold 0.3: on #F0F4F8 (lum≈0.95) a color needs lum<0.3 for usable contrast.
   const accentOnWhite = (() => {
-    if (selfTextColor !== '#1A2332') return selfColor // selfColor is dark enough
-    // selfColor is light — try waiterColor
-    const wc = waiterColor.replace('#', '')
-    if (wc.length === 6) {
-      const r = parseInt(wc.substr(0,2),16), g = parseInt(wc.substr(2,2),16), b = parseInt(wc.substr(4,2),16)
-      if ((0.299*r + 0.587*g + 0.114*b)/255 <= 0.6) return waiterColor
+    const lum = (hex) => {
+      const c = hex.replace('#', '')
+      if (c.length !== 6) return 1
+      const r = parseInt(c.substr(0,2),16), g = parseInt(c.substr(2,2),16), b = parseInt(c.substr(4,2),16)
+      return (0.299*r + 0.587*g + 0.114*b) / 255
     }
-    return '#1A2332' // both colors are light, fall back to dark
+    if (lum(selfColor) < 0.3) return selfColor
+    if (lum(waiterColor) < 0.3) return waiterColor
+    return '#1A2332'
   })()
   const { setLocation, setSessionId, addItem } = useCart()
   const { customer, isAnonymous, loginWithGoogle } = useCustomer()
@@ -530,7 +532,7 @@ export default function IdentifyPage() {
                           onClick={() => pickSector(sector)}
                           className="rounded-xl py-2.5 px-1 text-xs font-bold text-center border-2 transition-all leading-tight"
                           style={active
-                            ? { backgroundColor: selfColor, borderColor: selfColor, color: 'white' }
+                            ? { backgroundColor: selfColor, borderColor: selfColor, color: selfTextColor }
                             : { backgroundColor: '#F0F4F8', borderColor: accentOnWhite, color: accentOnWhite }
                           }
                         >
@@ -557,7 +559,7 @@ export default function IdentifyPage() {
                           onClick={() => pickMesa(mesa)}
                           className="aspect-square rounded-full flex items-center justify-center text-sm font-black transition-all border-2"
                           style={active
-                            ? { backgroundColor: selfColor, borderColor: selfColor, color: 'white' }
+                            ? { backgroundColor: selfColor, borderColor: selfColor, color: selfTextColor }
                             : { backgroundColor: '#F0F4F8', borderColor: accentOnWhite, color: accentOnWhite }
                           }
                         >
@@ -582,7 +584,7 @@ export default function IdentifyPage() {
                           onClick={() => pickMesa(mesa)}
                           className="aspect-square rounded-full flex items-center justify-center text-sm font-black transition-all border-2"
                           style={active
-                            ? { backgroundColor: selfColor, borderColor: selfColor, color: 'white' }
+                            ? { backgroundColor: selfColor, borderColor: selfColor, color: selfTextColor }
                             : { backgroundColor: '#F0F4F8', borderColor: accentOnWhite, color: accentOnWhite }
                           }
                         >
@@ -607,7 +609,7 @@ export default function IdentifyPage() {
                           onClick={() => { setPickedZone(zone); setLocation({ type: zone.type, zoneId: zone.id, label: zone.name }); setShowZonePicker(false) }}
                           className="rounded-xl py-2.5 text-xs font-bold text-center border-2 transition-all"
                           style={active
-                            ? { backgroundColor: selfColor, borderColor: selfColor, color: 'white' }
+                            ? { backgroundColor: selfColor, borderColor: selfColor, color: selfTextColor }
                             : { backgroundColor: '#F0F4F8', borderColor: accentOnWhite, color: accentOnWhite }
                           }
                         >
