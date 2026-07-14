@@ -1,6 +1,11 @@
 {
   "rewrites": [
     { "source": "/qr-template.html", "destination": "/qr-template.html" },
+    {
+      "source": "/r/:slug",
+      "missing": [{ "type": "query", "key": "go" }],
+      "destination": "/api/r-og?slug=:slug"
+    },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
