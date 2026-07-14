@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet, Link, useLocation } from 'react-router-dom'
-import { AuthProvider } from './hooks/useAuth'
+import { AuthProvider, useAuth } from './hooks/useAuth'
 import CapyChat from './components/CapyChat'
 import { CustomerProvider } from './hooks/useCustomer'
 import { CartProvider } from './hooks/useCart'
@@ -61,8 +61,11 @@ import UpgradeResultPage from './pages/admin/UpgradeResultPage'
 import WhatsAppPage from './pages/admin/WhatsAppPage'
 
 function CapyChatOverlay() {
-  // Oculto mientras Gemini API no está disponible
-  return null
+  const { isStaff } = useAuth()
+  const location = useLocation()
+  const isAdminOrCamaut = location.pathname.startsWith('/admin') || location.pathname.startsWith('/camaut')
+  if (!isStaff || !isAdminOrCamaut) return null
+  return <CapyChat />
 }
 
 function VenueGuard() {
