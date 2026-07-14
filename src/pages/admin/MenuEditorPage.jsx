@@ -1492,9 +1492,15 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
   async function saveAll() {
     setStatus('saving')
     const toSave = results.filter(r => r.selected)
-    await Promise.all(toSave.map(r =>
+    const saveResults = await Promise.all(toSave.map(r =>
       supabaseStaff.from('products').update({ image_url: r.imageUrl }).eq('id', r.product.id)
     ))
+    const failed = saveResults.filter(r => r.error)
+    if (failed.length > 0) {
+      setError(`Error al guardar: ${failed[0].error.message}`)
+      setStatus('review')
+      return
+    }
     onUpdated()
     reset()
   }
