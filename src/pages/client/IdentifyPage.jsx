@@ -146,9 +146,9 @@ export default function IdentifyPage() {
         if (isMostrador && base) {
           const retiroZone = zd.find(z => z.type === 'retiro')
           if (retiroZone) {
-            setLocation({ type: 'retiro', zoneId: retiroZone.id, label: retiroZone.name })
+            setLocation({ type: 'retiro', zoneId: retiroZone.id, label: retiroZone.name, mostrador: true })
           } else {
-            setLocation({ type: 'retiro', label: 'Mostrador' })
+            setLocation({ type: 'retiro', label: 'Mostrador', mostrador: true })
           }
           navigate(`${base}/carta`, { replace: true })
         }

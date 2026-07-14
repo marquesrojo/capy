@@ -33,7 +33,7 @@ export default function OrderConfirmedPage() {
       const [orderRes, venueRes] = await Promise.all([
         supabaseCustomer
           .from('orders')
-          .select('id, status, location_label, location_type, daily_number')
+          .select('id, status, location_label, location_type, daily_number, created_by_staff')
           .eq('id', orderId)
           .single(),
         supabaseCustomer
@@ -58,8 +58,9 @@ export default function OrderConfirmedPage() {
     )
   }
 
-  const isRetiro = order?.location_type === 'retiro'
-  const isZona = order?.location_type === 'zona'
+  const isMostrador = !!order?.created_by_staff
+  const isRetiro = order?.location_type === 'retiro' && !isMostrador
+  const isZona = order?.location_type === 'zona' && !isMostrador
   const needsWhatsapp = (isRetiro || isZona) && venueWhatsapp
 
   if (needsWhatsapp) {

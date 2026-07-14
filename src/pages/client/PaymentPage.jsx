@@ -186,7 +186,8 @@ export default function PaymentPage() {
         .insert({
           venue_id: ACTIVE_VENUE_ID,
           customer_id: activeCustomer.id,
-          status: 'pendiente_aprobacion',
+          status: location.mostrador ? 'en_preparacion' : 'pendiente_aprobacion',
+          created_by_staff: location.mostrador || false,
           location_type: location.type,
           zone_id: location.zoneId || null,
           map_x: location.mapX,
