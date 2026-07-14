@@ -12,7 +12,9 @@ export async function geminiGenerate(contents, model = 'gemini-2.5-flash') {
     body: JSON.stringify({ contents, model }),
   })
   const data = await res.json()
-  if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`)
-  if (data?.error) throw new Error(typeof data.error === 'string' ? data.error : data.error?.message || 'Gemini error')
+  if (!res.ok || data?.error) {
+    const e = data?.error
+    throw new Error(typeof e === 'string' ? e : e?.message || `HTTP ${res.status}`)
+  }
   return data
 }
