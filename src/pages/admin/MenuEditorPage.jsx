@@ -1057,17 +1057,39 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
     setImageCount(files.length)
     setPreview(URL.createObjectURL(files[0]))
 
-    const readBase64 = (file) => new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = ev => resolve({ base64: ev.target.result.split(',')[1], type: file.type })
-      reader.onerror = reject
-      reader.readAsDataURL(file)
+    const compressToBase64 = (file) => new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file)
+      const img = new Image()
+      img.onload = () => {
+        URL.revokeObjectURL(url)
+        const MAX = 1600
+        let w = img.naturalWidth, h = img.naturalHeight
+        if (w > MAX || h > MAX) {
+          const r = Math.min(MAX / w, MAX / h)
+          w = Math.round(w * r)
+          h = Math.round(h * r)
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = w
+        canvas.height = h
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
+        resolve({ base64: dataUrl.split(',')[1], type: 'image/jpeg' })
+      }
+      img.onerror = () => {
+        URL.revokeObjectURL(url)
+        const reader = new FileReader()
+        reader.onload = ev => resolve({ base64: ev.target.result.split(',')[1], type: file.type || 'image/jpeg' })
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      }
+      img.src = url
     })
 
     try {
       let combinedText = ''
       for (const file of files) {
-        const { base64, type } = await readBase64(file)
+        const { base64, type } = await compressToBase64(file)
         const transcriptData = await geminiGenerate([{ parts: [
           { inline_data: { mime_type: type, data: base64 } },
           { text: 'Transcribí exactamente todo el texto que ves en esta imagen. Incluí nombres, precios y categorías tal como aparecen. No agregues nada extra.' }
