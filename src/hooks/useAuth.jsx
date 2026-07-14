@@ -5,11 +5,16 @@ import { supabaseStaff, setActiveVenueId, clearActiveVenueId } from '../lib/supa
 // este hook - ver useCustomer.jsx para la identidad sin login.
 const AuthContext = createContext(null)
 
+const SUPERADMIN_VENUE_KEY = 'capy-superadmin-venue'
+
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [profileLoading, setProfileLoading] = useState(false)
+  const [venueOverride, setVenueOverride] = useState(
+    () => localStorage.getItem(SUPERADMIN_VENUE_KEY) || null
+  )
 
   useEffect(() => {
     supabaseStaff.auth.getSession().then(({ data }) => {
@@ -73,8 +78,25 @@ export function AuthProvider({ children }) {
   }
 
   async function signOut() {
+    localStorage.removeItem(SUPERADMIN_VENUE_KEY)
     await supabaseStaff.auth.signOut()
   }
+
+  function enterVenue(id) {
+    setVenueOverride(id)
+    localStorage.setItem(SUPERADMIN_VENUE_KEY, id)
+    setActiveVenueId(id)
+  }
+
+  function exitVenue() {
+    setVenueOverride(null)
+    localStorage.removeItem(SUPERADMIN_VENUE_KEY)
+    clearActiveVenueId()
+  }
+
+  const isSuperAdmin = profile?.role === 'superadmin'
+  const isImpersonating = isSuperAdmin && !!venueOverride
+  const effectiveVenueId = isImpersonating ? venueOverride : (profile?.venue_id || null)
 
   const value = {
     session,
@@ -82,11 +104,14 @@ export function AuthProvider({ children }) {
     profile,
     loading,
     profileLoading,
-    venueId: profile?.venue_id || null,
-    isSuperAdmin: profile?.role === 'superadmin',
+    venueId: effectiveVenueId,
+    isSuperAdmin,
+    isImpersonating,
     isStaff: profile?.role === 'admin' || profile?.role === 'camarero' || profile?.role === 'propietario' || profile?.role === 'superadmin',
-    isAdmin: profile?.role === 'admin' || profile?.role === 'propietario',
-    isPropietario: profile?.role === 'propietario',
+    isAdmin: profile?.role === 'admin' || profile?.role === 'propietario' || isImpersonating,
+    isPropietario: profile?.role === 'propietario' || isImpersonating,
+    enterVenue,
+    exitVenue,
     signInWithEmail,
     signOut
   }

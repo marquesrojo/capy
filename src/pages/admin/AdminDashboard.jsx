@@ -63,7 +63,7 @@ function AdminDashboardInner() {
   const [todayReservations, setTodayReservations] = useState([])
   const [showReservationsModal, setShowReservationsModal] = useState(false)
   const prevCallCount = useRef(0)
-  const { signOut, profile, venueId, isSuperAdmin, isAdmin } = useAuth()
+  const { signOut, profile, venueId, isSuperAdmin, isAdmin, isImpersonating, exitVenue } = useAuth()
 
   useEffect(() => {
     const orderCalls = orders.filter(o => o.waiter_called_at).length
@@ -421,6 +421,17 @@ async function loadZones() {
 
   return (
     <div className="min-h-screen bg-carbon-950">
+      {isImpersonating && (
+        <div className="bg-violet-600/20 border-b border-violet-500/30 px-5 py-2 flex items-center justify-between">
+          <p className="text-violet-300 text-xs font-semibold">Modo SuperAdmin — estás viendo este venue como propietario</p>
+          <button
+            onClick={() => { exitVenue(); window.location.href = '/admin/superadmin' }}
+            className="text-violet-300 text-xs underline"
+          >
+            Salir del venue
+          </button>
+        </div>
+      )}
       <header className="px-5 pt-5 pb-4 border-b border-carbon-700 flex items-center justify-between">
         <div>
           <h1 className="font-display text-3xl text-ember-500 tracking-wide">PEDIDOS</h1>

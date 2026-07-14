@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { supabaseStaff } from '../../lib/supabase'
 import { formatPrice } from '../../lib/utils'
@@ -112,6 +113,8 @@ function StatsTab() {
 }
 
 function VenuesTab() {
+  const { enterVenue } = useAuth()
+  const navigate = useNavigate()
   const [venues, setVenues] = useState([])
   const [loading, setLoading] = useState(true)
   const [creditInputs, setCreditInputs] = useState({})
@@ -199,6 +202,12 @@ function VenuesTab() {
               )}
             </div>
           </div>
+          <button
+            onClick={() => { enterVenue(v.id); navigate('/admin') }}
+            className="w-full text-center text-[11px] font-semibold text-ember-400 border border-ember-500/30 rounded-lg py-1.5 hover:bg-ember-500/10 transition-colors"
+          >
+            Ingresar como propietario →
+          </button>
         </div>
       ))}
     </div>

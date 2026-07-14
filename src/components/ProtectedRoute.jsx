@@ -13,7 +13,7 @@ export function RequireCustomer({ children }) {
 }
 
 export function RequireStaff({ children }) {
-  const { user, profile, loading, profileLoading, isStaff, isAdmin, isSuperAdmin, venueId } = useAuth()
+  const { user, profile, loading, profileLoading, isStaff, isAdmin, isSuperAdmin, isImpersonating, venueId } = useAuth()
   const location = useLocation()
 
   useEffect(() => { if (venueId) setActiveVenueId(venueId) }, [venueId])
@@ -22,7 +22,7 @@ export function RequireStaff({ children }) {
   if (!user) return <Navigate to="/admin/login" replace />
   if (!profile) return <Navigate to="/admin/login" replace />
   if (!isStaff) return <Navigate to="/identificacion" replace />
-  if (isSuperAdmin && (location.pathname === '/admin' || location.pathname === '/admin/')) {
+  if (isSuperAdmin && !isImpersonating && (location.pathname === '/admin' || location.pathname === '/admin/')) {
     return <Navigate to="/admin/superadmin" replace />
   }
   if (isAdmin && !venueId) return <Navigate to="/admin/onboarding" replace />
