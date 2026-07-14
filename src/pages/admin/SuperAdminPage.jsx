@@ -18,7 +18,7 @@ export default function SuperAdminPage() {
   const [tab, setTab] = useState('stats')
 
   return (
-    <div className="min-h-screen bg-carbon-950">
+    <div className="min-h-screen bg-carbon-950 flex flex-col">
       <header className="px-5 pt-5 pb-4 border-b border-carbon-700 flex items-center justify-between">
         <div>
           <h1 className="font-display text-3xl text-ember-500 tracking-wide">SUPERADMIN</h1>
@@ -45,7 +45,7 @@ export default function SuperAdminPage() {
         ))}
       </div>
 
-      <div className="px-5 py-5">
+      <div className="px-5 py-5 flex-1">
         {tab === 'stats' && <StatsTab />}
         {tab === 'venues' && <VenuesTab />}
         {tab === 'camaut' && <CamautTab />}
