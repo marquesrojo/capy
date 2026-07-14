@@ -1650,13 +1650,18 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
           <p className="text-2xl font-bold text-smoke-200 font-mono">{noPhoto.length}</p>
           <p className="text-smoke-600 text-[10px] mt-0.5">sin foto</p>
         </div>
-        {!unlimited && (
+        {unlimited ? (
+          <div className="flex-1 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3">
+            <p className="text-sm font-bold text-emerald-400">∞</p>
+            <p className="text-smoke-600 text-[10px] mt-0.5">sin límite diario</p>
+          </div>
+        ) : (
           <div className="flex-1 bg-carbon-800 rounded-xl p-3">
             <p className={`text-2xl font-bold font-mono ${dailyRemaining < 5 ? 'text-amber-400' : 'text-smoke-200'}`}>{dailyRemaining}</p>
             <p className="text-smoke-600 text-[10px] mt-0.5">diarias hoy</p>
           </div>
         )}
-        {!unlimited && extraCredits > 0 && (
+        {extraCredits > 0 && (
           <div className="flex-1 bg-carbon-800 rounded-xl p-3">
             <p className="text-2xl font-bold font-mono text-emerald-400">{extraCredits}</p>
             <p className="text-smoke-600 text-[10px] mt-0.5">créditos extra</p>
@@ -1669,7 +1674,7 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
       </div>
       {canProcess > 0 && (
         <div>
-          <label className="text-smoke-500 text-xs block mb-1">¿Cuántas procesar ahora?{isSuperAdmin && <span className="text-smoke-600"> (Unsplash: 50/hora)</span>}</label>
+          <label className="text-smoke-500 text-xs block mb-1">¿Cuántas procesar ahora?</label>
           <input
             type="number"
             min={1}
