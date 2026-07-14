@@ -104,12 +104,6 @@ export default function IdentifyPage() {
   }, [])
 
   useEffect(() => {
-    if (!isMostrador || !base) return
-    setLocation({ type: 'mostrador', label: 'Mostrador' })
-    navigate(`${base}/carta`, { replace: true })
-  }, [isMostrador, base])
-
-  useEffect(() => {
     if (!venueId) return
     supabaseCustomer
       .from('products')
@@ -148,6 +142,15 @@ export default function IdentifyPage() {
         const clientMapOn = !!venueData?.client_floor_map_enabled
         if (clientMapOn && zd.some(z => z.type === 'mesa' && z.pos_x != null)) {
           setZonePickerView('mapa')
+        }
+        if (isMostrador && base) {
+          const retiroZone = zd.find(z => z.type === 'retiro')
+          if (retiroZone) {
+            setLocation({ type: 'retiro', zoneId: retiroZone.id, label: retiroZone.name })
+          } else {
+            setLocation({ type: 'retiro', label: 'Mostrador' })
+          }
+          navigate(`${base}/carta`, { replace: true })
         }
       }).catch(() => {})
     } else {
