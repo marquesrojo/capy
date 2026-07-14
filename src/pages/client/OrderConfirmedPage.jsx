@@ -60,7 +60,7 @@ export default function OrderConfirmedPage() {
 
   const isMostrador = !!order?.created_by_staff
   const isRetiro = order?.location_type === 'retiro' && !isMostrador
-  const isZona = order?.location_type === 'zona' && !isMostrador
+  const isZona = (order?.location_type === 'zona' || order?.location_type === 'mesa') && !isMostrador
   const needsWhatsapp = (isRetiro || isZona) && venueWhatsapp
 
   if (needsWhatsapp) {
