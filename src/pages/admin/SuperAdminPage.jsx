@@ -612,6 +612,40 @@ function PagosTab() {
 
 const SEED_DOCS = [
   {
+    title: 'Mapa de secciones y navegación de Capy App',
+    type: 'instruction',
+    content: `SECCIONES DE CAPY APP — NOMBRES EXACTOS (usá siempre estos nombres, nunca inventes otros)
+
+PANEL PRINCIPAL (/admin)
+- Dashboard: vista principal con kanban de pedidos del día. Columnas: Pendiente, En preparación, Listo, Entregado.
+- Tomar pedido: botón en el dashboard para que el admin tome un pedido directamente (mostrador / take away).
+
+SECCIÓN MI LOCAL — accesible desde el menú lateral o ícono de configuración
+- Carta (/admin/carta): se editan los productos y categorías del menú. Acá se agregan productos con nombre, descripción, precio y foto. También está el botón Importar con IA y Fotos con IA. NO se llama "Productos", se llama "Carta".
+- Ubicaciones (/admin/ubicaciones): se crean las zonas (Salón, Terraza, Barra) y las mesas dentro de cada zona. También se activa la opción de Retiro en local.
+- Medios de pago (/admin/configuracion/medios-pago): se activan efectivo, MercadoPago u otros métodos.
+- Datos del local (/admin/configuracion/local): nombre del local, WhatsApp de contacto y ajustes generales.
+- Usuarios (/admin/usuarios): se agregan admins y camareros vinculados al local.
+- Descuentos (/admin/descuentos): códigos de descuento para clientes.
+- Notas rápidas (/admin/notas-rapidas): chips de aclaraciones predefinidas (sin sal, sin cebolla, etc.).
+- Códigos QR (/admin/qr): QR de cada mesa para clientes y QR de camarero. Se descargan acá.
+- Programa de rangos (/admin/rangos): sistema de puntos y niveles de fidelidad de clientes.
+- Encuestas (/admin/encuestas): calificaciones dejadas por clientes.
+- Inventario (/admin/inventario): stock de insumos y materias primas.
+- Reservas (/admin/reservas): reservas de mesas hechas por clientes.
+- WhatsApp (/admin/whatsapp): alertas automáticas y campañas.
+- KPIs (/admin/kpis): facturación y rendimiento del local.
+- Consumo (/admin/consumo): reporte de materia prima consumida por día.
+- Historial (/admin/historial): historial completo de pedidos.
+
+TOMAR PEDIDOS (/admin/tomar)
+- Modo camarero: el camarero selecciona una mesa y toma el pedido en nombre del cliente. Tiene botón de micrófono con IA para dictar el pedido por voz.
+
+CAMAUT APP (/camaut/app)
+- App de camareros: secciones Home, Pedidos, Mesas, Ranking, Perfil.`,
+    tags: ['navegación', 'secciones', 'mapa', 'carta', 'configuración'],
+  },
+  {
     title: 'Primeros pasos: orden de configuración inicial',
     content: `Al empezar con Capy, el orden recomendado es:
 1. Configurar los datos del local: ir a Mi Local → Datos del local. Ahí se carga el nombre, WhatsApp de contacto y ajustes generales.
