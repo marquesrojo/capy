@@ -500,13 +500,9 @@ async function loadZones() {
         {venueSlug && (
           <button
             onClick={() => window.open(`/r/${venueSlug}?mostrador=1`, '_blank')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-ember-500/40 text-ember-400 active:opacity-70"
+            className="px-3 py-1.5 rounded-full text-xs font-medium border border-ember-500/40 text-ember-400 active:opacity-70"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-              <polyline points="9 22 9 12 15 12 15 22"/>
-            </svg>
-            Mostrador
+            Take Away
           </button>
         )}
       </div>
