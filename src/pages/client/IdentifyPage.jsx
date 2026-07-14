@@ -516,7 +516,7 @@ export default function IdentifyPage() {
                           className="rounded-xl py-2.5 px-1 text-xs font-bold text-center border-2 transition-all leading-tight"
                           style={active
                             ? { backgroundColor: selfColor, borderColor: selfColor, color: 'white' }
-                            : { backgroundColor: '#F0F4F8', borderColor: selfColor, color: selfColor }
+                            : { backgroundColor: '#F0F4F8', borderColor: accentOnWhite, color: accentOnWhite }
                           }
                         >
                           {sector.name}
@@ -543,7 +543,7 @@ export default function IdentifyPage() {
                           className="aspect-square rounded-full flex items-center justify-center text-sm font-black transition-all border-2"
                           style={active
                             ? { backgroundColor: selfColor, borderColor: selfColor, color: 'white' }
-                            : { backgroundColor: '#F0F4F8', borderColor: selfColor, color: selfColor }
+                            : { backgroundColor: '#F0F4F8', borderColor: accentOnWhite, color: accentOnWhite }
                           }
                         >
                           {zoneShort(mesa.name)}
@@ -568,7 +568,7 @@ export default function IdentifyPage() {
                           className="aspect-square rounded-full flex items-center justify-center text-sm font-black transition-all border-2"
                           style={active
                             ? { backgroundColor: selfColor, borderColor: selfColor, color: 'white' }
-                            : { backgroundColor: '#F0F4F8', borderColor: selfColor, color: selfColor }
+                            : { backgroundColor: '#F0F4F8', borderColor: accentOnWhite, color: accentOnWhite }
                           }
                         >
                           {zoneShort(mesa.name)}
@@ -593,7 +593,7 @@ export default function IdentifyPage() {
                           className="rounded-xl py-2.5 text-xs font-bold text-center border-2 transition-all"
                           style={active
                             ? { backgroundColor: selfColor, borderColor: selfColor, color: 'white' }
-                            : { backgroundColor: '#F0F4F8', borderColor: selfColor, color: selfColor }
+                            : { backgroundColor: '#F0F4F8', borderColor: accentOnWhite, color: accentOnWhite }
                           }
                         >
                           {zone.name}
