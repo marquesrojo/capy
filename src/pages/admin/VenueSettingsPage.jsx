@@ -387,17 +387,17 @@ export default function VenueSettingsPage() {
                 value={`https://capyapp.co/r/${slug}`}
                 className="input flex-1 text-sm text-smoke-400 bg-carbon-800 cursor-default select-all"
               />
-              <button
-                type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(`https://capyapp.co/r/${slug}`)
-                  setCopied(true)
-                  setTimeout(() => setCopied(false), 2000)
-                }}
-                className="px-3 py-2 rounded-xl border border-carbon-600 text-smoke-400 text-xs whitespace-nowrap"
+              <a
+                href={`https://capyapp.co/r/${slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-2 rounded-xl border border-carbon-600 text-smoke-400 text-xs whitespace-nowrap flex items-center gap-1.5"
               >
-                {copied ? '¡Copiado!' : 'Copiar'}
-              </button>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+                Ir al sitio
+              </a>
             </div>
           </div>
         )}
