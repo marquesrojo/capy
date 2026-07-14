@@ -1018,6 +1018,7 @@ async function searchUnsplash(query, venueId, { skipLimit = false } = {}) {
     const res = await fetch(
       `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape&client_id=${key}`
     )
+    if (res.status === 429 || res.status === 403) return 'RATE_LIMIT'
     const data = await res.json()
     const url = data.results?.[0]?.urls?.small || null
     if (url && venueId && !skipLimit) incrementUnsplashCount(venueId)
@@ -1442,6 +1443,7 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
     const found = []
     let savedCount = 0
     let extraCreditsUsed = 0
+    let rateLimited = false
 
     try {
       for (let i = 0; i < toProcess.length; i++) {
@@ -1458,6 +1460,11 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
         } catch { /* use product name as fallback */ }
 
         const url = await searchUnsplash(query, venueId, { skipLimit: unlimited || usingExtra })
+        if (url === 'RATE_LIMIT') {
+          rateLimited = true
+          setError('Límite de Unsplash alcanzado (50/hora). Esperá unos minutos e intentá de nuevo.')
+          break
+        }
         if (url) {
           // Guardar inmediatamente — si el proceso se interrumpe, las fotos ya guardadas no se pierden
           const { error: saveErr } = await supabaseStaff.from('products').update({ image_url: url }).eq('id', p.id)
@@ -1480,7 +1487,7 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
     }
 
     if (found.length === 0) {
-      setError('No se encontraron fotos. Intentá de nuevo.')
+      if (!rateLimited) setError('No se encontraron fotos. Intentá de nuevo.')
       setStatus('idle')
     } else {
       onUpdated()
