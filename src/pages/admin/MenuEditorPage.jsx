@@ -1057,8 +1057,8 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
     setImageCount(files.length)
     setPreview(URL.createObjectURL(files[0]))
 
-    // Resize to max 1200px and compress to JPEG before sending — phone photos
-    // can be 5-10 MB, exceeding Edge Function body limits.
+    // Resize to max 1200px before sending — phone photos can be 5-10 MB,
+    // exceeding Edge Function body limits. Use toDataURL (sync, broad iOS support).
     const resizeToBase64 = (file) => new Promise((resolve, reject) => {
       const img = new Image()
       const url = URL.createObjectURL(file)
@@ -1066,17 +1066,18 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
       img.onload = () => {
         URL.revokeObjectURL(url)
         const MAX = 1200
-        const scale = Math.min(1, MAX / Math.max(img.width, img.height))
+        const longest = Math.max(img.width, img.height) || 1
+        const scale = Math.min(1, MAX / longest)
         const canvas = document.createElement('canvas')
-        canvas.width = Math.round(img.width * scale)
-        canvas.height = Math.round(img.height * scale)
+        canvas.width = Math.round(img.width * scale) || 1
+        canvas.height = Math.round(img.height * scale) || 1
         canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
-        canvas.toBlob(blob => {
-          const reader = new FileReader()
-          reader.onload = ev => resolve({ base64: ev.target.result.split(',')[1], type: 'image/jpeg' })
-          reader.onerror = reject
-          reader.readAsDataURL(blob)
-        }, 'image/jpeg', 0.85)
+        try {
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
+          resolve({ base64: dataUrl.split(',')[1], type: 'image/jpeg' })
+        } catch (e) {
+          reject(e)
+        }
       }
       img.src = url
     })
@@ -1134,8 +1135,11 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
       } catch (err) {
         const msg = err.message || ''
         const isOverloaded = /high demand|overload|capacity|try again later/i.test(msg)
+        const isImageErr = /canvas|tainted|cross.?origin/i.test(msg)
         setError(isOverloaded
           ? 'La IA tiene mucha demanda en este momento. Esperá unos minutos e intentá de nuevo.'
+          : isImageErr
+          ? 'No se pudo procesar la imagen. Intentá con una captura de pantalla en vez de la foto original.'
           : 'No se pudo analizar las imágenes. Intentá de nuevo.')
         setStep('idle')
       }
