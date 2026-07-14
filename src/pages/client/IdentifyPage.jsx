@@ -316,7 +316,7 @@ export default function IdentifyPage() {
   const orphanMesas = allMesas.filter(m => !m.parent_zone_id)
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] flex flex-col pb-10">
+    <div className="min-h-screen bg-[#FAF9F6] flex flex-col">
 
       {/* ── Hero ── */}
       <div
@@ -848,7 +848,7 @@ export default function IdentifyPage() {
       </div>{/* fin contenido principal */}
 
       {/* ── Footer ── */}
-      <div className="mt-8 text-center space-y-3">
+      <div className="mt-auto pt-8 pb-10 text-center space-y-3">
         {instagramHandle && (
           <a
             href={`https://instagram.com/${instagramHandle}`}
