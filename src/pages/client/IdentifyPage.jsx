@@ -796,7 +796,7 @@ export default function IdentifyPage() {
         {activeZoneId && activeLabel && (
           <button
             onClick={() => {
-              const url = `${window.location.origin}${base}/?zone_id=${activeZoneId}&location_label=${encodeURIComponent(activeLabel)}&location_type=${pickedZone?.type || prefillType}`
+              const url = `${window.location.origin}${base}?zone_id=${activeZoneId}&location_label=${encodeURIComponent(activeLabel)}&location_type=${pickedZone?.type || prefillType}`
               if (navigator.share) {
                 navigator.share({ title: venue?.name || 'Mesa', text: `Unite a ${activeLabel}`, url }).catch(() => {})
               } else {
