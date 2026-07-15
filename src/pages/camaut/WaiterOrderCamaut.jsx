@@ -41,6 +41,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
   const [paymentMethods, setPaymentMethods] = useState([])
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null)
   const [cashDiscount, setCashDiscount] = useState({ enabled: false, percent: 0 })
+  const [venueWhatsapp, setVenueWhatsapp] = useState(null)
   const [contextReady, setContextReady] = useState(() => {
     if (linkedVenues.length === 0) return true
     return !!localStorage.getItem(`capy_ctx_${venueId}`)
@@ -89,8 +90,9 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
       waiterStaffId
         ? supabaseStaff.from('staff_discounts').select('*').eq('staff_id', waiterStaffId).eq('is_active', true).order('created_at')
         : Promise.resolve({ data: [] }),
+      supabaseStaff.from('venues').select('whatsapp_number').eq('id', vId).single(),
     ]
-    const [catRes, prodRes, staffRes, zoneRes, notesRes, menuRes, discountsRes, payMethodsRes, staffDiscountsRes] = await Promise.all(queries)
+    const [catRes, prodRes, staffRes, zoneRes, notesRes, menuRes, discountsRes, payMethodsRes, staffDiscountsRes, venueRes] = await Promise.all(queries)
     setCategories(catRes.data || [])
     setProducts(prodRes.data || [])
     setStaffId(staffRes.data?.id || null)
@@ -103,6 +105,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
     setDiscounts([...allVenueDiscounts.filter(d => !d.is_cash_discount), ...staffDiscounts])
     setCashDiscount({ enabled: !!cashEntry, percent: cashEntry?.percent || 0 })
     setPaymentMethods(payMethodsRes.data || [])
+    setVenueWhatsapp(venueRes.data?.whatsapp_number || null)
     if (resetCategory && catRes.data?.length) setActiveCategory(catRes.data[0].id)
   }
 
@@ -415,6 +418,26 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
           </div>
         )}
 
+        {venueWhatsapp && lastOrder && (
+          <a
+            href={`https://wa.me/${venueWhatsapp.replace(/\D/g, '')}?text=${encodeURIComponent([
+              `🧾 COMANDA - ${lastOrder.location}`,
+              `#${lastOrder.order?.daily_number || ''}`,
+              '',
+              ...(lastOrder.items || []).map(i => `• ${i.qty}x ${i.product.name}`),
+              '',
+              `💰 Total: ${formatPrice(lastOrder.total)}`
+            ].join('\n'))}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full bg-emerald-600 text-white font-semibold py-3 rounded-2xl text-sm mb-3"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.86 9.86 0 0 0 12.04 2"/>
+            </svg>
+            Enviar comanda por WhatsApp
+          </a>
+        )}
         <button
           onClick={() => setLastOrder(null)}
           className="w-full bg-[#1A2A3A] text-white font-bold px-8 py-3 rounded-2xl text-sm"
