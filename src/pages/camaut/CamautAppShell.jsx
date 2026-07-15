@@ -165,7 +165,9 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
     if (!staffName) return
     const firstName = staffName.split(' ')[0]
     const appName = `Capy · ${firstName}`
-    // iOS: apple-mobile-web-app-title
+    // iOS "Add to Home Screen" reads document.title for the dialog pre-fill;
+    // apple-mobile-web-app-title is only used for the icon label after install.
+    document.title = appName
     const appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]')
     if (appleTitle) appleTitle.content = appName
     // Android/Chrome: swap manifest to a personalised Blob so the install dialog

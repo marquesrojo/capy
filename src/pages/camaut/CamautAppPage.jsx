@@ -53,6 +53,12 @@ export default function CamautAppPage() {
   const [staffId, setStaffId] = useState(null)
 
   useEffect(() => {
+    // Ensure the browser URL reflects the canonical camaut path so that iOS
+    // "Add to Home Screen" saves /camaut/app instead of the root after any
+    // www/non-www redirect that may have stripped the path.
+    if (window.location.pathname !== '/camaut/app') {
+      window.history.replaceState(null, '', '/camaut/app')
+    }
     checkAuth()
   }, [])
 
