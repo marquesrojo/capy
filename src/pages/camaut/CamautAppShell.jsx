@@ -396,7 +396,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
       )}
 
       {/* Contenido */}
-      {tab === 'tomar' && <WaiterOrderCamaut venueId={venueId} linkedVenues={linkedVenues} prefillLocation={prefillLocation} onPrefillUsed={() => setPrefillLocation(null)} onXPUpdate={xp => setStaffXP(xp)} />}
+      {tab === 'tomar' && <WaiterOrderCamaut venueId={venueId} linkedVenues={linkedVenues} staffId={staffId} prefillLocation={prefillLocation} onPrefillUsed={() => setPrefillLocation(null)} onXPUpdate={xp => setStaffXP(xp)} />}
       {tab === 'pedidos' && <CamautKanban venueId={venueId} linkedVenues={linkedVenues} staffId={staffId} onNewOrderForTable={handleNewOrderForTable} />}
       {tab === 'turno' && <ShiftSummaryPage embedded venueId={venueId} staffId={staffId} />}
 

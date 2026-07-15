@@ -6,7 +6,7 @@ import { formatPrice } from '../../lib/utils'
 import { awardXP } from '../../lib/xpUtils'
 import FloorPlanViewer from '../../components/FloorPlanViewer'
 
-export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillLocation = null, onPrefillUsed, onXPUpdate }) {
+export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId: waiterStaffId = null, prefillLocation = null, onPrefillUsed, onXPUpdate }) {
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
   const [zones, setZones] = useState([])
@@ -76,7 +76,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
 
   async function fetchCarta(vid, resetCategory = false) {
     const vId = vid ?? activeVenueId
-    const [catRes, prodRes, staffRes, zoneRes, notesRes, menuRes, discountsRes, payMethodsRes] = await Promise.all([
+    const queries = [
       supabaseStaff.from('categories').select('id, name, menu_id').eq('venue_id', vId).order('sort_order'),
       // is_ingredient_only may be NULL in older rows — treat NULL as false
       supabaseStaff.from('products').select('id, name, price, category_id, is_daily_special').eq('venue_id', vId).or('is_available.is.null,is_available.eq.true').or('is_ingredient_only.is.null,is_ingredient_only.eq.false'),
@@ -85,17 +85,22 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
       supabaseStaff.from('quick_notes').select('*').eq('venue_id', vId).eq('is_active', true).order('sort_order'),
       supabaseStaff.from('staff_menus').select('*').eq('venue_id', vId).order('created_at'),
       supabaseStaff.from('venue_discounts').select('*').eq('venue_id', vId).eq('is_active', true).order('created_at'),
-      supabaseStaff.from('payment_methods').select('id, name').eq('venue_id', vId).eq('is_active', true).order('sort_order')
-    ])
+      supabaseStaff.from('payment_methods').select('id, name').eq('venue_id', vId).eq('is_active', true).order('sort_order'),
+      waiterStaffId
+        ? supabaseStaff.from('staff_discounts').select('*').eq('staff_id', waiterStaffId).eq('is_active', true).order('created_at')
+        : Promise.resolve({ data: [] }),
+    ]
+    const [catRes, prodRes, staffRes, zoneRes, notesRes, menuRes, discountsRes, payMethodsRes, staffDiscountsRes] = await Promise.all(queries)
     setCategories(catRes.data || [])
     setProducts(prodRes.data || [])
     setStaffId(staffRes.data?.id || null)
     setZones(zoneRes.data || [])
     setQuickNotes(notesRes.data || [])
     setMenus(menuRes.data || [])
-    const allDiscounts = discountsRes.data || []
-    const cashEntry = allDiscounts.find(d => d.is_cash_discount)
-    setDiscounts(allDiscounts.filter(d => !d.is_cash_discount))
+    const allVenueDiscounts = discountsRes.data || []
+    const cashEntry = allVenueDiscounts.find(d => d.is_cash_discount)
+    const staffDiscounts = (staffDiscountsRes.data || []).map(d => ({ ...d, _isStaffDiscount: true }))
+    setDiscounts([...allVenueDiscounts.filter(d => !d.is_cash_discount), ...staffDiscounts])
     setCashDiscount({ enabled: !!cashEntry, percent: cashEntry?.percent || 0 })
     setPaymentMethods(payMethodsRes.data || [])
     if (resetCategory && catRes.data?.length) setActiveCategory(catRes.data[0].id)
@@ -563,7 +568,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], prefillL
                 <option value="">Sin descuento</option>
                 {discounts.map(d => (
                   <option key={d.id} value={d.id}>
-                    {d.code} — {d.percent}%{d.label ? ` (${d.label})` : ''}
+                    {d.code} — {d.percent}%{d.label ? ` (${d.label})` : ''}{d._isStaffDiscount ? ' · personal' : ''}
                   </option>
                 ))}
               </select>
