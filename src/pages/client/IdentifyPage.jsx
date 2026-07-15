@@ -147,7 +147,7 @@ export default function IdentifyPage() {
 
     const venueQ = supabaseCustomer
       .from('venues')
-      .select('instagram_handle, retiro_externo_enabled, delivery_enabled, client_floor_map_enabled, location_display_mode, description, announcement, schedule, waiter_alert_whatsapp')
+      .select('instagram_handle, retiro_externo_enabled, delivery_enabled, client_floor_map_enabled, location_display_mode, description, announcement, schedule, waiter_alert_whatsapp, whatsapp_number')
       .eq('id', venueId)
       .single()
 
@@ -169,7 +169,7 @@ export default function IdentifyPage() {
         if (venueData?.description) setDescription(venueData.description)
         if (venueData?.announcement) setAnnouncement(venueData.announcement)
         if (venueData?.schedule) setSchedule(venueData.schedule)
-        if (venueData?.waiter_alert_whatsapp) setWaiterAlertWa(venueData.waiter_alert_whatsapp)
+        setWaiterAlertWa(venueData?.waiter_alert_whatsapp || venueData?.whatsapp_number || null)
         const mode = venueData?.location_display_mode
           || (venueData?.client_floor_map_enabled ? 'ambos' : 'lista')
         setLocationDisplayMode(mode)
@@ -202,7 +202,7 @@ export default function IdentifyPage() {
         if (data?.description) setDescription(data.description)
         if (data?.announcement) setAnnouncement(data.announcement)
         if (data?.schedule) setSchedule(data.schedule)
-        setWaiterAlertWa(zoneData?.current_waiter?.whatsapp_number || data?.waiter_alert_whatsapp || null)
+        setWaiterAlertWa(zoneData?.current_waiter?.whatsapp_number || data?.waiter_alert_whatsapp || data?.whatsapp_number || null)
       }).catch(() => {})
     }
 
