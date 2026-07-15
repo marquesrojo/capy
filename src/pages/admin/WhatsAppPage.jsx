@@ -162,6 +162,15 @@ export default function WhatsAppPage() {
       <main className="px-4 pt-5 space-y-4">
         {tab === 'alertas' && (
           <>
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-start gap-3">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <p className="text-amber-400 text-xs leading-relaxed">
+                Esta sección requiere conexión con <span className="font-semibold">WhatsApp Business API</span>. Los mensajes automáticos solo se envían si la integración está activa. Contactá a Capy para habilitarla.
+              </p>
+            </div>
+
             <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4 space-y-3">
               <div>
                 <p className="text-smoke-300 font-semibold text-sm">Número del operador</p>
