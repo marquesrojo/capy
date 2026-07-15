@@ -92,6 +92,9 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
   const [installBannerDismissed, setInstallBannerDismissed] = useState(
     () => localStorage.getItem('camaut-install-dismissed') === '1'
   )
+  const [installWallSkipped, setInstallWallSkipped] = useState(
+    () => localStorage.getItem('camaut-install-skipped') === '1'
+  )
 
   useEffect(() => {
     const onPrompt = e => { e.preventDefault(); window._pwaInstallPrompt = e; setInstallPrompt(e) }
@@ -160,9 +163,37 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
 
   useEffect(() => {
     if (!staffName) return
+    const firstName = staffName.split(' ')[0]
+    const appName = `Capy · ${firstName}`
+    // iOS: apple-mobile-web-app-title
     const appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]')
-    if (appleTitle) appleTitle.content = staffName
+    if (appleTitle) appleTitle.content = appName
+    // Android/Chrome: swap manifest to a personalised Blob so the install dialog
+    // shows the waiter's first name instead of the generic "Capy Camarero"
+    const manifest = {
+      name: appName,
+      short_name: firstName,
+      start_url: '/camaut/app',
+      scope: '/camaut/',
+      display: 'standalone',
+      background_color: '#0F1923',
+      theme_color: '#008080',
+      icons: [
+        { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+      ],
+    }
+    const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.querySelector('link[rel="manifest"]')
+    if (link) {
+      const prev = link.dataset.blobUrl
+      if (prev) URL.revokeObjectURL(prev)
+      link.dataset.blobUrl = url
+      link.href = url
+    }
     return () => {
+      URL.revokeObjectURL(url)
       if (appleTitle) appleTitle.content = 'Capy Camarero'
     }
   }, [staffName])
@@ -241,6 +272,70 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
     )
   }
 
+  const showInstallWall = !isStandalone && !appInstalled && !installWallSkipped
+
+  if (showInstallWall) {
+    const firstName = staffName?.split(' ')[0] || 'Camarero'
+    return (
+      <div className="min-h-screen bg-[#0F1923] flex flex-col items-center justify-center px-8 text-center" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <img src="/icon-512.png" alt="Capy" className="w-24 h-24 rounded-3xl shadow-2xl mb-6" />
+        <h1 className="text-white font-bold text-2xl mb-2">Hola, {firstName}</h1>
+        <p className="text-[#6B8A8A] text-sm leading-relaxed mb-8">
+          Agregá Capy a tu pantalla de inicio para recibir notificaciones de pedidos y acceder más rápido.
+        </p>
+
+        {isIOS ? (
+          <div className="w-full bg-[#1A2A2A] rounded-2xl p-5 mb-6 text-left space-y-4">
+            {[
+              { n: '1', text: 'Tocá el botón Compartir en Safari', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00BFBF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> },
+              { n: '2', text: 'Deslizá y tocá "Agregar a pantalla de inicio"', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00BFBF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> },
+              { n: '3', text: 'Confirmá tocando "Agregar"', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00BFBF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> },
+            ].map(step => (
+              <div key={step.n} className="flex items-center gap-4">
+                <div className="w-8 h-8 rounded-full bg-[#008080]/20 flex items-center justify-center flex-shrink-0 text-[#00BFBF] font-bold text-sm">{step.n}</div>
+                <div className="flex-1 flex items-center justify-between gap-3">
+                  <p className="text-[#C0D8D8] text-sm">{step.text}</p>
+                  <div className="flex-shrink-0">{step.icon}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : installPrompt ? (
+          <button
+            onClick={async () => {
+              installPrompt.prompt()
+              const { outcome } = await installPrompt.userChoice
+              if (outcome === 'accepted') {
+                setAppInstalled(true)
+                window._pwaInstallPrompt = null
+                setInstallPrompt(null)
+              }
+            }}
+            className="w-full bg-[#008080] text-white font-bold py-4 rounded-2xl text-base mb-4"
+          >
+            Agregar al escritorio →
+          </button>
+        ) : (
+          <div className="w-full bg-[#1A2A2A] rounded-2xl p-4 mb-6 text-left">
+            <p className="text-[#C0D8D8] text-sm">
+              Abrí esta página desde <span className="text-white font-semibold">Chrome</span> para poder agregarla al escritorio.
+            </p>
+          </div>
+        )}
+
+        <button
+          onClick={() => {
+            localStorage.setItem('camaut-install-skipped', '1')
+            setInstallWallSkipped(true)
+          }}
+          className="text-[#3A5A5A] text-xs underline mt-2"
+        >
+          Continuar en el navegador
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col bg-[#F0F4F8]" style={{ height: '100dvh' }}>
       {/* Header */}
@@ -310,36 +405,6 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
         </button>
       )}
 
-      {/* Install reminder — dismissible permanently via localStorage */}
-      {showInstallBanner && (
-        <div className="mx-3 mt-3 bg-[#E8F5F5] border border-[#008080]/20 rounded-2xl px-4 py-3 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#008080]/15 flex items-center justify-center flex-shrink-0 text-[#008080]">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 16V4"/><path d="M8 12l4 4 4-4"/><rect x="3" y="18" width="18" height="3" rx="1.5"/>
-            </svg>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[#1A2A3A] font-semibold text-sm leading-tight">Instalá la app</p>
-            <p className="text-[#5A8A8A] text-xs mt-0.5">Recibí notificaciones de pedidos en tu celu</p>
-          </div>
-          {isIOS ? (
-            <button
-              onClick={() => setShowInstallModal(true)}
-              className="text-[#008080] text-xs font-bold flex-shrink-0 bg-white px-3 py-1.5 rounded-lg border border-[#008080]/20"
-            >
-              Cómo →
-            </button>
-          ) : installPrompt ? (
-            <button
-              onClick={() => installPrompt.prompt()}
-              className="text-[#008080] text-xs font-bold flex-shrink-0 bg-white px-3 py-1.5 rounded-lg border border-[#008080]/20"
-            >
-              Instalar →
-            </button>
-          ) : null}
-          <button onClick={dismissInstallBanner} className="text-[#A0B4B4] text-xl leading-none flex-shrink-0 ml-1">×</button>
-        </div>
-      )}
 
       {/* Primeros pasos */}
       {tab === 'tomar' && showGettingStarted && (
