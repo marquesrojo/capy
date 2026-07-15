@@ -24,18 +24,25 @@ export default function LocationsPage() {
   const [activeTab, setActiveTab] = useState('mesa')
   const [viewMode, setViewMode] = useState('lista') // 'lista' | 'mapa'
   const [newName, setNewName] = useState('')
-  const [clientMapEnabled, setClientMapEnabled] = useState(false)
-  const [togglingMap, setTogglingMap] = useState(false)
+  const [locationDisplayMode, setLocationDisplayMode] = useState('lista') // 'lista' | 'ambos' | 'mapa'
+  const [savingMode, setSavingMode] = useState(false)
 
   useEffect(() => {
     if (!venueId) return
     load()
     supabaseStaff
       .from('venues')
-      .select('client_floor_map_enabled')
+      .select('client_floor_map_enabled, location_display_mode')
       .eq('id', venueId)
       .single()
-      .then(({ data }) => { if (data) setClientMapEnabled(data.client_floor_map_enabled) })
+      .then(({ data }) => {
+        if (!data) return
+        if (data.location_display_mode) {
+          setLocationDisplayMode(data.location_display_mode)
+        } else {
+          setLocationDisplayMode(data.client_floor_map_enabled ? 'ambos' : 'lista')
+        }
+      })
     supabaseStaff
       .from('venue_staff')
       .select('staff_profile_id')
@@ -64,15 +71,17 @@ export default function LocationsPage() {
     setLoading(false)
   }
 
-  async function toggleClientMap() {
-    setTogglingMap(true)
-    const next = !clientMapEnabled
+  async function saveLocationMode(mode) {
+    setSavingMode(true)
     await supabaseStaff
       .from('venues')
-      .update({ client_floor_map_enabled: next })
+      .update({
+        location_display_mode: mode,
+        client_floor_map_enabled: mode !== 'lista',
+      })
       .eq('id', venueId)
-    setClientMapEnabled(next)
-    setTogglingMap(false)
+    setLocationDisplayMode(mode)
+    setSavingMode(false)
   }
 
   async function addZone() {
@@ -214,20 +223,34 @@ export default function LocationsPage() {
       </header>
 
       {activeTab === 'mesa' && (
-        <div className="mx-5 mt-4 flex items-center justify-between bg-carbon-900 border border-carbon-700 rounded-xl px-4 py-3">
-          <div>
-            <p className="text-smoke-300 text-xs font-semibold">Mapa visible para clientes</p>
-            <p className="text-smoke-500 text-[11px] mt-0.5">Los clientes pueden elegir mesa desde el mapa</p>
+        <div className="mx-5 mt-4 bg-carbon-900 border border-carbon-700 rounded-xl px-4 py-3">
+          <p className="text-smoke-300 text-xs font-semibold mb-0.5">Vista de selección para clientes</p>
+          <p className="text-smoke-500 text-[11px] mb-3">Cómo eligen mesa o zona los clientes en la app</p>
+          <div className="flex gap-1 bg-carbon-800 rounded-lg p-0.5">
+            {[
+              { id: 'lista', label: 'Solo lista' },
+              { id: 'ambos', label: 'Mapa y lista' },
+              { id: 'mapa', label: 'Solo mapa' },
+            ].map(opt => (
+              <button
+                key={opt.id}
+                disabled={savingMode}
+                onClick={() => saveLocationMode(opt.id)}
+                className={`flex-1 py-1.5 rounded text-xs font-semibold transition-colors disabled:opacity-50 ${
+                  locationDisplayMode === opt.id
+                    ? 'bg-ember-500 text-white'
+                    : 'text-smoke-500 hover:text-smoke-300'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
-          <button
-            onClick={toggleClientMap}
-            disabled={togglingMap}
-            className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 ${clientMapEnabled ? 'bg-emerald-500' : 'bg-carbon-600'}`}
-          >
-            <span
-              className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${clientMapEnabled ? 'translate-x-6' : 'translate-x-0.5'}`}
-            />
-          </button>
+          {locationDisplayMode === 'mapa' && (
+            <p className="text-smoke-600 text-[10px] mt-2">
+              Asegurate de posicionar las mesas en la vista Mapa del editor.
+            </p>
+          )}
         </div>
       )}
 

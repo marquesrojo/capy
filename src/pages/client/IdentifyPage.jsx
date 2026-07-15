@@ -98,6 +98,7 @@ export default function IdentifyPage() {
   const [pickedZone, setPickedZone] = useState(null)
   const [showZonePicker, setShowZonePicker] = useState(false)
   const [zonePickerView, setZonePickerView] = useState('lista') // 'lista' | 'mapa'
+  const [locationDisplayMode, setLocationDisplayMode] = useState('lista') // 'lista' | 'ambos' | 'mapa'
 
   const [showOrderLookup, setShowOrderLookup] = useState(false)
   const [showWaiterCall, setShowWaiterCall] = useState(false)
@@ -142,7 +143,7 @@ export default function IdentifyPage() {
 
     const venueQ = supabaseCustomer
       .from('venues')
-      .select('instagram_handle, retiro_externo_enabled, delivery_enabled, client_floor_map_enabled, description, announcement, schedule')
+      .select('instagram_handle, retiro_externo_enabled, delivery_enabled, client_floor_map_enabled, location_display_mode, description, announcement, schedule')
       .eq('id', venueId)
       .single()
 
@@ -164,9 +165,14 @@ export default function IdentifyPage() {
         if (venueData?.description) setDescription(venueData.description)
         if (venueData?.announcement) setAnnouncement(venueData.announcement)
         if (venueData?.schedule) setSchedule(venueData.schedule)
-        const clientMapOn = !!venueData?.client_floor_map_enabled
-        if (clientMapOn && zd.some(z => z.type === 'mesa' && z.pos_x != null)) {
+        const mode = venueData?.location_display_mode
+          || (venueData?.client_floor_map_enabled ? 'ambos' : 'lista')
+        setLocationDisplayMode(mode)
+        const hasMesaMap = zd.some(z => z.type === 'mesa' && z.pos_x != null)
+        if ((mode === 'mapa' || mode === 'ambos') && hasMesaMap) {
           setZonePickerView('mapa')
+        } else {
+          setZonePickerView('lista')
         }
         if (isMostrador && base) {
           const retiroZone = zd.find(z => z.type === 'retiro')
@@ -568,8 +574,8 @@ export default function IdentifyPage() {
           {showZonePicker && (
             <div className="mt-2 bg-white rounded-2xl border border-black/[0.06] p-4 shadow-sm">
 
-              {/* Map / List toggle */}
-              {hasMap && (
+              {/* Map / List toggle — only shown in 'ambos' mode */}
+              {hasMap && locationDisplayMode === 'ambos' && (
                 <div className="flex gap-1 bg-[#F0F4F8] rounded-xl p-1 mb-4">
                   {['mapa', 'lista'].map(mode => (
                     <button
@@ -605,7 +611,7 @@ export default function IdentifyPage() {
               )}
 
               {/* Map view */}
-              {zonePickerView === 'mapa' && hasMap && (
+              {zonePickerView === 'mapa' && hasMap && locationDisplayMode !== 'lista' && (
                 <ClientFloorMap
                   zones={zones}
                   accent={selfColor}
