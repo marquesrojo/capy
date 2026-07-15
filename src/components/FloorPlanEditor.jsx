@@ -35,15 +35,14 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
     })
     return map
   })
-  // Copies not yet saved to DB
   const [pendingCopies, setPendingCopies] = useState([])
-  const [selected, setSelected] = useState(null)
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [rubberBand, setRubberBand] = useState(null) // { x1, y1, x2, y2 } in % of canvas
   const [saving, setSaving] = useState(false)
   const [savedOk, setSavedOk] = useState(false)
   const canvasRef = useRef(null)
   const iaRef = useRef(null)
 
-  // When zones reload from DB (after save), add any new zones not yet in local state
   useEffect(() => {
     const active = zones.filter(z => z.is_active)
     setPositions(prev => {
@@ -71,7 +70,6 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
     })
   }, [zones])
 
-  // All items to render: existing + pending copies
   const allItems = [
     ...mesas.map(z => ({ ...z, isPending: false, itemId: z.id })),
     ...pendingCopies.map(p => ({ ...p, isPending: true, itemId: p.tempId, is_active: true })),
@@ -91,17 +89,39 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
   const positioned = zoneMesas.filter(z => positions[z.itemId]?.x != null)
   const unpositioned = zoneMesas.filter(z => positions[z.itemId]?.x == null)
 
-  const selectedPending = pendingCopies.find(p => p.tempId === selected)
+  const singleSelectedId = selectedIds.size === 1 ? [...selectedIds][0] : null
+  const selectedPending = pendingCopies.find(p => p.tempId === singleSelectedId)
 
-  function startMove(e, id) {
-    e.preventDefault()
+  // ── Rubber-band: start on empty canvas ──────────────────────────────────────
+  function onCanvasStart(e) {
+    if (e.button != null && e.button !== 0) return
     const src = e.touches ? e.touches[0] : e
     const rect = canvasRef.current.getBoundingClientRect()
-    const pos = positions[id]
+    const x = clamp(((src.clientX - rect.left) / rect.width) * 100, 0, 100)
+    const y = clamp(((src.clientY - rect.top) / rect.height) * 100, 0, 100)
+    iaRef.current = { type: 'rubber', startX: x, startY: y, currentX: x, currentY: y, rect }
+    setRubberBand({ x1: x, y1: y, x2: x, y2: y })
+  }
+
+  // ── Move / resize: start on table ───────────────────────────────────────────
+  function startMove(e, id) {
+    e.preventDefault()
+    e.stopPropagation()
+    const src = e.touches ? e.touches[0] : e
+    const rect = canvasRef.current.getBoundingClientRect()
+    const isGroup = selectedIds.has(id) && selectedIds.size > 1
+    const startPositions = {}
+    if (isGroup) {
+      selectedIds.forEach(sid => { startPositions[sid] = { ...positions[sid] } })
+    } else {
+      const pos = positions[id]
+      startPositions[id] = { x: pos?.x ?? 50, y: pos?.y ?? 50 }
+    }
     iaRef.current = {
-      type: 'move', id,
+      type: 'move', id, isGroup,
       startClientX: src.clientX, startClientY: src.clientY,
-      startPosX: pos?.x ?? 50, startPosY: pos?.y ?? 50,
+      startPositions,
+      shiftKey: !!(e.shiftKey || e.ctrlKey || e.metaKey),
       moved: false, rect,
     }
   }
@@ -120,10 +140,21 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
     }
   }
 
+  // ── Unified pointer move ─────────────────────────────────────────────────────
   function onPointerMove(e) {
     const ia = iaRef.current
     if (!ia) return
     const src = e.touches ? e.touches[0] : e
+
+    if (ia.type === 'rubber') {
+      const x = clamp(((src.clientX - ia.rect.left) / ia.rect.width) * 100, 0, 100)
+      const y = clamp(((src.clientY - ia.rect.top) / ia.rect.height) * 100, 0, 100)
+      ia.currentX = x
+      ia.currentY = y
+      setRubberBand({ x1: ia.startX, y1: ia.startY, x2: x, y2: y })
+      return
+    }
+
     const dx = src.clientX - ia.startClientX
     const dy = src.clientY - ia.startClientY
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) ia.moved = true
@@ -132,86 +163,124 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
     if (ia.type === 'move') {
       const dxPct = (dx / ia.rect.width) * 100
       const dyPct = (dy / ia.rect.height) * 100
-      setPositions(prev => ({
-        ...prev,
-        [ia.id]: {
-          x: Math.min(96, Math.max(4, ia.startPosX + dxPct)),
-          y: Math.min(93, Math.max(7, ia.startPosY + dyPct)),
-        }
-      }))
+      setPositions(prev => {
+        const next = { ...prev }
+        Object.entries(ia.startPositions).forEach(([sid, sp]) => {
+          next[sid] = {
+            x: clamp(sp.x + dxPct, 4, 96),
+            y: clamp(sp.y + dyPct, 7, 93),
+          }
+        })
+        return next
+      })
     } else if (ia.type === 'resize') {
       const dw = (dx / ia.rect.width) * 100 * 2
       const dh = (dy / ia.rect.height) * 100 * 2
       setSizes(prev => ({
         ...prev,
         [ia.id]: {
-          w: Math.max(4, Math.min(45, ia.startW + dw)),
-          h: Math.max(4, Math.min(40, ia.startH + dh)),
+          w: clamp(ia.startW + dw, 4, 45),
+          h: clamp(ia.startH + dh, 4, 40),
         }
       }))
     }
   }
 
+  // ── Unified pointer up ───────────────────────────────────────────────────────
   function onPointerUp() {
     const ia = iaRef.current
     if (!ia) return
-    if (!ia.moved && ia.type === 'move') {
-      setSelected(prev => prev === ia.id ? null : ia.id)
+
+    if (ia.type === 'rubber') {
+      const minX = Math.min(ia.startX, ia.currentX)
+      const maxX = Math.max(ia.startX, ia.currentX)
+      const minY = Math.min(ia.startY, ia.currentY)
+      const maxY = Math.max(ia.startY, ia.currentY)
+      if (maxX - minX > 2 || maxY - minY > 2) {
+        const next = new Set()
+        positioned.forEach(zone => {
+          const pos = positions[zone.itemId]
+          if (pos && pos.x >= minX && pos.x <= maxX && pos.y >= minY && pos.y <= maxY) {
+            next.add(zone.itemId)
+          }
+        })
+        setSelectedIds(next)
+      } else {
+        setSelectedIds(new Set())
+      }
+      setRubberBand(null)
+      iaRef.current = null
+      return
+    }
+
+    if (ia.type === 'move' && !ia.moved) {
+      if (ia.shiftKey) {
+        setSelectedIds(prev => {
+          const next = new Set(prev)
+          if (next.has(ia.id)) next.delete(ia.id)
+          else next.add(ia.id)
+          return next
+        })
+      } else {
+        setSelectedIds(new Set([ia.id]))
+      }
     }
     iaRef.current = null
   }
 
+  // ── Table actions ────────────────────────────────────────────────────────────
   function removeFromMap(id, isPending) {
     if (isPending) {
       setPendingCopies(prev => prev.filter(p => p.tempId !== id))
     } else {
       setPositions(prev => ({ ...prev, [id]: { x: null, y: null } }))
     }
-    setSelected(null)
+    setSelectedIds(new Set())
+  }
+
+  function removeSelectedFromMap() {
+    setPositions(prev => {
+      const next = { ...prev }
+      selectedIds.forEach(id => {
+        if (id in next) next[id] = { x: null, y: null }
+      })
+      return next
+    })
+    setPendingCopies(prev => prev.filter(p => !selectedIds.has(p.tempId)))
+    setSelectedIds(new Set())
   }
 
   function rotate(id) {
-    setSizes(prev => ({
-      ...prev,
-      [id]: { w: prev[id].h, h: prev[id].w }
-    }))
+    setSizes(prev => ({ ...prev, [id]: { w: prev[id].h, h: prev[id].w } }))
   }
 
   function copyZone(zone) {
     const tempId = `new_${Date.now()}`
     const pos = positions[zone.itemId]
     const sz = sizes[zone.itemId]
-    const offsetX = Math.min(90, (pos?.x ?? 50) + 10)
-    const offsetY = Math.min(85, (pos?.y ?? 50) + 10)
     setPendingCopies(prev => [...prev, {
-      tempId,
-      name: zone.name,
-      shape: zone.shape || 'cuadrada',
-      type: zone.type,
-      parent_zone_id: zone.parent_zone_id ?? null,
+      tempId, name: zone.name, shape: zone.shape || 'cuadrada',
+      type: zone.type, parent_zone_id: zone.parent_zone_id ?? null,
       _activeZoneId: activeZoneId,
     }])
-    setPositions(prev => ({ ...prev, [tempId]: { x: offsetX, y: offsetY } }))
+    setPositions(prev => ({ ...prev, [tempId]: { x: clamp((pos?.x ?? 50) + 10, 4, 90), y: clamp((pos?.y ?? 50) + 10, 7, 85) } }))
     setSizes(prev => ({ ...prev, [tempId]: { w: sz.w, h: sz.h } }))
-    setSelected(tempId)
+    setSelectedIds(new Set([tempId]))
   }
 
   function placeOnCanvas(zone) {
     const id = zone.itemId
-    setPositions(prev => ({
-      ...prev,
-      [id]: { x: 10 + Math.random() * 70, y: 15 + Math.random() * 65 }
-    }))
+    setPositions(prev => ({ ...prev, [id]: { x: 10 + Math.random() * 70, y: 15 + Math.random() * 65 } }))
     setSizes(prev => {
       if (id in prev) return prev
       const def = DEFAULT_SIZES[zone.shape || 'cuadrada']
       return { ...prev, [id]: { w: zone.size_w ?? def.w, h: zone.size_h ?? def.h } }
     })
+    setSelectedIds(new Set([id]))
   }
 
   async function save() {
     setSaving(true)
-    // Update existing zones
     await Promise.all(
       mesas.map(z =>
         supabaseStaff.from('venue_zones').update({
@@ -222,15 +291,13 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
         }).eq('id', z.id)
       )
     )
-    // Insert pending copies
     if (pendingCopies.length > 0 && venueId) {
       await Promise.all(
         pendingCopies.map(pc =>
           supabaseStaff.from('venue_zones').insert({
             venue_id: venueId,
             name: pc.name.trim() || 'Nueva mesa',
-            shape: pc.shape,
-            type: pc.type,
+            shape: pc.shape, type: pc.type,
             parent_zone_id: pc.parent_zone_id,
             pos_x: positions[pc.tempId]?.x ?? null,
             pos_y: positions[pc.tempId]?.y ?? null,
@@ -244,7 +311,7 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
     }
     setSaving(false)
     setSavedOk(true)
-    setSelected(null)
+    setSelectedIds(new Set())
     setTimeout(() => setSavedOk(false), 2000)
     onSaved?.()
   }
@@ -262,9 +329,7 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
       {hasZoneTabs && (
         <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
           {parentZones.map(z => (
-            <button
-              key={z.id}
-              onClick={() => setActiveZoneId(z.id)}
+            <button key={z.id} onClick={() => setActiveZoneId(z.id)}
               className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
                 activeZoneId === z.id ? 'bg-ember-500 text-white border-ember-500' : 'border-carbon-700 text-smoke-400'
               }`}
@@ -273,8 +338,7 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
             </button>
           ))}
           {mesas.some(m => !m.parent_zone_id) && (
-            <button
-              onClick={() => setActiveZoneId('__none__')}
+            <button onClick={() => setActiveZoneId('__none__')}
               className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
                 activeZoneId === '__none__' ? 'bg-ember-500 text-white border-ember-500' : 'border-carbon-700 text-smoke-400'
               }`}
@@ -286,7 +350,7 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
       )}
 
       <p className="text-smoke-600 text-[11px] mb-2">
-        Tocá para seleccionar · Arrastrá para mover · Esquina naranja para redimensionar · ⟳ para rotar · ⧉ para copiar
+        Tocá para seleccionar · Arrastrá mesa para mover · Arrastrá espacio vacío para seleccionar varias · Esquina naranja para redimensionar · ⟳ rotar · ⧉ copiar
       </p>
 
       <div
@@ -300,9 +364,15 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
             'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
           backgroundSize: '10% 10%',
         }}
+        onMouseDown={onCanvasStart}
         onMouseMove={onPointerMove}
         onMouseUp={onPointerUp}
         onMouseLeave={onPointerUp}
+        onTouchStart={e => {
+          if (e.target.closest('[data-table]')) return
+          e.preventDefault()
+          onCanvasStart(e)
+        }}
         onTouchMove={e => { e.preventDefault(); onPointerMove(e) }}
         onTouchEnd={onPointerUp}
       >
@@ -312,17 +382,20 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
               Tocá las mesas de abajo para posicionarlas en el mapa
             </p>
           )}
+
           {positioned.map(zone => {
             const id = zone.itemId
             const { x, y } = positions[id]
             const { w, h } = sizes[id]
-            const isSelected = selected === id
+            const isSelected = selectedIds.has(id)
+            const isSoleSelected = isSelected && selectedIds.size === 1
             const isMoving = iaRef.current?.type === 'move' && iaRef.current?.id === id && iaRef.current?.moved
             const radius = SHAPE_RADIUS[zone.shape || 'cuadrada']
 
             return (
               <div
                 key={id}
+                data-table="1"
                 className="absolute"
                 style={{
                   left: `${x}%`, top: `${y}%`,
@@ -349,33 +422,23 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
                   </span>
                 </div>
 
-                {isSelected && (
+                {isSoleSelected && (
                   <>
-                    {/* Rotate */}
                     <button
                       className="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-ember-500 text-white text-[10px] flex items-center justify-center shadow z-30"
                       onMouseDown={e => { e.stopPropagation(); rotate(id) }}
                       onTouchStart={e => { e.stopPropagation(); rotate(id) }}
-                    >
-                      ⟳
-                    </button>
-                    {/* Copy */}
+                    >⟳</button>
                     <button
                       className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-[#3a3f4a] text-white text-[9px] flex items-center justify-center shadow z-30"
                       onMouseDown={e => { e.stopPropagation(); copyZone(zone) }}
                       onTouchStart={e => { e.stopPropagation(); copyZone(zone) }}
-                    >
-                      ⧉
-                    </button>
-                    {/* Remove from map */}
+                    >⧉</button>
                     <button
                       className="absolute -bottom-2 -left-2 w-5 h-5 rounded-full bg-red-600 text-white text-[10px] flex items-center justify-center shadow z-30"
                       onMouseDown={e => { e.stopPropagation(); removeFromMap(id, zone.isPending) }}
                       onTouchStart={e => { e.stopPropagation(); removeFromMap(id, zone.isPending) }}
-                    >
-                      ✕
-                    </button>
-                    {/* Resize handle */}
+                    >✕</button>
                     <div
                       className="absolute -bottom-1.5 -right-1.5 w-4 h-4 rounded-full bg-ember-500 border-2 border-[#0D1117] cursor-se-resize z-30"
                       onMouseDown={e => startResize(e, id)}
@@ -386,10 +449,38 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
               </div>
             )
           })}
+
+          {/* Rubber-band selection rect */}
+          {rubberBand && (
+            <div
+              className="absolute pointer-events-none border border-ember-400 z-50"
+              style={{
+                left: `${Math.min(rubberBand.x1, rubberBand.x2)}%`,
+                top: `${Math.min(rubberBand.y1, rubberBand.y2)}%`,
+                width: `${Math.abs(rubberBand.x2 - rubberBand.x1)}%`,
+                height: `${Math.abs(rubberBand.y2 - rubberBand.y1)}%`,
+                background: 'rgba(249,115,22,0.08)',
+              }}
+            />
+          )}
         </div>
       </div>
 
-      {/* Name editor for pending copies */}
+      {/* Group action bar */}
+      {selectedIds.size > 1 && (
+        <div className="mt-2 flex items-center gap-3 bg-carbon-900 border border-ember-500/30 rounded-xl px-4 py-2.5">
+          <span className="text-smoke-300 text-xs font-semibold flex-1">{selectedIds.size} mesas seleccionadas</span>
+          <span className="text-smoke-500 text-[11px]">Arrastrá cualquiera para mover el grupo</span>
+          <button
+            className="text-red-400 text-xs underline whitespace-nowrap"
+            onClick={removeSelectedFromMap}
+          >
+            Quitar del mapa
+          </button>
+        </div>
+      )}
+
+      {/* Name editor for new pending copies */}
       {selectedPending && (
         <div className="mt-2 flex items-center gap-2 border border-ember-500/40 rounded-xl px-3 py-2.5" style={{ background: '#fff' }}>
           <span className="text-smoke-400 text-xs whitespace-nowrap">Nombre:</span>
@@ -399,7 +490,7 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
             style={{ color: '#2A2824' }}
             value={selectedPending.name}
             onChange={e => setPendingCopies(prev =>
-              prev.map(p => p.tempId === selected ? { ...p, name: e.target.value } : p)
+              prev.map(p => p.tempId === singleSelectedId ? { ...p, name: e.target.value } : p)
             )}
             onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
             placeholder="Nombre de la nueva ubicación"
@@ -435,3 +526,5 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
     </div>
   )
 }
+
+function clamp(v, min, max) { return Math.min(max, Math.max(min, v)) }

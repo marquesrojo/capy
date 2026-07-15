@@ -1,9 +1,25 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 const ACTIVE_STATUSES = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo']
 
-export default function FloorPlanViewer({ zones, venueId, selectedZone, onSelect, supabaseClient, filterZoneId }) {
+export default function FloorPlanViewer({
+  zones,
+  venueId,
+  selectedZone,
+  onSelect,
+  supabaseClient,
+  filterZoneId,
+  multiSelect = false,
+  selectedZones,
+  onSelectMultiple,
+}) {
   const [occupiedIds, setOccupiedIds] = useState(new Set())
+  const [multiSelectedIds, setMultiSelectedIds] = useState(new Set(
+    (selectedZones || []).map(z => z.id)
+  ))
+  const [rubberBand, setRubberBand] = useState(null)
+  const canvasRef = useRef(null)
+  const iaRef = useRef(null)
 
   const mesas = zones.filter(z => z.is_active && z.pos_x != null && z.pos_y != null && z.type !== 'zona' && z.type !== 'retiro')
   const zonas = zones.filter(z => z.type === 'zona' && z.is_active)
@@ -38,6 +54,65 @@ export default function FloorPlanViewer({ zones, venueId, selectedZone, onSelect
       .in('status', ACTIVE_STATUSES)
       .not('zone_id', 'is', null)
     setOccupiedIds(new Set((data || []).map(o => o.zone_id)))
+  }
+
+  // ── Multi-select rubber-band ─────────────────────────────────────────────────
+  function onCanvasStart(e) {
+    if (!multiSelect) return
+    if (e.button != null && e.button !== 0) return
+    const src = e.touches ? e.touches[0] : e
+    const rect = canvasRef.current.getBoundingClientRect()
+    const x = clamp(((src.clientX - rect.left) / rect.width) * 100, 0, 100)
+    const y = clamp(((src.clientY - rect.top) / rect.height) * 100, 0, 100)
+    iaRef.current = { startX: x, startY: y, currentX: x, currentY: y, rect }
+    setRubberBand({ x1: x, y1: y, x2: x, y2: y })
+  }
+
+  function onPointerMove(e) {
+    const ia = iaRef.current
+    if (!ia) return
+    const src = e.touches ? e.touches[0] : e
+    const x = clamp(((src.clientX - ia.rect.left) / ia.rect.width) * 100, 0, 100)
+    const y = clamp(((src.clientY - ia.rect.top) / ia.rect.height) * 100, 0, 100)
+    ia.currentX = x
+    ia.currentY = y
+    setRubberBand({ x1: ia.startX, y1: ia.startY, x2: x, y2: y })
+  }
+
+  function onPointerUp() {
+    const ia = iaRef.current
+    if (!ia) return
+
+    const minX = Math.min(ia.startX, ia.currentX)
+    const maxX = Math.max(ia.startX, ia.currentX)
+    const minY = Math.min(ia.startY, ia.currentY)
+    const maxY = Math.max(ia.startY, ia.currentY)
+
+    if (maxX - minX > 2 || maxY - minY > 2) {
+      const selected = visibleMesas.filter(z =>
+        z.pos_x >= minX && z.pos_x <= maxX && z.pos_y >= minY && z.pos_y <= maxY
+      )
+      const newIds = new Set(selected.map(z => z.id))
+      setMultiSelectedIds(newIds)
+      onSelectMultiple?.(selected)
+    }
+    setRubberBand(null)
+    iaRef.current = null
+  }
+
+  function handleZoneClick(zone) {
+    if (multiSelect) {
+      setMultiSelectedIds(prev => {
+        const next = new Set(prev)
+        if (next.has(zone.id)) next.delete(zone.id)
+        else next.add(zone.id)
+        const selectedArr = visibleMesas.filter(z => next.has(z.id))
+        onSelectMultiple?.(selectedArr)
+        return next
+      })
+    } else {
+      onSelect?.(zone)
+    }
   }
 
   if (mesas.length === 0) {
@@ -82,6 +157,7 @@ export default function FloorPlanViewer({ zones, venueId, selectedZone, onSelect
       )}
 
       <div
+        ref={multiSelect ? canvasRef : undefined}
         className="relative w-full rounded-2xl overflow-hidden select-none"
         style={{
           paddingTop: '60%',
@@ -91,17 +167,25 @@ export default function FloorPlanViewer({ zones, venueId, selectedZone, onSelect
             'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
           backgroundSize: '10% 10%',
         }}
+        onMouseDown={multiSelect ? onCanvasStart : undefined}
+        onMouseMove={multiSelect ? onPointerMove : undefined}
+        onMouseUp={multiSelect ? onPointerUp : undefined}
+        onMouseLeave={multiSelect ? onPointerUp : undefined}
+        onTouchStart={multiSelect ? e => { if (!e.target.closest('[data-zone]')) { e.preventDefault(); onCanvasStart(e) } } : undefined}
+        onTouchMove={multiSelect ? e => { e.preventDefault(); onPointerMove(e) } : undefined}
+        onTouchEnd={multiSelect ? onPointerUp : undefined}
       >
         <div className="absolute inset-0">
           {visibleMesas.map(zone => {
             const occupied = occupiedIds.has(zone.id)
-            const selected = selectedZone?.id === zone.id
+            const selected = multiSelect ? multiSelectedIds.has(zone.id) : selectedZone?.id === zone.id
             const w = zone.size_w ?? 8
             const h = zone.size_h ?? 13
             const radius = zone.shape === 'redonda' ? 'rounded-full' : zone.shape === 'barra' ? 'rounded-lg' : 'rounded-xl'
             return (
               <button
                 key={zone.id}
+                data-zone="1"
                 className="absolute"
                 style={{
                   left: `${zone.pos_x}%`,
@@ -110,7 +194,8 @@ export default function FloorPlanViewer({ zones, venueId, selectedZone, onSelect
                   height: `${h}%`,
                   transform: 'translate(-50%,-50%)',
                 }}
-                onClick={() => onSelect?.(zone)}
+                onMouseDown={multiSelect ? e => e.stopPropagation() : undefined}
+                onClick={() => handleZoneClick(zone)}
               >
                 <div className={`w-full h-full ${radius} flex items-center justify-center transition-all relative border-2
                   ${selected
@@ -132,6 +217,20 @@ export default function FloorPlanViewer({ zones, venueId, selectedZone, onSelect
               </button>
             )
           })}
+
+          {/* Rubber-band selection rect */}
+          {rubberBand && (
+            <div
+              className="absolute pointer-events-none border border-[#00b0b0] z-50"
+              style={{
+                left: `${Math.min(rubberBand.x1, rubberBand.x2)}%`,
+                top: `${Math.min(rubberBand.y1, rubberBand.y2)}%`,
+                width: `${Math.abs(rubberBand.x2 - rubberBand.x1)}%`,
+                height: `${Math.abs(rubberBand.y2 - rubberBand.y1)}%`,
+                background: 'rgba(0,176,176,0.08)',
+              }}
+            />
+          )}
         </div>
       </div>
 
@@ -148,7 +247,14 @@ export default function FloorPlanViewer({ zones, venueId, selectedZone, onSelect
           <div className="w-3 h-3 rounded bg-[#008080]" />
           <span className="text-smoke-500 text-[11px]">Seleccionada</span>
         </div>
+        {multiSelect && multiSelectedIds.size > 0 && (
+          <span className="ml-auto text-[#008080] text-[11px] font-semibold">
+            {multiSelectedIds.size} seleccionada{multiSelectedIds.size > 1 ? 's' : ''}
+          </span>
+        )}
       </div>
     </div>
   )
 }
+
+function clamp(v, min, max) { return Math.min(max, Math.max(min, v)) }
