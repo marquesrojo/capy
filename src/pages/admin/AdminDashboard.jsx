@@ -600,7 +600,7 @@ async function loadZones() {
       )}
 
       {view === 'mapa' ? (
-        <MapaView orders={orders} zones={zones} venueId={venueId} />
+        <MapaView orders={orders} zones={zones} venueId={venueId} onUpdateStatus={updateStatus} />
       ) : view === 'cocina' ? (
         <CocinaView orders={orders} categories={categories} onUpdateStatus={updateStatus} onRefresh={load} />
       ) : (
@@ -855,10 +855,180 @@ function CocinaView({ orders, categories, onUpdateStatus, onRefresh }) {
   )
 }
 
-function MapaView({ orders, zones, venueId }) {
+function MesaPanel({ mesa, orders, onClose, onUpdateStatus }) {
+  const ACTIVE = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo']
+  const STATUS_RANK = { listo: 0, en_preparacion: 1, recibido: 2, pendiente_aprobacion: 3 }
+
+  const mesaOrders = orders
+    .filter(o => o.zone_id === mesa.id && ACTIVE.includes(o.status))
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+
+  const itemMap = {}
+  mesaOrders.forEach(order => {
+    ;(order.order_items || []).forEach(item => {
+      const key = item.product_name
+      if (!itemMap[key]) itemMap[key] = { name: key, qty: 0, worstStatus: 'pendiente_aprobacion' }
+      itemMap[key].qty += item.quantity
+      if (STATUS_RANK[order.status] < STATUS_RANK[itemMap[key].worstStatus]) {
+        itemMap[key].worstStatus = order.status
+      }
+    })
+  })
+  const consolidatedItems = Object.values(itemMap).sort(
+    (a, b) => STATUS_RANK[a.worstStatus] - STATUS_RANK[b.worstStatus] || a.name.localeCompare(b.name)
+  )
+
+  const totalItems = consolidatedItems.reduce((s, i) => s + i.qty, 0)
+  const totalRevenue = mesaOrders.reduce((s, o) => s + (o.total || 0), 0)
+
+  const STATUS_INLINE = {
+    listo: 'text-emerald-400 font-semibold',
+    en_preparacion: 'text-ember-500',
+    recibido: 'text-blue-400',
+    pendiente_aprobacion: 'text-amber-400',
+  }
+  const STATUS_SHORT = {
+    listo: 'Listo',
+    en_preparacion: 'En prep.',
+    recibido: 'Recibido',
+    pendiente_aprobacion: 'Por aprobar',
+  }
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40 bg-carbon-950/70" onClick={onClose} />
+      <div
+        className="fixed bottom-0 left-0 right-0 z-50 bg-carbon-900 rounded-t-3xl flex flex-col border-t border-carbon-700"
+        style={{ maxHeight: '78vh' }}
+      >
+        <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+          <div className="w-10 h-1 rounded-full bg-carbon-700" />
+        </div>
+
+        <div className="px-5 pb-4 pt-1 flex items-start justify-between flex-shrink-0 border-b border-carbon-800">
+          <div>
+            <h2 className="text-smoke-100 font-bold text-2xl leading-tight">{mesa.name}</h2>
+            <p className="text-smoke-500 text-xs mt-0.5">
+              {mesaOrders.length === 0
+                ? 'Sin pedidos activos'
+                : `${mesaOrders.length} pedido${mesaOrders.length !== 1 ? 's' : ''} · ${totalItems} ítem${totalItems !== 1 ? 's' : ''} · ${formatPrice(totalRevenue)}`
+              }
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="mt-0.5 w-8 h-8 flex items-center justify-center text-smoke-500 hover:text-smoke-200 bg-carbon-800 rounded-full flex-shrink-0"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 pb-10">
+          {mesaOrders.length === 0 ? (
+            <div className="py-16 text-center">
+              <svg className="mx-auto mb-3 text-smoke-700" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+              </svg>
+              <p className="text-smoke-500 text-sm">Mesa libre</p>
+            </div>
+          ) : (
+            <>
+              <div className="px-5 pt-5">
+                <p className="text-smoke-600 text-[10px] font-semibold uppercase tracking-widest mb-3">Lo que pidió la mesa</p>
+                <div className="space-y-2.5">
+                  {consolidatedItems.map(item => (
+                    <div key={item.name} className="flex items-center gap-3">
+                      <span className="text-smoke-600 font-mono text-sm w-7 text-right flex-shrink-0">{item.qty}×</span>
+                      <span className="text-smoke-200 text-sm flex-1 leading-snug">{item.name}</span>
+                      <span className={`text-[11px] flex-shrink-0 ${STATUS_INLINE[item.worstStatus]}`}>
+                        {STATUS_SHORT[item.worstStatus]}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mx-5 mt-5 border-t border-carbon-800" />
+
+              <div className="px-5 pt-4">
+                <p className="text-smoke-600 text-[10px] font-semibold uppercase tracking-widest mb-3">Pedidos</p>
+                <div className="space-y-3">
+                  {mesaOrders.map(order => {
+                    const isListo = order.status === 'listo'
+                    const isBillAlert = order.payment_status === 'cuenta_solicitada' || order.payment_status === 'en_revision'
+                    return (
+                      <div
+                        key={order.id}
+                        className={`rounded-2xl p-4 border ${
+                          isListo
+                            ? 'bg-emerald-500/5 border-emerald-500/30'
+                            : isBillAlert
+                              ? 'bg-amber-500/5 border-amber-500/30'
+                              : 'bg-carbon-800 border-carbon-700'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2.5">
+                          <span className="font-mono text-smoke-400 text-xs">
+                            #{order.daily_number || order.id.slice(0, 6)}
+                            {order.customers?.full_name && (
+                              <span className="text-smoke-500 ml-2 font-sans font-normal">· {order.customers.full_name.split(' ')[0]}</span>
+                            )}
+                          </span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full border ${STATUS_COLORS[order.status]}`}>
+                            {STATUS_LABELS[order.status]}
+                          </span>
+                        </div>
+
+                        <ul className="space-y-1 mb-3">
+                          {(order.order_items || []).map(item => (
+                            <li key={item.id} className="text-smoke-400 text-xs flex items-baseline gap-2">
+                              <span className="text-smoke-600 font-mono w-5 text-right flex-shrink-0">{item.quantity}×</span>
+                              <span>{item.product_name}</span>
+                              {item.notes && <span className="text-smoke-600 truncate">— {item.notes}</span>}
+                            </li>
+                          ))}
+                        </ul>
+
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono text-smoke-300 text-sm">{formatPrice(order.total)}</span>
+                          <div className="flex items-center gap-2">
+                            {isBillAlert && (
+                              <span className="text-amber-400 text-xs font-semibold">⚡ Cuenta</span>
+                            )}
+                            {isListo && onUpdateStatus && (
+                              <button
+                                onClick={() => onUpdateStatus(order.id, 'entregado')}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-colors"
+                              >
+                                Entregar ✓
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </>
+  )
+}
+
+function MapaView({ orders, zones, venueId, onUpdateStatus }) {
   const containerRef = useRef(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [cssFull, setCssFull] = useState(false)
+  const [selectedMesa, setSelectedMesa] = useState(null)
+
+  function handleMesaSelect(zone) {
+    setSelectedMesa(prev => prev?.id === zone.id ? null : zone)
+  }
 
   useEffect(() => {
     const handler = () => {
@@ -959,6 +1129,8 @@ function MapaView({ orders, zones, venueId }) {
                 venueId={venueId}
                 supabaseClient={supabaseStaff}
                 filterZoneId={zona.id}
+                selectedZone={selectedMesa}
+                onSelect={handleMesaSelect}
               />
             </div>
           ))
@@ -967,9 +1139,20 @@ function MapaView({ orders, zones, venueId }) {
             zones={zones}
             venueId={venueId}
             supabaseClient={supabaseStaff}
+            selectedZone={selectedMesa}
+            onSelect={handleMesaSelect}
           />
         )}
       </div>
+
+      {selectedMesa && (
+        <MesaPanel
+          mesa={selectedMesa}
+          orders={orders}
+          onClose={() => setSelectedMesa(null)}
+          onUpdateStatus={onUpdateStatus}
+        />
+      )}
     </div>
   )
 }
