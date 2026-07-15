@@ -106,6 +106,7 @@ export default function IdentifyPage() {
   const [waiterSector, setWaiterSector] = useState(null)
   const [callLoading, setCallLoading] = useState(false)
   const [callSent, setCallSent] = useState(false)
+  const [waiterCallView, setWaiterCallView] = useState('lista') // 'lista' | 'mapa'
 
   const prefillZoneId = searchParams.get('zone_id')
   const prefillLabel = searchParams.get('location_label')
@@ -244,6 +245,7 @@ export default function IdentifyPage() {
   }
 
   async function openWaiterCall() {
+    setWaiterCallView(zonePickerView) // inherit venue's configured view mode
     setShowWaiterCall(true)
     setCallSent(false)
     setSelectedReason(null)
@@ -1086,75 +1088,126 @@ export default function IdentifyPage() {
                       </button>
                     ) : (
                       <>
-                        {/* Sector selector */}
-                        {sectores.length > 0 && (
-                          <>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Sector</p>
-                            <div className="grid grid-cols-3 gap-2 mb-4">
-                              {sectores.map(sector => {
-                                const hasMesas = allMesas.some(m => m.parent_zone_id === sector.id)
-                                const active = waiterSector?.id === sector.id
-                                return (
-                                  <button
-                                    key={sector.id}
-                                    disabled={callLoading}
-                                    onClick={() => {
-                                      if (!hasMesas) {
-                                        submitCall(sector.id, sector.name)
-                                      } else {
-                                        setWaiterSector(active ? null : sector)
-                                      }
-                                    }}
-                                    className="rounded-xl py-2.5 px-1 text-xs font-bold text-center border-2 disabled:opacity-50 transition-all leading-tight"
-                                    style={active
-                                      ? { backgroundColor: waiterColor, borderColor: waiterColor, color: 'white' }
-                                      : { backgroundColor: '#F8FAFB', borderColor: waiterColor, color: waiterColor }
-                                    }
-                                  >
-                                    {sector.name}
-                                  </button>
-                                )
-                              })}
-                            </div>
-                          </>
+                        {/* Map / Lista toggle — only in 'ambos' mode */}
+                        {locationDisplayMode === 'ambos' && hasMap && (
+                          <div className="flex gap-1 bg-[#F0F4F8] rounded-xl p-1 mb-4">
+                            {['mapa', 'lista'].map(mode => (
+                              <button
+                                key={mode}
+                                onClick={() => setWaiterCallView(mode)}
+                                className="flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize"
+                                style={waiterCallView === mode
+                                  ? { backgroundColor: waiterColor, color: 'white' }
+                                  : { color: waiterColor }
+                                }
+                              >
+                                {mode === 'mapa' ? (
+                                  <span className="flex items-center justify-center gap-1">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
+                                      <line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/>
+                                    </svg>
+                                    Mapa
+                                  </span>
+                                ) : (
+                                  <span className="flex items-center justify-center gap-1">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+                                      <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+                                    </svg>
+                                    Lista
+                                  </span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
                         )}
 
-                        {/* Mesa selector inside chosen sector */}
-                        {waiterSector && allMesas.filter(m => m.parent_zone_id === waiterSector.id).length > 0 && (
-                          <>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">
-                              Mesa — {waiterSector.name}
-                            </p>
-                            <div className="grid grid-cols-5 gap-2 mb-4">
-                              {allMesas.filter(m => m.parent_zone_id === waiterSector.id).map(mesa => (
-                                <button
-                                  key={mesa.id}
-                                  onClick={() => submitCall(mesa.id, mesa.name)}
-                                  disabled={callLoading}
-                                  className="aspect-square rounded-full flex items-center justify-center text-sm font-black border-2 disabled:opacity-50 transition-all"
-                                  style={{ backgroundColor: '#F8FAFB', borderColor: waiterColor, color: waiterColor }}
-                                >
-                                  {zoneShort(mesa.name)}
-                                </button>
-                              ))}
-                            </div>
-                          </>
+                        {/* Map view */}
+                        {waiterCallView === 'mapa' && hasMap && locationDisplayMode !== 'lista' && (
+                          <ClientFloorMap
+                            zones={zones}
+                            accent={waiterColor}
+                            confirmStep={false}
+                            venueId={venueId}
+                            onChoose={zone => submitCall(zone.id, zone.name)}
+                          />
                         )}
 
-                        {/* Orphan mesas (no sector) */}
-                        {orphanMesas.length > 0 && (
+                        {/* List view */}
+                        {(waiterCallView === 'lista' || !hasMap || locationDisplayMode === 'lista') && (
                           <>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Mesas</p>
-                            <div className="grid grid-cols-5 gap-2 mb-4">
-                              {orphanMesas.map(mesa => (
-                                <button key={mesa.id} onClick={() => submitCall(mesa.id, mesa.name)}
-                                  disabled={callLoading}
-                                  className="aspect-square rounded-full flex items-center justify-center text-sm font-black border-2 disabled:opacity-50 bg-white transition-all"
-                                  style={{ borderColor: waiterColor, color: waiterColor }}>
-                                  {zoneShort(mesa.name)}
-                                </button>
-                              ))}
-                            </div>
+                            {/* Sector selector */}
+                            {sectores.length > 0 && (
+                              <>
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Sector</p>
+                                <div className="grid grid-cols-3 gap-2 mb-4">
+                                  {sectores.map(sector => {
+                                    const hasMesas = allMesas.some(m => m.parent_zone_id === sector.id)
+                                    const active = waiterSector?.id === sector.id
+                                    return (
+                                      <button
+                                        key={sector.id}
+                                        disabled={callLoading}
+                                        onClick={() => {
+                                          if (!hasMesas) {
+                                            submitCall(sector.id, sector.name)
+                                          } else {
+                                            setWaiterSector(active ? null : sector)
+                                          }
+                                        }}
+                                        className="rounded-xl py-2.5 px-1 text-xs font-bold text-center border-2 disabled:opacity-50 transition-all leading-tight"
+                                        style={active
+                                          ? { backgroundColor: waiterColor, borderColor: waiterColor, color: 'white' }
+                                          : { backgroundColor: '#F8FAFB', borderColor: waiterColor, color: waiterColor }
+                                        }
+                                      >
+                                        {sector.name}
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+                              </>
+                            )}
+
+                            {/* Mesa selector inside chosen sector */}
+                            {waiterSector && allMesas.filter(m => m.parent_zone_id === waiterSector.id).length > 0 && (
+                              <>
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">
+                                  Mesa — {waiterSector.name}
+                                </p>
+                                <div className="grid grid-cols-5 gap-2 mb-4">
+                                  {allMesas.filter(m => m.parent_zone_id === waiterSector.id).map(mesa => (
+                                    <button
+                                      key={mesa.id}
+                                      onClick={() => submitCall(mesa.id, mesa.name)}
+                                      disabled={callLoading}
+                                      className="aspect-square rounded-full flex items-center justify-center text-sm font-black border-2 disabled:opacity-50 transition-all"
+                                      style={{ backgroundColor: '#F8FAFB', borderColor: waiterColor, color: waiterColor }}
+                                    >
+                                      {zoneShort(mesa.name)}
+                                    </button>
+                                  ))}
+                                </div>
+                              </>
+                            )}
+
+                            {/* Orphan mesas (no sector) */}
+                            {orphanMesas.length > 0 && (
+                              <>
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Mesas</p>
+                                <div className="grid grid-cols-5 gap-2 mb-4">
+                                  {orphanMesas.map(mesa => (
+                                    <button key={mesa.id} onClick={() => submitCall(mesa.id, mesa.name)}
+                                      disabled={callLoading}
+                                      className="aspect-square rounded-full flex items-center justify-center text-sm font-black border-2 disabled:opacity-50 bg-white transition-all"
+                                      style={{ borderColor: waiterColor, color: waiterColor }}>
+                                      {zoneShort(mesa.name)}
+                                    </button>
+                                  ))}
+                                </div>
+                              </>
+                            )}
                           </>
                         )}
                       </>
