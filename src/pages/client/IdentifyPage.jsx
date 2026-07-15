@@ -316,13 +316,12 @@ export default function IdentifyPage() {
   const orphanMesas = allMesas.filter(m => !m.parent_zone_id)
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] flex flex-col">
+    <div className="min-h-screen bg-[#FAF9F6] flex flex-col lg:flex-row">
 
-      {/* ── Hero ── */}
+      {/* ── Hero (mobile header) / Sidebar (desktop) ── */}
       <div
-        className="relative overflow-hidden"
+        className="relative overflow-hidden min-h-[220px] lg:w-[340px] xl:w-[400px] lg:flex-shrink-0 lg:sticky lg:top-0 lg:h-screen lg:flex lg:flex-col"
         style={{
-          minHeight: 220,
           paddingTop: 'max(2.5rem, env(safe-area-inset-top))',
           paddingBottom: '2rem',
           ...(venue?.banner_url ? {
@@ -357,8 +356,8 @@ export default function IdentifyPage() {
           )}
         </div>
 
-        <div className="relative z-10 px-6 text-center">
-          <div className="w-20 h-20 mx-auto mb-3 rounded-2xl bg-white/95 p-1.5 shadow-lg">
+        <div className="relative z-10 px-6 text-center lg:flex-1 lg:flex lg:flex-col lg:items-center lg:justify-center lg:py-10">
+          <div className="w-20 h-20 lg:w-28 lg:h-28 mx-auto mb-3 rounded-2xl bg-white/95 p-1.5 shadow-lg">
             <img
               src={venue?.logo_url || '/icon-512.png'}
               alt={venue?.name || 'Capy'}
@@ -398,13 +397,66 @@ export default function IdentifyPage() {
             </div>
           )}
         </div>
+
+        {/* Desktop sidebar bottom: schedule + social */}
+        <div className="hidden lg:flex lg:flex-col relative z-10 px-6 pb-8 gap-4 border-t border-white/10 mt-auto pt-5">
+          {schedule && (
+            <div>
+              <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest mb-2">Horarios</p>
+              <div className="space-y-1">
+                {DAY_LABELS.map(({ key, label }) => {
+                  const day = schedule[key]
+                  const isToday = key === currentDayKey
+                  return (
+                    <div key={key} className="flex items-center justify-between">
+                      <span className={`text-xs ${isToday ? 'font-bold text-white' : 'text-white/50'}`}>{label}</span>
+                      {day?.active
+                        ? <span className={`text-xs tabular-nums ${isToday ? 'font-bold text-white' : 'text-white/50'}`}>{day.from}–{day.to}</span>
+                        : <span className="text-xs text-white/25">Cerrado</span>
+                      }
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+          <div className="flex flex-col gap-2">
+            {instagramHandle && (
+              <a href={`https://instagram.com/${instagramHandle}`} target="_blank" rel="noreferrer"
+                className="flex items-center gap-2 text-white/60 hover:text-white text-xs transition-colors">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                  <rect x="2" y="2" width="20" height="20" rx="5" stroke="currentColor" strokeWidth="2"/>
+                  <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2"/>
+                  <circle cx="17.5" cy="6.5" r="1" fill="currentColor"/>
+                </svg>
+                @{instagramHandle}
+              </a>
+            )}
+            {address && (
+              <a href={address} target="_blank" rel="noreferrer"
+                className="flex items-center gap-2 text-white/60 hover:text-white text-xs transition-colors">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 21s-7-7.5-7-12a7 7 0 0 1 14 0c0 4.5-7 12-7 12Z"/><circle cx="12" cy="9" r="2.5"/>
+                </svg>
+                Ver en Google Maps
+              </a>
+            )}
+            <a href="https://capyapp.co" target="_blank" rel="noreferrer"
+              className="text-[10px] text-white/25 hover:text-white/50 transition-colors mt-1">
+              Capy · capyapp.co
+            </a>
+          </div>
+        </div>
       </div>
+
+      {/* ── Right column (flex-1 on desktop) ── */}
+      <div className="flex-1 flex flex-col">
 
       {googleError && <p className="text-red-500 text-xs text-center px-4 pt-2">{googleError}</p>}
 
-      {/* ── Horario expandible ── */}
+      {/* ── Horario expandible (mobile only — desktop shows in sidebar) ── */}
       {showSchedule && schedule && (
-        <div className="px-4 pt-3">
+        <div className="lg:hidden px-4 pt-3">
           <div className="bg-white rounded-2xl border border-black/[0.06] shadow-sm p-4">
             <p className="text-[#1A2332] font-black text-xs uppercase tracking-wider mb-3">Horarios</p>
             <div className="space-y-1.5">
@@ -440,7 +492,7 @@ export default function IdentifyPage() {
       )}
 
       {/* ── Contenido principal ── */}
-      <div className="px-4 pt-4 space-y-3">
+      <div className="px-4 pt-4 pb-6 space-y-3 md:max-w-xl md:mx-auto md:px-6 lg:max-w-2xl lg:px-8 lg:pt-8 lg:pb-12 w-full">
 
         {/* ── ¿En qué mesa estás? — PRIMERO ── */}
         {!prefillZoneId && zones.length > 0 && (
@@ -523,7 +575,7 @@ export default function IdentifyPage() {
               {sectores.length > 0 && (
                 <>
                   <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Sector</p>
-                  <div className="grid grid-cols-3 gap-2 mb-4">
+                  <div className="grid grid-cols-3 md:grid-cols-4 gap-2 mb-4">
                     {sectores.map(sector => {
                       const active = pickedSector?.id === sector.id
                       return (
@@ -823,8 +875,8 @@ export default function IdentifyPage() {
         {topProducts.length > 0 && (
           <div className="pt-1">
             <p className="text-sm font-black uppercase tracking-wider text-[#1A2332] mb-3">Sugerencias del chef</p>
-            <div className="grid grid-cols-2 gap-3">
-              {topProducts.slice(0, 4).map(p => (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3">
+              {topProducts.slice(0, 6).map(p => (
                 <button
                   key={p.id}
                   onClick={() => { addItem(p, 1); navigate(`${base}/carta`) }}
@@ -847,54 +899,60 @@ export default function IdentifyPage() {
 
       </div>{/* fin contenido principal */}
 
-      {/* ── Footer ── */}
+      {/* ── Footer (mobile only — desktop shows in sidebar) ── */}
       <div className="mt-auto pt-8 pb-10 text-center space-y-3">
-        {instagramHandle && (
-          <a
-            href={`https://instagram.com/${instagramHandle}`}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-black/[0.08] bg-white shadow-sm text-sm font-semibold text-[#1A2332] hover:bg-[#F0F4F8] transition-colors"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <rect x="2" y="2" width="20" height="20" rx="5" ry="5" stroke="url(#ig)" strokeWidth="2"/>
-              <circle cx="12" cy="12" r="4" stroke="url(#ig)" strokeWidth="2"/>
-              <circle cx="17.5" cy="6.5" r="1" fill="url(#ig)"/>
-              <defs>
-                <linearGradient id="ig" x1="2" y1="22" x2="22" y2="2" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor="#f09433"/>
-                  <stop offset="25%" stopColor="#e6683c"/>
-                  <stop offset="50%" stopColor="#dc2743"/>
-                  <stop offset="75%" stopColor="#cc2366"/>
-                  <stop offset="100%" stopColor="#bc1888"/>
-                </linearGradient>
-              </defs>
-            </svg>
-            @{instagramHandle}
-          </a>
-        )}
-        {address && (
-          <div>
-            <a
-              href={address}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-[#9DAAB8] text-xs hover:text-[#1A2332] transition-colors"
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 21s-7-7.5-7-12a7 7 0 0 1 14 0c0 4.5-7 12-7 12Z"/><circle cx="12" cy="9" r="2.5"/>
-              </svg>
-              Ver en Google Maps
-            </a>
-          </div>
-        )}
+        <div className="lg:hidden space-y-3">
+          {instagramHandle && (
+            <div>
+              <a
+                href={`https://instagram.com/${instagramHandle}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-black/[0.08] bg-white shadow-sm text-sm font-semibold text-[#1A2332] hover:bg-[#F0F4F8] transition-colors"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5" stroke="url(#ig)" strokeWidth="2"/>
+                  <circle cx="12" cy="12" r="4" stroke="url(#ig)" strokeWidth="2"/>
+                  <circle cx="17.5" cy="6.5" r="1" fill="url(#ig)"/>
+                  <defs>
+                    <linearGradient id="ig" x1="2" y1="22" x2="22" y2="2" gradientUnits="userSpaceOnUse">
+                      <stop offset="0%" stopColor="#f09433"/>
+                      <stop offset="25%" stopColor="#e6683c"/>
+                      <stop offset="50%" stopColor="#dc2743"/>
+                      <stop offset="75%" stopColor="#cc2366"/>
+                      <stop offset="100%" stopColor="#bc1888"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+                @{instagramHandle}
+              </a>
+            </div>
+          )}
+          {address && (
+            <div>
+              <a
+                href={address}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-[#9DAAB8] text-xs hover:text-[#1A2332] transition-colors"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 21s-7-7.5-7-12a7 7 0 0 1 14 0c0 4.5-7 12-7 12Z"/><circle cx="12" cy="9" r="2.5"/>
+                </svg>
+                Ver en Google Maps
+              </a>
+            </div>
+          )}
+        </div>
         <div>
           <a href="https://capyapp.co" target="_blank" rel="noreferrer"
-            className="text-[10px] text-[#C0CBDA] hover:text-[#9DAAB8] transition-colors">
+            className="text-[10px] text-[#C0CBDA] hover:text-[#9DAAB8] transition-colors lg:hidden">
             Desarrollado por Capy · capyapp.co
           </a>
         </div>
       </div>
+
+      </div>{/* end right column */}
 
       {/* ── Drawer: llamar al mozo ── */}
       {showWaiterCall && (
