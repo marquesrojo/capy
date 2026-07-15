@@ -107,6 +107,9 @@ export default function IdentifyPage() {
   const [callLoading, setCallLoading] = useState(false)
   const [callSent, setCallSent] = useState(false)
   const [waiterCallView, setWaiterCallView] = useState('lista') // 'lista' | 'mapa'
+  const [waiterAlertWa, setWaiterAlertWa] = useState(null) // venue fallback WA for waiter calls
+  const [callWaiterWa, setCallWaiterWa] = useState(null) // resolved WA shown after call is sent
+  const [linkCopied, setLinkCopied] = useState(false)
 
   const prefillZoneId = searchParams.get('zone_id')
   const prefillLabel = searchParams.get('location_label')
@@ -144,14 +147,14 @@ export default function IdentifyPage() {
 
     const venueQ = supabaseCustomer
       .from('venues')
-      .select('instagram_handle, retiro_externo_enabled, delivery_enabled, client_floor_map_enabled, location_display_mode, description, announcement, schedule')
+      .select('instagram_handle, retiro_externo_enabled, delivery_enabled, client_floor_map_enabled, location_display_mode, description, announcement, schedule, waiter_alert_whatsapp')
       .eq('id', venueId)
       .single()
 
     if (!prefillZoneId) {
       const zonesQ = supabaseCustomer
         .from('venue_zones')
-        .select('id, name, type, parent_zone_id, pos_x, pos_y, size_w, size_h, shape')
+        .select('id, name, type, parent_zone_id, pos_x, pos_y, size_w, size_h, shape, current_waiter:staff_names(whatsapp_number)')
         .eq('venue_id', venueId)
         .eq('is_active', true)
         .order('sort_order')
@@ -166,6 +169,7 @@ export default function IdentifyPage() {
         if (venueData?.description) setDescription(venueData.description)
         if (venueData?.announcement) setAnnouncement(venueData.announcement)
         if (venueData?.schedule) setSchedule(venueData.schedule)
+        if (venueData?.waiter_alert_whatsapp) setWaiterAlertWa(venueData.waiter_alert_whatsapp)
         const mode = venueData?.location_display_mode
           || (venueData?.client_floor_map_enabled ? 'ambos' : 'lista')
         setLocationDisplayMode(mode)
@@ -186,13 +190,19 @@ export default function IdentifyPage() {
         }
       }).catch(() => {})
     } else {
-      venueQ.then(({ data }) => {
+      const zoneWaiterQ = supabaseCustomer
+        .from('venue_zones')
+        .select('id, current_waiter:staff_names(whatsapp_number)')
+        .eq('id', prefillZoneId)
+        .single()
+      Promise.all([venueQ, zoneWaiterQ]).then(([{ data }, { data: zoneData }]) => {
         if (data?.instagram_handle) setInstagramHandle(data.instagram_handle)
         if (data?.retiro_externo_enabled) setRetiroExternoEnabled(true)
         if (data?.delivery_enabled) setDeliveryEnabled(true)
         if (data?.description) setDescription(data.description)
         if (data?.announcement) setAnnouncement(data.announcement)
         if (data?.schedule) setSchedule(data.schedule)
+        setWaiterAlertWa(zoneData?.current_waiter?.whatsapp_number || data?.waiter_alert_whatsapp || null)
       }).catch(() => {})
     }
 
@@ -276,6 +286,8 @@ export default function IdentifyPage() {
       headers: { 'Content-Type': 'application/json', apikey: import.meta.env.VITE_SUPABASE_ANON_KEY, Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` },
       body: JSON.stringify({ zone_id: zoneId, venue_id: venueId, location_label: locationLabel }),
     }).catch(() => {})
+    const foundZone = zones.find(z => z.id === zoneId)
+    setCallWaiterWa(foundZone?.current_waiter?.whatsapp_number || waiterAlertWa || null)
     setCallLoading(false)
     setCallSent(true)
   }
@@ -780,6 +792,43 @@ export default function IdentifyPage() {
           </svg>
         </button>
 
+        {/* ── Invitar a mi mesa ── */}
+        {activeZoneId && activeLabel && (
+          <button
+            onClick={() => {
+              const url = `${window.location.origin}${base}/?zone_id=${activeZoneId}&location_label=${encodeURIComponent(activeLabel)}&location_type=${pickedZone?.type || prefillType}`
+              if (navigator.share) {
+                navigator.share({ title: venue?.name || 'Mesa', text: `Unite a ${activeLabel}`, url }).catch(() => {})
+              } else {
+                navigator.clipboard.writeText(url).then(() => {
+                  setLinkCopied(true)
+                  setTimeout(() => setLinkCopied(false), 2500)
+                }).catch(() => {})
+              }
+            }}
+            className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl shadow-sm border active:scale-[0.98] transition-transform bg-white"
+            style={{ borderColor: 'rgba(0,0,0,0.06)' }}
+          >
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: `${accentOnWhite}15` }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={accentOnWhite} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                <polyline points="16 6 12 2 8 6"/>
+                <line x1="12" y1="2" x2="12" y2="15"/>
+              </svg>
+            </div>
+            <div className="flex-1 text-left">
+              <p className="font-black text-sm leading-tight" style={{ color: accentOnWhite }}>Invitar a mi mesa</p>
+              <p className="text-[#9DAAB8] text-xs mt-0.5">
+                {linkCopied ? '¡Link copiado!' : `Compartí el link de ${activeLabel}`}
+              </p>
+            </div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9DAAB8" strokeWidth="2.5">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+        )}
+
         {/* ── ¿Ya tenés un pedido? ── */}
         <div>
           <button
@@ -1022,7 +1071,25 @@ export default function IdentifyPage() {
                   </svg>
                 </div>
                 <p className="text-[#1A2332] font-black text-xl mb-1 uppercase">¡Camarero/a en camino!</p>
-                <p className="text-[#9DAAB8] text-sm mb-6">Ya saben dónde estás.</p>
+                <p className="text-[#9DAAB8] text-sm mb-4">Ya saben dónde estás.</p>
+                {callWaiterWa && (() => {
+                  const reason = WAITER_REASONS.find(r => r.id === selectedReason)
+                  const safeZone = activeLabel || 'Sin especificar'
+                  const msg = `Hola! Hay una solicitud de atención en ${safeZone}${reason ? ` — ${reason.label}` : ''}. Pasá cuando puedas.`
+                  return (
+                    <a
+                      href={`https://wa.me/${callWaiterWa.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 w-full bg-emerald-600 text-white font-bold py-3 rounded-2xl text-sm mb-3"
+                    >
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.35 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91C21.95 6.45 17.5 2 12.04 2zm4.96 14.43c-.21.59-1.21 1.13-1.67 1.17-.46.04-.47.36-2.96-.61-2.48-.97-3.97-3.48-4.09-3.64-.12-.16-.98-1.3-.98-2.48s.62-1.76.84-2 .46-.27.61-.27c.15 0 .3.01.43.02.14 0 .33-.05.51.4.18.44.62 1.52.67 1.63.05.11.09.24.01.38s-.12.23-.24.35c-.12.12-.25.27-.35.36-.12.11-.24.22-.1.44.14.21.61.99 1.32 1.6.9.8 1.67 1.05 1.9 1.17.24.12.37.1.51-.06.14-.16.59-.69.75-.93.16-.24.32-.2.54-.12.22.08 1.39.65 1.63.77.24.12.4.18.46.28.06.1.06.57-.15 1.12z"/>
+                      </svg>
+                      Escribir al camarero por WhatsApp
+                    </a>
+                  )
+                })()}
                 <button onClick={() => setShowWaiterCall(false)}
                   style={{ backgroundColor: waiterColor }}
                   className="text-white font-bold py-3 px-8 rounded-2xl text-sm">

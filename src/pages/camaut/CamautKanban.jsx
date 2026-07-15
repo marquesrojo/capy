@@ -142,14 +142,16 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
       if (own.length > 0) {
         const { data: extraData } = await supabaseStaff
           .from('orders')
-          .select('id, menu_id, waiter_called_at')
+          .select('id, menu_id, waiter_called_at, customers(full_name, whatsapp)')
           .in('id', own.map(o => o.id))
         extraMap = Object.fromEntries((extraData || []).map(o => [o.id, o]))
       }
       const activeOrders = own.map(o => ({
         ...o,
         menu_id: extraMap[o.id]?.menu_id || null,
-        waiter_called_at: extraMap[o.id]?.waiter_called_at || null
+        waiter_called_at: extraMap[o.id]?.waiter_called_at || null,
+        customer_whatsapp: extraMap[o.id]?.customers?.whatsapp || null,
+        customer_name: extraMap[o.id]?.customers?.full_name || null,
       }))
       const todayDelivered = deliveredRes.data || []
       const activeIds = new Set(activeOrders.map(o => o.id))
@@ -496,12 +498,27 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
                         {order.waiter_called_at && (
                           <div className="flex items-center justify-between -mx-3 -mt-3 mb-2 px-3 pt-2 pb-1.5 bg-amber-50 rounded-t-xl border-b border-amber-200">
                             <p className="text-amber-700 text-[10px] font-semibold flex items-center gap-1"><BellIcon size={10} /> Te está llamando</p>
-                            <button
-                              onClick={() => clearWaiterCall(order.id)}
-                              className="text-[9px] font-bold text-amber-700 border border-amber-300 bg-white px-1.5 py-0.5 rounded-lg"
-                            >
-                              Ya voy
-                            </button>
+                            <div className="flex items-center gap-1.5">
+                              {order.customer_whatsapp && (
+                                <a
+                                  href={`https://wa.me/${order.customer_whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`¡Hola${order.customer_name ? ` ${order.customer_name.split(' ')[0]}` : ''}! Ya te atendemos en ${order.location_label}. Enseguida estamos.`)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[9px] font-bold text-emerald-700 border border-emerald-400 bg-white px-1.5 py-0.5 rounded-lg flex items-center gap-0.5"
+                                >
+                                  <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.35 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91C21.95 6.45 17.5 2 12.04 2zm4.96 14.43c-.21.59-1.21 1.13-1.67 1.17-.46.04-.47.36-2.96-.61-2.48-.97-3.97-3.48-4.09-3.64-.12-.16-.98-1.3-.98-2.48s.62-1.76.84-2 .46-.27.61-.27c.15 0 .3.01.43.02.14 0 .33-.05.51.4.18.44.62 1.52.67 1.63.05.11.09.24.01.38s-.12.23-.24.35c-.12.12-.25.27-.35.36-.12.11-.24.22-.1.44.14.21.61.99 1.32 1.6.9.8 1.67 1.05 1.9 1.17.24.12.37.1.51-.06.14-.16.59-.69.75-.93.16-.24.32-.2.54-.12.22.08 1.39.65 1.63.77.24.12.4.18.46.28.06.1.06.57-.15 1.12z"/>
+                                  </svg>
+                                  WA
+                                </a>
+                              )}
+                              <button
+                                onClick={() => clearWaiterCall(order.id)}
+                                className="text-[9px] font-bold text-amber-700 border border-amber-300 bg-white px-1.5 py-0.5 rounded-lg"
+                              >
+                                Ya voy
+                              </button>
+                            </div>
                           </div>
                         )}
                         {!order.waiter_called_at && order.status === 'listo' && (
