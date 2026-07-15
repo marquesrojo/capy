@@ -60,12 +60,12 @@ Deno.serve(async (req) => {
     if (!targetPhone) {
       const { data: venue, error: venueErr } = await supabase
         .from('venues')
-        .select('waiter_alert_whatsapp')
+        .select('waiter_alert_whatsapp, whatsapp_number')
         .eq('id', venue_id)
         .single()
       console.log('[notify-waiter-call] venue fallback', { venue, venueErr })
 
-      if (venue?.waiter_alert_whatsapp) targetPhone = venue.waiter_alert_whatsapp
+      targetPhone = venue?.waiter_alert_whatsapp || venue?.whatsapp_number || null
     }
 
     console.log('[notify-waiter-call] targetPhone', targetPhone)

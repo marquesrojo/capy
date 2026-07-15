@@ -562,7 +562,6 @@ function CartaTab({ profile }) {
 function WhatsappTab({ profile }) {
   const [venueId, setVenueId] = useState(null)
   const [whatsapp, setWhatsapp] = useState('')
-  const [waiterAlertWa, setWaiterAlertWa] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -577,10 +576,9 @@ function WhatsappTab({ profile }) {
     if (!profileData?.venue_id) return
     setVenueId(profileData.venue_id)
     const { data } = await supabaseCamaut
-      .from('venues').select('whatsapp_number, waiter_alert_whatsapp').eq('id', profileData.venue_id).single()
+      .from('venues').select('whatsapp_number').eq('id', profileData.venue_id).single()
     if (data) {
       setWhatsapp(data.whatsapp_number || '')
-      setWaiterAlertWa(data.waiter_alert_whatsapp || '')
     }
   }
 
@@ -590,7 +588,6 @@ function WhatsappTab({ profile }) {
     setSaving(true)
     await supabaseCamaut.from('venues').update({
       whatsapp_number: whatsapp.trim() || null,
-      waiter_alert_whatsapp: waiterAlertWa.trim() || null,
     }).eq('id', venueId)
     setSaving(false)
     setSaved(true)
@@ -599,29 +596,16 @@ function WhatsappTab({ profile }) {
 
   return (
     <form onSubmit={handleSave} className="space-y-4">
-      <div className="bg-white rounded-2xl p-5 border border-black/5 shadow-sm space-y-4">
-        <div>
-          <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-1">WhatsApp del local</p>
-          <p className="text-[#B0BEC5] text-xs mb-3">Los clientes pueden contactar al local desde la app para confirmar pedidos, consultas o cualquier comunicación directa. Usá el formato internacional sin signos: ej. 5491123456789</p>
-          <input
-            type="tel"
-            value={whatsapp}
-            onChange={e => setWhatsapp(e.target.value)}
-            placeholder="+54 9 11 1234 5678"
-            className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-[#F8FAFC] text-[#1A2A3A]"
-          />
-        </div>
-        <div>
-          <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-1">WhatsApp de atención</p>
-          <p className="text-[#B0BEC5] text-xs mb-3">Número de respaldo para recibir llamadas al camarero cuando la mesa no tiene uno asignado. Los clientes pueden contactar acá si lo compartís.</p>
-          <input
-            type="tel"
-            value={waiterAlertWa}
-            onChange={e => setWaiterAlertWa(e.target.value)}
-            placeholder="+54 9 11 1234 5678"
-            className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-[#F8FAFC] text-[#1A2A3A]"
-          />
-        </div>
+      <div className="bg-white rounded-2xl p-5 border border-black/5 shadow-sm">
+        <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-1">WhatsApp del local</p>
+        <p className="text-[#B0BEC5] text-xs mb-3">Los clientes pueden contactar al local desde la app para confirmar pedidos, consultas o cualquier comunicación directa. Usá el formato internacional sin signos: ej. 5491123456789</p>
+        <input
+          type="tel"
+          value={whatsapp}
+          onChange={e => setWhatsapp(e.target.value)}
+          placeholder="+54 9 11 1234 5678"
+          className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-[#F8FAFC] text-[#1A2A3A]"
+        />
       </div>
       {saved && <p className="text-emerald-600 text-xs text-center">¡Guardado!</p>}
       <button type="submit" disabled={saving}
