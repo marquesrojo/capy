@@ -796,7 +796,10 @@ export default function IdentifyPage() {
         {activeZoneId && activeLabel && (
           <button
             onClick={() => {
-              const url = `${window.location.origin}${base}/?zone_id=${activeZoneId}&location_label=${encodeURIComponent(activeLabel)}&location_type=${pickedZone?.type || prefillType}`
+              const params = new URLSearchParams({ zone_id: activeZoneId, location_label: activeLabel, location_type: pickedZone?.type || prefillType || '' })
+              const url = venue?.slug
+                ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/og-link?slug=${encodeURIComponent(venue.slug)}&${params.toString()}`
+                : `${window.location.origin}${base}/?${params.toString()}`
               if (navigator.share) {
                 navigator.share({ title: venue?.name || 'Mesa', text: `Unite a ${activeLabel}`, url }).catch(() => {})
               } else {
