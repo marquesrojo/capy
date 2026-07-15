@@ -24,7 +24,6 @@ function CapyIcon({ size = 48 }) {
 
 export default function CapyChat({ venueName = '' }) {
   const [open, setOpen] = useState(false)
-  const [minimized, setMinimized] = useState(false)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -131,43 +130,19 @@ export default function CapyChat({ venueName = '' }) {
 
   function handleClose() {
     setOpen(false)
-    setMinimized(false)
   }
 
   return (
     <>
       {!open && (
-        minimized ? (
-          <button
-            onClick={() => setOpen(true)}
-            aria-label="Abrir asistente Capy"
-            className="fixed right-4 z-50 rounded-full select-none active:scale-95 transition-transform drop-shadow-xl"
-            style={{ bottom: isWaiter ? '5.5rem' : '1.5rem' }}
-          >
-            <CapyIcon size={48} />
-          </button>
-        ) : (
-          <div
-            className="fixed right-4 z-50 flex items-center rounded-full drop-shadow-xl select-none"
-            style={{ bottom: isWaiter ? '5.5rem' : '1.5rem', backgroundColor: '#1A2332' }}
-          >
-            <button
-              onClick={() => setOpen(true)}
-              aria-label="Abrir asistente Capy"
-              className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-l-full active:scale-95 transition-transform"
-            >
-              <CapyIcon size={44} />
-              <span className="text-white font-black text-sm tracking-wide">CAPY Chat</span>
-            </button>
-            <button
-              onClick={e => { e.stopPropagation(); setMinimized(true) }}
-              aria-label="Minimizar chat"
-              className="w-8 h-8 mr-1 rounded-full flex items-center justify-center bg-white/15 text-white text-lg leading-none active:scale-95 transition-all"
-            >
-              ‹
-            </button>
-          </div>
-        )
+        <button
+          onClick={() => setOpen(true)}
+          aria-label="Abrir asistente Capy"
+          className="fixed right-4 z-50 rounded-full select-none active:scale-95 transition-transform drop-shadow-xl"
+          style={{ bottom: isWaiter ? '5.5rem' : '1.5rem' }}
+        >
+          <CapyIcon size={52} />
+        </button>
       )}
 
       {open && (

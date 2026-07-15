@@ -162,25 +162,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
     if (!staffName) return
     const appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]')
     if (appleTitle) appleTitle.content = staffName
-    const manifest = {
-      name: staffName,
-      short_name: staffName,
-      start_url: '/camaut/app',
-      scope: '/camaut/',
-      display: 'standalone',
-      background_color: '#0F1923',
-      theme_color: '#008080',
-      icons: [
-        { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-        { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
-      ],
-    }
-    const blobUrl = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: 'application/json' }))
-    const link = document.querySelector('link[rel="manifest"]')
-    if (link) link.href = blobUrl
     return () => {
-      URL.revokeObjectURL(blobUrl)
-      if (link) link.href = '/manifest-waiter.json'
       if (appleTitle) appleTitle.content = 'Capy Camarero'
     }
   }, [staffName])
