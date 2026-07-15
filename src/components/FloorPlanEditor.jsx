@@ -131,11 +131,25 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
     e.stopPropagation()
     const src = e.touches ? e.touches[0] : e
     const rect = canvasRef.current.getBoundingClientRect()
-    const sz = sizes[id]
     iaRef.current = {
-      type: 'resize', id,
+      type: 'resize',
       startClientX: src.clientX, startClientY: src.clientY,
-      startW: sz.w, startH: sz.h,
+      startSizes: { [id]: { ...sizes[id] } },
+      moved: false, rect,
+    }
+  }
+
+  function startGroupResize(e) {
+    e.preventDefault()
+    e.stopPropagation()
+    const src = e.touches ? e.touches[0] : e
+    const rect = canvasRef.current.getBoundingClientRect()
+    const startSizes = {}
+    selectedIds.forEach(sid => { startSizes[sid] = { ...sizes[sid] } })
+    iaRef.current = {
+      type: 'resize',
+      startClientX: src.clientX, startClientY: src.clientY,
+      startSizes,
       moved: false, rect,
     }
   }
@@ -176,13 +190,16 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
     } else if (ia.type === 'resize') {
       const dw = (dx / ia.rect.width) * 100 * 2
       const dh = (dy / ia.rect.height) * 100 * 2
-      setSizes(prev => ({
-        ...prev,
-        [ia.id]: {
-          w: clamp(ia.startW + dw, 4, 45),
-          h: clamp(ia.startH + dh, 4, 40),
-        }
-      }))
+      setSizes(prev => {
+        const next = { ...prev }
+        Object.entries(ia.startSizes).forEach(([sid, ss]) => {
+          next[sid] = {
+            w: clamp(ss.w + dw, 4, 45),
+            h: clamp(ss.h + dh, 4, 40),
+          }
+        })
+        return next
+      })
     }
   }
 
@@ -350,7 +367,7 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
       )}
 
       <p className="text-smoke-600 text-[11px] mb-2">
-        Tocá para seleccionar · Arrastrá mesa para mover · Arrastrá espacio vacío para seleccionar varias · Esquina naranja para redimensionar · ⟳ rotar · ⧉ copiar
+        Tocá para seleccionar · Arrastrá mesa para mover · Arrastrá espacio vacío para seleccionar varias · Esquina para redimensionar · ⟳ rotar · ⧉ copiar
       </p>
 
       <div
@@ -382,6 +399,32 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
               Tocá las mesas de abajo para posicionarlas en el mapa
             </p>
           )}
+
+          {/* Group resize handle */}
+          {(() => {
+            if (selectedIds.size < 2) return null
+            let maxX = -Infinity, maxY = -Infinity
+            selectedIds.forEach(sid => {
+              const pos = positions[sid]
+              const sz = sizes[sid]
+              if (!pos || pos.x == null) return
+              maxX = Math.max(maxX, pos.x + sz.w / 2)
+              maxY = Math.max(maxY, pos.y + sz.h / 2)
+            })
+            if (!isFinite(maxX)) return null
+            return (
+              <div
+                className="absolute w-5 h-5 rounded-full bg-[#008080] border-2 border-[#0D1117] cursor-se-resize z-50 flex items-center justify-center"
+                style={{ left: `${maxX}%`, top: `${maxY}%`, transform: 'translate(-50%, -50%)' }}
+                onMouseDown={startGroupResize}
+                onTouchStart={startGroupResize}
+              >
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                  <path d="M1 7L7 1M4 7H7V4" stroke="white" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+            )
+          })()}
 
           {positioned.map(zone => {
             const id = zone.itemId
@@ -470,7 +513,7 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
       {selectedIds.size > 1 && (
         <div className="mt-2 flex items-center gap-3 bg-carbon-900 border border-ember-500/30 rounded-xl px-4 py-2.5">
           <span className="text-smoke-300 text-xs font-semibold flex-1">{selectedIds.size} mesas seleccionadas</span>
-          <span className="text-smoke-500 text-[11px]">Arrastrá cualquiera para mover el grupo</span>
+          <span className="text-smoke-500 text-[11px]">Arrastrá una mesa para mover · esquina verde para redimensionar</span>
           <button
             className="text-red-400 text-xs underline whitespace-nowrap"
             onClick={removeSelectedFromMap}
