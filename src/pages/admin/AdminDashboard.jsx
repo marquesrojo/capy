@@ -510,7 +510,7 @@ async function loadZones() {
         </button>
         {venueSlug && (
           <button
-            onClick={() => window.open(`/r/${venueSlug}?mostrador=1`, '_blank')}
+            onClick={() => window.open(`/r/${venueSlug}/carta?mostrador=1`, '_blank')}
             className="px-3 py-1.5 rounded-full text-xs font-medium border border-ember-500/40 text-ember-400 active:opacity-70"
           >
             Take Away
