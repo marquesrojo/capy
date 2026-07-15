@@ -19,7 +19,7 @@ export default function LocationPage() {
   const [pickedSector, setPickedSector] = useState(null)
   const [retiroExternoEnabled, setRetiroExternoEnabled] = useState(false)
   const [deliveryEnabled, setDeliveryEnabled] = useState(false)
-  const [clientMapEnabled, setClientMapEnabled] = useState(false)
+  const [locationDisplayMode, setLocationDisplayMode] = useState('lista') // 'lista' | 'ambos' | 'mapa'
   const [viewMode, setViewMode] = useState(null) // 'mapa' | 'lista' | null (not yet decided)
   const { setLocation, itemCount } = useCart()
   const navigate = useNavigate()
@@ -41,7 +41,7 @@ export default function LocationPage() {
           .order('name'),
         supabaseCustomer
           .from('venues')
-          .select('header_bg_color, retiro_externo_enabled, delivery_enabled, client_floor_map_enabled')
+          .select('header_bg_color, retiro_externo_enabled, delivery_enabled, client_floor_map_enabled, location_display_mode')
           .eq('id', ACTIVE_VENUE_ID)
           .single()
       ])
@@ -51,10 +51,14 @@ export default function LocationPage() {
       if (venueRes.data?.retiro_externo_enabled) setRetiroExternoEnabled(true)
       if (venueRes.data?.delivery_enabled) setDeliveryEnabled(true)
 
-      const clientMapOn = !!venueRes.data?.client_floor_map_enabled
-      setClientMapEnabled(clientMapOn)
-      const hasMap = clientMapOn && zonesData.some(z => z.type === 'mesa' && z.pos_x != null)
-      setViewMode(hasMap ? 'mapa' : 'lista')
+      const mode = venueRes.data?.location_display_mode
+        || (venueRes.data?.client_floor_map_enabled ? 'ambos' : 'lista')
+      setLocationDisplayMode(mode)
+      const hasMesaMap = zonesData.some(z => z.type === 'mesa' && z.pos_x != null)
+      if (mode === 'mapa' && hasMesaMap) setViewMode('mapa')
+      else if (mode === 'mapa') setViewMode('lista') // fallback: no map data configured yet
+      else if (mode === 'lista') setViewMode('lista')
+      else setViewMode(hasMesaMap ? 'mapa' : 'lista') // 'ambos': prefer mapa if available
       setLoading(false)
     }
     load()
@@ -77,7 +81,8 @@ export default function LocationPage() {
   const sectores = zones.filter(z => z.type === 'zona')
   const allMesas = zones.filter(z => z.type === 'mesa')
   const retiro = zones.filter(z => z.type === 'retiro')
-  const hasMap = clientMapEnabled && allMesas.some(m => m.pos_x != null)
+  const hasMap = locationDisplayMode !== 'lista' && allMesas.some(m => m.pos_x != null)
+  const showToggle = locationDisplayMode === 'ambos' && hasMap
   const sectorMesas = pickedSector ? allMesas.filter(m => m.parent_zone_id === pickedSector.id) : []
   const orphanMesas = allMesas.filter(m => !m.parent_zone_id)
 
@@ -91,7 +96,7 @@ export default function LocationPage() {
       <div className="px-5 pt-5 space-y-6">
 
         {/* Map / List toggle */}
-        {hasMap && allMesas.length > 0 && (
+        {showToggle && allMesas.length > 0 && (
           <div className="flex gap-1 bg-[#EDE9E1] rounded-xl p-1">
             {['mapa', 'lista'].map(mode => (
               <button
