@@ -46,7 +46,25 @@ export default function MenuPage() {
     const zoneId = searchParams.get('zone_id')
     const locationLabel = searchParams.get('location_label')
     const locationType = searchParams.get('location_type')
-    if (locationLabel) {
+    const isMostrador = searchParams.get('mostrador') === '1'
+
+    if (isMostrador) {
+      supabaseCustomer
+        .from('venue_zones')
+        .select('id, name')
+        .eq('venue_id', ACTIVE_VENUE_ID)
+        .eq('type', 'retiro')
+        .eq('is_active', true)
+        .maybeSingle()
+        .then(({ data }) => {
+          setLocation({
+            type: 'retiro',
+            zoneId: data?.id || null,
+            label: data?.name || 'Mostrador',
+            mostrador: true,
+          })
+        })
+    } else if (locationLabel) {
       if (sid) setSessionId(sid)
       setLocation({ type: locationType || 'zona', zoneId: zoneId || null, label: locationLabel })
     }
