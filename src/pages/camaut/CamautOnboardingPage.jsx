@@ -192,7 +192,7 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
       const session = await getSession()
       if (session && !venueId) {
         const userId = session.user.id
-        const name = fullName.trim() || session.user.user_metadata?.full_name || 'Camarero'
+        const name = fullName.trim() || session.user.user_metadata?.full_name || 'Camarero/a'
         const slug = `camaut-${userId.replace(/-/g, '').slice(0, 12)}`
 
         let { data: venue, error: venueError } = await supabaseStaff
