@@ -585,6 +585,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                   {micapyTab === 'carta' && [
                     { id: 'menu', label: 'Carta' },
                     { id: 'notas', label: 'Notas' },
+                    { id: 'descuentos', label: 'Descuentos' },
                   ].map(s => (
                     <button key={s.id} onClick={() => setMicapySubTab(s.id)}
                       className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-colors ${micapySubTab === s.id ? 'border-[#008080] text-[#008080]' : 'border-transparent text-[#8896A5]'}`}>
@@ -683,6 +684,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                 )}
                 {micapyTab === 'carta' && micapySubTab === 'menu' && <CamautConfigPage key="carta" embedded initialTab="carta" />}
                 {micapyTab === 'carta' && micapySubTab === 'notas' && <CamautConfigPage key="notas-en-carta" embedded initialTab="notas" />}
+                {micapyTab === 'carta' && micapySubTab === 'descuentos' && <CamautConfigPage key="descuentos-en-carta" embedded initialTab="descuentos" staffId={staffId} />}
                 {micapyTab === 'ubicaciones' && <UbicacionesViewer linkedVenues={linkedVenues} venueId={venueId} />}
                 {micapyTab === 'soporte' && <SoporteTab staffId={staffId} staffName={staffName} />}
                 {micapyTab === 'invitar' && <InvitarTab staffName={staffName} />}
