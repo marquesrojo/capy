@@ -120,7 +120,7 @@ function VenueLayout() {
 }
 
 const MANIFESTS = {
-  waiter: { href: '/manifest-waiter.json', title: 'Capy Camarero' },
+  waiter: { href: '/manifest-waiter.json', title: 'Capy Camarero/a' },
   admin:  { href: '/manifest-admin.json',  title: 'Capy Admin' },
   client: { href: '/manifest.json',        title: 'Capy' },
 }

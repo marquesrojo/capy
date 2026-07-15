@@ -50,7 +50,7 @@ export default function CamautLoginPage() {
           alt="Capy" className="w-16 h-16 mx-auto mb-3 rounded-xl"
         />
         <p className="font-display text-3xl text-ember-500 tracking-wide">CAPY</p>
-        <p className="text-smoke-500 text-xs tracking-widest uppercase mt-1">Camarero</p>
+        <p className="text-smoke-500 text-xs tracking-widest uppercase mt-1">Camarero/a</p>
       </div>
 
       <h1 className="font-bold text-smoke-200 text-xl mb-1">Bienvenido de vuelta</h1>

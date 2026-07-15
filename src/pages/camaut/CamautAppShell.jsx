@@ -196,7 +196,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
     }
     return () => {
       URL.revokeObjectURL(url)
-      if (appleTitle) appleTitle.content = 'Capy Camarero'
+      if (appleTitle) appleTitle.content = 'Capy Camarero/a'
     }
   }, [staffName])
 
@@ -277,7 +277,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
   const showInstallWall = !isStandalone && !appInstalled && !installWallSkipped
 
   if (showInstallWall) {
-    const firstName = staffName?.split(' ')[0] || 'Camarero'
+    const firstName = staffName?.split(' ')[0] || 'Camarero/a'
     return (
       <div className="min-h-screen bg-[#0F1923] flex flex-col items-center justify-center px-8 text-center" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <img src="/icon-512.png" alt="Capy" className="w-24 h-24 rounded-3xl shadow-2xl mb-6" />
@@ -348,7 +348,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
               {staffName?.slice(0, 2).toUpperCase() || 'CA'}
             </div>
             <div>
-              <p className="font-bold text-[#1A2A3A] text-sm leading-tight">{staffName || 'Camarero'}</p>
+              <p className="font-bold text-[#1A2A3A] text-sm leading-tight">{staffName || 'Camarero/a'}</p>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span className="text-[10px]">{level.icon}</span>
                 <span className="text-[10px] text-[#008080] font-semibold">{level.name}</span>
@@ -1246,7 +1246,7 @@ function SoporteTab({ staffId, staffName }) {
       <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide">Nuevo mensaje</p>
       <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
         <p className="text-[#8896A5] text-xs mb-1">De</p>
-        <p className="font-semibold text-[#1A2A3A] text-sm">{staffName || 'Camarero'}</p>
+        <p className="font-semibold text-[#1A2A3A] text-sm">{staffName || 'Camarero/a'}</p>
       </div>
       <div>
         <textarea
