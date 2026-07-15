@@ -1135,17 +1135,29 @@ function WaiterSelect({ order, waiters, onAssign }) {
   )
 }
 
-function CustomerContact({ customer }) {
+function CustomerContact({ customer, order }) {
   if (!customer) return null
-  const waLink = customer.whatsapp
+  const waBase = customer.whatsapp
     ? `https://wa.me/${customer.whatsapp.replace(/[^\d]/g, '')}`
+    : null
+  const prepMsg = order?.status === 'en_preparacion' && waBase
+    ? `${waBase}?text=${encodeURIComponent(`¡Hola ${customer.full_name?.split(' ')[0] || ''}! Tu pedido #${order.daily_number || ''} está en preparación 🍳 En unos minutos está listo.`)}`
     : null
   return (
     <div className="flex items-center justify-between mb-2 bg-carbon-800 rounded-lg px-2.5 py-1.5">
       <span className="text-smoke-300 text-xs">{customer.full_name}</span>
-      {waLink ? (
+      {prepMsg ? (
         <a
-          href={waLink}
+          href={prepMsg}
+          target="_blank"
+          rel="noreferrer"
+          className="text-emerald-600 text-xs font-semibold border border-emerald-600/30 rounded-lg px-2 py-0.5"
+        >
+          Avisar →
+        </a>
+      ) : waBase ? (
+        <a
+          href={waBase}
           target="_blank"
           rel="noreferrer"
           className="text-emerald-700 text-xs font-medium underline"
@@ -1480,7 +1492,7 @@ function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCal
           </span>
         </div>
       ) : (
-        <CustomerContact customer={order.customers} />
+        <CustomerContact customer={order.customers} order={order} />
       )}
 
       {order.waiter_called_at && (
