@@ -896,16 +896,19 @@ function MesaPanel({ mesa, orders, onClose, onUpdateStatus }) {
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-carbon-950/70" onClick={onClose} />
+      <div className="fixed inset-0 z-40 bg-carbon-950/70 md:bg-carbon-950/40" onClick={onClose} />
       <div
-        className="fixed bottom-0 left-0 right-0 z-50 bg-carbon-900 rounded-t-3xl flex flex-col border-t border-carbon-700"
-        style={{ maxHeight: '78vh' }}
+        className="fixed z-50 bg-carbon-900 flex flex-col border-carbon-700
+          bottom-0 left-0 right-0 rounded-t-3xl border-t max-h-[78vh]
+          md:top-0 md:right-0 md:bottom-0 md:left-auto md:w-96 md:max-h-full md:rounded-none md:rounded-l-3xl md:border-t-0 md:border-l"
+        style={{ boxShadow: '-8px 0 32px rgba(0,0,0,0.4)' }}
       >
-        <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+        {/* Drag handle — mobile only */}
+        <div className="flex justify-center pt-3 pb-1 flex-shrink-0 md:hidden">
           <div className="w-10 h-1 rounded-full bg-carbon-700" />
         </div>
 
-        <div className="px-5 pb-4 pt-1 flex items-start justify-between flex-shrink-0 border-b border-carbon-800">
+        <div className="px-5 pb-4 pt-1 md:pt-5 flex items-start justify-between flex-shrink-0 border-b border-carbon-800">
           <div>
             <h2 className="text-smoke-100 font-bold text-2xl leading-tight">{mesa.name}</h2>
             <p className="text-smoke-500 text-xs mt-0.5">
