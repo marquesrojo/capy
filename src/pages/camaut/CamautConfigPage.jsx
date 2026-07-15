@@ -266,11 +266,11 @@ function PerfilTab({ profile }) {
           <p className="text-[#B0BEC5] text-[10px] mt-1">Aparece en el QR del pedido para que el cliente te deje propina</p>
         </label>
         <label className="block">
-          <span className="text-[#8896A5] text-xs block mb-1.5">WhatsApp (para avisos de llamada)</span>
+          <span className="text-[#8896A5] text-xs block mb-1.5">Tu WhatsApp</span>
           <input type="tel" value={waPhone} onChange={e => setWaPhone(e.target.value)}
             placeholder="+54 9 11 1234 5678"
             className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-[#F8FAFC] text-[#1A2A3A]" />
-          <p className="text-[#B0BEC5] text-[10px] mt-1">Recibís un mensaje cuando un cliente de tu mesa llama al camarero</p>
+          <p className="text-[#B0BEC5] text-[10px] mt-1">Los clientes de tus mesas pueden contactarte para llamarte, pedir la cuenta o confirmar un pedido. Solo si lo compartís acá.</p>
         </label>
       </div>
 
@@ -601,8 +601,8 @@ function WhatsappTab({ profile }) {
     <form onSubmit={handleSave} className="space-y-4">
       <div className="bg-white rounded-2xl p-5 border border-black/5 shadow-sm space-y-4">
         <div>
-          <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-1">WhatsApp de cocina</p>
-          <p className="text-[#B0BEC5] text-xs mb-3">Las comandas se envían a este número</p>
+          <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-1">WhatsApp del local</p>
+          <p className="text-[#B0BEC5] text-xs mb-3">Los clientes pueden contactar al local desde la app para confirmar pedidos, consultas o cualquier comunicación directa. Usá el formato internacional sin signos: ej. 5491123456789</p>
           <input
             type="tel"
             value={whatsapp}
@@ -612,8 +612,8 @@ function WhatsappTab({ profile }) {
           />
         </div>
         <div>
-          <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-1">WhatsApp para llamadas al camarero</p>
-          <p className="text-[#B0BEC5] text-xs mb-3">Número de respaldo si la mesa no tiene camarero asignado</p>
+          <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-1">WhatsApp de atención</p>
+          <p className="text-[#B0BEC5] text-xs mb-3">Número de respaldo para recibir llamadas al camarero cuando la mesa no tiene uno asignado. Los clientes pueden contactar acá si lo compartís.</p>
           <input
             type="tel"
             value={waiterAlertWa}

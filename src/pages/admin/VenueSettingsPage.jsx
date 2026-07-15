@@ -405,7 +405,7 @@ export default function VenueSettingsPage() {
         <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
           <p className="text-smoke-300 font-medium text-sm mb-1">WhatsApp del local</p>
           <p className="text-smoke-500 text-xs mb-4">
-            Los clientes sin cuenta validan sus pedidos mandando un mensaje a este número. Usá el formato internacional sin signos: ej. 5491123456789
+            Los clientes pueden contactar al local desde la app para confirmar pedidos, consultas o cualquier comunicación directa. Usá el formato internacional sin signos: ej. 5491123456789
           </p>
           <input
             type="text"
