@@ -5,7 +5,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { formatPrice } from '../../lib/utils'
 import { geminiGenerate } from '../../lib/gemini'
 
-export default function CamautConfigPage({ initialTab, embedded }) {
+export default function CamautConfigPage({ initialTab, embedded, staffId }) {
   const { profile, signOut } = useAuth()
   const [tab, setTab] = useState(initialTab || 'perfil')
 
@@ -17,6 +17,7 @@ export default function CamautConfigPage({ initialTab, embedded }) {
         {tab === 'ubicaciones' && <UbicacionesTab profile={profile} />}
         {tab === 'whatsapp' && <WhatsappTab profile={profile} />}
         {tab === 'notas' && <NotasTab profile={profile} />}
+        {tab === 'descuentos' && <DescuentosTab staffId={staffId} />}
       </div>
     )
   }
@@ -843,6 +844,192 @@ function NotasTab({ profile }) {
           {saving ? '...' : 'Agregar'}
         </button>
       </form>
+    </div>
+  )
+}
+
+function DescuentosTab({ staffId }) {
+  const [discounts, setDiscounts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [code, setCode] = useState('')
+  const [label, setLabel] = useState('')
+  const [percent, setPercent] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [resolvedStaffId, setResolvedStaffId] = useState(staffId || null)
+
+  useEffect(() => {
+    if (staffId) { setResolvedStaffId(staffId); return }
+    async function resolveStaffId() {
+      const { data: { session } } = await supabaseCamaut.auth.getSession()
+      if (!session?.user?.id) { setLoading(false); return }
+      const { data } = await supabaseStaff
+        .from('staff_names')
+        .select('id')
+        .eq('profile_id', session.user.id)
+        .maybeSingle()
+      setResolvedStaffId(data?.id || null)
+    }
+    resolveStaffId()
+  }, [staffId])
+
+  useEffect(() => {
+    if (resolvedStaffId) load(resolvedStaffId)
+  }, [resolvedStaffId])
+
+  async function load(sid) {
+    const { data } = await supabaseStaff
+      .from('staff_discounts')
+      .select('*')
+      .eq('staff_id', sid)
+      .order('created_at', { ascending: false })
+    setDiscounts(data || [])
+    setLoading(false)
+  }
+
+  async function handleCreate() {
+    if (!code.trim() || !percent) { setError('Completá código y porcentaje.'); return }
+    const p = parseFloat(percent)
+    if (isNaN(p) || p < 1 || p > 100) { setError('El porcentaje debe ser entre 1 y 100.'); return }
+    if (!resolvedStaffId) { setError('No se encontró el perfil de camarero.'); return }
+    setSaving(true)
+    setError('')
+    const { data: { session } } = await supabaseCamaut.auth.getSession()
+    if (session) await supabaseStaff.auth.setSession({ access_token: session.access_token, refresh_token: session.refresh_token })
+    const { error: err } = await supabaseStaff.from('staff_discounts').insert({
+      staff_id: resolvedStaffId,
+      code: code.trim().toUpperCase(),
+      label: label.trim() || null,
+      percent: p,
+    })
+    setSaving(false)
+    if (err) { setError('Error al guardar.'); return }
+    setCode('')
+    setLabel('')
+    setPercent('')
+    setShowForm(false)
+    load(resolvedStaffId)
+  }
+
+  async function toggleActive(d) {
+    await supabaseStaff.from('staff_discounts').update({ is_active: !d.is_active }).eq('id', d.id)
+    setDiscounts(prev => prev.map(x => x.id === d.id ? { ...x, is_active: !x.is_active } : x))
+  }
+
+  async function handleDelete(id) {
+    if (!confirm('¿Eliminar este descuento?')) return
+    await supabaseStaff.from('staff_discounts').delete().eq('id', id)
+    setDiscounts(prev => prev.filter(x => x.id !== id))
+  }
+
+  if (loading) return <p className="text-[#8896A5] text-sm text-center py-8">Cargando...</p>
+
+  return (
+    <div className="space-y-3 pt-2">
+      <button
+        onClick={() => setShowForm(v => !v)}
+        className="w-full bg-[#008080] text-white font-semibold py-3 rounded-xl text-sm active:opacity-80"
+      >
+        + Nuevo descuento
+      </button>
+
+      {showForm && (
+        <div className="bg-white border border-black/8 rounded-2xl p-4 space-y-3">
+          <p className="text-[#1A2A3A] text-sm font-semibold">Nuevo código de descuento</p>
+          <div>
+            <label className="text-[#8896A5] text-xs block mb-1">Código</label>
+            <input
+              className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm text-[#1A2A3A] bg-[#F0F4F8] outline-none uppercase"
+              placeholder="Ej: PROMO10"
+              value={code}
+              onChange={e => setCode(e.target.value.toUpperCase())}
+            />
+          </div>
+          <div>
+            <label className="text-[#8896A5] text-xs block mb-1">Descripción (opcional)</label>
+            <input
+              className="w-full border border-black/10 rounded-xl px-3 py-2.5 text-sm text-[#1A2A3A] bg-[#F0F4F8] outline-none"
+              placeholder="Ej: Descuento para nuevos clientes"
+              value={label}
+              onChange={e => setLabel(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="text-[#8896A5] text-xs block mb-1">Porcentaje de descuento</label>
+            <div className="relative">
+              <input
+                className="w-full border border-black/10 rounded-xl px-3 py-2.5 pr-8 text-sm text-[#1A2A3A] bg-[#F0F4F8] outline-none"
+                type="number"
+                min="1"
+                max="100"
+                placeholder="10"
+                value={percent}
+                onChange={e => setPercent(e.target.value)}
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8896A5] text-sm">%</span>
+            </div>
+          </div>
+          {error && <p className="text-red-500 text-xs">{error}</p>}
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setShowForm(false); setCode(''); setLabel(''); setPercent(''); setError('') }}
+              className="flex-1 border border-black/10 text-[#8896A5] py-2.5 rounded-xl text-sm"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleCreate}
+              disabled={saving}
+              className="flex-1 bg-[#008080] text-white font-semibold py-2.5 rounded-xl text-sm disabled:opacity-50"
+            >
+              {saving ? 'Guardando...' : 'Guardar'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {discounts.length === 0 && !showForm ? (
+        <div className="text-center py-10">
+          <p className="text-[#8896A5] text-sm">No tenés descuentos creados todavía.</p>
+          <p className="text-[#B0BAC5] text-xs mt-1">Creá un código para aplicarlo en tus cartas personales.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {discounts.map(d => (
+            <div
+              key={d.id}
+              className={`bg-white border rounded-xl px-4 py-3 flex items-center gap-3 transition-opacity ${
+                d.is_active ? 'border-black/8' : 'border-black/5 opacity-50'
+              }`}
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[#1A2A3A] font-mono font-semibold text-sm">{d.code}</span>
+                  <span className="text-[#008080] text-xs font-semibold bg-[#008080]/10 px-1.5 py-0.5 rounded">−{d.percent}%</span>
+                </div>
+                {d.label && <p className="text-[#8896A5] text-xs mt-0.5 truncate">{d.label}</p>}
+              </div>
+              <button
+                onClick={() => toggleActive(d)}
+                className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border flex-shrink-0 ${
+                  d.is_active
+                    ? 'border-emerald-400/50 text-emerald-600'
+                    : 'border-black/10 text-[#8896A5]'
+                }`}
+              >
+                {d.is_active ? 'Activo' : 'Inactivo'}
+              </button>
+              <button
+                onClick={() => handleDelete(d.id)}
+                className="text-[#8896A5] text-xs underline flex-shrink-0"
+              >
+                Borrar
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
