@@ -549,9 +549,13 @@ export default function AdminLoginPage() {
         <div className="overflow-x-auto pb-2">
           <div className="flex gap-4 px-5 md:px-8" style={{ width: 'max-content' }}>
             {[
-              { src: '/camaut-pedidos.png', label: 'Pedidos' },
-              { src: '/camaut-comanda.png', label: 'Comanda' },
-              { src: '/camaut-perfil.png',  label: 'Mi Capy' },
+              { src: '/camaut-pedidos.png',        label: 'Pedidos' },
+              { src: '/camaut-comanda.png',        label: 'Comanda' },
+              { src: '/camaut-propinas.png',       label: 'Propinas' },
+              { src: '/camaut-mi-capy.png',        label: 'Mi Capy' },
+              { src: '/camaut-indicadores.png',    label: 'Estadísticas' },
+              { src: '/camaut-encuesta.png',       label: 'Encuesta' },
+              { src: '/camaut-perfil-publico.png', label: 'Perfil público' },
             ].map(({ src, label }) => (
               <div key={src} className="flex-shrink-0 flex flex-col items-center gap-2">
                 <div className="w-[140px] md:w-[160px] rounded-[1.8rem] overflow-hidden border border-carbon-800 shadow-lg bg-white">
