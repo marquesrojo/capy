@@ -49,13 +49,13 @@ const FEATURES = [
 const CIRCLE = [
   {
     num: '01',
-    title: 'Sin chistidos',
+    title: 'Sin señas',
     desc: 'El cliente te llama desde el QR de la mesa. Recibís el aviso al instante en tu app.',
   },
   {
     num: '02',
-    title: 'Pago express',
-    desc: 'Piden la cuenta y pagan con Mercado Pago desde el celular. Menos vueltas, más mesas.',
+    title: 'Clientes más tranquilos',
+    desc: 'Ven el menú, siguen su pedido y pagan cuando quieren. Menos preguntas, menos apuros, más satisfacción en cada mesa.',
   },
   {
     num: '03',
