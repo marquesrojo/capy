@@ -521,33 +521,33 @@ export default function AdminLoginPage() {
       </section>
 
       {/* ── CAMARERO APP ── */}
-      <section className="max-w-6xl mx-auto px-5 md:px-8 pb-12 md:pb-16">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-smoke-500 mb-2">Tu equipo desde el celular</p>
-        <h2 className="font-display text-3xl md:text-4xl text-[#3C2A21] tracking-wide leading-tight mb-6">
-          Capy Camarero/a
-        </h2>
-        <div className="flex flex-col md:flex-row gap-6 items-start">
-          <div className="flex-1 space-y-3">
-            <p className="text-sm text-smoke-400 leading-relaxed max-w-sm">
-              Cada miembro de tu equipo tiene su propia app. Toman comandas, ven pedidos en tiempo real, cobran propinas y construyen su reputación profesional.
-            </p>
-            <ul className="space-y-2">
-              {['Comanda con carta digital y búsqueda por voz IA', 'Kanban de pedidos en tiempo real', 'Mapa del salón con estado de mesas', 'Propinas a Mercado Pago', 'Perfil profesional con historial y XP'].map(item => (
-                <li key={item} className="flex items-center gap-2.5 text-sm text-smoke-400">
-                  <span className="w-4 h-4 rounded-full bg-ember-500/10 flex items-center justify-center flex-shrink-0">
-                    <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-ember-500">
-                      <polyline points="2 6 5 9 10 3"/>
-                    </svg>
-                  </span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <Link to="/camareroa" className="inline-flex items-center gap-1.5 text-ember-500 font-bold text-sm mt-2 hover:underline">
-              Ver Capy Camarero/a →
-            </Link>
-          </div>
-          <div className="flex gap-4 overflow-x-auto pb-2">
+      <section className="pb-12 md:pb-16">
+        <div className="max-w-6xl mx-auto px-5 md:px-8 mb-6">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-smoke-500 mb-2">Tu equipo desde el celular</p>
+          <h2 className="font-display text-3xl md:text-4xl text-[#3C2A21] tracking-wide leading-tight mb-4">
+            Capy Camarero/a
+          </h2>
+          <p className="text-sm text-smoke-400 leading-relaxed max-w-sm mb-3">
+            Cada miembro de tu equipo tiene su propia app. Toman comandas, ven pedidos en tiempo real, cobran propinas y construyen su reputación profesional.
+          </p>
+          <ul className="space-y-2 mb-3">
+            {['Comanda con carta digital y búsqueda por voz IA', 'Kanban de pedidos en tiempo real', 'Mapa del salón con estado de mesas', 'Propinas a Mercado Pago', 'Perfil profesional con historial y XP'].map(item => (
+              <li key={item} className="flex items-center gap-2.5 text-sm text-smoke-400">
+                <span className="w-4 h-4 rounded-full bg-ember-500/10 flex items-center justify-center flex-shrink-0">
+                  <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-ember-500">
+                    <polyline points="2 6 5 9 10 3"/>
+                  </svg>
+                </span>
+                {item}
+              </li>
+            ))}
+          </ul>
+          <Link to="/camareroa" className="inline-flex items-center gap-1.5 text-ember-500 font-bold text-sm hover:underline">
+            Ver Capy Camarero/a →
+          </Link>
+        </div>
+        <div className="overflow-x-auto pb-2">
+          <div className="flex gap-4 px-5 md:px-8" style={{ width: 'max-content' }}>
             {[
               { src: '/camaut-pedidos.png', label: 'Pedidos' },
               { src: '/camaut-comanda.png', label: 'Comanda' },
