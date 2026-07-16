@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabaseCustomer, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useCart } from '../../hooks/useCart'
-import { useClientBase } from '../../hooks/useVenue'
+import { useClientBase, useVenueOptional } from '../../hooks/useVenue'
 import { accentColor } from '../../lib/utils'
 import ClientFloorMap from '../../components/ClientFloorMap'
 
@@ -24,6 +24,8 @@ export default function LocationPage() {
   const { setLocation, itemCount } = useCart()
   const navigate = useNavigate()
   const base = useClientBase()
+  const venueCtx = useVenueOptional()
+  const venueId = venueCtx?.venue?.id || ACTIVE_VENUE_ID
 
   useEffect(() => {
     if (itemCount === 0) navigate(`${base}/carta`)
@@ -35,14 +37,14 @@ export default function LocationPage() {
         supabaseCustomer
           .from('venue_zones')
           .select('id, name, type, parent_zone_id, pos_x, pos_y, size_w, size_h, shape')
-          .eq('venue_id', ACTIVE_VENUE_ID)
+          .eq('venue_id', venueId)
           .eq('is_active', true)
           .order('sort_order')
           .order('name'),
         supabaseCustomer
           .from('venues')
           .select('header_bg_color, retiro_externo_enabled, delivery_enabled, client_floor_map_enabled, location_display_mode')
-          .eq('id', ACTIVE_VENUE_ID)
+          .eq('id', venueId)
           .single()
       ])
       const zonesData = zonesRes.data || []
@@ -133,7 +135,7 @@ export default function LocationPage() {
 
         {/* Map view */}
         {viewMode === 'mapa' && hasMap && (
-          <ClientFloorMap zones={zones} accent={accent} onChoose={chooseZone} venueId={ACTIVE_VENUE_ID} />
+          <ClientFloorMap zones={zones} accent={accent} onChoose={chooseZone} venueId={venueId} />
         )}
 
         {/* List view */}

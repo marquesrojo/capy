@@ -70,9 +70,11 @@ export default function OrderStatusPage() {
   const prevStatusRef = useState(null)
 
   useEffect(() => {
-    supabaseCustomer.from('venues').select('header_bg_color').eq('id', ACTIVE_VENUE_ID).single()
+    const vid = order?.venue_id || ACTIVE_VENUE_ID
+    if (!vid) return
+    supabaseCustomer.from('venues').select('header_bg_color').eq('id', vid).single()
       .then(({ data }) => { if (data?.header_bg_color) setVenueColor(accentColor(data.header_bg_color)) })
-  }, [])
+  }, [order?.venue_id])
 
   async function applyDiscount() {
     if (!discountCode.trim()) return
@@ -81,7 +83,7 @@ export default function OrderStatusPage() {
     const { data } = await supabaseCustomer
       .from('venue_discounts')
       .select('*')
-      .eq('venue_id', ACTIVE_VENUE_ID)
+      .eq('venue_id', order?.venue_id || ACTIVE_VENUE_ID)
       .eq('code', discountCode.trim().toUpperCase())
       .eq('is_active', true)
       .maybeSingle()

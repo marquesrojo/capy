@@ -4,7 +4,7 @@ import { supabaseCustomer, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useCart } from '../../hooks/useCart'
 import { useCustomer } from '../../hooks/useCustomer'
 import { formatPrice, accentColor } from '../../lib/utils'
-import { useClientBase } from '../../hooks/useVenue'
+import { useClientBase, useVenueOptional } from '../../hooks/useVenue'
 import { PinIcon } from '../../components/Icons'
 
 // Payment method chosen here is a PREFERENCE declared by the customer.
@@ -17,6 +17,8 @@ export default function PaymentPage() {
   const { customer, loading: customerLoading, registerCustomer } = useCustomer()
   const navigate = useNavigate()
   const base = useClientBase()
+  const venueCtx = useVenueOptional()
+  const venueId = venueCtx?.venue?.id || ACTIVE_VENUE_ID
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [notes, setNotes] = useState('')
@@ -44,19 +46,19 @@ export default function PaymentPage() {
         supabaseCustomer
           .from('payment_methods')
           .select('id, name')
-          .eq('venue_id', ACTIVE_VENUE_ID)
+          .eq('venue_id', venueId)
           .eq('is_active', true)
           .order('sort_order'),
         supabaseCustomer
           .from('quick_notes')
           .select('id, label')
-          .eq('venue_id', ACTIVE_VENUE_ID)
+          .eq('venue_id', venueId)
           .eq('is_active', true)
           .order('sort_order'),
         supabaseCustomer
           .from('venues')
           .select('header_bg_color, mp_enabled, cash_discount_enabled, cash_discount_percent')
-          .eq('id', ACTIVE_VENUE_ID)
+          .eq('id', venueId)
           .single()
       ])
       const dbMethods = methodsRes.data || []
@@ -102,7 +104,7 @@ export default function PaymentPage() {
     const { data } = await supabaseCustomer
       .from('venue_discounts')
       .select('*')
-      .eq('venue_id', ACTIVE_VENUE_ID)
+      .eq('venue_id', venueId)
       .eq('code', discountCode.trim().toUpperCase())
       .eq('is_active', true)
       .maybeSingle()
@@ -163,7 +165,7 @@ export default function PaymentPage() {
         const { data: session, error: sessionError } = await supabaseCustomer
           .from('table_sessions')
           .insert({
-            venue_id: ACTIVE_VENUE_ID,
+            venue_id: venueId,
             customer_id: activeCustomer.id,
             zone_id: location.zoneId || null,
             location_label: locationLabel,
@@ -179,14 +181,14 @@ export default function PaymentPage() {
       const { data: openShift } = await supabaseCustomer
         .from('shifts')
         .select('id')
-        .eq('venue_id', ACTIVE_VENUE_ID)
+        .eq('venue_id', venueId)
         .eq('status', 'open')
         .maybeSingle()
 
       const { data: order, error: orderError } = await supabaseCustomer
         .from('orders')
         .insert({
-          venue_id: ACTIVE_VENUE_ID,
+          venue_id: venueId,
           customer_id: activeCustomer.id,
           status: location.mostrador ? 'en_preparacion' : 'pendiente_aprobacion',
           created_by_staff: location.mostrador || false,

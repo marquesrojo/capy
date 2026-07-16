@@ -28,6 +28,7 @@ export default function MenuPage() {
   const navigate = useNavigate()
   const base = useClientBase()
   const venueCtx = useVenueOptional()
+  const venueId = venueCtx?.venue?.id || ACTIVE_VENUE_ID
   const headerRef = useRef(null)
 
   // Si estamos en la ruta legacy /carta sin VenueProvider y hay un slug guardado,
@@ -52,7 +53,7 @@ export default function MenuPage() {
       supabaseCustomer
         .from('venue_zones')
         .select('id, name')
-        .eq('venue_id', ACTIVE_VENUE_ID)
+        .eq('venue_id', venueId)
         .eq('type', 'retiro')
         .eq('is_active', true)
         .maybeSingle()
@@ -73,9 +74,9 @@ export default function MenuPage() {
   useEffect(() => {
     async function load() {
       const [catRes, prodRes, venueRes] = await Promise.all([
-        supabaseCustomer.from('categories').select('*').eq('venue_id', ACTIVE_VENUE_ID).eq('is_active', true).order('sort_order'),
-        supabaseCustomer.from('products').select('*').eq('venue_id', ACTIVE_VENUE_ID).order('sort_order'),
-        supabaseCustomer.from('venues').select('high_demand, name, logo_url, header_bg_color, header_text_color').eq('id', ACTIVE_VENUE_ID).single(),
+        supabaseCustomer.from('categories').select('*').eq('venue_id', venueId).eq('is_active', true).order('sort_order'),
+        supabaseCustomer.from('products').select('*').eq('venue_id', venueId).order('sort_order'),
+        supabaseCustomer.from('venues').select('high_demand, name, logo_url, header_bg_color, header_text_color').eq('id', venueId).single(),
       ])
       setCategories(catRes.data || [])
       setProducts(prodRes.data || [])
@@ -401,7 +402,7 @@ export default function MenuPage() {
 
       {showRecommend && itemCount === 0 && (
         <RecommendModal
-          venueId={ACTIVE_VENUE_ID}
+          venueId={venueId}
           accentColor={contentAccent}
           onAddToCart={(name) => {
             const product = products.find(p => p.name === name)
