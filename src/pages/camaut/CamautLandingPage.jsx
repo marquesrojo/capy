@@ -132,10 +132,10 @@ export default function CamautLandingPage() {
                 </svg>
               </button>
               {showQR && (
-                <div className="absolute right-0 top-full mt-2 z-50 bg-white rounded-2xl shadow-2xl border border-carbon-800 p-4 flex flex-col items-center gap-2">
-                  <img src="/qr-camareroa.png" alt="QR Capy Camarero/a" className="w-36 h-36 block" />
-                  <p className="text-[11px] text-smoke-400 font-medium text-center leading-tight">
-                    Mostralo a tu equipo<br />para que se registren
+                <div className="absolute right-0 top-full mt-2 z-50 bg-white rounded-2xl shadow-2xl border border-carbon-800 p-4 flex flex-col items-center gap-2.5" style={{ width: 200 }}>
+                  <img src="/qr-camareroa.png" alt="QR Capy Camarero/a" className="w-40 h-40 block" />
+                  <p className="text-[11px] text-smoke-400 font-medium text-center leading-snug">
+                    Mostralo a tu equipo para que se registren
                   </p>
                 </div>
               )}
