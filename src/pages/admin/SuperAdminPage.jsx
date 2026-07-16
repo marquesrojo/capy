@@ -70,28 +70,42 @@ function StatCard({ label, value, sub }) {
 function StatsTab() {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [sending, setSending] = useState(false)
+  const [sendResult, setSendResult] = useState(null)
 
   useEffect(() => {
     async function load() {
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const todayISO = today.toISOString()
+      // Día de hoy en hora Argentina (UTC-3)
+      const now = new Date()
+      const arOffset = -3 * 60
+      const arNow = new Date(now.getTime() + arOffset * 60000)
+      const dayStart = new Date(arNow)
+      dayStart.setUTCHours(0, 0, 0, 0)
+      const dayEnd = new Date(arNow)
+      dayEnd.setUTCHours(23, 59, 59, 999)
+      const startUTC = new Date(dayStart.getTime() - arOffset * 60000).toISOString()
+      const endUTC   = new Date(dayEnd.getTime()   - arOffset * 60000).toISOString()
+      const weekStartUTC = new Date(new Date(startUTC).getTime() - 6 * 24 * 60 * 60 * 1000).toISOString()
 
-      const [venuesRes, staffRes, ordersRes, ticketsRes] = await Promise.all([
+      const [venuesRes, camautRes, ordersHoyRes, weekOrdersRes, ticketsRes] = await Promise.all([
         supabaseStaff.from('venues').select('id', { count: 'exact', head: true }).not('slug', 'like', 'camaut-%'),
-        supabaseStaff.from('venue_staff').select('id', { count: 'exact', head: true }),
-        supabaseStaff.from('orders').select('total').gte('created_at', todayISO),
+        supabaseStaff.from('staff_names').select('id', { count: 'exact', head: true }).not('profile_id', 'is', null),
+        supabaseStaff.from('orders').select('total, payment_status').gte('created_at', startUTC).lte('created_at', endUTC).neq('status', 'cancelado'),
+        supabaseStaff.from('orders').select('total, payment_status').gte('created_at', weekStartUTC).lte('created_at', endUTC).neq('status', 'cancelado'),
         supabaseStaff.from('support_tickets').select('id', { count: 'exact', head: true }).eq('status', 'open'),
       ])
 
-      const ordersToday = ordersRes.data || []
-      const revenueToday = ordersToday.reduce((sum, o) => sum + (o.total || 0), 0)
+      const ordersHoy  = ordersHoyRes.data  || []
+      const weekOrders = weekOrdersRes.data || []
+      const revenueHoy  = ordersHoy.filter(o => o.payment_status === 'aprobado').reduce((s, o) => s + (o.total || 0), 0)
+      const revenueWeek = weekOrders.filter(o => o.payment_status === 'aprobado').reduce((s, o) => s + (o.total || 0), 0)
 
       setStats({
-        venues: venuesRes.count ?? 0,
-        camautUsers: staffRes.count ?? 0,
-        ordersToday: ordersToday.length,
-        revenueToday,
+        venues:      venuesRes.count ?? 0,
+        camautUsers: camautRes.count ?? 0,
+        ordersHoy:   ordersHoy.length,
+        revenueHoy,
+        revenueWeek,
         openTickets: ticketsRes.count ?? 0,
       })
       setLoading(false)
@@ -99,15 +113,55 @@ function StatsTab() {
     load()
   }, [])
 
+  async function sendReport() {
+    setSending(true)
+    setSendResult(null)
+    try {
+      const url = import.meta.env.VITE_SUPABASE_URL
+      const key = import.meta.env.VITE_SUPABASE_ANON_KEY
+      const r = await fetch(`${url}/functions/v1/daily-report`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': key,
+          'Authorization': `Bearer ${key}`,
+        },
+        body: JSON.stringify({}),
+      })
+      const data = await r.json()
+      setSendResult(r.ok ? 'ok' : 'error')
+    } catch {
+      setSendResult('error')
+    } finally {
+      setSending(false)
+    }
+  }
+
   if (loading) return <p className="text-smoke-500 text-sm">Cargando...</p>
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-      <StatCard label="Locales activos" value={stats.venues} />
-      <StatCard label="Usuarios Camaut" value={stats.camautUsers} />
-      <StatCard label="Pedidos hoy" value={stats.ordersToday} />
-      <StatCard label="Facturación hoy" value={formatPrice(stats.revenueToday)} sub="todos los locales" />
-      <StatCard label="Tickets abiertos" value={stats.openTickets} />
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <StatCard label="Locales activos" value={stats.venues} />
+        <StatCard label="Camareros Camaut" value={stats.camautUsers} sub="con cuenta" />
+        <StatCard label="Pedidos hoy" value={stats.ordersHoy} />
+        <StatCard label="Facturación hoy" value={formatPrice(stats.revenueHoy)} sub="pagos aprobados" />
+        <StatCard label="Últ. 7 días" value={formatPrice(stats.revenueWeek)} sub="pagos aprobados" />
+        <StatCard label="Tickets abiertos" value={stats.openTickets} />
+      </div>
+
+      <div className="flex items-center gap-3 pt-1">
+        <button
+          onClick={sendReport}
+          disabled={sending}
+          className="bg-carbon-800 hover:bg-carbon-700 disabled:opacity-50 border border-carbon-600 text-smoke-300 text-xs font-semibold px-4 py-2 rounded-xl transition-colors"
+        >
+          {sending ? 'Enviando...' : '📧 Enviar reporte ahora'}
+        </button>
+        {sendResult === 'ok' && <span className="text-emerald-400 text-xs">✓ Enviado a matias@bravosm.com</span>}
+        {sendResult === 'error' && <span className="text-red-400 text-xs">Error al enviar</span>}
+      </div>
+      <p className="text-smoke-600 text-[10px]">El reporte también se envía automáticamente a las 23:00 ART.</p>
     </div>
   )
 }
@@ -116,17 +170,37 @@ function VenuesTab() {
   const { enterVenue } = useAuth()
   const navigate = useNavigate()
   const [venues, setVenues] = useState([])
+  const [ordersToday, setOrdersToday] = useState({}) // venueId → count
   const [loading, setLoading] = useState(true)
   const [creditInputs, setCreditInputs] = useState({})
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabaseStaff
-        .from('venues')
-        .select('id, name, slug, is_active, created_at, mp_enabled, extra_image_credits')
-        .not('slug', 'like', 'camaut-%')
-        .order('created_at', { ascending: false })
-      setVenues(data || [])
+      const now = new Date()
+      const arOffset = -3 * 60
+      const arNow = new Date(now.getTime() + arOffset * 60000)
+      const dayStart = new Date(arNow); dayStart.setUTCHours(0, 0, 0, 0)
+      const startUTC = new Date(dayStart.getTime() - arOffset * 60000).toISOString()
+
+      const [venuesRes, todayRes] = await Promise.all([
+        supabaseStaff
+          .from('venues')
+          .select('id, name, slug, is_active, created_at, mp_enabled, extra_image_credits')
+          .not('slug', 'like', 'camaut-%')
+          .order('created_at', { ascending: false }),
+        supabaseStaff
+          .from('orders')
+          .select('venue_id')
+          .gte('created_at', startUTC)
+          .neq('status', 'cancelado'),
+      ])
+
+      const countMap = {}
+      for (const o of todayRes.data || []) {
+        countMap[o.venue_id] = (countMap[o.venue_id] || 0) + 1
+      }
+      setOrdersToday(countMap)
+      setVenues(venuesRes.data || [])
       setLoading(false)
     }
     load()
@@ -155,6 +229,11 @@ function VenuesTab() {
               <p className="text-smoke-500 text-xs font-mono">/r/{v.slug}</p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
+              {ordersToday[v.id] > 0 && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full border border-ember-500/40 text-ember-400 font-mono">
+                  {ordersToday[v.id]} hoy
+                </span>
+              )}
               {v.mp_enabled && (
                 <span className="text-[10px] px-2 py-0.5 rounded-full border border-blue-500/40 text-blue-500">MP</span>
               )}
