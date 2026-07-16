@@ -413,6 +413,7 @@ export default function AdminLoginPage() {
                 </div>
               </div>
             ))}
+          </div>
         </div>
       </section>
 
