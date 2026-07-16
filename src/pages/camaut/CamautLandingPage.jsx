@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import LeadChat from '../../components/LeadChat'
 
 const FEATURES = [
   {
@@ -302,6 +303,7 @@ export default function CamautLandingPage() {
         </div>
       </footer>
 
+      <LeadChat page="camareroa" />
     </div>
   )
 }

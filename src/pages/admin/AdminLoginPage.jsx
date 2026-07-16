@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { supabaseStaff } from '../../lib/supabase'
+import LeadChat from '../../components/LeadChat'
 
 async function signInWithGoogle() {
   await supabaseStaff.auth.signInWithOAuth({
@@ -713,6 +714,7 @@ export default function AdminLoginPage() {
         </div>
       </footer>
 
+      <LeadChat page="admin" />
     </div>
   )
 }

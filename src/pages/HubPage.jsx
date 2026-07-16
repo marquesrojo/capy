@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useEffect } from 'react'
+import LeadChat from '../components/LeadChat'
 
 const OWNER_FEATURES = [
   'Menú digital con fotos y QR',
@@ -165,6 +166,8 @@ export default function HubPage() {
 
         </div>
       </section>
+
+      <LeadChat page="main" />
 
       {/* ── FOOTER ── */}
       <footer className="bg-[#3C2A21] text-white rounded-t-3xl">
