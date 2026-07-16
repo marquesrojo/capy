@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import LeadChat from '../../components/LeadChat'
 
@@ -89,6 +90,18 @@ const METRICS = [
 ]
 
 export default function CamautLandingPage() {
+  const [showQR, setShowQR] = useState(false)
+  const qrRef = useRef(null)
+
+  useEffect(() => {
+    if (!showQR) return
+    function handleClick(e) {
+      if (qrRef.current && !qrRef.current.contains(e.target)) setShowQR(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [showQR])
+
   return (
     <div className="min-h-screen bg-carbon-950 text-[#3C2A21]">
 
@@ -104,6 +117,29 @@ export default function CamautLandingPage() {
             <span className="font-display text-xl tracking-widest text-[#3C2A21]">CAPY</span>
           </Link>
           <div className="flex items-center gap-2 md:gap-4">
+            {/* QR compartir */}
+            <div className="relative" ref={qrRef}>
+              <button
+                onClick={() => setShowQR(o => !o)}
+                className="text-smoke-400 hover:text-ember-500 transition-colors p-2 rounded-xl hover:bg-ember-500/5"
+                aria-label="Compartir QR"
+                title="Compartir con tu equipo"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="5" height="5" rx="1"/><rect x="16" y="3" width="5" height="5" rx="1"/>
+                  <rect x="3" y="16" width="5" height="5" rx="1"/>
+                  <path d="M21 16h-3v3"/><path d="M18 21v-2"/><path d="M16 18h2"/>
+                </svg>
+              </button>
+              {showQR && (
+                <div className="absolute right-0 top-full mt-2 z-50 bg-white rounded-2xl shadow-2xl border border-carbon-800 p-4 flex flex-col items-center gap-2">
+                  <img src="/qr-camareroa.png" alt="QR Capy Camarero/a" className="w-36 h-36 block" />
+                  <p className="text-[11px] text-smoke-400 font-medium text-center leading-tight">
+                    Mostralo a tu equipo<br />para que se registren
+                  </p>
+                </div>
+              )}
+            </div>
             <Link
               to="/camareroa/login"
               className="text-xs md:text-sm font-semibold text-smoke-400 px-3 py-2 rounded-xl hover:text-ember-500 transition-colors"
@@ -157,13 +193,6 @@ export default function CamautLandingPage() {
           Sin descargas · 100% gratis · Funciona en Chrome y Safari
         </p>
 
-        {/* QR para compartir */}
-        <div className="mt-8 inline-flex flex-col items-center gap-2">
-          <div className="bg-white rounded-2xl p-3 border border-carbon-800 shadow-sm">
-            <img src="/qr-camareroa.png" alt="QR Capy Camarero/a" className="w-28 h-28 block" />
-          </div>
-          <p className="text-[11px] text-smoke-500 font-medium">Mostralo a tu equipo para que se registren</p>
-        </div>
       </section>
 
       {/* Metrics */}
