@@ -93,6 +93,13 @@ export default function HubPage() {
         <p className="text-sm md:text-lg text-smoke-400 mt-4 md:mt-6 leading-relaxed max-w-xs md:max-w-lg mx-auto">
           Capy conecta las tres partes de tu local: el dueño gestiona todo desde el panel, el camarero/a recibe pedidos en tiempo real, y el cliente pide desde su celular sin descargar nada.
         </p>
+
+        <div className="flex flex-wrap justify-center gap-2 mt-5 md:mt-6">
+          {['Restaurantes', 'Bares', 'Cafeterías', 'Pizzerías', 'Hamburgueserías', 'Food trucks', 'Take away', 'Delivery', 'Cervecerías', 'Heladerías'].map(v => (
+            <span key={v} className="border border-carbon-800 rounded-full px-3 py-1 text-xs text-smoke-400 bg-white/60 whitespace-nowrap">{v}</span>
+          ))}
+        </div>
+
         <p className="text-[11px] text-smoke-500 mt-5 flex items-center justify-center gap-1.5">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>

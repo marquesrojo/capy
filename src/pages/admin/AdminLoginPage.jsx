@@ -307,6 +307,12 @@ export default function AdminLoginPage() {
           CAPY digitaliza el proceso de pedidos de tu local: desde que el cliente escanea el QR de la mesa hasta que paga y se va. Sin papel, sin malentendidos, sin esperas innecesarias.
         </p>
 
+        <div className="flex flex-wrap justify-center gap-2 mt-5 md:mt-6">
+          {['Restaurantes', 'Bares', 'Cafeterías', 'Pizzerías', 'Hamburgueserías', 'Food trucks', 'Take away', 'Delivery', 'Cervecerías', 'Heladerías'].map(v => (
+            <span key={v} className="border border-carbon-800 rounded-full px-3 py-1 text-xs text-smoke-400 bg-white/60 whitespace-nowrap">{v}</span>
+          ))}
+        </div>
+
         <div className="mt-7 md:mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
           <button
             onClick={() => scrollTo('register')}
