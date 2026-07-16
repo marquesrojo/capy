@@ -10,10 +10,6 @@ async function signInWithGoogle() {
   })
 }
 
-function scrollToForm() {
-  document.getElementById('lp-form')?.scrollIntoView({ behavior: 'smooth' })
-}
-
 // ── Feature data ─────────────────────────────────────────────────────────────
 
 const CLIENT_FEATURES = [
@@ -162,6 +158,13 @@ export default function AdminLoginPage() {
   const { signInWithEmail } = useAuth()
   const navigate = useNavigate()
 
+  const [tab, setTab] = useState('register')
+
+  function scrollTo(t = 'register') {
+    setTab(t)
+    setTimeout(() => document.getElementById('lp-form')?.scrollIntoView({ behavior: 'smooth' }), 0)
+  }
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loginError, setLoginError] = useState('')
@@ -254,13 +257,13 @@ export default function AdminLoginPage() {
           </div>
           <div className="flex items-center gap-2 md:gap-3">
             <button
-              onClick={scrollToForm}
+              onClick={() => scrollTo('login')}
               className="text-xs md:text-sm font-semibold text-smoke-400 px-3 py-2 rounded-xl hover:text-ember-500 transition-colors"
             >
               Entrar
             </button>
             <button
-              onClick={scrollToForm}
+              onClick={() => scrollTo('register')}
               className="bg-ember-500 hover:bg-ember-600 text-white px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition-colors"
             >
               Registrarme
@@ -287,13 +290,13 @@ export default function AdminLoginPage() {
 
         <div className="mt-7 md:mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
           <button
-            onClick={scrollToForm}
+            onClick={() => scrollTo('register')}
             className="block w-full sm:w-auto bg-ember-500 hover:bg-ember-600 text-white font-bold py-4 px-8 rounded-2xl text-base shadow-ember transition-colors text-center"
           >
             Registrar mi Local
           </button>
           <button
-            onClick={scrollToForm}
+            onClick={() => scrollTo('login')}
             className="block w-full sm:w-auto border border-carbon-700 text-smoke-400 font-semibold py-4 px-8 rounded-2xl text-sm text-center hover:border-carbon-600 transition-colors"
           >
             Ya tengo cuenta
@@ -432,28 +435,87 @@ export default function AdminLoginPage() {
             </p>
           </div>
 
-          <div className="space-y-4">
+          {/* Tab switcher */}
+          <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
 
-            {/* Registrar local */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3">
-              <p className="text-white font-semibold text-sm">Registrá tu Local</p>
-              {regSent ? (
-                <div className="bg-ember-500/10 border border-ember-500/30 rounded-xl p-4 text-center">
-                  <p className="text-white text-sm font-medium mb-1">Revisá tu email</p>
-                  <p className="text-white/60 text-xs">Te mandamos un link para confirmar tu cuenta y continuar.</p>
-                </div>
+            {/* Tabs */}
+            <div className="relative flex border-b border-white/10">
+              {[['register', 'Registrarme'], ['login', 'Ingresar']].map(([t, label]) => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={`flex-1 py-3 text-sm font-semibold transition-colors ${
+                    tab === t ? 'text-white' : 'text-white/40 hover:text-white/60'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+              <span
+                className={`absolute bottom-0 h-0.5 w-1/2 bg-ember-500 transition-transform duration-200 ${
+                  tab === 'login' ? 'translate-x-full' : 'translate-x-0'
+                }`}
+              />
+            </div>
+
+            {/* Form body */}
+            <div className="p-5 space-y-3">
+              {tab === 'register' ? (
+                regSent ? (
+                  <div className="bg-ember-500/10 border border-ember-500/30 rounded-xl p-4 text-center">
+                    <p className="text-white text-sm font-medium mb-1">Revisá tu email</p>
+                    <p className="text-white/60 text-xs">Te mandamos un link para confirmar tu cuenta y continuar.</p>
+                  </div>
+                ) : (
+                  <>
+                    <GoogleBtn dark />
+                    <Divider dark />
+                    <form onSubmit={handleRegister} className="space-y-3">
+                      <label className="block">
+                        <span className="text-white/50 text-xs mb-1 block">Email</span>
+                        <input
+                          type="email"
+                          required
+                          value={regEmail}
+                          onChange={e => setRegEmail(e.target.value)}
+                          className="w-full bg-white/8 border border-white/15 rounded-xl px-3 py-2.5 text-white text-sm placeholder-white/30 focus:outline-none focus:border-ember-500/60 transition-colors"
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="text-white/50 text-xs mb-1 block">Contraseña</span>
+                        <input
+                          type="password"
+                          required
+                          minLength={6}
+                          value={regPassword}
+                          onChange={e => setRegPassword(e.target.value)}
+                          placeholder="Mínimo 6 caracteres"
+                          className="w-full bg-white/8 border border-white/15 rounded-xl px-3 py-2.5 text-white text-sm placeholder-white/30 focus:outline-none focus:border-ember-500/60 transition-colors"
+                        />
+                      </label>
+                      {regError && <p className="text-red-400 text-xs">{regError}</p>}
+                      <button
+                        type="submit"
+                        disabled={regLoading}
+                        className="w-full bg-ember-500 hover:bg-ember-600 disabled:opacity-50 text-white font-bold py-3 rounded-xl text-sm transition-colors"
+                      >
+                        {regLoading ? 'Creando cuenta...' : 'Crear cuenta gratis'}
+                      </button>
+                    </form>
+                  </>
+                )
               ) : (
                 <>
                   <GoogleBtn dark />
                   <Divider dark />
-                  <form onSubmit={handleRegister} className="space-y-3">
+                  <form onSubmit={handleLogin} className="space-y-3">
                     <label className="block">
                       <span className="text-white/50 text-xs mb-1 block">Email</span>
                       <input
                         type="email"
                         required
-                        value={regEmail}
-                        onChange={e => setRegEmail(e.target.value)}
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
                         className="w-full bg-white/8 border border-white/15 rounded-xl px-3 py-2.5 text-white text-sm placeholder-white/30 focus:outline-none focus:border-ember-500/60 transition-colors"
                       />
                     </label>
@@ -462,108 +524,62 @@ export default function AdminLoginPage() {
                       <input
                         type="password"
                         required
-                        minLength={6}
-                        value={regPassword}
-                        onChange={e => setRegPassword(e.target.value)}
-                        placeholder="Mínimo 6 caracteres"
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
                         className="w-full bg-white/8 border border-white/15 rounded-xl px-3 py-2.5 text-white text-sm placeholder-white/30 focus:outline-none focus:border-ember-500/60 transition-colors"
                       />
                     </label>
-                    {regError && <p className="text-red-400 text-xs">{regError}</p>}
+                    {loginError && <p className="text-red-400 text-xs">{loginError}</p>}
                     <button
                       type="submit"
-                      disabled={regLoading}
-                      className="w-full bg-ember-500 hover:bg-ember-600 disabled:opacity-50 text-white font-bold py-3 rounded-xl text-sm transition-colors"
+                      disabled={loginLoading}
+                      className="w-full border border-white/20 text-white/80 hover:bg-white/5 disabled:opacity-50 font-semibold py-3 rounded-xl text-sm transition-colors"
                     >
-                      {regLoading ? 'Creando cuenta...' : 'Crear cuenta gratis'}
+                      {loginLoading ? 'Cargando...' : 'Ingresar'}
                     </button>
                   </form>
-                </>
-              )}
-            </div>
 
-            {/* Divider */}
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-px bg-white/10" />
-              <span className="text-white/30 text-xs">¿Ya tenés cuenta?</span>
-              <div className="flex-1 h-px bg-white/10" />
-            </div>
-
-            {/* Login */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3">
-              <p className="text-white font-semibold text-sm">Ingresar</p>
-              <GoogleBtn dark />
-              <Divider dark />
-              <form onSubmit={handleLogin} className="space-y-3">
-                <label className="block">
-                  <span className="text-white/50 text-xs mb-1 block">Email</span>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    className="w-full bg-white/8 border border-white/15 rounded-xl px-3 py-2.5 text-white text-sm placeholder-white/30 focus:outline-none focus:border-ember-500/60 transition-colors"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-white/50 text-xs mb-1 block">Contraseña</span>
-                  <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    className="w-full bg-white/8 border border-white/15 rounded-xl px-3 py-2.5 text-white text-sm placeholder-white/30 focus:outline-none focus:border-ember-500/60 transition-colors"
-                  />
-                </label>
-                {loginError && <p className="text-red-400 text-xs">{loginError}</p>}
-                <button
-                  type="submit"
-                  disabled={loginLoading}
-                  className="w-full border border-white/20 text-white/80 hover:bg-white/5 disabled:opacity-50 font-semibold py-3 rounded-xl text-sm transition-colors"
-                >
-                  {loginLoading ? 'Cargando...' : 'Ingresar'}
-                </button>
-              </form>
-
-              {!showRecovery && (
-                <button
-                  type="button"
-                  onClick={() => setShowRecovery(true)}
-                  className="w-full text-white/40 text-xs underline pt-1 hover:text-white/60 transition-colors"
-                >
-                  ¿Olvidaste tu contraseña?
-                </button>
-              )}
-              {showRecovery && (
-                <div className="pt-1">
-                  {recoverySent ? (
-                    <p className="text-white/50 text-xs text-center">
-                      Si el email existe, te mandamos el link de recuperación.
-                    </p>
-                  ) : (
-                    <form onSubmit={handleRecovery} className="space-y-2">
-                      {!email.trim() && (
-                        <input
-                          type="email"
-                          required
-                          value={recoveryEmail}
-                          onChange={e => setRecoveryEmail(e.target.value)}
-                          placeholder="Tu email"
-                          className="w-full bg-white/8 border border-white/15 rounded-xl px-3 py-2.5 text-white text-sm placeholder-white/30 focus:outline-none focus:border-ember-500/60 transition-colors"
-                        />
-                      )}
-                      <button
-                        type="submit"
-                        disabled={recoveryLoading || (!email.trim() && !recoveryEmail.trim())}
-                        className="w-full border border-white/15 text-white/50 text-xs font-medium py-2 rounded-xl disabled:opacity-50 hover:border-white/25 transition-colors"
-                      >
-                        {recoveryLoading
-                          ? 'Enviando...'
-                          : `Enviar link a ${email.trim() || recoveryEmail.trim() || 'mi email'}`}
-                      </button>
-                    </form>
+                  {!showRecovery && (
+                    <button
+                      type="button"
+                      onClick={() => setShowRecovery(true)}
+                      className="w-full text-white/40 text-xs underline pt-1 hover:text-white/60 transition-colors"
+                    >
+                      ¿Olvidaste tu contraseña?
+                    </button>
                   )}
-                </div>
+                  {showRecovery && (
+                    <div className="pt-1">
+                      {recoverySent ? (
+                        <p className="text-white/50 text-xs text-center">
+                          Si el email existe, te mandamos el link de recuperación.
+                        </p>
+                      ) : (
+                        <form onSubmit={handleRecovery} className="space-y-2">
+                          {!email.trim() && (
+                            <input
+                              type="email"
+                              required
+                              value={recoveryEmail}
+                              onChange={e => setRecoveryEmail(e.target.value)}
+                              placeholder="Tu email"
+                              className="w-full bg-white/8 border border-white/15 rounded-xl px-3 py-2.5 text-white text-sm placeholder-white/30 focus:outline-none focus:border-ember-500/60 transition-colors"
+                            />
+                          )}
+                          <button
+                            type="submit"
+                            disabled={recoveryLoading || (!email.trim() && !recoveryEmail.trim())}
+                            className="w-full border border-white/15 text-white/50 text-xs font-medium py-2 rounded-xl disabled:opacity-50 hover:border-white/25 transition-colors"
+                          >
+                            {recoveryLoading
+                              ? 'Enviando...'
+                              : `Enviar link a ${email.trim() || recoveryEmail.trim() || 'mi email'}`}
+                          </button>
+                        </form>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
