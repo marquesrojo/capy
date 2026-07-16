@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-import { supabaseStaff } from '../../lib/supabase'
+import { supabaseStaff, supabaseCamaut } from '../../lib/supabase'
 import { formatPrice } from '../../lib/utils'
 
 const TABS = [
@@ -347,26 +347,35 @@ function CamautTab() {
   }, [])
 
   async function enterCamaut(s) {
-    const { data: { session: adminSession } } = await supabaseStaff.auth.getSession()
-    if (!adminSession) return
-    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/superadmin-impersonate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${adminSession.access_token}`,
-        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-      },
-      body: JSON.stringify({ profile_id: s.profile_id }),
-    })
-    if (!res.ok) { alert('Error al obtener sesión del camarero'); return }
-    const { access_token, refresh_token } = await res.json()
-    sessionStorage.setItem('capy-superadmin-session', JSON.stringify({
-      access_token: adminSession.access_token,
-      refresh_token: adminSession.refresh_token,
-    }))
-    localStorage.setItem('capy-superadmin-camaut', JSON.stringify({ staffName: s.full_name }))
-    await supabaseStaff.auth.setSession({ access_token, refresh_token })
-    navigate('/camareroa/app')
+    try {
+      const { data: { session: adminSession } } = await supabaseStaff.auth.getSession()
+      if (!adminSession) { alert('No hay sesión de admin'); return }
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/superadmin-impersonate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminSession.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ profile_id: s.profile_id }),
+      })
+      const json = await res.json()
+      if (!res.ok) { alert('Error: ' + (json.error || res.status)); return }
+      const { access_token, refresh_token } = json
+      sessionStorage.setItem('capy-superadmin-session', JSON.stringify({
+        access_token: adminSession.access_token,
+        refresh_token: adminSession.refresh_token,
+      }))
+      localStorage.setItem('capy-superadmin-camaut', JSON.stringify({ staffName: s.full_name }))
+      await Promise.all([
+        supabaseStaff.auth.setSession({ access_token, refresh_token }),
+        supabaseCamaut.auth.setSession({ access_token, refresh_token }),
+      ])
+      navigate('/camareroa/app')
+    } catch (err) {
+      console.error('enterCamaut error:', err)
+      alert('Error al ingresar como camarero: ' + err.message)
+    }
   }
 
   if (loading) return <p className="text-smoke-500 text-sm">Cargando...</p>
