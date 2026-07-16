@@ -40,6 +40,7 @@ export default function LocationPage() {
           .select('id, name, type, parent_zone_id, pos_x, pos_y, size_w, size_h, shape')
           .eq('venue_id', venueId)
           .eq('is_active', true)
+          .eq('client_visible', true)
           .order('sort_order')
           .order('name'),
         supabaseCustomer

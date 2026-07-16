@@ -155,6 +155,18 @@ export default function LocationsPage() {
     }
   }
 
+  async function toggleClientVisible(zone) {
+    const { data } = await supabaseStaff
+      .from('venue_zones')
+      .update({ client_visible: !zone.client_visible })
+      .eq('id', zone.id)
+      .select()
+      .single()
+    if (data) {
+      setZones(prev => prev.map(z => (z.id === zone.id ? data : z)))
+    }
+  }
+
   async function reorderZone(zone, dir) {
     const sorted = zones
       .filter(z => z.type === activeTab)
@@ -328,6 +340,7 @@ export default function LocationsPage() {
                     onDelete={() => deleteZone(zone)}
                     staffList={activeTab === 'mesa' ? staffNames : []}
                     onAssignWaiter={activeTab === 'mesa' ? assignWaiter : null}
+                    onToggleClientVisible={() => toggleClientVisible(zone)}
                     onMoveUp={idx > 0 ? () => reorderZone(zone, 'up') : null}
                     onMoveDown={idx < filtered.length - 1 ? () => reorderZone(zone, 'down') : null}
                   />
@@ -348,7 +361,7 @@ const SHAPES = [
   { id: 'barra',       label: 'Barra',  icon: <rect x="1" y="9" width="22" height="6" rx="1"/> },
 ]
 
-function ZoneRow({ zone, onToggle, onRename, parentZones = [], onReassign, onReshape, onDelete, staffList = [], onAssignWaiter, onMoveUp, onMoveDown }) {
+function ZoneRow({ zone, onToggle, onToggleClientVisible, onRename, parentZones = [], onReassign, onReshape, onDelete, staffList = [], onAssignWaiter, onMoveUp, onMoveDown }) {
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(zone.name)
 
@@ -410,6 +423,16 @@ function ZoneRow({ zone, onToggle, onRename, parentZones = [], onReassign, onRes
               <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M5 8L1 3H9L5 8Z"/></svg>
             </button>
           </div>
+          <button
+            onClick={onToggleClientVisible}
+            className={`text-xs font-medium px-2.5 py-1 rounded-full border ${
+              zone.client_visible !== false
+                ? 'border-sky-500/40 text-sky-400'
+                : 'border-amber-500/40 text-amber-500'
+            }`}
+          >
+            {zone.client_visible !== false ? 'Clientes' : 'Solo admin'}
+          </button>
           <button
             onClick={onToggle}
             className={`text-xs font-medium px-2.5 py-1 rounded-full border ${
