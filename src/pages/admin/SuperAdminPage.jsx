@@ -7,7 +7,7 @@ import { formatPrice } from '../../lib/utils'
 const TABS = [
   { id: 'stats', label: 'Stats' },
   { id: 'venues', label: 'Venues' },
-  { id: 'camaut', label: 'Camaut' },
+  { id: 'camaut', label: 'Camarero/a' },
   { id: 'soporte', label: 'Soporte' },
   { id: 'pagos', label: 'Pagos' },
   { id: 'docs', label: 'Docs Capy' },
@@ -143,7 +143,7 @@ function StatsTab() {
     <div className="space-y-4">
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <StatCard label="Locales activos" value={stats.venues} />
-        <StatCard label="Camareros Camaut" value={stats.camautUsers} sub="con cuenta" />
+        <StatCard label="Camareros/as" value={stats.camautUsers} sub="con cuenta" />
         <StatCard label="Pedidos hoy" value={stats.ordersHoy} />
         <StatCard label="Facturación hoy" value={formatPrice(stats.revenueHoy)} sub="pagos aprobados" />
         <StatCard label="Últ. 7 días" value={formatPrice(stats.revenueWeek)} sub="pagos aprobados" />
