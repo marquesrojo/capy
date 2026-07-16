@@ -203,7 +203,7 @@ export default function LeadChat({ page = 'main' }) {
                       {error && (
         <p className="text-xs text-smoke-400 leading-snug">
           No se pudo enviar. Escribinos directamente a{' '}
-          <a href="mailto:hola@capyapp.co" className="text-ember-500 underline">hola@capyapp.co</a>
+          <a href="mailto:capy@bravosm.com" className="text-ember-500 underline">capy@bravosm.com</a>
         </p>
       )}
                       <button
