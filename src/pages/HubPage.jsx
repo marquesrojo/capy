@@ -17,44 +17,6 @@ const WAITER_FEATURES = [
   'Tu perfil profesional',
 ]
 
-const CLIENT_STEPS = [
-  {
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="5" height="5" rx="1"/><rect x="16" y="3" width="5" height="5" rx="1"/>
-        <rect x="3" y="16" width="5" height="5" rx="1"/>
-        <path d="M21 16h-3v3"/><path d="M18 21v-2"/><path d="M16 18h2"/>
-      </svg>
-    ),
-    label: 'Escanea el QR de la mesa',
-  },
-  {
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-      </svg>
-    ),
-    label: 'Ve el menú con fotos',
-  },
-  {
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-      </svg>
-    ),
-    label: 'Pide sin esperar al mozo',
-  },
-  {
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>
-      </svg>
-    ),
-    label: 'Paga cuando quiere',
-  },
-]
 
 function CheckItem({ label }) {
   return (
@@ -105,7 +67,7 @@ export default function HubPage() {
               to="/camaut"
               className="text-xs md:text-sm font-semibold text-smoke-400 px-3 py-2 rounded-xl hover:text-ember-500 transition-colors"
             >
-              Soy camarero
+              Soy camarero/a
             </Link>
             <Link
               to="/admin/login"
@@ -122,13 +84,13 @@ export default function HubPage() {
         <span className="inline-block bg-ember-500/10 text-ember-500 text-[11px] font-bold px-3 py-1.5 rounded-full uppercase tracking-widest">
           Plataforma gastronómica
         </span>
-        <h1 className="font-display text-5xl md:text-7xl lg:text-8xl text-[#3C2A21] mt-5 tracking-wide leading-tight" style={{ textWrap: 'balance' }}>
-          El sistema para tu local.
-          {' '}La app para{' '}
-          <span className="text-ember-500">tu equipo.</span>
+        <h1 className="font-display text-5xl md:text-7xl lg:text-8xl text-[#3C2A21] mt-5 tracking-wide leading-tight">
+          Para el local.<br />
+          Para el equipo.<br />
+          <span className="text-ember-500">Para el cliente.</span>
         </h1>
         <p className="text-sm md:text-lg text-smoke-400 mt-4 md:mt-6 leading-relaxed max-w-xs md:max-w-lg mx-auto">
-          Capy digitaliza los pedidos de tu restaurante y le da a cada camarero su herramienta profesional — todo en tiempo real, desde el celular.
+          Capy conecta las tres partes de tu local: el dueño gestiona todo desde el panel, el camarero/a recibe pedidos en tiempo real, y el cliente pide desde su celular sin descargar nada.
         </p>
         <p className="text-[11px] text-smoke-500 mt-5 flex items-center justify-center gap-1.5">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -136,78 +98,6 @@ export default function HubPage() {
           </svg>
           Sin descargas · Funciona desde el celular
         </p>
-      </section>
-
-      {/* ── LO QUE VE TU CLIENTE ── */}
-      <section className="bg-carbon-900 border-y border-carbon-800 py-14 md:py-20">
-        <div className="max-w-5xl mx-auto px-5 md:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center">
-
-            {/* Copy */}
-            <div>
-              <span className="inline-block bg-ember-500/10 text-ember-500 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest mb-4">
-                La experiencia del cliente
-              </span>
-              <h2 className="font-display text-4xl md:text-5xl lg:text-6xl text-[#3C2A21] tracking-wide leading-tight mb-4">
-                Lo que ve tu cliente
-              </h2>
-              <p className="text-sm md:text-base text-smoke-400 leading-relaxed mb-8 max-w-sm">
-                Desde su celular, sin descargar nada. Solo escanea el QR de la mesa y ya tiene el menú de tu local en la pantalla.
-              </p>
-
-              <div className="space-y-4">
-                {CLIENT_STEPS.map((s, i) => (
-                  <div key={i} className="flex items-center gap-4">
-                    <div className="w-9 h-9 rounded-xl bg-white border border-carbon-800 flex items-center justify-center text-ember-500 flex-shrink-0">
-                      {s.icon}
-                    </div>
-                    <p className="text-sm font-semibold text-[#3C2A21]">{s.label}</p>
-                  </div>
-                ))}
-              </div>
-
-              <p className="text-[11px] text-smoke-500 mt-8 leading-relaxed">
-                Ejemplo real: <span className="text-smoke-400 font-medium">Cortadito Cafetería</span> — uno de los locales que ya usa Capy.
-              </p>
-            </div>
-
-            {/* Phone mockup */}
-            <div className="flex justify-center md:justify-end">
-              <div className="relative">
-                {/* Glow */}
-                <div className="absolute inset-0 -m-8 rounded-full bg-ember-500/10 blur-3xl pointer-events-none" />
-
-                {/* Phone frame */}
-                <div
-                  className="relative w-[260px] md:w-[290px] rounded-[2.8rem] shadow-2xl"
-                  style={{ background: '#111', padding: '10px', boxShadow: '0 0 0 1px rgba(255,255,255,0.08), 0 32px 64px -16px rgba(0,0,0,0.5)' }}
-                >
-                  {/* Notch */}
-                  <div className="absolute top-[10px] left-1/2 -translate-x-1/2 w-24 h-5 bg-[#111] rounded-b-2xl z-10" />
-
-                  {/* Screen */}
-                  <div
-                    className="overflow-hidden bg-white"
-                    style={{ borderRadius: '2.2rem', height: '540px' }}
-                  >
-                    <iframe
-                      src="/r/cortadito-cafeteria"
-                      title="Menú Cortadito Cafetería"
-                      className="w-full h-full border-0"
-                      style={{ pointerEvents: 'none' }}
-                    />
-                  </div>
-
-                  {/* Home indicator */}
-                  <div className="flex justify-center pt-2.5 pb-0.5">
-                    <div className="w-20 h-1 bg-white/20 rounded-full" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
       </section>
 
       {/* ── DOS CAMINOS ── */}
@@ -260,7 +150,7 @@ export default function HubPage() {
             </div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-ember-500 mb-2">Para camareros</p>
             <h2 className="font-display text-3xl md:text-4xl text-[#3C2A21] tracking-wide leading-tight mb-3">
-              Camaut
+              Capy Camarero/a
             </h2>
             <p className="text-sm text-smoke-400 leading-relaxed">
               Tu herramienta profesional como camarero. Gestioná pedidos, seguí mesas y recibí alertas — todo en tu celular, en tiempo real.
@@ -269,7 +159,7 @@ export default function HubPage() {
               {WAITER_FEATURES.map(f => <CheckItem key={f} label={f} />)}
             </ul>
             <div className="mt-7 flex items-center gap-1.5 text-ember-500 font-bold text-sm group-hover:gap-2.5 transition-all duration-200">
-              Conocer Camaut <ArrowRight />
+              Conocer Capy Camarero/a <ArrowRight />
             </div>
           </Link>
 
@@ -289,7 +179,7 @@ export default function HubPage() {
           </div>
           <div className="flex items-center gap-4 md:gap-6 flex-wrap justify-center">
             <Link to="/admin/login" className="text-white/60 text-xs hover:text-white/90 transition-colors">Para locales</Link>
-            <Link to="/camaut" className="text-white/60 text-xs hover:text-white/90 transition-colors">Camaut</Link>
+            <Link to="/camaut" className="text-white/60 text-xs hover:text-white/90 transition-colors">Capy Camarero/a</Link>
             <Link to="/privacidad" className="text-white/60 text-xs hover:text-white/90 transition-colors">Privacidad</Link>
             <Link to="/terminos" className="text-white/60 text-xs hover:text-white/90 transition-colors">Términos</Link>
             <a href="mailto:hola@capyapp.co" className="text-white/60 text-xs hover:text-white/90 transition-colors">Contacto</a>
