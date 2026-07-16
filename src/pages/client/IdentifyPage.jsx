@@ -99,6 +99,8 @@ export default function IdentifyPage() {
   const [showZonePicker, setShowZonePicker] = useState(false)
   const [zonePickerView, setZonePickerView] = useState('lista') // 'lista' | 'mapa'
   const [locationDisplayMode, setLocationDisplayMode] = useState('lista') // 'lista' | 'ambos' | 'mapa'
+  const [mapZone, setMapZone] = useState(null)
+  const [waiterMapZone, setWaiterMapZone] = useState(null)
 
   const [showOrderLookup, setShowOrderLookup] = useState(false)
   const [showWaiterCall, setShowWaiterCall] = useState(false)
@@ -157,6 +159,7 @@ export default function IdentifyPage() {
         .select('id, name, type, parent_zone_id, pos_x, pos_y, size_w, size_h, shape, current_waiter:staff_names(whatsapp_number)')
         .eq('venue_id', venueId)
         .eq('is_active', true)
+        .eq('client_visible', true)
         .order('sort_order')
         .order('name')
 
@@ -344,6 +347,7 @@ export default function IdentifyPage() {
   const allMesas = zones.filter(z => z.type === 'mesa')
   const retiro = zones.filter(z => z.type === 'retiro')
   const hasMap = allMesas.some(m => m.pos_x != null)
+  const zonesWithMap = sectores.filter(z => allMesas.some(m => m.parent_zone_id === z.id && m.pos_x != null))
   const sectorMesas = pickedSector
     ? allMesas.filter(m => m.parent_zone_id === pickedSector.id)
     : []
@@ -594,7 +598,7 @@ export default function IdentifyPage() {
                   {['mapa', 'lista'].map(mode => (
                     <button
                       key={mode}
-                      onClick={() => setZonePickerView(mode)}
+                      onClick={() => { setZonePickerView(mode); setMapZone(null) }}
                       className="flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize"
                       style={zonePickerView === mode
                         ? { backgroundColor: selfColor, color: 'white' }
@@ -626,13 +630,44 @@ export default function IdentifyPage() {
 
               {/* Map view */}
               {zonePickerView === 'mapa' && hasMap && locationDisplayMode !== 'lista' && (
-                <ClientFloorMap
-                  zones={zones}
-                  accent={selfColor}
-                  confirmStep={false}
-                  venueId={venueId}
-                  onChoose={zone => { pickMesa(zone); setShowZonePicker(false) }}
-                />
+                !mapZone ? (
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-3">Elegí una zona</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {zonesWithMap.map(zona => (
+                        <button
+                          key={zona.id}
+                          onClick={() => setMapZone(zona)}
+                          className="rounded-2xl py-5 px-3 text-sm font-bold text-center border-2 transition-all active:scale-95 leading-tight"
+                          style={{ backgroundColor: '#F0F4F8', borderColor: selfColor, color: selfColor }}
+                        >
+                          {zona.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <button
+                      onClick={() => setMapZone(null)}
+                      className="flex items-center gap-1 text-xs font-semibold mb-4"
+                      style={{ color: selfColor }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 12H5M12 5l-7 7 7 7"/>
+                      </svg>
+                      Zonas
+                    </button>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">{mapZone.name}</p>
+                    <ClientFloorMap
+                      zones={zones.filter(z => z.id === mapZone.id || z.parent_zone_id === mapZone.id)}
+                      accent={selfColor}
+                      confirmStep={false}
+                      venueId={venueId}
+                      onChoose={zone => { pickMesa(zone); setShowZonePicker(false) }}
+                    />
+                  </div>
+                )
               )}
 
               {/* Step 1: Sectors */}
@@ -1060,7 +1095,7 @@ export default function IdentifyPage() {
       {showWaiterCall && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end">
           <div className="absolute inset-0 bg-black/40" onClick={() => !callLoading && setShowWaiterCall(false)} />
-          <div className="relative bg-white rounded-t-3xl px-5 pt-5 pb-10 max-h-[85vh] overflow-y-auto">
+          <div className="relative bg-white rounded-t-3xl px-5 pt-5 pb-6 max-h-[85vh] overflow-y-auto">
             {callSent ? (
               <div className="text-center py-8">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center"
@@ -1115,15 +1150,15 @@ export default function IdentifyPage() {
                       onClick={() => setSelectedReason(r.id === selectedReason ? null : r.id)}
                       className="p-3.5 rounded-2xl border-2 text-left transition-all"
                       style={selectedReason === r.id
-                        ? { borderColor: waiterColor, backgroundColor: `${waiterColor}12` }
+                        ? { borderColor: waiterColor, backgroundColor: waiterColor }
                         : { borderColor: '#E8EEF4', backgroundColor: '#F8FAFB' }
                       }
                     >
-                      <span className="block mb-1.5" style={{ color: selectedReason === r.id ? waiterColor : '#6B7A8D' }}>
+                      <span className="block mb-1.5" style={{ color: selectedReason === r.id ? 'white' : '#6B7A8D' }}>
                         <r.Icon size={22} />
                       </span>
                       <span className="text-xs font-bold leading-tight block"
-                        style={{ color: selectedReason === r.id ? waiterColor : '#1A2332' }}>
+                        style={{ color: selectedReason === r.id ? 'white' : '#1A2332' }}>
                         {r.label}
                       </span>
                     </button>
@@ -1131,8 +1166,8 @@ export default function IdentifyPage() {
                 </div>
 
                 {activeZoneId ? (
-                  <>
-                    <div className="flex items-center gap-2 bg-[#F0F4F8] rounded-xl px-4 py-3 mb-4">
+                  <div className="sticky bottom-0 -mx-5 px-5 pt-3 pb-6 bg-white border-t border-black/[0.05]">
+                    <div className="flex items-center gap-2 bg-[#F0F4F8] rounded-xl px-4 py-3 mb-3">
                       <PinIcon size={16} className="text-[#6B7A8D] flex-shrink-0" />
                       <span className="text-[#1A2332] font-bold text-sm">{activeLabel}</span>
                     </div>
@@ -1142,7 +1177,7 @@ export default function IdentifyPage() {
                       className="w-full disabled:opacity-50 text-white font-black py-4 rounded-2xl text-base uppercase tracking-wide">
                       {callLoading ? 'Enviando...' : 'Solicitar atención'}
                     </button>
-                  </>
+                  </div>
                 ) : (
                   <div>
                     <p className="text-[#9DAAB8] text-xs font-bold uppercase tracking-wider mb-3">¿Dónde estás?</p>
@@ -1161,7 +1196,7 @@ export default function IdentifyPage() {
                             {['mapa', 'lista'].map(mode => (
                               <button
                                 key={mode}
-                                onClick={() => setWaiterCallView(mode)}
+                                onClick={() => { setWaiterCallView(mode); setWaiterMapZone(null) }}
                                 className="flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize"
                                 style={waiterCallView === mode
                                   ? { backgroundColor: waiterColor, color: 'white' }
@@ -1192,13 +1227,44 @@ export default function IdentifyPage() {
 
                         {/* Map view */}
                         {waiterCallView === 'mapa' && hasMap && locationDisplayMode !== 'lista' && (
-                          <ClientFloorMap
-                            zones={zones}
-                            accent={waiterColor}
-                            confirmStep={false}
-                            venueId={venueId}
-                            onChoose={zone => submitCall(zone.id, zone.name)}
-                          />
+                          !waiterMapZone ? (
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-3">Elegí una zona</p>
+                              <div className="grid grid-cols-2 gap-3">
+                                {zonesWithMap.map(zona => (
+                                  <button
+                                    key={zona.id}
+                                    onClick={() => setWaiterMapZone(zona)}
+                                    className="rounded-2xl py-5 px-3 text-sm font-bold text-center border-2 transition-all active:scale-95 leading-tight"
+                                    style={{ backgroundColor: '#F8FAFB', borderColor: waiterColor, color: waiterColor }}
+                                  >
+                                    {zona.name}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <div>
+                              <button
+                                onClick={() => setWaiterMapZone(null)}
+                                className="flex items-center gap-1 text-xs font-semibold mb-4"
+                                style={{ color: waiterColor }}
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M19 12H5M12 5l-7 7 7 7"/>
+                                </svg>
+                                Zonas
+                              </button>
+                              <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">{waiterMapZone.name}</p>
+                              <ClientFloorMap
+                                zones={zones.filter(z => z.id === waiterMapZone.id || z.parent_zone_id === waiterMapZone.id)}
+                                accent={waiterColor}
+                                confirmStep={false}
+                                venueId={venueId}
+                                onChoose={zone => submitCall(zone.id, zone.name)}
+                              />
+                            </div>
+                          )
                         )}
 
                         {/* List view */}
