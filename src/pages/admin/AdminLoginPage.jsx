@@ -455,7 +455,7 @@ export default function AdminLoginPage() {
           </p>
         </div>
 
-        <div className="overflow-x-auto pb-4">
+        <div className="overflow-x-auto overflow-y-hidden pb-4">
           <div className="flex gap-4 px-5 md:px-8" style={{ width: 'max-content' }}>
             {[
               { src: '/cliente-carta.png',        label: 'Carta con IA' },
@@ -546,7 +546,7 @@ export default function AdminLoginPage() {
             Ver Capy Camarero/a →
           </Link>
         </div>
-        <div className="overflow-x-auto pb-2">
+        <div className="overflow-x-auto overflow-y-hidden pb-2">
           <div className="flex gap-4 px-5 md:px-8" style={{ width: 'max-content' }}>
             {[
               { src: '/camaut-pedidos.png',        label: 'Pedidos' },
