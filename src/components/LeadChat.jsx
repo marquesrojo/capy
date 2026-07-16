@@ -75,9 +75,6 @@ export default function LeadChat({ page = 'main' }) {
   const [error, setError]     = useState('')
   const bottomRef             = useRef(null)
 
-  // Don't show for authenticated staff
-  if (isStaff) return null
-
   // Init conversation when opened
   useEffect(() => {
     if (open && messages.length === 0) {
@@ -89,6 +86,9 @@ export default function LeadChat({ page = 'main' }) {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // Don't show for authenticated staff (after all hooks)
+  if (isStaff) return null
 
   function selectOption(opt) {
     setMessages(prev => [...prev, { from: 'user', text: opt.label }])
