@@ -133,6 +133,8 @@ function ManifestSwap() {
     const m = pathname.startsWith('/camareroa') ? MANIFESTS.waiter
             : pathname.startsWith('/admin')  ? MANIFESTS.admin
             : MANIFESTS.client
+    const manifestLink = document.querySelector('link[rel="manifest"]')
+    if (manifestLink) manifestLink.href = m.href
     const appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]')
     if (appleTitle) appleTitle.content = m.title
   }, [pathname])
