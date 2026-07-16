@@ -17,6 +17,7 @@ export default function LocationPage() {
   const [loading, setLoading] = useState(true)
   const [venueColor, setVenueColor] = useState('#1A3A6B')
   const [pickedSector, setPickedSector] = useState(null)
+  const [mapZone, setMapZone] = useState(null)
   const [retiroExternoEnabled, setRetiroExternoEnabled] = useState(false)
   const [deliveryEnabled, setDeliveryEnabled] = useState(false)
   const [locationDisplayMode, setLocationDisplayMode] = useState('lista') // 'lista' | 'ambos' | 'mapa'
@@ -85,6 +86,7 @@ export default function LocationPage() {
   const retiro = zones.filter(z => z.type === 'retiro')
   const hasMap = locationDisplayMode !== 'lista' && allMesas.some(m => m.pos_x != null)
   const showToggle = locationDisplayMode === 'ambos' && hasMap
+  const zonesWithMap = sectores.filter(z => allMesas.some(m => m.parent_zone_id === z.id && m.pos_x != null))
   const sectorMesas = pickedSector ? allMesas.filter(m => m.parent_zone_id === pickedSector.id) : []
   const orphanMesas = allMesas.filter(m => !m.parent_zone_id)
 
@@ -103,7 +105,7 @@ export default function LocationPage() {
             {['mapa', 'lista'].map(mode => (
               <button
                 key={mode}
-                onClick={() => setViewMode(mode)}
+                onClick={() => { setViewMode(mode); setMapZone(null) }}
                 className="flex-1 py-2 rounded-lg text-sm font-semibold transition-all capitalize"
                 style={viewMode === mode
                   ? { backgroundColor: accent, color: 'white' }
@@ -135,7 +137,43 @@ export default function LocationPage() {
 
         {/* Map view */}
         {viewMode === 'mapa' && hasMap && (
-          <ClientFloorMap zones={zones} accent={accent} onChoose={chooseZone} venueId={venueId} />
+          !mapZone ? (
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-3">Elegí una zona</p>
+              <div className="grid grid-cols-2 gap-3">
+                {zonesWithMap.map(zona => (
+                  <button
+                    key={zona.id}
+                    onClick={() => setMapZone(zona)}
+                    className="rounded-2xl py-5 px-3 text-sm font-bold text-center border-2 transition-all active:scale-95 leading-tight"
+                    style={{ backgroundColor: '#F0F4F8', borderColor: accent, color: accent }}
+                  >
+                    {zona.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div>
+              <button
+                onClick={() => setMapZone(null)}
+                className="flex items-center gap-1 text-xs font-semibold mb-4"
+                style={{ color: accent }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 12H5M12 5l-7 7 7 7"/>
+                </svg>
+                Zonas
+              </button>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">{mapZone.name}</p>
+              <ClientFloorMap
+                zones={zones.filter(z => z.id === mapZone.id || z.parent_zone_id === mapZone.id)}
+                accent={accent}
+                onChoose={chooseZone}
+                venueId={venueId}
+              />
+            </div>
+          )
         )}
 
         {/* List view */}
