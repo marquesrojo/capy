@@ -200,7 +200,12 @@ export default function LeadChat({ page = 'main' }) {
                         onChange={e => setForm(p => ({ ...p, whatsapp: e.target.value }))}
                         className="w-full border border-carbon-800 rounded-xl px-3 py-2.5 text-sm text-[#3C2A21] placeholder-smoke-400 focus:outline-none focus:border-ember-400 bg-white"
                       />
-                      {error && <p className="text-red-500 text-xs">{error}</p>}
+                      {error && (
+        <p className="text-xs text-smoke-400 leading-snug">
+          No se pudo enviar. Escribinos directamente a{' '}
+          <a href="mailto:hola@capyapp.co" className="text-ember-500 underline">hola@capyapp.co</a>
+        </p>
+      )}
                       <button
                         type="submit"
                         disabled={sending}
