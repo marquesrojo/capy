@@ -9,14 +9,14 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
-  const authHeader = req.headers.get('Authorization')
-  if (!authHeader) return new Response('Unauthorized', { status: 401, headers: corsHeaders })
+  const { profile_id, admin_token } = await req.json()
+  if (!profile_id || !admin_token) return new Response('Missing params', { status: 400, headers: corsHeaders })
 
-  // Verify caller is superadmin
+  // Verify caller is superadmin using the token passed in the body
   const callerClient = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_ANON_KEY')!,
-    { global: { headers: { Authorization: authHeader } } }
+    { global: { headers: { Authorization: `Bearer ${admin_token}` } } }
   )
 
   const { data: { user } } = await callerClient.auth.getUser()
@@ -28,9 +28,6 @@ Deno.serve(async (req) => {
   if (profile?.role !== 'superadmin') {
     return new Response('Forbidden', { status: 403, headers: corsHeaders })
   }
-
-  const { profile_id } = await req.json()
-  if (!profile_id) return new Response('Missing profile_id', { status: 400, headers: corsHeaders })
 
   // Sign in as the target user using service role
   const adminClient = createClient(

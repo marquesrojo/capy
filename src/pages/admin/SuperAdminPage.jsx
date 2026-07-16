@@ -355,9 +355,9 @@ function CamautTab() {
         headers: {
           'Content-Type': 'application/json',
           'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${adminSession.access_token}`,
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         },
-        body: JSON.stringify({ profile_id: s.profile_id }),
+        body: JSON.stringify({ profile_id: s.profile_id, admin_token: adminSession.access_token }),
       })
       const json = await res.json()
       if (!res.ok) { alert('Error: ' + (json.error || res.status)); return }
