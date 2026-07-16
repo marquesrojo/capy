@@ -32,6 +32,18 @@ const FEATURES = [
     title: 'Vinculado al local',
     desc: 'Si el restaurante usa Capy, te asociás escaneando un QR. Tu app se conecta a las mesas asignadas en segundos.',
   },
+  {
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        <path d="M12 6v4"/><path d="M10 8h4"/>
+        <path d="M16 13l1-1 1 1-1 1z"/>
+      </svg>
+    ),
+    title: 'Tu carta, con IA',
+    desc: 'Cargá tu propia carta con ayuda de inteligencia artificial. No dependés de que el local use Capy para tener tu menú listo y tomar pedidos.',
+  },
 ]
 
 const CIRCLE = [
