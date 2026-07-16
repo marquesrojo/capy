@@ -78,7 +78,16 @@ export default function CamautAppPage() {
             setStaffName(d.staffName)
             setStaffId(d.staffId)
             setStaffXP(d.xp || 0)
-            setLinkedVenues([])
+            if (d.profileId) {
+              const { data: linked } = await supabaseStaff
+                .from('venue_staff')
+                .select('venue:venues(id, name, slug, cash_discount_enabled, cash_discount_percent)')
+                .eq('staff_profile_id', d.profileId)
+                .eq('status', 'active')
+              setLinkedVenues(linked?.map(l => l.venue).filter(Boolean).filter(v => v.id !== d.venueId) || [])
+            } else {
+              setLinkedVenues([])
+            }
             setAuthorized(true)
             setChecking(false)
             return

@@ -352,6 +352,7 @@ function CamautTab() {
       staffName: s.full_name,
       venueId: s.venueId,
       xp: s.totalXP,
+      profileId: s.profile_id,
     }))
     navigate('/camareroa/app')
   }
