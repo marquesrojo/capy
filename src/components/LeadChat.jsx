@@ -103,10 +103,16 @@ export default function LeadChat({ page = 'main' }) {
     e.preventDefault()
     setSending(true)
     setError('')
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
     try {
-      const res = await fetch('/api/send-lead', {
+      const res = await fetch(`${supabaseUrl}/functions/v1/send-lead-email`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+        },
         body: JSON.stringify({ ...form, page }),
       })
       if (!res.ok) throw new Error()
