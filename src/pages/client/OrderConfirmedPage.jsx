@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { supabaseCustomer, ACTIVE_VENUE_ID } from '../../lib/supabase'
+import { supabaseCustomer } from '../../lib/supabase'
 import { useCustomer } from '../../hooks/useCustomer'
 import { useClientBase } from '../../hooks/useVenue'
 import { accentColor } from '../../lib/utils'
@@ -30,21 +30,22 @@ export default function OrderConfirmedPage() {
 
   useEffect(() => {
     async function load() {
-      const [orderRes, venueRes] = await Promise.all([
-        supabaseCustomer
-          .from('orders')
-          .select('id, status, location_label, location_type, daily_number, created_by_staff, is_addition, session_id')
-          .eq('id', orderId)
-          .single(),
-        supabaseCustomer
+      const { data: orderData } = await supabaseCustomer
+        .from('orders')
+        .select('id, venue_id, status, location_label, location_type, daily_number, created_by_staff, is_addition, session_id')
+        .eq('id', orderId)
+        .single()
+      setOrder(orderData)
+
+      if (orderData?.venue_id) {
+        const { data: venueData } = await supabaseCustomer
           .from('venues')
           .select('whatsapp_number, header_bg_color')
-          .eq('id', ACTIVE_VENUE_ID)
+          .eq('id', orderData.venue_id)
           .single()
-      ])
-      setOrder(orderRes.data)
-      setVenueWhatsapp(venueRes.data?.whatsapp_number)
-      if (venueRes.data?.header_bg_color) setAccent(accentColor(venueRes.data.header_bg_color))
+        setVenueWhatsapp(venueData?.whatsapp_number)
+        if (venueData?.header_bg_color) setAccent(accentColor(venueData.header_bg_color))
+      }
       setLoading(false)
     }
     load()
@@ -66,7 +67,7 @@ export default function OrderConfirmedPage() {
   if (needsWhatsapp) {
     const ticketNum = order.daily_number ? `#${order.daily_number}` : `#${orderId.slice(0, 4).toUpperCase()}`
     const who = customer?.full_name || 'un cliente'
-    const orderUrl = `${window.location.origin}/api/og?v=${ACTIVE_VENUE_ID}`
+    const orderUrl = `${window.location.origin}${base}/pedido/${orderId}`
     const message = isRetiro
       ? `Hola! Soy ${who}, confirmo mi pedido de retiro ${ticketNum}\nIngresá a: ${orderUrl}`
       : `Hola! Soy ${who}, confirmo mi pedido ${ticketNum} — estoy en ${order.location_label}\nIngresá a: ${orderUrl}`
