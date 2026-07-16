@@ -16,12 +16,13 @@ export default async function handler(req, res) {
 
   // Regular users: skip the OG step entirely, forwarding zone params
   if (!CRAWLERS.test(ua)) {
+    const subpath = req.query.subpath ? `/${req.query.subpath}` : ''
     const fwd = new URLSearchParams({ go: '1' })
     if (req.query.zone_id) fwd.set('zone_id', req.query.zone_id)
     if (req.query.location_label) fwd.set('location_label', req.query.location_label)
     if (req.query.location_type) fwd.set('location_type', req.query.location_type)
     res.writeHead(302, {
-      Location: `/r/${slug}?${fwd.toString()}`,
+      Location: `/r/${slug}${subpath}?${fwd.toString()}`,
       'Cache-Control': 'no-store',
     })
     res.end()

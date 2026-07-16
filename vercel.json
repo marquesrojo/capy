@@ -12,6 +12,11 @@
       "missing": [{ "type": "query", "key": "go" }],
       "destination": "/api/r-og?slug=:slug"
     },
+    {
+      "source": "/r/:slug/:subpath*",
+      "missing": [{ "type": "query", "key": "go" }],
+      "destination": "/api/r-og?slug=:slug&subpath=:subpath*"
+    },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
