@@ -199,7 +199,9 @@ export default function LocationsPage() {
     )
   }
 
-  const filtered = zones.filter(z => z.type === activeTab)
+  const filtered = zones
+    .filter(z => z.type === activeTab)
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.name.localeCompare(b.name))
   const parentZonas = zones.filter(z => z.type === 'zona' && z.is_active)
 
   return (
