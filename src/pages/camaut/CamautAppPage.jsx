@@ -64,6 +64,29 @@ export default function CamautAppPage() {
 
   async function checkAuth() {
     try {
+      // Superadmin bypass: allows viewing a camaut user's app without their session
+      const camautOverride = localStorage.getItem('capy-superadmin-camaut')
+      if (camautOverride) {
+        const { data: staffData } = await supabaseStaff.auth.getSession()
+        if (staffData.session) {
+          const { data: adminProfile } = await supabaseStaff
+            .from('profiles').select('role')
+            .eq('id', staffData.session.user.id).maybeSingle()
+          if (adminProfile?.role === 'superadmin') {
+            const d = JSON.parse(camautOverride)
+            setVenueId(d.venueId)
+            setStaffName(d.staffName)
+            setStaffId(d.staffId)
+            setStaffXP(d.xp || 0)
+            setLinkedVenues([])
+            setAuthorized(true)
+            setChecking(false)
+            return
+          }
+        }
+        localStorage.removeItem('capy-superadmin-camaut')
+      }
+
       let { data: { session } } = await supabaseCamaut.auth.getSession()
 
       if (!session) {
@@ -151,11 +174,32 @@ export default function CamautAppPage() {
 
   if (!authorized) return null
 
-  return <CamautAppShell
-    venueId={venueId}
-    staffName={staffName}
-    staffXP={staffXP}
-    linkedVenues={linkedVenues}
-    staffId={staffId}
-  />
+  const isSuperAdminView = !!localStorage.getItem('capy-superadmin-camaut')
+
+  return (
+    <>
+      {isSuperAdminView && (
+        <div className="fixed top-0 left-0 right-0 z-[999] bg-ember-500 text-white text-xs font-semibold flex items-center justify-between px-4 py-1.5">
+          <span>👁 Vista superadmin: {staffName}</span>
+          <button
+            onClick={() => {
+              localStorage.removeItem('capy-superadmin-camaut')
+              window.location.href = '/admin/super'
+            }}
+            className="underline"
+          >
+            Salir
+          </button>
+        </div>
+      )}
+      <CamautAppShell
+        venueId={venueId}
+        staffName={staffName}
+        staffXP={staffXP}
+        linkedVenues={linkedVenues}
+        staffId={staffId}
+        superAdminOffset={isSuperAdminView}
+      />
+    </>
+  )
 }

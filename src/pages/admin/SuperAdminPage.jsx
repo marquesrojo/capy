@@ -297,6 +297,7 @@ function VenuesTab() {
 function CamautTab() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
 
   useEffect(() => {
     async function load() {
@@ -319,12 +320,15 @@ function CamautTab() {
         const isAutonomous = venue?.slug?.startsWith('camaut-')
         if (r.profile_id) {
           if (!byProfile[r.profile_id]) {
-            byProfile[r.profile_id] = { ...r, venues: [], totalXP: 0, totalOrders: 0 }
+            byProfile[r.profile_id] = { ...r, venues: [], totalXP: 0, totalOrders: 0, staffId: null, venueId: null }
           }
           const entry = byProfile[r.profile_id]
           entry.totalXP += r.xp || 0
           entry.totalOrders += r.total_orders || 0
-          if (!isAutonomous && venue) entry.venues.push(venue.name)
+          if (!isAutonomous && venue) {
+            entry.venues.push(venue.name)
+            if (!entry.staffId) { entry.staffId = r.id; entry.venueId = r.venue_id }
+          }
         } else {
           if (!isAutonomous) noProfile.push({ ...r, venueName: venue?.name })
         }
@@ -338,6 +342,16 @@ function CamautTab() {
     load()
   }, [])
 
+  function enterCamaut(s) {
+    localStorage.setItem('capy-superadmin-camaut', JSON.stringify({
+      staffId: s.staffId,
+      staffName: s.full_name,
+      venueId: s.venueId,
+      xp: s.totalXP,
+    }))
+    navigate('/camareroa/app')
+  }
+
   if (loading) return <p className="text-smoke-500 text-sm">Cargando...</p>
 
   const withAccount = users.filter(u => u.profile_id)
@@ -348,17 +362,27 @@ function CamautTab() {
       <div className="space-y-2">
         <p className="text-smoke-500 text-xs font-semibold uppercase tracking-wide">{withAccount.length} con cuenta</p>
         {withAccount.map(s => (
-          <div key={s.profile_id} className="bg-carbon-900 border border-carbon-700 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-smoke-200 font-medium text-sm truncate">{s.full_name}</p>
-              <p className="text-smoke-500 text-xs truncate">
-                {s.venues.length ? s.venues.join(', ') : 'Autónomo'}
-              </p>
+          <div key={s.profile_id} className="bg-carbon-900 border border-carbon-700 rounded-xl px-4 py-3 space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-smoke-200 font-medium text-sm truncate">{s.full_name}</p>
+                <p className="text-smoke-500 text-xs truncate">
+                  {s.venues.length ? s.venues.join(', ') : 'Autónomo'}
+                </p>
+              </div>
+              <div className="text-right flex-shrink-0">
+                <p className="font-mono text-ember-400 text-sm">{s.totalXP} XP</p>
+                <p className="text-smoke-500 text-xs">{s.totalOrders} pedidos</p>
+              </div>
             </div>
-            <div className="text-right flex-shrink-0">
-              <p className="font-mono text-ember-400 text-sm">{s.totalXP} XP</p>
-              <p className="text-smoke-500 text-xs">{s.totalOrders} pedidos</p>
-            </div>
+            {s.staffId && (
+              <button
+                onClick={() => enterCamaut(s)}
+                className="w-full text-center text-[11px] font-semibold text-ember-400 border border-ember-500/30 rounded-lg py-1.5 hover:bg-ember-500/10 transition-colors"
+              >
+                Ingresar como camarero →
+              </button>
+            )}
           </div>
         ))}
       </div>
