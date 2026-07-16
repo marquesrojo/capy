@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { supabaseStaff } from '../../lib/supabase'
 
@@ -247,14 +247,14 @@ export default function AdminLoginPage() {
       {/* ── NAV ── */}
       <nav className="sticky top-0 z-20 bg-carbon-950/90 backdrop-blur-sm border-b border-carbon-800">
         <div className="max-w-6xl mx-auto px-5 md:px-8 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
+          <Link to="/" className="flex items-center gap-2.5">
             <img
               src="https://ycgptakgpsvmstoftkdk.supabase.co/storage/v1/object/public/icons/icon-512.png"
               alt="Capy"
               className="w-8 h-8 rounded-lg"
             />
             <span className="font-display text-xl tracking-widest text-[#3C2A21]">CAPY</span>
-          </div>
+          </Link>
           <div className="flex items-center gap-2 md:gap-3">
             <button
               onClick={() => scrollTo('login')}

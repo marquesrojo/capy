@@ -651,7 +651,7 @@ SECCIÓN MI LOCAL — accesible desde el menú lateral o ícono de configuració
 TOMAR PEDIDOS (/admin/tomar)
 - Modo camarero: el camarero selecciona una mesa y toma el pedido en nombre del cliente. Tiene botón de micrófono con IA para dictar el pedido por voz.
 
-CAMAUT APP (/camaut/app)
+CAPY CAMARERO/A APP (/camareroa/app)
 - App de camareros: secciones Home, Pedidos, Mesas, Ranking, Perfil.`,
     tags: ['navegación', 'secciones', 'mapa', 'carta', 'configuración'],
   },
@@ -736,7 +736,7 @@ Son útiles para evitar que el cliente tenga que escribir siempre las mismas acl
 Camaut tiene dos modos:
 1. Camarero vinculado a un local: trabaja en un restaurante o bar que usa Capy. El dueño lo agrega desde Mi Local → Usuarios. El camarero recibe un link para crear su cuenta y queda vinculado al local.
 2. Camarero autónomo: trabaja freelance o en varios locales. Se registra en camaut.app y puede vincularse a múltiples locales.
-Los camareros acceden a su app en /camaut/app o desde el panel de admin en /admin/tomar si están vinculados a un local.`,
+Los camareros acceden a su app en /camareroa/app o desde el panel de admin en /admin/tomar si están vinculados a un local.`,
     tags: ['camaut', 'camarero', 'app', 'registro'],
   },
   {

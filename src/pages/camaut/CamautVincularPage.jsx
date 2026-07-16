@@ -193,7 +193,7 @@ export default function CamautVincularPage() {
     setError('')
 
     const { data: { session } } = await supabaseCamaut.auth.getSession()
-    if (!session) { navigate('/camaut/login'); return }
+    if (!session) { navigate('/camareroa/login'); return }
 
     // Sincronizar sesión con supabaseStaff
     await supabaseStaff.auth.setSession({
@@ -273,12 +273,12 @@ export default function CamautVincularPage() {
     }
 
     setConfirming(false)
-    navigate('/camaut/app')
+    navigate('/camareroa/app')
   }
 
   return (
     <div className="min-h-screen bg-carbon-950 px-5 py-10 flex flex-col">
-      <button onClick={() => navigate('/camaut/app')} className="text-smoke-500 text-sm mb-8">← Volver</button>
+      <button onClick={() => navigate('/camareroa/app')} className="text-smoke-500 text-sm mb-8">← Volver</button>
 
       <InstallBanner />
 

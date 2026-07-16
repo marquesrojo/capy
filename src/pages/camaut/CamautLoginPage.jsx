@@ -26,7 +26,7 @@ export default function CamautLoginPage() {
       return
     }
 
-    navigate('/camaut/app')
+    navigate('/camareroa/app')
   }
 
   async function handleGoogleLogin() {
@@ -42,7 +42,7 @@ export default function CamautLoginPage() {
 
   return (
     <div className="min-h-screen bg-carbon-950 px-5 py-10 flex flex-col">
-      <Link to="/camaut" className="text-smoke-500 text-sm">← Volver</Link>
+      <Link to="/camareroa" className="text-smoke-500 text-sm">← Volver</Link>
 
       <div className="text-center my-8">
         <img
@@ -105,7 +105,7 @@ export default function CamautLoginPage() {
 
       <p className="text-smoke-500 text-xs text-center mt-6">
         ¿No tenés cuenta?{' '}
-        <Link to="/camaut/registro" className="text-ember-500 underline">Registrate gratis</Link>
+        <Link to="/camareroa/registro" className="text-ember-500 underline">Registrate gratis</Link>
       </p>
     </div>
   )

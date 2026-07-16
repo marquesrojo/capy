@@ -108,7 +108,7 @@ export default function WaiterPublicPage() {
 
   function handleBack() {
     if (window.history.length > 1) navigate(-1)
-    else navigate('/camaut')
+    else navigate('/camareroa')
   }
 
   if (loading) {

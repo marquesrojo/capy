@@ -64,7 +64,7 @@ export default function HubPage() {
           </div>
           <div className="flex items-center gap-2 md:gap-3">
             <Link
-              to="/camaut"
+              to="/camareroa"
               className="text-xs md:text-sm font-semibold text-smoke-400 px-3 py-2 rounded-xl hover:text-ember-500 transition-colors"
             >
               Soy camarero/a
@@ -137,7 +137,7 @@ export default function HubPage() {
 
           {/* Camaut */}
           <Link
-            to="/camaut"
+            to="/camareroa"
             className="group bg-white border border-carbon-800 rounded-3xl p-6 md:p-8 flex flex-col hover:border-ember-400/50 hover:shadow-ember transition-all duration-200"
           >
             <div className="w-12 h-12 rounded-2xl bg-ember-500/10 flex items-center justify-center text-ember-500 mb-5 flex-shrink-0">
@@ -179,7 +179,7 @@ export default function HubPage() {
           </div>
           <div className="flex items-center gap-4 md:gap-6 flex-wrap justify-center">
             <Link to="/admin/login" className="text-white/60 text-xs hover:text-white/90 transition-colors">Para locales</Link>
-            <Link to="/camaut" className="text-white/60 text-xs hover:text-white/90 transition-colors">Capy Camarero/a</Link>
+            <Link to="/camareroa" className="text-white/60 text-xs hover:text-white/90 transition-colors">Capy Camarero/a</Link>
             <Link to="/privacidad" className="text-white/60 text-xs hover:text-white/90 transition-colors">Privacidad</Link>
             <Link to="/terminos" className="text-white/60 text-xs hover:text-white/90 transition-colors">Términos</Link>
             <a href="mailto:hola@capyapp.co" className="text-white/60 text-xs hover:text-white/90 transition-colors">Contacto</a>

@@ -181,7 +181,7 @@ ${items.map(item => `<div class="card"><div class="type">${typeLabel[item.type] 
 
 function ShareInviteButton({ code }) {
   const [copied, setCopied] = useState(false)
-  const url = `https://capyapp.co/camaut/vincular?code=${code}`
+  const url = `https://capyapp.co/camareroa/vincular?code=${code}`
   const text = `Sumate al equipo con Capy Camarero 🤙\nInstalá la app y usá el código ${code}:`
 
   async function handleShare() {
@@ -213,7 +213,7 @@ function ShareInviteButton({ code }) {
 function InviteQRCode({ code }) {
   const canvasRef = useRef(null)
   const [ready, setReady] = useState(false)
-  const url = `https://capyapp.co/camaut/vincular?code=${code}`
+  const url = `https://capyapp.co/camareroa/vincular?code=${code}`
 
   useEffect(() => {
     if (!canvasRef.current) return

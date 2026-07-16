@@ -64,7 +64,7 @@ export default function CamautRegisterPage() {
       // Si Supabase devuelve sesión directamente, la confirmación de email
       // está deshabilitada — ir al app sin esperar email
       if (authData.session) {
-        navigate('/camaut/app')
+        navigate('/camareroa/app')
         return
       }
 
@@ -112,7 +112,7 @@ export default function CamautRegisterPage() {
         >
           {resending ? 'Reenviando...' : resendDone ? '¡Reenviado! Revisá tu casilla.' : 'No llegó el email → Reenviar'}
         </button>
-        <Link to="/camaut/login" className="text-smoke-500 text-xs underline">
+        <Link to="/camareroa/login" className="text-smoke-500 text-xs underline">
           Ya confirmé mi email → Entrar
         </Link>
       </div>
@@ -121,7 +121,7 @@ export default function CamautRegisterPage() {
 
   return (
     <div className="min-h-screen bg-carbon-950 px-6 py-10">
-      <Link to="/camaut" className="text-smoke-500 text-sm">← Volver</Link>
+      <Link to="/camareroa" className="text-smoke-500 text-sm">← Volver</Link>
 
       <div className="mt-6 mb-8">
         <h1 className="font-bold text-smoke-200 text-2xl mb-1">
@@ -270,7 +270,7 @@ export default function CamautRegisterPage() {
 
       <p className="text-smoke-500 text-xs text-center mt-6">
         ¿Ya tenés cuenta?{' '}
-        <Link to="/camaut/login" className="text-ember-500 underline">Iniciá sesión</Link>
+        <Link to="/camareroa/login" className="text-ember-500 underline">Iniciá sesión</Link>
       </p>
     </div>
   )

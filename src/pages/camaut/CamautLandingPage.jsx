@@ -82,23 +82,23 @@ export default function CamautLandingPage() {
       {/* Nav */}
       <nav className="sticky top-0 z-20 bg-carbon-950/90 backdrop-blur-sm border-b border-carbon-800">
         <div className="max-w-6xl mx-auto px-5 md:px-8 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
+          <Link to="/" className="flex items-center gap-2.5">
             <img
               src="https://ycgptakgpsvmstoftkdk.supabase.co/storage/v1/object/public/icons/icon-512.png"
               alt="Capy"
               className="w-8 h-8 rounded-lg"
             />
             <span className="font-display text-xl tracking-widest text-[#3C2A21]">CAPY</span>
-          </div>
+          </Link>
           <div className="flex items-center gap-2 md:gap-4">
             <Link
-              to="/camaut/login"
+              to="/camareroa/login"
               className="text-xs md:text-sm font-semibold text-smoke-400 px-3 py-2 rounded-xl hover:text-ember-500 transition-colors"
             >
               Entrar
             </Link>
             <Link
-              to="/camaut/registro"
+              to="/camareroa/registro"
               className="bg-ember-500 hover:bg-ember-600 text-white px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition-colors"
             >
               Registrarme
@@ -124,13 +124,13 @@ export default function CamautLandingPage() {
 
         <div className="mt-7 md:mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
-            to="/camaut/registro"
+            to="/camareroa/registro"
             className="block w-full sm:w-auto bg-ember-500 hover:bg-ember-600 text-white font-bold py-4 px-8 rounded-2xl text-base shadow-ember transition-colors text-center"
           >
             Crear mi cuenta gratis
           </Link>
           <Link
-            to="/camaut/login"
+            to="/camareroa/login"
             className="block w-full sm:w-auto border border-carbon-700 text-smoke-400 font-semibold py-4 px-8 rounded-2xl text-sm text-center hover:border-carbon-600 transition-colors"
           >
             Ya tengo cuenta
@@ -274,13 +274,13 @@ export default function CamautLandingPage() {
 
           <div className="mt-8 space-y-3">
             <Link
-              to="/camaut/registro"
+              to="/camareroa/registro"
               className="block w-full bg-ember-500 hover:bg-ember-600 text-white font-bold py-4 rounded-2xl text-base text-center transition-colors"
             >
               Crear mi cuenta gratis
             </Link>
             <Link
-              to="/camaut/login"
+              to="/camareroa/login"
               className="block w-full border border-white/20 text-white/70 font-semibold py-3.5 rounded-2xl text-sm text-center hover:border-white/40 transition-colors"
             >
               Ya tengo cuenta

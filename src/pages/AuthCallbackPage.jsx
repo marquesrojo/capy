@@ -64,7 +64,7 @@ export default function AuthCallbackPage() {
         } else {
           setError(authError?.message || 'No pudimos verificar tu cuenta. Intentá de nuevo.')
         }
-        setTimeout(() => navigate(postAuth === 'camaut' ? '/camaut/login' : '/admin/login'), 3000)
+        setTimeout(() => navigate(postAuth === 'camaut' ? '/camareroa/login' : '/admin/login'), 3000)
         return
       }
 
@@ -72,7 +72,7 @@ export default function AuthCallbackPage() {
       const postAuth = localStorage.getItem('capy-post-auth')
       if (postAuth === 'camaut') {
         localStorage.removeItem('capy-post-auth')
-        navigate('/camaut/app')
+        navigate('/camareroa/app')
         return
       }
 

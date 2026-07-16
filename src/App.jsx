@@ -64,7 +64,7 @@ import WhatsAppPage from './pages/admin/WhatsAppPage'
 function CapyChatOverlay() {
   const { isStaff } = useAuth()
   const location = useLocation()
-  const isAdminOrCamaut = location.pathname.startsWith('/admin') || location.pathname.startsWith('/camaut')
+  const isAdminOrCamaut = location.pathname.startsWith('/admin') || location.pathname.startsWith('/camareroa')
   if (!isStaff || !isAdminOrCamaut) return null
   return <CapyChat />
 }
@@ -130,7 +130,7 @@ function ManifestSwap() {
   useEffect(() => {
     // Venue routes are handled by VenuePWAMeta
     if (pathname.startsWith('/r/')) return
-    const m = pathname.startsWith('/camaut') ? MANIFESTS.waiter
+    const m = pathname.startsWith('/camareroa') ? MANIFESTS.waiter
             : pathname.startsWith('/admin')  ? MANIFESTS.admin
             : MANIFESTS.client
     const appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]')
@@ -376,16 +376,25 @@ export default function App() {
               <Route path="/cliente/callback" element={<ClientAuthCallbackPage />} />
               <Route path="/ver-pedido/:id" element={<PublicOrderPage />} />
               <Route path="/display/:venueId" element={<DisplayPage />} />
-              <Route path="/camaut" element={<CamautLandingPage />} />
-              <Route path="/camaut/registro" element={<CamautRegisterPage />} />
-              <Route path="/camaut/login" element={<CamautLoginPage />} />
-              <Route path="/camaut/callback" element={<CamautCallbackPage />} />
-              <Route path="/camaut/vincular" element={<CamautVincularPage />} />
-              <Route path="/camaut/app" element={<CamautAppPage />} />
+              <Route path="/camareroa" element={<CamautLandingPage />} />
+              <Route path="/camareroa/registro" element={<CamautRegisterPage />} />
+              <Route path="/camareroa/login" element={<CamautLoginPage />} />
+              <Route path="/camareroa/callback" element={<CamautCallbackPage />} />
+              <Route path="/camareroa/vincular" element={<CamautVincularPage />} />
+              <Route path="/camareroa/app" element={<CamautAppPage />} />
               <Route path="/privacidad" element={<PrivacidadPage />} />
               <Route path="/terminos" element={<TerminosPage />} />
               <Route path="/c/:alias" element={<WaiterPublicPage />} />
               <Route path="/cv/:alias" element={<WaiterCVPage />} />
+
+              {/* Backward compat: old /camaut/* URLs redirect to /camareroa/* */}
+              <Route path="/camaut" element={<Navigate to="/camareroa" replace />} />
+              <Route path="/camaut/registro" element={<Navigate to="/camareroa/registro" replace />} />
+              <Route path="/camaut/login" element={<Navigate to="/camareroa/login" replace />} />
+              <Route path="/camaut/callback" element={<Navigate to="/camareroa/callback" replace />} />
+              <Route path="/camaut/vincular" element={<Navigate to="/camareroa/vincular" replace />} />
+              <Route path="/camaut/app" element={<Navigate to="/camareroa/app" replace />} />
+
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             <CapyChatOverlay />

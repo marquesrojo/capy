@@ -175,8 +175,8 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
     const manifest = {
       name: appName,
       short_name: firstName,
-      start_url: '/camaut/app',
-      scope: '/camaut/',
+      start_url: '/camareroa/app',
+      scope: '/camareroa/',
       display: 'standalone',
       background_color: '#0F1923',
       theme_color: '#008080',
@@ -254,7 +254,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
 
   async function handleSignOut() {
     await supabaseCamaut.auth.signOut()
-    navigate('/camaut/login')
+    navigate('/camareroa/login')
   }
 
   let alreadyOnboarded = false
@@ -1376,7 +1376,7 @@ function VincularTab() {
   return (
     <div className="space-y-4">
       <button
-        onClick={() => navigate('/camaut/vincular')}
+        onClick={() => navigate('/camareroa/vincular')}
         className="w-full bg-[#008080] text-white font-bold py-3.5 rounded-2xl text-sm flex items-center justify-center gap-2"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">

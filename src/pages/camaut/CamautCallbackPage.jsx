@@ -30,11 +30,11 @@ export default function CamautCallbackPage() {
 
       if (err || !session) {
         setError('No pudimos verificar tu cuenta. Intentá de nuevo.')
-        setTimeout(() => navigate('/camaut/login'), 3000)
+        setTimeout(() => navigate('/camareroa/login'), 3000)
         return
       }
 
-      navigate('/camaut/app')
+      navigate('/camareroa/app')
     }
 
     handleCallback()

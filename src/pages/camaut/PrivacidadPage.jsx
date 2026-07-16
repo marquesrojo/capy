@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 export default function PrivacidadPage() {
   return (
     <div className="min-h-screen bg-carbon-950 px-5 py-10">
-      <Link to="/camaut" className="text-smoke-500 text-sm">← Volver</Link>
+      <Link to="/camareroa" className="text-smoke-500 text-sm">← Volver</Link>
 
       <div className="mt-8 max-w-lg mx-auto">
         <p className="font-display text-2xl text-ember-500 tracking-wide mb-1">CAPY</p>

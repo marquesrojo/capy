@@ -88,7 +88,7 @@ export default function WaiterModePage({ venueId, staffName, staffXP }) {
   async function handleSignOut() {
     await supabaseCamaut.auth.signOut()
     await signOut()
-    if (isAutonomous) navigate('/camaut/login')
+    if (isAutonomous) navigate('/camareroa/login')
   }
 
   return (

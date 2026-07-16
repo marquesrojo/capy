@@ -53,11 +53,11 @@ export default function CamautAppPage() {
   const [staffId, setStaffId] = useState(null)
 
   useEffect(() => {
-    // Ensure the browser URL reflects the canonical camaut path so that iOS
-    // "Add to Home Screen" saves /camaut/app instead of the root after any
+    // Ensure the browser URL reflects the canonical path so that iOS
+    // "Add to Home Screen" saves /camareroa/app instead of the root after any
     // www/non-www redirect that may have stripped the path.
-    if (window.location.pathname !== '/camaut/app') {
-      window.history.replaceState(null, '', '/camaut/app')
+    if (window.location.pathname !== '/camareroa/app') {
+      window.history.replaceState(null, '', '/camareroa/app')
     }
     checkAuth()
   }, [])
@@ -83,7 +83,7 @@ export default function CamautAppPage() {
         })
       }
 
-      if (!session) { navigate('/camaut/login'); return }
+      if (!session) { navigate('/camareroa/login'); return }
 
       // Use supabaseStaff for the profile query — it's guaranteed to have the
       // session explicitly set in both auth paths above, avoiding edge cases
