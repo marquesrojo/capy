@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-import { supabaseStaff, supabaseCamaut } from '../../lib/supabase'
+import { supabaseStaff } from '../../lib/supabase'
 import { formatPrice } from '../../lib/utils'
 
 const TABS = [
@@ -346,36 +346,15 @@ function CamautTab() {
     load()
   }, [])
 
-  async function enterCamaut(s) {
-    try {
-      const { data: { session: adminSession } } = await supabaseStaff.auth.getSession()
-      if (!adminSession) { alert('No hay sesión de admin'); return }
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/superadmin-impersonate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({ profile_id: s.profile_id, admin_token: adminSession.access_token }),
-      })
-      const json = await res.json()
-      if (!res.ok) { alert('Error: ' + (json.error || res.status)); return }
-      const { access_token, refresh_token } = json
-      sessionStorage.setItem('capy-superadmin-session', JSON.stringify({
-        access_token: adminSession.access_token,
-        refresh_token: adminSession.refresh_token,
-      }))
-      localStorage.setItem('capy-superadmin-camaut', JSON.stringify({ staffName: s.full_name }))
-      await Promise.all([
-        supabaseStaff.auth.setSession({ access_token, refresh_token }),
-        supabaseCamaut.auth.setSession({ access_token, refresh_token }),
-      ])
-      navigate('/camareroa/app')
-    } catch (err) {
-      console.error('enterCamaut error:', err)
-      alert('Error al ingresar como camarero: ' + err.message)
-    }
+  function enterCamaut(s) {
+    localStorage.setItem('capy-superadmin-camaut', JSON.stringify({
+      staffId: s.staffId,
+      staffName: s.full_name,
+      venueId: s.venueId,
+      xp: s.totalXP,
+      profileId: s.profile_id,
+    }))
+    navigate('/camareroa/app')
   }
 
   if (loading) return <p className="text-smoke-500 text-sm">Cargando...</p>

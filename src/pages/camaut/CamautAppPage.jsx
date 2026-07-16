@@ -64,6 +64,38 @@ export default function CamautAppPage() {
 
   async function checkAuth() {
     try {
+      // Superadmin bypass: use stored data from localStorage, no session swap needed
+      const camautOverride = localStorage.getItem('capy-superadmin-camaut')
+      if (camautOverride) {
+        const { data: staffData } = await supabaseStaff.auth.getSession()
+        if (staffData.session) {
+          const { data: adminProfile } = await supabaseStaff
+            .from('profiles').select('role')
+            .eq('id', staffData.session.user.id).maybeSingle()
+          if (adminProfile?.role === 'superadmin') {
+            const d = JSON.parse(camautOverride)
+            setVenueId(d.venueId)
+            setStaffName(d.staffName)
+            setStaffId(d.staffId)
+            setStaffXP(d.xp || 0)
+            if (d.profileId) {
+              const { data: linked } = await supabaseStaff
+                .from('venue_staff')
+                .select('venue:venues(id, name, slug, cash_discount_enabled, cash_discount_percent)')
+                .eq('staff_profile_id', d.profileId)
+                .eq('status', 'active')
+              setLinkedVenues(linked?.map(l => l.venue).filter(Boolean).filter(v => v.id !== d.venueId) || [])
+            } else {
+              setLinkedVenues([])
+            }
+            setAuthorized(true)
+            setChecking(false)
+            return
+          }
+        }
+        localStorage.removeItem('capy-superadmin-camaut')
+      }
+
       let { data: { session } } = await supabaseCamaut.auth.getSession()
 
       if (!session) {
@@ -163,13 +195,7 @@ export default function CamautAppPage() {
         >
           <span>👁 Vista superadmin: {staffName}</span>
           <button
-            onClick={async () => {
-              const saved = sessionStorage.getItem('capy-superadmin-session')
-              if (saved) {
-                const { access_token, refresh_token } = JSON.parse(saved)
-                await supabaseStaff.auth.setSession({ access_token, refresh_token })
-                sessionStorage.removeItem('capy-superadmin-session')
-              }
+            onClick={() => {
               localStorage.removeItem('capy-superadmin-camaut')
               window.location.href = '/admin/super'
             }}

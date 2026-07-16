@@ -725,7 +725,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                   </div>
                 )}
                 {micapyTab === 'vincular' && <VincularTab />}
-                {micapyTab === 'perfil' && micapySubTab === 'datos' && <CamautConfigPage key="perfil" embedded initialTab="perfil" />}
+                {micapyTab === 'perfil' && micapySubTab === 'datos' && <CamautConfigPage key="perfil" embedded initialTab="perfil" overrideStaffId={staffId} />}
                 {micapyTab === 'perfil' && micapySubTab === 'pro' && (
                   <>
                     <button

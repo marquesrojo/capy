@@ -5,14 +5,14 @@ import { useAuth } from '../../hooks/useAuth'
 import { formatPrice } from '../../lib/utils'
 import { geminiGenerate } from '../../lib/gemini'
 
-export default function CamautConfigPage({ initialTab, embedded, staffId }) {
+export default function CamautConfigPage({ initialTab, embedded, staffId, overrideStaffId }) {
   const { profile, signOut } = useAuth()
   const [tab, setTab] = useState(initialTab || 'perfil')
 
   if (embedded) {
     return (
       <div>
-        {tab === 'perfil' && <PerfilTab profile={profile} />}
+        {tab === 'perfil' && <PerfilTab profile={profile} overrideStaffId={overrideStaffId} />}
         {tab === 'carta' && <CartaTab profile={profile} />}
         {tab === 'ubicaciones' && <UbicacionesTab profile={profile} />}
         {tab === 'whatsapp' && <WhatsappTab profile={profile} />}
@@ -59,7 +59,7 @@ function sanitizeAlias(v) {
   return v.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9_-]/g, '')
 }
 
-function PerfilTab({ profile }) {
+function PerfilTab({ profile, overrideStaffId }) {
   const fileRef = useRef(null)
   const staffLoadedRef = useRef(false)
   const [staffData, setStaffData] = useState(null)
@@ -82,23 +82,22 @@ function PerfilTab({ profile }) {
 
   async function loadStaff() {
     if (staffLoadedRef.current) return
-    let userId = profile?.id
-    if (!userId) {
-      const { data: { session } } = await supabaseCamaut.auth.getSession()
-      userId = session?.user?.id
+    let query
+    if (overrideStaffId) {
+      query = supabaseStaff.from('staff_names').select('*').eq('id', overrideStaffId).single()
+    } else {
+      let userId = profile?.id
+      if (!userId) {
+        const { data: { session } } = await supabaseCamaut.auth.getSession()
+        userId = session?.user?.id
+      }
+      if (!userId) return
+      const { data: profileData } = await supabaseStaff
+        .from('profiles').select('venue_id').eq('id', userId).single()
+      if (!profileData?.venue_id) return
+      query = supabaseStaff.from('staff_names').select('*').eq('venue_id', profileData.venue_id).single()
     }
-    if (!userId) return
-    const { data: profileData } = await supabaseStaff
-      .from('profiles')
-      .select('venue_id')
-      .eq('id', userId)
-      .single()
-    if (!profileData?.venue_id) return
-    const { data } = await supabaseStaff
-      .from('staff_names')
-      .select('*')
-      .eq('venue_id', profileData.venue_id)
-      .single()
+    const { data } = await query
     if (data) {
       staffLoadedRef.current = true
       setStaffData(data)
