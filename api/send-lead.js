@@ -69,7 +69,7 @@ export default async function handler(req, res) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'Capy Leads <leads@capyapp.co>',
+          from: 'Capy <noreply@capyapp.co>',
           to: 'capy@bravosm.com',
           reply_to: email,
           subject: `Nuevo lead: ${name}`,
