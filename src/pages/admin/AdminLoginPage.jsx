@@ -178,6 +178,7 @@ export default function AdminLoginPage() {
   const navigate = useNavigate()
 
   const [tab, setTab] = useState('register')
+  const [miLocalExpanded, setMiLocalExpanded] = useState(false)
 
   function scrollTo(t = 'register') {
     setTab(t)
@@ -404,7 +405,7 @@ export default function AdminLoginPage() {
         {/* Mi Local features */}
         <p className="text-[10px] font-bold uppercase tracking-widest text-smoke-500 mb-4">Incluido en Mi Local</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-          {MI_LOCAL_FEATURES.map((f) => (
+          {MI_LOCAL_FEATURES.slice(0, miLocalExpanded ? MI_LOCAL_FEATURES.length : 6).map((f) => (
             <div key={f.title} className="bg-white border border-carbon-800 rounded-xl px-4 py-3 flex items-start gap-3">
               <span className="w-1.5 h-1.5 rounded-full bg-ember-500 mt-[6px] flex-shrink-0" />
               <div>
@@ -413,7 +414,25 @@ export default function AdminLoginPage() {
               </div>
             </div>
           ))}
+          {/* On desktop always show remaining items */}
+          {!miLocalExpanded && MI_LOCAL_FEATURES.slice(6).map((f) => (
+            <div key={f.title} className="hidden sm:flex bg-white border border-carbon-800 rounded-xl px-4 py-3 items-start gap-3">
+              <span className="w-1.5 h-1.5 rounded-full bg-ember-500 mt-[6px] flex-shrink-0" />
+              <div>
+                <p className="text-sm font-bold text-[#3C2A21]">{f.title}</p>
+                <p className="text-xs text-smoke-400 mt-0.5 leading-snug">{f.desc}</p>
+              </div>
+            </div>
+          ))}
         </div>
+        {!miLocalExpanded && (
+          <button
+            onClick={() => setMiLocalExpanded(true)}
+            className="sm:hidden mt-3 w-full border border-carbon-800 rounded-xl py-2.5 text-sm font-semibold text-smoke-400 hover:border-ember-500/50 hover:text-ember-500 transition-colors bg-white"
+          >
+            Ver {MI_LOCAL_FEATURES.length - 6} módulos más ↓
+          </button>
+        )}
       </section>
 
       {/* ── LO QUE VE TU CLIENTE ── */}
