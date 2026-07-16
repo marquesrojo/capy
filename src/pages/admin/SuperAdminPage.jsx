@@ -328,6 +328,10 @@ function CamautTab() {
           if (!isAutonomous && venue) {
             entry.venues.push(venue.name)
             if (!entry.staffId) { entry.staffId = r.id; entry.venueId = r.venue_id }
+          } else if (isAutonomous && !entry.staffId) {
+            // Autonomous user: use this row as fallback so the button still appears
+            entry.staffId = r.id
+            entry.venueId = r.venue_id
           }
         } else {
           if (!isAutonomous) noProfile.push({ ...r, venueName: venue?.name })
