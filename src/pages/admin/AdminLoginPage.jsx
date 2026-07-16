@@ -323,37 +323,70 @@ export default function AdminLoginPage() {
         </div>
       </section>
 
-      {/* ── FEATURES ── */}
-      <section className="max-w-6xl mx-auto px-5 md:px-8 pb-12 md:pb-16">
+      {/* ── LO QUE VE TU CLIENTE ── */}
+      <section className="bg-carbon-900 border-y border-carbon-800 py-12 md:py-16">
+        <div className="max-w-6xl mx-auto px-5 md:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center">
 
-        {/* Client features */}
-        <div className="mb-8 md:mb-10">
-          <div className="flex items-center gap-3 mb-5 md:mb-6">
-            <div className="w-8 h-8 rounded-xl bg-ember-500/10 flex items-center justify-center text-ember-500 flex-shrink-0">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
-            </div>
-            <h2 className="font-display text-3xl md:text-5xl text-[#3C2A21] tracking-wide leading-none">
-              Lo que ve tu cliente
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {CLIENT_FEATURES.map((f, i) => (
-              <div key={i} className="bg-white border border-carbon-800 rounded-2xl p-5 flex gap-4 items-start">
-                <div className="w-11 h-11 rounded-xl bg-ember-500/10 flex items-center justify-center text-ember-500 flex-shrink-0">
-                  {f.icon}
+            {/* Copy */}
+            <div>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-8 h-8 rounded-xl bg-ember-500/10 flex items-center justify-center text-ember-500 flex-shrink-0">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                  </svg>
                 </div>
-                <div>
-                  <p className="font-bold text-[#3C2A21] text-sm md:text-base">{f.title}</p>
-                  <p className="text-xs md:text-sm text-smoke-400 mt-1 leading-relaxed">{f.desc}</p>
+                <h2 className="font-display text-3xl md:text-5xl text-[#3C2A21] tracking-wide leading-none">
+                  Lo que ve tu cliente
+                </h2>
+              </div>
+              <p className="text-sm text-smoke-400 leading-relaxed mb-8 max-w-sm">
+                Desde su celular, sin descargar nada. Solo escanea el QR de la mesa y ya tiene el menú de tu local en la pantalla.
+              </p>
+              <div className="space-y-4">
+                {CLIENT_FEATURES.map((f, i) => (
+                  <div key={i} className="flex items-center gap-4">
+                    <div className="w-9 h-9 rounded-xl bg-white border border-carbon-800 flex items-center justify-center text-ember-500 flex-shrink-0">
+                      {f.icon}
+                    </div>
+                    <p className="text-sm font-semibold text-[#3C2A21]">{f.title}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Phone mockup */}
+            <div className="flex justify-center md:justify-end">
+              <div className="relative">
+                <div className="absolute inset-0 -m-8 rounded-full bg-ember-500/10 blur-3xl pointer-events-none" />
+                <div
+                  className="relative w-[240px] md:w-[270px] rounded-[2.8rem] shadow-2xl"
+                  style={{ background: '#111', padding: '10px', boxShadow: '0 0 0 1px rgba(255,255,255,0.08), 0 32px 64px -16px rgba(0,0,0,0.4)' }}
+                >
+                  <div className="absolute top-[10px] left-1/2 -translate-x-1/2 w-24 h-5 bg-[#111] rounded-b-2xl z-10" />
+                  <div className="overflow-hidden bg-white" style={{ borderRadius: '2.2rem', height: '500px' }}>
+                    <iframe
+                      src="/r/cortadito-cafeteria"
+                      title="Menú del local"
+                      className="w-full h-full border-0"
+                      style={{ pointerEvents: 'none' }}
+                    />
+                  </div>
+                  <div className="flex justify-center pt-2.5 pb-0.5">
+                    <div className="w-20 h-1 bg-white/20 rounded-full" />
+                  </div>
                 </div>
               </div>
-            ))}
+            </div>
+
           </div>
         </div>
+      </section>
+
+      {/* ── FEATURES (staff) ── */}
+      <section className="max-w-6xl mx-auto px-5 md:px-8 py-12 md:py-16">
 
         {/* Staff features */}
         <div>
@@ -380,7 +413,6 @@ export default function AdminLoginPage() {
                 </div>
               </div>
             ))}
-          </div>
         </div>
       </section>
 
