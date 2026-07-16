@@ -156,6 +156,14 @@ export default function CamautLandingPage() {
           </svg>
           Sin descargas · 100% gratis · Funciona en Chrome y Safari
         </p>
+
+        {/* QR para compartir */}
+        <div className="mt-8 inline-flex flex-col items-center gap-2">
+          <div className="bg-white rounded-2xl p-3 border border-carbon-800 shadow-sm">
+            <img src="/qr-camareroa.png" alt="QR Capy Camarero/a" className="w-28 h-28 block" />
+          </div>
+          <p className="text-[11px] text-smoke-500 font-medium">Mostralo a tu equipo para que se registren</p>
+        </div>
       </section>
 
       {/* Metrics */}
