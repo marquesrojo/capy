@@ -47,7 +47,7 @@ export default async function handler(req, res) {
         manifest = {
           name,
           short_name: name,
-          start_url: `/r/${slug}/`,
+          start_url: `/r/${slug}/?go=true`,
           scope: `/r/${slug}/`,
           display: 'standalone',
           background_color: venue?.header_bg_color || '#0F1923',
@@ -58,7 +58,7 @@ export default async function handler(req, res) {
         manifest = {
           name: 'Capy',
           short_name: 'Capy',
-          start_url: `/r/${slug}/`,
+          start_url: `/r/${slug}/?go=true`,
           scope: `/r/${slug}/`,
           display: 'standalone',
           background_color: '#0F1923',

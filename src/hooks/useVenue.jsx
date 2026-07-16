@@ -28,6 +28,15 @@ export function VenueProvider({ children }) {
           setVenue(data)
           setActiveVenueId(data.id)
           localStorage.setItem('capy-last-venue-slug', data.slug)
+
+          // PWA manifest dinámico por venue
+          const manifestLink = document.querySelector('link[rel="manifest"]')
+          if (manifestLink) manifestLink.href = `/api/pwa-manifest?slug=${data.slug}`
+          const themeColor = document.querySelector('meta[name="theme-color"]')
+          if (themeColor && data.header_bg_color) themeColor.content = data.header_bg_color
+          const appTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]')
+          if (appTitle && data.name) appTitle.content = data.name
+          document.title = data.name || 'CAPY'
         }
         setLoading(false)
       })
