@@ -475,6 +475,10 @@ export default function AdminLoginPage() {
             ))}
           </div>
         </div>
+      </section>
+
+      {/* ── FEATURES (staff) ── */}
+      <section className="max-w-6xl mx-auto px-5 md:px-8 py-12 md:py-16">
 
         <div className="max-w-6xl mx-auto px-5 md:px-8 mt-8 grid grid-cols-2 md:grid-cols-4 gap-3">
           {CLIENT_FEATURES.map((f, i) => (

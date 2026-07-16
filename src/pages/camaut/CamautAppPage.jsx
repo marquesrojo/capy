@@ -183,38 +183,13 @@ export default function CamautAppPage() {
 
   if (!authorized) return null
 
-  const isSuperAdminView = !!localStorage.getItem('capy-superadmin-camaut')
-  const BANNER_H = 36
-
   return (
-    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column' }}>
-      {isSuperAdminView && (
-        <div
-          className="bg-ember-500 text-white text-xs font-semibold flex items-center justify-between px-4 flex-shrink-0"
-          style={{ height: BANNER_H }}
-        >
-          <span>👁 Vista superadmin: {staffName}</span>
-          <button
-            onClick={() => {
-              localStorage.removeItem('capy-superadmin-camaut')
-              window.location.href = '/admin/super'
-            }}
-            className="underline"
-          >
-            Salir
-          </button>
-        </div>
-      )}
-      <div style={{ flex: 1, minHeight: 0 }}>
-        <CamautAppShell
-          venueId={venueId}
-          staffName={staffName}
-          staffXP={staffXP}
-          linkedVenues={linkedVenues}
-          staffId={staffId}
-          heightOffset={isSuperAdminView ? BANNER_H : 0}
-        />
-      </div>
-    </div>
+    <CamautAppShell
+      venueId={venueId}
+      staffName={staffName}
+      staffXP={staffXP}
+      linkedVenues={linkedVenues}
+      staffId={staffId}
+    />
   )
 }
