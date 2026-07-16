@@ -158,6 +158,34 @@ export default function CamautLandingPage() {
         </div>
       </section>
 
+      {/* App screenshots */}
+      <section className="pb-12 md:pb-16">
+        <div className="max-w-6xl mx-auto px-5 md:px-8 mb-5 md:mb-7">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-smoke-500 mb-1">La app en acción</p>
+          <h2 className="font-display text-3xl md:text-5xl text-[#3C2A21] tracking-wide leading-tight">
+            Así se ve en tu celular
+          </h2>
+        </div>
+        <div className="overflow-x-auto pb-4">
+          <div className="flex gap-4 px-5 md:px-8" style={{ width: 'max-content' }}>
+            {[
+              { src: '/camaut-comanda.png', label: 'Comanda' },
+              { src: '/camaut-pedidos.png', label: 'Pedidos' },
+              { src: '/camaut-mapa.png',    label: 'Mapa del salón' },
+              { src: '/camaut-voz.png',     label: 'Pedido por voz IA' },
+              { src: '/camaut-perfil.png',  label: 'Mi Capy' },
+            ].map(({ src, label }) => (
+              <div key={src} className="flex-shrink-0 flex flex-col items-center gap-2">
+                <div className="w-[180px] md:w-[210px] rounded-[2rem] overflow-hidden border border-carbon-800 shadow-lg bg-white">
+                  <img src={src} alt={label} className="w-full block" />
+                </div>
+                <span className="text-xs text-smoke-500 font-medium">{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Features */}
       <section className="max-w-6xl mx-auto px-5 md:px-8 pb-12 md:pb-16">
         <h2 className="font-display text-3xl md:text-5xl text-[#3C2A21] tracking-wide mb-5 md:mb-8">
