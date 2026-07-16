@@ -151,11 +151,13 @@ export default function CamautAppPage() {
 
   if (!authorized) return null
 
-  return <CamautAppShell
-    venueId={venueId}
-    staffName={staffName}
-    staffXP={staffXP}
-    linkedVenues={linkedVenues}
-    staffId={staffId}
-  />
+  return (
+    <CamautAppShell
+      venueId={venueId}
+      staffName={staffName}
+      staffXP={staffXP}
+      linkedVenues={linkedVenues}
+      staffId={staffId}
+    />
+  )
 }

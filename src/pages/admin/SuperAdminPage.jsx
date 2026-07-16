@@ -266,6 +266,14 @@ function CamautTab() {
 
   return (
     <div className="space-y-4">
+      <a
+        href="/camareroa/login"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1.5 text-xs font-semibold text-ember-400 border border-ember-500/30 rounded-lg px-3 py-1.5 hover:bg-ember-500/10 transition-colors"
+      >
+        Ir al login de camareros →
+      </a>
       <div className="space-y-2">
         <p className="text-smoke-500 text-xs font-semibold uppercase tracking-wide">{withAccount.length} con cuenta</p>
         {withAccount.map(s => (
