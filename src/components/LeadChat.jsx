@@ -119,7 +119,7 @@ export default function LeadChat({ page = 'main' }) {
       setStep('done')
       setMessages(prev => [...prev,
         { from: 'user', text: `${form.name} — ${form.email}` },
-        { from: 'bot',  text: '¡Perfecto! Te contactamos pronto. Si necesitás algo urgente podés escribirnos a hola@capyapp.co 🦫' },
+        { from: 'bot',  text: '¡Perfecto! Te contactamos pronto. Si necesitás algo urgente podés escribirnos a capy@bravosm.com 🦫' },
       ])
     } catch {
       setError('No se pudo enviar. Intentá de nuevo.')
