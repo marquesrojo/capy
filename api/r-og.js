@@ -20,7 +20,10 @@ export default async function handler(req, res) {
     if (req.query.zone_id) fwd.set('zone_id', req.query.zone_id)
     if (req.query.location_label) fwd.set('location_label', req.query.location_label)
     if (req.query.location_type) fwd.set('location_type', req.query.location_type)
-    res.writeHead(302, { Location: `/r/${slug}?${fwd.toString()}` })
+    res.writeHead(302, {
+      Location: `/r/${slug}?${fwd.toString()}`,
+      'Cache-Control': 'no-store',
+    })
     res.end()
     return
   }
@@ -47,6 +50,7 @@ export default async function handler(req, res) {
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8')
   res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate')
+  res.setHeader('Vary', 'User-Agent')
   res.send(`<!DOCTYPE html>
 <html lang="es">
 <head>
