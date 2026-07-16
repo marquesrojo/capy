@@ -323,6 +323,54 @@ export default function AdminLoginPage() {
         </div>
       </section>
 
+      {/* ── SCREENSHOTS ── */}
+      <section className="max-w-6xl mx-auto px-5 md:px-8 pb-12 md:pb-16">
+        <div className="text-center mb-8 md:mb-10">
+          <h2 className="font-display text-3xl md:text-5xl text-[#3C2A21] tracking-wide leading-tight">
+            Tu panel, en tiempo real
+          </h2>
+          <p className="text-sm text-smoke-400 mt-3 max-w-md mx-auto leading-relaxed">
+            Kanban de pedidos, mapa del salón y detalle de cada mesa. Todo desde el celular o la tablet.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          {/* Screenshot 1: Pedidos */}
+          <div className="rounded-2xl overflow-hidden border border-carbon-800 shadow-lg">
+            <div className="bg-carbon-800 px-4 py-2.5 flex items-center gap-2">
+              <div className="flex gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-white/20" />
+                <span className="w-2.5 h-2.5 rounded-full bg-white/20" />
+                <span className="w-2.5 h-2.5 rounded-full bg-white/20" />
+              </div>
+              <span className="text-[11px] text-smoke-500 font-mono ml-2">capyapp.co/admin — Pedidos</span>
+            </div>
+            <img
+              src="/screenshot-pedidos.jpg"
+              alt="Panel de pedidos — vista Kanban con columnas Recibido, Preparación y Entregado"
+              className="w-full block"
+            />
+          </div>
+
+          {/* Screenshot 2: Mapa */}
+          <div className="rounded-2xl overflow-hidden border border-carbon-800 shadow-lg">
+            <div className="bg-carbon-800 px-4 py-2.5 flex items-center gap-2">
+              <div className="flex gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-white/20" />
+                <span className="w-2.5 h-2.5 rounded-full bg-white/20" />
+                <span className="w-2.5 h-2.5 rounded-full bg-white/20" />
+              </div>
+              <span className="text-[11px] text-smoke-500 font-mono ml-2">capyapp.co/admin — Mapa</span>
+            </div>
+            <img
+              src="/screenshot-mapa.jpg"
+              alt="Vista de mapa del salón con mesas y panel lateral de detalle"
+              className="w-full block"
+            />
+          </div>
+        </div>
+      </section>
+
       {/* ── LO QUE VE TU CLIENTE ── */}
       <section className="bg-carbon-900 border-y border-carbon-800 py-12 md:py-16">
         <div className="max-w-6xl mx-auto px-5 md:px-8">
