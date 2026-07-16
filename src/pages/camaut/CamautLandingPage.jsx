@@ -246,6 +246,55 @@ export default function CamautLandingPage() {
         </div>
       </section>
 
+      {/* Lo que ve el cliente */}
+      <section className="max-w-6xl mx-auto px-5 md:px-8 py-12 md:py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center">
+
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-smoke-500 mb-2">Desde el celular del cliente</p>
+            <h2 className="font-display text-3xl md:text-5xl text-[#3C2A21] tracking-wide leading-tight mb-4">
+              Lo que ve<br />en su mesa
+            </h2>
+            <p className="text-sm text-smoke-400 leading-relaxed max-w-sm mb-6">
+              Sin tener que llamarte, el cliente sigue su pedido, elige propina y paga — todo desde el QR de la mesa. Vos lo recibís directo en tu Mercado Pago.
+            </p>
+            <ul className="space-y-2.5">
+              {[
+                'Estado del pedido en tiempo real',
+                'Propina sugerida con porcentajes',
+                'Transferencia directo a tu alias',
+                'División de la cuenta entre comensales',
+                'Calificación de la experiencia al final',
+              ].map(item => (
+                <li key={item} className="flex items-center gap-2.5 text-sm text-smoke-400">
+                  <span className="w-4 h-4 rounded-full bg-ember-500/10 flex items-center justify-center flex-shrink-0">
+                    <svg width="9" height="9" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-ember-500">
+                      <polyline points="2 6 5 9 10 3"/>
+                    </svg>
+                  </span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="flex justify-center md:justify-end gap-4">
+            {[
+              { src: '/cliente-propina.png', label: 'Pedido y propina' },
+              { src: '/cliente-pago.png',    label: 'Pago y calificación' },
+            ].map(({ src, label }) => (
+              <div key={src} className="flex flex-col items-center gap-2">
+                <div className="w-[155px] md:w-[175px] rounded-[2rem] overflow-hidden border border-carbon-800 shadow-lg bg-white">
+                  <img src={src} alt={label} className="w-full block" />
+                </div>
+                <span className="text-xs text-smoke-500 font-medium">{label}</span>
+              </div>
+            ))}
+          </div>
+
+        </div>
+      </section>
+
       {/* PWA Promo */}
       <section className="max-w-6xl mx-auto px-5 md:px-8 py-12 md:py-16">
         <div className="bg-white border-2 border-dashed border-carbon-700 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row md:items-center md:gap-12">
