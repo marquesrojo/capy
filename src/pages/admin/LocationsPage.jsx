@@ -155,6 +155,30 @@ export default function LocationsPage() {
     }
   }
 
+  async function reorderZone(zone, dir) {
+    const sorted = zones
+      .filter(z => z.type === activeTab)
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.name.localeCompare(b.name))
+    const idx = sorted.findIndex(z => z.id === zone.id)
+    const swapIdx = dir === 'up' ? idx - 1 : idx + 1
+    if (swapIdx < 0 || swapIdx >= sorted.length) return
+    const reordered = [...sorted]
+    ;[reordered[idx], reordered[swapIdx]] = [reordered[swapIdx], reordered[idx]]
+    await Promise.all(
+      reordered.map((z, i) =>
+        supabaseStaff.from('venue_zones').update({ sort_order: i + 1 }).eq('id', z.id)
+      )
+    )
+    setZones(prev => {
+      const next = [...prev]
+      reordered.forEach((z, i) => {
+        const j = next.findIndex(n => n.id === z.id)
+        if (j >= 0) next[j] = { ...next[j], sort_order: i + 1 }
+      })
+      return next
+    })
+  }
+
   async function reshapeZone(zone, shape) {
     const { data } = await supabaseStaff
       .from('venue_zones')
@@ -290,7 +314,7 @@ export default function LocationsPage() {
               </p>
             ) : (
               <div className="space-y-2">
-                {filtered.map(zone => (
+                {filtered.map((zone, idx) => (
                   <ZoneRow
                     key={zone.id}
                     zone={zone}
@@ -302,6 +326,8 @@ export default function LocationsPage() {
                     onDelete={() => deleteZone(zone)}
                     staffList={activeTab === 'mesa' ? staffNames : []}
                     onAssignWaiter={activeTab === 'mesa' ? assignWaiter : null}
+                    onMoveUp={idx > 0 ? () => reorderZone(zone, 'up') : null}
+                    onMoveDown={idx < filtered.length - 1 ? () => reorderZone(zone, 'down') : null}
                   />
                 ))}
               </div>
@@ -320,7 +346,7 @@ const SHAPES = [
   { id: 'barra',       label: 'Barra',  icon: <rect x="1" y="9" width="22" height="6" rx="1"/> },
 ]
 
-function ZoneRow({ zone, onToggle, onRename, parentZones = [], onReassign, onReshape, onDelete, staffList = [], onAssignWaiter }) {
+function ZoneRow({ zone, onToggle, onRename, parentZones = [], onReassign, onReshape, onDelete, staffList = [], onAssignWaiter, onMoveUp, onMoveDown }) {
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(zone.name)
 
@@ -366,6 +392,22 @@ function ZoneRow({ zone, onToggle, onRename, parentZones = [], onReassign, onRes
           </div>
         )}
         <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex flex-col gap-0.5">
+            <button
+              onClick={onMoveUp}
+              disabled={!onMoveUp}
+              className="w-5 h-4 flex items-center justify-center text-smoke-500 hover:text-smoke-200 disabled:opacity-20 disabled:cursor-default transition-colors"
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M5 2L9 7H1L5 2Z"/></svg>
+            </button>
+            <button
+              onClick={onMoveDown}
+              disabled={!onMoveDown}
+              className="w-5 h-4 flex items-center justify-center text-smoke-500 hover:text-smoke-200 disabled:opacity-20 disabled:cursor-default transition-colors"
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M5 8L1 3H9L5 8Z"/></svg>
+            </button>
+          </div>
           <button
             onClick={onToggle}
             className={`text-xs font-medium px-2.5 py-1 rounded-full border ${
