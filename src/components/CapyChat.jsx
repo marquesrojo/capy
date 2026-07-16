@@ -35,6 +35,44 @@ export default function CapyChat({ venueName = '' }) {
 
   const isWaiter = location.pathname === '/admin/tomar'
 
+  // ── Draggable button ──────────────────────────────────────────
+  const defaultBottom = isWaiter ? 88 : 24
+  const [btnBottom, setBtnBottom] = useState(() => {
+    const saved = localStorage.getItem('capy-chat-bottom')
+    return saved !== null ? parseInt(saved, 10) : defaultBottom
+  })
+  const drag = useRef({ active: false, startY: 0, startBottom: 0, moved: false })
+
+  function startDrag(clientY) {
+    drag.current = { active: true, startY: clientY, startBottom: btnBottom, moved: false }
+  }
+
+  function moveDrag(clientY) {
+    if (!drag.current.active) return
+    const dy = drag.current.startY - clientY
+    if (Math.abs(dy) > 4) drag.current.moved = true
+    const clamped = Math.max(8, Math.min(window.innerHeight - 68, drag.current.startBottom + dy))
+    setBtnBottom(clamped)
+  }
+
+  function endDrag() {
+    if (!drag.current.active) return
+    drag.current.active = false
+    localStorage.setItem('capy-chat-bottom', Math.round(btnBottom))
+    if (!drag.current.moved) setOpen(true)
+  }
+
+  useEffect(() => {
+    function onMouseMove(e) { moveDrag(e.clientY) }
+    function onMouseUp()    { endDrag() }
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup',   onMouseUp)
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup',   onMouseUp)
+    }
+  }, [btnBottom])
+
   useEffect(() => {
     if (open && messages.length === 0) {
       setMessages([{ role: 'assistant', content: WELCOME }])
@@ -136,10 +174,13 @@ export default function CapyChat({ venueName = '' }) {
     <>
       {!open && (
         <button
-          onClick={() => setOpen(true)}
+          onMouseDown={e => { e.preventDefault(); startDrag(e.clientY) }}
+          onTouchStart={e => startDrag(e.touches[0].clientY)}
+          onTouchMove={e => { e.preventDefault(); moveDrag(e.touches[0].clientY) }}
+          onTouchEnd={endDrag}
           aria-label="Abrir asistente Capy"
-          className="fixed right-4 z-50 rounded-full select-none active:scale-95 transition-transform drop-shadow-xl"
-          style={{ bottom: isWaiter ? '5.5rem' : '1.5rem' }}
+          className="fixed right-4 z-50 rounded-full select-none drop-shadow-xl touch-none"
+          style={{ bottom: btnBottom }}
         >
           <CapyIcon size={52} />
         </button>
