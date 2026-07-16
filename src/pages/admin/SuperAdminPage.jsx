@@ -350,18 +350,11 @@ function CamautTab() {
     try {
       const { data: { session: adminSession } } = await supabaseStaff.auth.getSession()
       if (!adminSession) { alert('No hay sesión de admin'); return }
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/superadmin-impersonate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminSession.access_token}`,
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({ profile_id: s.profile_id }),
+      const { data, error } = await supabaseStaff.functions.invoke('superadmin-impersonate', {
+        body: { profile_id: s.profile_id },
       })
-      const json = await res.json()
-      if (!res.ok) { alert('Error: ' + (json.error || res.status)); return }
-      const { access_token, refresh_token } = json
+      if (error) { alert('Error: ' + error.message); return }
+      const { access_token, refresh_token } = data
       sessionStorage.setItem('capy-superadmin-session', JSON.stringify({
         access_token: adminSession.access_token,
         refresh_token: adminSession.refresh_token,
