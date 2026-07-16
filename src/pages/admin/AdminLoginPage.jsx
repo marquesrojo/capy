@@ -100,6 +100,24 @@ const STAFF_FEATURES = [
   },
 ]
 
+const MI_LOCAL_FEATURES = [
+  { title: 'Historial',          desc: 'Todos los pedidos del local' },
+  { title: 'Carta',              desc: 'Productos y categorías' },
+  { title: 'Ubicaciones',        desc: 'Mesas, zonas y retiro' },
+  { title: 'Medios de pago',     desc: 'Métodos para clientes' },
+  { title: 'Datos del local',    desc: 'WhatsApp y ajustes' },
+  { title: 'Usuarios',           desc: 'Admins y camareros vinculados' },
+  { title: 'Descuentos',         desc: 'Códigos de descuento para clientes' },
+  { title: 'Notas rápidas',      desc: 'Chips de aclaraciones' },
+  { title: 'Códigos QR',         desc: 'QR para clientes y camareros' },
+  { title: 'Programa de rangos', desc: 'Niveles y premios por fidelidad' },
+  { title: 'Encuestas',          desc: 'Calificaciones de clientes' },
+  { title: 'Inventario',         desc: 'Stock de insumos y materias primas' },
+  { title: 'Reservas',           desc: 'Reservas de mesas para clientes' },
+  { title: 'WhatsApp',           desc: 'Alertas automáticas y campañas' },
+  { title: 'Pantalla de retiro', desc: 'En una TV para mostrar el estado de pedidos' },
+]
+
 const STEPS = [
   {
     num: '1',
@@ -323,19 +341,27 @@ export default function AdminLoginPage() {
         </div>
       </section>
 
-      {/* ── SCREENSHOTS ── */}
+      {/* ── LO QUE VE TU EQUIPO ── */}
       <section className="max-w-6xl mx-auto px-5 md:px-8 pb-12 md:pb-16">
-        <div className="text-center mb-8 md:mb-10">
-          <h2 className="font-display text-3xl md:text-5xl text-[#3C2A21] tracking-wide leading-tight">
-            Tu panel, en tiempo real
-          </h2>
-          <p className="text-sm text-smoke-400 mt-3 max-w-md mx-auto leading-relaxed">
-            Kanban de pedidos, mapa del salón y detalle de cada mesa. Todo desde el celular o la tablet.
-          </p>
+        <div className="flex items-center gap-3 mb-6 md:mb-8">
+          <div className="w-8 h-8 rounded-xl bg-ember-500/10 flex items-center justify-center text-ember-500 flex-shrink-0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2"/>
+              <path d="M8 21h8m-4-4v4"/>
+            </svg>
+          </div>
+          <div>
+            <h2 className="font-display text-3xl md:text-5xl text-[#3C2A21] tracking-wide leading-none">
+              Lo que ve tu equipo
+            </h2>
+            <p className="text-sm text-smoke-400 mt-1 leading-relaxed">
+              Kanban de pedidos en tiempo real y mapa del salón con detalle por mesa.
+            </p>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-          {/* Screenshot 1: Pedidos */}
+        {/* Screenshots */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-10 md:mb-14">
           <div className="rounded-2xl overflow-hidden border border-carbon-800 shadow-lg">
             <div className="bg-carbon-800 px-4 py-2.5 flex items-center gap-2">
               <div className="flex gap-1.5">
@@ -347,12 +373,10 @@ export default function AdminLoginPage() {
             </div>
             <img
               src="/screenshot-pedidos.jpg"
-              alt="Panel de pedidos — vista Kanban con columnas Recibido, Preparación y Entregado"
+              alt="Panel de pedidos — vista Kanban"
               className="w-full block"
             />
           </div>
-
-          {/* Screenshot 2: Mapa */}
           <div className="rounded-2xl overflow-hidden border border-carbon-800 shadow-lg">
             <div className="bg-carbon-800 px-4 py-2.5 flex items-center gap-2">
               <div className="flex gap-1.5">
@@ -364,10 +388,24 @@ export default function AdminLoginPage() {
             </div>
             <img
               src="/screenshot-mapa.jpg"
-              alt="Vista de mapa del salón con mesas y panel lateral de detalle"
+              alt="Vista de mapa del salón con panel de detalle"
               className="w-full block"
             />
           </div>
+        </div>
+
+        {/* Mi Local features */}
+        <p className="text-[10px] font-bold uppercase tracking-widest text-smoke-500 mb-4">Incluido en Mi Local</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+          {MI_LOCAL_FEATURES.map((f) => (
+            <div key={f.title} className="bg-white border border-carbon-800 rounded-xl px-4 py-3 flex items-start gap-3">
+              <span className="w-1.5 h-1.5 rounded-full bg-ember-500 mt-[6px] flex-shrink-0" />
+              <div>
+                <p className="text-sm font-bold text-[#3C2A21]">{f.title}</p>
+                <p className="text-xs text-smoke-400 mt-0.5 leading-snug">{f.desc}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
