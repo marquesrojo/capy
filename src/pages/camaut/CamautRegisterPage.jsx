@@ -181,10 +181,12 @@ export default function CamautRegisterPage() {
             </label>
             <input
               type="email"
+              name="email"
+              autoComplete="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="tu@email.com"
-              className="w-full border border-carbon-700 rounded-xl px-4 py-3 text-sm bg-white text-smoke-200"
+              className="input w-full"
               required
             />
           </div>
@@ -194,10 +196,12 @@ export default function CamautRegisterPage() {
             </label>
             <input
               type="password"
+              name="password"
+              autoComplete="new-password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               placeholder="Mínimo 6 caracteres"
-              className="w-full border border-carbon-700 rounded-xl px-4 py-3 text-sm bg-white text-smoke-200"
+              className="input w-full"
               required
             />
           </div>

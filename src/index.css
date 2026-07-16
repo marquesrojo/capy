@@ -35,6 +35,7 @@ body {
   border-radius: 0.75rem;
   padding: 0.65rem 0.9rem;
   color: #2A2824;
+  -webkit-text-fill-color: #2A2824;
   font-size: 0.9rem;
 }
 
@@ -45,6 +46,24 @@ body {
 .input:focus {
   border-color: var(--input-focus-color, #E8772A);
   outline: none;
+}
+
+/* iOS autofill — prevent invisible text on white backgrounds */
+.input:-webkit-autofill,
+.input:-webkit-autofill:hover,
+.input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #2A2824;
+  -webkit-box-shadow: 0 0 0px 1000px #FFFFFF inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* iOS autofill on dark-background inputs */
+.input-dark:-webkit-autofill,
+.input-dark:-webkit-autofill:hover,
+.input-dark:-webkit-autofill:focus {
+  -webkit-text-fill-color: #FFFFFF;
+  -webkit-box-shadow: 0 0 0px 1000px #1a1410 inset;
+  transition: background-color 5000s ease-in-out 0s;
 }
 
 .scrollbar-hide::-webkit-scrollbar {

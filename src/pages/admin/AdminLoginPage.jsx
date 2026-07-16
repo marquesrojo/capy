@@ -659,22 +659,26 @@ export default function AdminLoginPage() {
                         <span className="text-white/50 text-xs mb-1 block">Email</span>
                         <input
                           type="email"
+                          name="email"
+                          autoComplete="email"
                           required
                           value={regEmail}
                           onChange={e => setRegEmail(e.target.value)}
-                          className="w-full bg-white/8 border border-white/15 rounded-xl px-3 py-2.5 text-white text-sm placeholder-white/30 focus:outline-none focus:border-ember-500/60 transition-colors"
+                          className="input-dark w-full bg-white/8 border border-white/15 rounded-xl px-3 py-2.5 text-white text-sm placeholder-white/30 focus:outline-none focus:border-ember-500/60 transition-colors"
                         />
                       </label>
                       <label className="block">
                         <span className="text-white/50 text-xs mb-1 block">Contraseña</span>
                         <input
                           type="password"
+                          name="password"
+                          autoComplete="new-password"
                           required
                           minLength={6}
                           value={regPassword}
                           onChange={e => setRegPassword(e.target.value)}
                           placeholder="Mínimo 6 caracteres"
-                          className="w-full bg-white/8 border border-white/15 rounded-xl px-3 py-2.5 text-white text-sm placeholder-white/30 focus:outline-none focus:border-ember-500/60 transition-colors"
+                          className="input-dark w-full bg-white/8 border border-white/15 rounded-xl px-3 py-2.5 text-white text-sm placeholder-white/30 focus:outline-none focus:border-ember-500/60 transition-colors"
                         />
                       </label>
                       {regError && <p className="text-red-400 text-xs">{regError}</p>}
@@ -697,20 +701,24 @@ export default function AdminLoginPage() {
                       <span className="text-white/50 text-xs mb-1 block">Email</span>
                       <input
                         type="email"
+                        name="email"
+                        autoComplete="email"
                         required
                         value={email}
                         onChange={e => setEmail(e.target.value)}
-                        className="w-full bg-white/8 border border-white/15 rounded-xl px-3 py-2.5 text-white text-sm placeholder-white/30 focus:outline-none focus:border-ember-500/60 transition-colors"
+                        className="input-dark w-full bg-white/8 border border-white/15 rounded-xl px-3 py-2.5 text-white text-sm placeholder-white/30 focus:outline-none focus:border-ember-500/60 transition-colors"
                       />
                     </label>
                     <label className="block">
                       <span className="text-white/50 text-xs mb-1 block">Contraseña</span>
                       <input
                         type="password"
+                        name="password"
+                        autoComplete="current-password"
                         required
                         value={password}
                         onChange={e => setPassword(e.target.value)}
-                        className="w-full bg-white/8 border border-white/15 rounded-xl px-3 py-2.5 text-white text-sm placeholder-white/30 focus:outline-none focus:border-ember-500/60 transition-colors"
+                        className="input-dark w-full bg-white/8 border border-white/15 rounded-xl px-3 py-2.5 text-white text-sm placeholder-white/30 focus:outline-none focus:border-ember-500/60 transition-colors"
                       />
                     </label>
                     {loginError && <p className="text-red-400 text-xs">{loginError}</p>}

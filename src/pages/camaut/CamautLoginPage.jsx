@@ -81,7 +81,8 @@ export default function CamautLoginPage() {
         <div>
           <label className="text-smoke-500 text-xs font-semibold uppercase tracking-wide block mb-1.5">Email</label>
           <input
-            type="email" value={email} onChange={e => setEmail(e.target.value)}
+            type="email" name="email" autoComplete="email"
+            value={email} onChange={e => setEmail(e.target.value)}
             placeholder="tu@email.com"
             className="input w-full"
             required
@@ -90,7 +91,8 @@ export default function CamautLoginPage() {
         <div>
           <label className="text-smoke-500 text-xs font-semibold uppercase tracking-wide block mb-1.5">Contraseña</label>
           <input
-            type="password" value={password} onChange={e => setPassword(e.target.value)}
+            type="password" name="password" autoComplete="current-password"
+            value={password} onChange={e => setPassword(e.target.value)}
             placeholder="Tu contraseña"
             className="input w-full"
             required
