@@ -59,7 +59,7 @@ const MICAPY_ITEMS = [
   { id: 'soporte', label: 'Soporte', desc: 'Envianos un mensaje', icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> },
 ]
 
-export default function CamautAppShell({ venueId, staffName: initialName, staffXP: initialXP, linkedVenues = [], staffId }) {
+export default function CamautAppShell({ venueId, staffName: initialName, staffXP: initialXP, linkedVenues = [], staffId, heightOffset = 0 }) {
   const navigate = useNavigate()
   const [tab, setTab] = useState('tomar')
   const [micapyTab, setMicapyTab] = useState(null)
@@ -339,7 +339,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
   }
 
   return (
-    <div className="flex flex-col bg-[#F0F4F8]" style={{ height: '100dvh' }}>
+    <div className="flex flex-col bg-[#F0F4F8]" style={{ height: heightOffset ? '100%' : '100dvh' }}>
       {/* Header */}
       <div className="bg-white border-b border-black/8 px-5 pb-0 shadow-sm flex-shrink-0" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}>
         <div className="flex items-center justify-between mb-3">
