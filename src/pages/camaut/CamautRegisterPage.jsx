@@ -171,7 +171,7 @@ export default function CamautRegisterPage() {
               value={fullName}
               onChange={e => setFullName(e.target.value)}
               placeholder="Ej: Matías Acevedo"
-              className="w-full border border-carbon-700 rounded-xl px-4 py-3 text-sm bg-white text-smoke-200"
+              className="w-full border border-carbon-700 rounded-xl px-4 py-3 text-sm bg-white text-[#2A2824]"
               required
             />
           </div>
@@ -224,7 +224,7 @@ export default function CamautRegisterPage() {
               value={alias}
               onChange={e => setAlias(e.target.value)}
               placeholder="Ej: mozo_veloz"
-              className="w-full border border-carbon-700 rounded-xl px-4 py-3 text-sm bg-white text-smoke-200"
+              className="w-full border border-carbon-700 rounded-xl px-4 py-3 text-sm bg-white text-[#2A2824]"
             />
             <p className="text-smoke-600 text-[10px] mt-1">Los demás te ven con este nombre en el ranking</p>
           </div>
@@ -237,7 +237,7 @@ export default function CamautRegisterPage() {
               value={docNumber}
               onChange={e => setDocNumber(e.target.value)}
               placeholder="Ej: 35123456"
-              className="w-full border border-carbon-700 rounded-xl px-4 py-3 text-sm bg-white text-smoke-200"
+              className="w-full border border-carbon-700 rounded-xl px-4 py-3 text-sm bg-white text-[#2A2824]"
             />
             <p className="text-smoke-600 text-[10px] mt-1">Necesario para generar tu certificado verificado</p>
           </div>
@@ -250,7 +250,7 @@ export default function CamautRegisterPage() {
               value={linkedin}
               onChange={e => setLinkedin(e.target.value)}
               placeholder="https://linkedin.com/in/tu-perfil"
-              className="w-full border border-carbon-700 rounded-xl px-4 py-3 text-sm bg-white text-smoke-200"
+              className="w-full border border-carbon-700 rounded-xl px-4 py-3 text-sm bg-white text-[#2A2824]"
             />
           </div>
           {error && <p className="text-red-600 text-xs">{error}</p>}

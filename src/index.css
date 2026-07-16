@@ -57,6 +57,12 @@ body {
   transition: background-color 5000s ease-in-out 0s;
 }
 
+/* Dark-background inputs — force white text (iOS ignores `color` in favour of -webkit-text-fill-color) */
+.input-dark {
+  -webkit-text-fill-color: #FFFFFF;
+  color: #FFFFFF;
+}
+
 /* iOS autofill on dark-background inputs */
 .input-dark:-webkit-autofill,
 .input-dark:-webkit-autofill:hover,
