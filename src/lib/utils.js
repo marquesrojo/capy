@@ -27,6 +27,7 @@ export const STATUS_LABELS = {
   en_preparacion: 'En preparación',
   listo: 'Listo',
   entregado: 'Entregado',
+  cerrado: 'Cerrado',
   cancelado: 'Cancelado'
 }
 
@@ -37,6 +38,7 @@ export const STATUS_COLORS = {
   en_preparacion: 'bg-ember-500/10 text-ember-600 border-ember-500/40',
   listo: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/40',
   entregado: 'bg-smoke-500/10 text-smoke-500 border-smoke-500/30',
+  cerrado: 'bg-carbon-500/20 text-smoke-500 border-carbon-500/40',
   cancelado: 'bg-red-500/10 text-red-700 border-red-500/40'
 }
 
