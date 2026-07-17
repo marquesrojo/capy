@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 
-const ACTIVE_STATUSES = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo']
-
 export default function FloorPlanViewer({
   zones,
   venueId,
@@ -41,19 +39,33 @@ export default function FloorPlanViewer({
     const channelName = `floor-viewer-${venueId}${filterZoneId ? `-${filterZoneId}` : ''}`
     const channel = supabaseClient
       .channel(channelName)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'table_sessions', filter: `venue_id=eq.${venueId}` }, loadActive)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `venue_id=eq.${venueId}` }, loadActive)
       .subscribe()
     return () => supabaseClient.removeChannel(channel)
   }, [venueId, filterZoneId])
 
   async function loadActive() {
-    const { data } = await supabaseClient
+    // Primary source: active sessions (covers all order origins, persists until cashier closes)
+    const { data: sessions } = await supabaseClient
+      .from('table_sessions')
+      .select('zone_id')
+      .eq('venue_id', venueId)
+      .eq('is_active', true)
+      .not('zone_id', 'is', null)
+    const sessionZoneIds = new Set((sessions || []).map(s => s.zone_id))
+
+    // Fallback: orders without a session (e.g. created by staff without opening a session)
+    const { data: orders } = await supabaseClient
       .from('orders')
       .select('zone_id')
       .eq('venue_id', venueId)
-      .in('status', ACTIVE_STATUSES)
+      .is('session_id', null)
+      .in('status', ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo', 'entregado'])
       .not('zone_id', 'is', null)
-    setOccupiedIds(new Set((data || []).map(o => o.zone_id)))
+    const orderZoneIds = new Set((orders || []).map(o => o.zone_id))
+
+    setOccupiedIds(new Set([...sessionZoneIds, ...orderZoneIds]))
   }
 
   // ── Multi-select rubber-band ─────────────────────────────────────────────────

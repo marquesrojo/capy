@@ -690,8 +690,12 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
           <div className="bg-white rounded-3xl p-6 w-full max-w-xs text-center" onClick={e => e.stopPropagation()}>
             <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-1">Carta digital</p>
             <p className="font-bold text-[#1A2A3A] text-base mb-4">{menuQrModal.name}</p>
-            <MenuQRCanvas slug={menuQrModal.slug} />
-            <p className="text-[#8896A5] text-xs mt-3 mb-4">El cliente escanea esto para ver la carta</p>
+            <MenuQRCanvas slug={menuQrModal.slug} zoneId={menuQrModal.zoneId} zoneLabel={menuQrModal.zoneLabel} staffId={menuQrModal.staffId} />
+            <p className="text-[#8896A5] text-xs mt-3 mb-4">
+              {menuQrModal.zoneId
+                ? `El cliente escanea esto y queda asignado a ${menuQrModal.zoneLabel || 'la mesa'}`
+                : 'El cliente escanea esto para ver la carta'}
+            </p>
             <button onClick={() => setMenuQrModal(null)} className="text-[#8896A5] text-sm">Cerrar</button>
           </div>
         </div>
@@ -712,7 +716,13 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
               if (!av) return null
               return (
                 <button
-                  onClick={() => setMenuQrModal({ slug: av.slug || null, name: av.name.replace(' — Capy', '').replace(' - Capy', '') })}
+                  onClick={() => setMenuQrModal({
+                    slug: av.slug || null,
+                    name: av.name.replace(' — Capy', '').replace(' - Capy', ''),
+                    zoneId: selectedZone && selectedZone.id !== 'otra' ? selectedZone.id : null,
+                    zoneLabel: selectedZone && selectedZone.id !== 'otra' ? selectedZone.name : null,
+                    staffId: staffId || waiterStaffId || null,
+                  })}
                   className="flex items-center gap-1.5 text-[#008080] text-xs font-semibold border border-[#008080]/30 px-3 py-1.5 rounded-xl"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1561,9 +1571,19 @@ function QRCanvas({ orderId }) {
   )
 }
 
-function MenuQRCanvas({ slug }) {
+function MenuQRCanvas({ slug, zoneId, zoneLabel, staffId }) {
   const canvasRef = useRef(null)
-  const url = slug ? `https://capyapp.co/r/${slug}/carta` : null
+  let url = null
+  if (slug) {
+    if (zoneId) {
+      const params = new URLSearchParams({ go: '1', zone_id: zoneId, location_type: 'mesa' })
+      if (zoneLabel) params.set('location_label', zoneLabel)
+      if (staffId) params.set('waiter_id', staffId)
+      url = `https://capyapp.co/r/${slug}?${params.toString()}`
+    } else {
+      url = `https://capyapp.co/r/${slug}/carta`
+    }
+  }
 
   useEffect(() => {
     if (!canvasRef.current || !url) return
