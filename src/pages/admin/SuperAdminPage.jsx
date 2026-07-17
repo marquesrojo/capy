@@ -90,15 +90,15 @@ function StatsTab() {
       const [venuesRes, camautRes, ordersHoyRes, weekOrdersRes, ticketsRes] = await Promise.all([
         supabaseStaff.from('venues').select('id', { count: 'exact', head: true }).not('slug', 'like', 'camaut-%'),
         supabaseStaff.from('staff_names').select('id', { count: 'exact', head: true }).not('profile_id', 'is', null),
-        supabaseStaff.from('orders').select('total, payment_status').gte('created_at', startUTC).lte('created_at', endUTC).neq('status', 'cancelado'),
-        supabaseStaff.from('orders').select('total, payment_status').gte('created_at', weekStartUTC).lte('created_at', endUTC).neq('status', 'cancelado'),
+        supabaseStaff.from('orders').select('total').eq('status', 'entregado').gte('created_at', startUTC).lte('created_at', endUTC),
+        supabaseStaff.from('orders').select('total').eq('status', 'entregado').gte('created_at', weekStartUTC).lte('created_at', endUTC),
         supabaseStaff.from('support_tickets').select('id', { count: 'exact', head: true }).eq('status', 'open'),
       ])
 
       const ordersHoy  = ordersHoyRes.data  || []
       const weekOrders = weekOrdersRes.data || []
-      const revenueHoy  = ordersHoy.filter(o => o.payment_status === 'aprobado').reduce((s, o) => s + (o.total || 0), 0)
-      const revenueWeek = weekOrders.filter(o => o.payment_status === 'aprobado').reduce((s, o) => s + (o.total || 0), 0)
+      const revenueHoy  = ordersHoy.reduce((s, o) => s + (o.total || 0), 0)
+      const revenueWeek = weekOrders.reduce((s, o) => s + (o.total || 0), 0)
 
       setStats({
         venues:      venuesRes.count ?? 0,
@@ -145,8 +145,8 @@ function StatsTab() {
         <StatCard label="Locales activos" value={stats.venues} />
         <StatCard label="Camareros/as" value={stats.camautUsers} sub="con cuenta" />
         <StatCard label="Pedidos hoy" value={stats.ordersHoy} />
-        <StatCard label="Facturación hoy" value={formatPrice(stats.revenueHoy)} sub="pagos aprobados" />
-        <StatCard label="Últ. 7 días" value={formatPrice(stats.revenueWeek)} sub="pagos aprobados" />
+        <StatCard label="Facturación hoy" value={formatPrice(stats.revenueHoy)} sub="pedidos cerrados" />
+        <StatCard label="Últ. 7 días" value={formatPrice(stats.revenueWeek)} sub="pedidos cerrados" />
         <StatCard label="Tickets abiertos" value={stats.openTickets} />
       </div>
 
