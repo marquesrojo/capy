@@ -515,6 +515,13 @@ export default function PaymentPage() {
               ? `Confirmar — ${cashDiscount.percent}% off en efectivo →`
               : 'Confirmar pedido →'}
         </button>
+        <button
+          onClick={() => { clearCart(); navigate(base || '/') }}
+          disabled={submitting}
+          className="w-full py-3 rounded-xl text-sm font-medium text-[#8896A5] border border-black/10 disabled:opacity-50"
+        >
+          Anular pedido y volver al inicio
+        </button>
       </div>
     </div>
   )
