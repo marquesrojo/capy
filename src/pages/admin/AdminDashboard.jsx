@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice, STATUS_LABELS, STATUS_COLORS } from '../../lib/utils'
+import { fetchVenueWaiters } from '../../lib/staff'
 import FloorPlanViewer from '../../components/FloorPlanViewer'
 import { PinIcon, FileTextIcon, ChefHatIcon, BellIcon, CreditCardIcon, ClockIcon } from '../../components/Icons'
 
@@ -168,20 +169,7 @@ async function loadZones() {
   }
 
   async function loadWaiters() {
-    const { data } = await supabaseStaff
-      .from('staff_names')
-      .select('id, full_name')
-      .eq('venue_id', venueId)
-      .eq('is_active', true)
-      .order('full_name')
-    const seen = new Set()
-    const unique = (data || []).filter(w => {
-      const key = w.full_name.toLowerCase().trim()
-      if (seen.has(key)) return false
-      seen.add(key)
-      return true
-    })
-    setWaiters(unique)
+    setWaiters(await fetchVenueWaiters(venueId))
   }
 
   async function addWaiter(name) {

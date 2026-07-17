@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice } from '../../lib/utils'
+import { fetchVenueWaiters } from '../../lib/staff'
 import FloorPlanViewer from '../../components/FloorPlanViewer'
 import { ChefHatIcon, CheckCircleIcon, FileTextIcon } from '../../components/Icons'
 
@@ -47,8 +48,8 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
   useEffect(() => {
     if (!profile) return // esperar a que cargue el profile
     async function init() {
-      const [staffRes, zoneRes, catRes, prodRes, venueRes, notesRes, discountsRes] = await Promise.all([
-        supabaseStaff.from('staff_names').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('full_name'),
+      const [staffData, zoneRes, catRes, prodRes, venueRes, notesRes, discountsRes] = await Promise.all([
+        fetchVenueWaiters(activeVenueId),
         supabaseStaff.from('venue_zones').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order'),
         supabaseStaff.from('categories').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order'),
         supabaseStaff.from('products').select('*').eq('venue_id', activeVenueId).eq('is_available', true).order('sort_order'),
@@ -57,7 +58,7 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
         supabaseStaff.from('venue_discounts').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('created_at')
       ])
       const zonesData = zoneRes.data || []
-      setStaffList(staffRes.data || [])
+      setStaffList(staffData || [])
       setZones(zonesData)
       setCategories(catRes.data || [])
       setProducts(prodRes.data || [])
@@ -80,7 +81,7 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
       } else {
         // Buscar o crear el staff_name correspondiente a este perfil
         const profileName = (profile?.full_name || '').trim()
-        const existing = (staffRes.data || []).find(s =>
+        const existing = (staffData || []).find(s =>
           s.full_name.toLowerCase().trim() === profileName.toLowerCase()
         )
         if (existing) {
