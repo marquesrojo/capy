@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice } from '../../lib/utils'
@@ -16,6 +17,10 @@ import { ChefHatIcon, CheckCircleIcon, FileTextIcon } from '../../components/Ico
 export default function WaiterOrderPage({ venueId: propVenueId }) {
   const { profile, venueId: authVenueId } = useAuth()
   const activeVenueId = propVenueId || authVenueId
+  const [searchParams] = useSearchParams()
+  const prefillZoneId = searchParams.get('zone_id')
+  const prefillZoneLabel = searchParams.get('location_label')
+  const prefillSessionId = searchParams.get('session_id') || null
   const [step, setStep] = useState('loading') // loading | choose_waiter | menu | confirm | done
   const [staffList, setStaffList] = useState([])
   const [selectedStaff, setSelectedStaff] = useState(null)
@@ -48,14 +53,21 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
         supabaseStaff.from('quick_notes').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order'),
         supabaseStaff.from('venue_discounts').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('created_at')
       ])
+      const zonesData = zoneRes.data || []
       setStaffList(staffRes.data || [])
-      setZones(zoneRes.data || [])
+      setZones(zonesData)
       setCategories(catRes.data || [])
       setProducts(prodRes.data || [])
       setQuickNotes(notesRes.data || [])
       setDiscounts(discountsRes.data || [])
       if (catRes.data?.length) setActiveCategory(catRes.data[0].id)
       if (venueRes.data?.whatsapp_number) setVenueWhatsapp(venueRes.data.whatsapp_number)
+
+      if (prefillZoneId) {
+        const preZone = zonesData.find(z => z.id === prefillZoneId)
+          || { id: prefillZoneId, name: prefillZoneLabel || 'Mesa', type: 'zona' }
+        setSelectedZone(preZone)
+      }
 
       if (profile?.is_shared_account) {
         setStep('choose_waiter')
@@ -148,6 +160,7 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
           assigned_staff_id: selectedStaff?.id || null,
           created_by_staff: true,
           shift_id: openShift?.id || null,
+          session_id: prefillSessionId,
         })
         .select().single()
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice, STATUS_LABELS, STATUS_COLORS } from '../../lib/utils'
@@ -513,7 +513,7 @@ async function loadZones() {
             onClick={() => window.open(`/r/${venueSlug}/carta?mostrador=1`, '_blank')}
             className="px-3 py-1.5 rounded-full text-xs font-medium border border-ember-500/40 text-ember-400 active:opacity-70"
           >
-            Take Away
+            Mostrador
           </button>
         )}
       </div>
@@ -855,13 +855,34 @@ function CocinaView({ orders, categories, onUpdateStatus, onRefresh }) {
   )
 }
 
-function MesaPanel({ mesa, orders, onClose, onUpdateStatus }) {
+function MesaPanel({ mesa, orders, venueSlug, onClose, onCloseTable, onUpdateStatus }) {
+  const navigate = useNavigate()
   const ACTIVE = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo']
   const STATUS_RANK = { listo: 0, en_preparacion: 1, recibido: 2, pendiente_aprobacion: 3 }
+  const [closing, setClosing] = useState(false)
 
   const mesaOrders = orders
     .filter(o => o.zone_id === mesa.id && ACTIVE.includes(o.status))
     .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+
+  const sessionId = mesaOrders[0]?.session_id || null
+
+  async function handleCloseTable() {
+    if (!sessionId) { onClose(); return }
+    setClosing(true)
+    await supabaseStaff
+      .from('table_sessions')
+      .update({ is_active: false, ended_at: new Date().toISOString() })
+      .eq('id', sessionId)
+    setClosing(false)
+    onCloseTable?.()
+  }
+
+  function handleNuevoPedido() {
+    const params = new URLSearchParams({ zone_id: mesa.id, location_label: mesa.name })
+    if (sessionId) params.set('session_id', sessionId)
+    navigate(`/admin/tomar?${params.toString()}`)
+  }
 
   const itemMap = {}
   mesaOrders.forEach(order => {
@@ -928,7 +949,7 @@ function MesaPanel({ mesa, orders, onClose, onUpdateStatus }) {
           </button>
         </div>
 
-        <div className="overflow-y-auto flex-1 pb-10">
+        <div className="overflow-y-auto flex-1 pb-4">
           {mesaOrders.length === 0 ? (
             <div className="py-16 text-center">
               <svg className="mx-auto mb-3 text-smoke-700" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1016,6 +1037,25 @@ function MesaPanel({ mesa, orders, onClose, onUpdateStatus }) {
                 </div>
               </div>
             </>
+          )}
+        </div>
+
+        {/* Sticky bottom actions */}
+        <div className="flex-shrink-0 border-t border-carbon-800 px-5 py-4 flex gap-3">
+          <button
+            onClick={handleNuevoPedido}
+            className="flex-1 bg-ember-500 hover:bg-ember-600 active:opacity-80 text-white text-sm font-bold py-3 rounded-2xl transition-colors"
+          >
+            + Nuevo pedido
+          </button>
+          {sessionId && (
+            <button
+              onClick={handleCloseTable}
+              disabled={closing}
+              className="flex-shrink-0 border border-carbon-600 text-smoke-400 hover:text-smoke-200 hover:border-carbon-500 disabled:opacity-40 text-sm font-semibold px-4 py-3 rounded-2xl transition-colors"
+            >
+              {closing ? '...' : 'Cerrar mesa'}
+            </button>
           )}
         </div>
       </div>
