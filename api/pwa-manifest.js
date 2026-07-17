@@ -21,12 +21,12 @@ export default async function handler(req, res) {
       theme_color: '#008080',
       icons,
     }
-  } else if (referer.includes('/camaut')) {
+  } else if (referer.includes('/camareroa') || referer.includes('/camaut')) {
     manifest = {
       name: 'Capy Camarero',
       short_name: 'Capy Camarero',
-      start_url: '/camaut/app',
-      scope: '/camaut/',
+      start_url: '/camareroa/app',
+      scope: '/camareroa/',
       display: 'standalone',
       background_color: '#0F1923',
       theme_color: '#008080',
