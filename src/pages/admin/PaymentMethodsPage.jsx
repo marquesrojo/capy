@@ -18,6 +18,8 @@ export default function PaymentMethodsPage() {
   const [cashDiscountPercent, setCashDiscountPercent] = useState('')
   const [cashSaving, setCashSaving] = useState(false)
   const [cashSaved, setCashSaved] = useState(false)
+  const [fiscalEnabled, setFiscalEnabled] = useState(false)
+  const [fiscalSaving, setFiscalSaving] = useState(false)
 
   useEffect(() => {
     if (!venueId) return
@@ -27,11 +29,12 @@ export default function PaymentMethodsPage() {
   async function loadAll() {
     const [methodsRes, venueRes] = await Promise.all([
       supabaseStaff.from('payment_methods').select('*').eq('venue_id', venueId).order('sort_order'),
-      supabaseStaff.from('venues').select('mp_enabled, mp_access_token, cash_discount_enabled, cash_discount_percent').eq('id', venueId).single()
+      supabaseStaff.from('venues').select('mp_enabled, mp_access_token, cash_discount_enabled, cash_discount_percent, fiscal_enabled').eq('id', venueId).single()
     ])
     setMethods(methodsRes.data || [])
     if (venueRes.data?.mp_enabled !== undefined) setMpEnabled(venueRes.data.mp_enabled)
     if (venueRes.data?.mp_access_token) setMpToken(venueRes.data.mp_access_token)
+    if (venueRes.data?.fiscal_enabled !== undefined) setFiscalEnabled(venueRes.data.fiscal_enabled)
     if (venueRes.data?.cash_discount_enabled !== undefined) setCashDiscountEnabled(venueRes.data.cash_discount_enabled)
     if (venueRes.data?.cash_discount_percent !== undefined) setCashDiscountPercent(String(venueRes.data.cash_discount_percent || ''))
     setLoading(false)
@@ -68,6 +71,14 @@ export default function PaymentMethodsPage() {
         venue_id: venueId, code: 'EFECTIVO', percent, is_active: enabled, is_cash_discount: true, label: 'Descuento efectivo',
       })
     }
+  }
+
+  async function toggleFiscal() {
+    const newVal = !fiscalEnabled
+    setFiscalEnabled(newVal)
+    setFiscalSaving(true)
+    await supabaseStaff.from('venues').update({ fiscal_enabled: newVal }).eq('id', venueId)
+    setFiscalSaving(false)
   }
 
   async function toggleCashDiscount() {
@@ -173,6 +184,30 @@ export default function PaymentMethodsPage() {
                 {mpTokenSaving ? '...' : mpTokenSaved ? '✓' : 'Guardar'}
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* Facturación electrónica */}
+        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-smoke-300 font-medium text-sm">Facturación electrónica</p>
+              <p className="text-smoke-500 text-xs mt-0.5">
+                Emite Factura B (ARCA/AFIP via TusFacturasAPP) con el botón Facturar en cada pedido cobrado. El ticket digital se comparte por WhatsApp — no requiere impresora.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={toggleFiscal}
+              disabled={fiscalSaving}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-70 flex-shrink-0 ml-3 ${
+                fiscalEnabled ? 'bg-emerald-500' : 'bg-carbon-700'
+              }`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                fiscalEnabled ? 'translate-x-6' : 'translate-x-1'
+              }`} />
+            </button>
           </div>
         </div>
 

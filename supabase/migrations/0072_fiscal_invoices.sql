@@ -24,7 +24,20 @@ ALTER TABLE fiscal_invoices ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "fiscal_invoices_select_staff" ON fiscal_invoices
   FOR SELECT USING (is_staff());
+
+-- El cliente puede ver la factura de SU propio pedido (para descargar su ticket)
+CREATE POLICY "fiscal_invoices_select_own_order" ON fiscal_invoices
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM orders o
+      WHERE o.id = fiscal_invoices.order_id AND o.customer_id = auth.uid()
+    )
+  );
 -- Sin policies de INSERT/UPDATE: solo la edge function con service role escribe.
 
 CREATE INDEX IF NOT EXISTS idx_fiscal_invoices_venue ON fiscal_invoices(venue_id);
 CREATE INDEX IF NOT EXISTS idx_fiscal_invoices_order ON fiscal_invoices(order_id);
+
+-- Toggle por venue: si está desactivado, el botón Facturar no aparece en el
+-- mostrador y la edge function rechaza emisiones para ese venue.
+ALTER TABLE venues ADD COLUMN IF NOT EXISTS fiscal_enabled boolean NOT NULL DEFAULT false;

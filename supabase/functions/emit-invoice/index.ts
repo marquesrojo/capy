@@ -39,6 +39,8 @@ function parseTfResponse(resp: Record<string, unknown>) {
   return { success, cae, invoiceNumber: invoiceNumber != null ? String(invoiceNumber) : null, caeExpiry, pdfUrl, errorMessage }
 }
 
+const STAFF_ROLES = ['admin', 'propietario', 'camarero', 'cocina']
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -59,6 +61,16 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
 
+    // Emisión solo explícita por staff autenticado: se valida el JWT del
+    // cajero/admin que apretó el botón, nunca el anon key.
+    const jwt = (req.headers.get('Authorization') || '').replace('Bearer ', '')
+    const { data: { user } = { user: null } } = await supabase.auth.getUser(jwt)
+    if (!user) return json({ error: 'No autorizado' }, 401)
+    const { data: prof } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    if (!prof || !STAFF_ROLES.includes(prof.role)) {
+      return json({ error: 'Solo el staff puede facturar' }, 403)
+    }
+
     // Idempotencia: factura aprobada existente se devuelve tal cual
     const { data: existing } = await supabase
       .from('fiscal_invoices')
@@ -71,10 +83,21 @@ Deno.serve(async (req) => {
 
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('id, venue_id, total, daily_number, location_label, order_items(product_name, quantity, unit_price, line_total), customers(full_name, whatsapp), venue:venues(name)')
+      .select('id, venue_id, total, subtotal, discount_amount, cash_discount_amount, daily_number, location_label, payment_status, order_items(product_name, quantity, unit_price, line_total), customers(full_name, whatsapp), venue:venues(name, fiscal_enabled)')
       .eq('id', orderId)
       .single()
     if (orderError || !order) return json({ error: 'Order not found' }, 404)
+
+    if (!(order as any).venue?.fiscal_enabled) {
+      return json({ success: false, error: 'Facturación desactivada para este local' }, 200)
+    }
+    if (order.payment_status !== 'aprobado') {
+      return json({ success: false, error: 'El pedido todavía no está cobrado' }, 200)
+    }
+
+    // Descuentos (código o efectivo) van como bonificación: la suma de ítems
+    // menos la bonificación tiene que cerrar con el total, o AFIP rechaza.
+    const discountTotal = (Number(order.discount_amount) || 0) + (Number(order.cash_discount_amount) || 0)
 
     // Payload según la especificación del Sandbox de TusFacturasAPP
     const payload = {
@@ -90,6 +113,7 @@ Deno.serve(async (req) => {
         cliente_nombre: order.customers?.full_name || 'Consumidor Final',
         fecha: new Date().toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }),
         total: order.total,
+        bonificacion: discountTotal > 0 ? discountTotal : 0,
         items: (order.order_items || []).map((i: any) => ({
           descripcion: i.product_name,
           cantidad: i.quantity,

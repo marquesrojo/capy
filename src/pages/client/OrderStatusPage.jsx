@@ -67,7 +67,21 @@ export default function OrderStatusPage() {
   const [discountLoading, setDiscountLoading] = useState(false)
   const [discountError, setDiscountError] = useState('')
   const [appliedDiscount, setAppliedDiscount] = useState(null)
+  const [fiscalTicket, setFiscalTicket] = useState(null)
   const prevStatusRef = useState(null)
+
+  // Ticket fiscal digital: si el local facturó este pedido, el cliente puede
+  // descargarlo desde acá (RLS permite ver solo la factura del propio pedido)
+  useEffect(() => {
+    if (!orderId || order?.payment_status !== 'aprobado') return
+    supabaseCustomer
+      .from('fiscal_invoices')
+      .select('pdf_url, invoice_number')
+      .eq('order_id', orderId)
+      .eq('status', 'approved')
+      .maybeSingle()
+      .then(({ data }) => { if (data?.pdf_url) setFiscalTicket(data) })
+  }, [orderId, order?.payment_status])
 
   useEffect(() => {
     const vid = order?.venue_id || ACTIVE_VENUE_ID
@@ -306,6 +320,24 @@ export default function OrderStatusPage() {
           {PAYMENT_STATUS_LABELS[order.payment_status]}
         </span>
       </div>
+
+      {fiscalTicket && (
+        <a
+          href={fiscalTicket.pdf_url}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/40 rounded-2xl px-4 py-3"
+        >
+          <span className="text-xl">🧾</span>
+          <div className="flex-1">
+            <p className="text-emerald-700 font-semibold text-sm">Descargar tu ticket</p>
+            <p className="text-smoke-500 text-xs">
+              Factura {fiscalTicket.invoice_number ? `#${fiscalTicket.invoice_number}` : 'electrónica'} en PDF
+            </p>
+          </div>
+          <span className="text-emerald-600 text-lg">↓</span>
+        </a>
+      )}
 
       {isCancelado && (
         <div className="mt-6 bg-red-500/10 border border-red-500/40 rounded-2xl p-5 text-center">
