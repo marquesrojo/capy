@@ -7,7 +7,7 @@ import BottomNav from '../../components/BottomNav'
 import { PinIcon } from '../../components/Icons'
 
 const ACTIVE_STATUSES = ['pendiente_aprobacion', 'pendiente_pago', 'recibido', 'en_preparacion', 'listo']
-const CLOSED_STATUSES = ['entregado', 'cancelado']
+const CLOSED_STATUSES = ['entregado', 'cerrado', 'cancelado']
 
 export default function OrdersPage() {
   const { customer, loading: customerLoading } = useCustomer()
@@ -116,7 +116,7 @@ export default function OrdersPage() {
 function SessionGroup({ group, onNavigate }) {
   const totalAmount = group.reduce((sum, o) => sum + (o.total || 0), 0)
   const worstStatus = (() => {
-    const priority = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo', 'entregado', 'cancelado']
+    const priority = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo', 'entregado', 'cerrado', 'cancelado']
     return group.map(o => o.status).sort((a, b) => priority.indexOf(a) - priority.indexOf(b))[0]
   })()
 

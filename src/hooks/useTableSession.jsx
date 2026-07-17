@@ -25,12 +25,12 @@ export function useTableSession(sessionId) {
 
   // Ítems de comandas ya entregadas (consumiendo)
   const consumedItems = orders
-    .filter(o => o.status === 'entregado')
+    .filter(o => o.status === 'entregado' || o.status === 'cerrado')
     .flatMap(o => (o.order_items || []).map(i => ({ ...i, _order_id: o.id })))
 
   // Ítems de comandas aún activas (en preparación / recibido / listo)
   const activeItems = orders
-    .filter(o => !['entregado', 'cancelado'].includes(o.status))
+    .filter(o => !['entregado', 'cerrado', 'cancelado'].includes(o.status))
     .flatMap(o => (o.order_items || []).map(i => ({ ...i, _order_id: o.id })))
 
   // Historial ordenado (una entrada por comanda)

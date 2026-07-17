@@ -207,12 +207,14 @@ async function loadZones() {
   async function load({ silent } = {}) {
     if (!silent) setRefreshing(true)
     try {
+      const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).toISOString()
       const [boardRes, proofRes, inPersonRes, paidRes] = await Promise.all([
         supabaseStaff
           .from('orders')
           .select(ORDER_SELECT)
           .eq('venue_id', venueId)
           .in('status', [...BOARD_COLUMNS, 'listo', 'pendiente_aprobacion'])
+          .gte('created_at', todayStart)
           .order('created_at', { ascending: true }),
         supabaseStaff
           .from('orders')
@@ -231,7 +233,7 @@ async function loadZones() {
           .select(ORDER_SELECT)
           .eq('venue_id', venueId)
           .eq('payment_status', 'aprobado')
-          .gte('payment_confirmed_at', new Date(new Date().setHours(0,0,0,0)).toISOString())
+          .gte('payment_confirmed_at', todayStart)
           .order('payment_confirmed_at', { ascending: false })
           .limit(50)
       ])
@@ -352,6 +354,27 @@ async function loadZones() {
         },
         body: JSON.stringify({ order_id: orderId, event_type: newStatus }),
       }).catch(() => {})
+    }
+  }
+
+  // Archiva un pedido entregado: sale del tablero y queda en Historial.
+  // Si era el último pedido activo de su sesión, cierra también la mesa.
+  async function closeOrder(order) {
+    setOrders(prev => prev.filter(o => o.id !== order.id))
+    await supabaseStaff.from('orders').update({ status: 'cerrado' }).eq('id', order.id)
+    if (order.session_id) {
+      const { data: remaining } = await supabaseStaff
+        .from('orders')
+        .select('id')
+        .eq('session_id', order.session_id)
+        .in('status', ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo', 'entregado'])
+        .limit(1)
+      if (!remaining?.length) {
+        await supabaseStaff
+          .from('table_sessions')
+          .update({ is_active: false, ended_at: new Date().toISOString() })
+          .eq('id', order.session_id)
+      }
     }
   }
 
@@ -697,6 +720,7 @@ async function loadZones() {
               pendingInPersonOrders={status === 'entregado' ? pendingInPersonOrders : []}
               paidOrders={status === 'entregado' ? paidOrders : []}
               onConfirmPayment={status === 'entregado' ? confirmPayment : null}
+              onCloseOrder={status === 'entregado' ? closeOrder : null}
             />
           ))}
         </div>
@@ -879,12 +903,31 @@ function MesaPanel({ mesa, orders, venueSlug, onClose, onCloseTable, onUpdateSta
   const sessionId = activeSession?.id || mesaOrders[0]?.session_id || null
 
   async function handleCloseTable() {
-    if (!sessionId) { onClose(); return }
     setClosing(true)
+    // Archivar los pedidos activos visibles de la mesa (quedan en Historial)
+    const ids = mesaOrders.map(o => o.id)
+    if (ids.length) {
+      await supabaseStaff.from('orders').update({ status: 'cerrado' }).in('id', ids)
+    }
+    // Huérfanos sin sesión de esta mesa (ej. de otro día): también mantienen
+    // la mesa roja en el mapa, así que se archivan acá
     await supabaseStaff
-      .from('table_sessions')
-      .update({ is_active: false, ended_at: new Date().toISOString() })
-      .eq('id', sessionId)
+      .from('orders')
+      .update({ status: 'cerrado' })
+      .eq('zone_id', mesa.id)
+      .is('session_id', null)
+      .in('status', ACTIVE)
+    if (sessionId) {
+      await supabaseStaff
+        .from('orders')
+        .update({ status: 'cerrado' })
+        .eq('session_id', sessionId)
+        .in('status', ACTIVE)
+      await supabaseStaff
+        .from('table_sessions')
+        .update({ is_active: false, ended_at: new Date().toISOString() })
+        .eq('id', sessionId)
+    }
     setClosing(false)
     setActiveSession(null)
     onCloseTable?.()
@@ -1060,15 +1103,13 @@ function MesaPanel({ mesa, orders, venueSlug, onClose, onCloseTable, onUpdateSta
           >
             + Nuevo pedido
           </button>
-          {sessionId && (
-            <button
-              onClick={handleCloseTable}
-              disabled={closing}
-              className="flex-shrink-0 border border-carbon-600 text-smoke-400 hover:text-smoke-200 hover:border-carbon-500 disabled:opacity-40 text-sm font-semibold px-4 py-3 rounded-2xl transition-colors"
-            >
-              {closing ? '...' : 'Cerrar mesa'}
-            </button>
-          )}
+          <button
+            onClick={handleCloseTable}
+            disabled={closing}
+            className="flex-shrink-0 border border-carbon-600 text-smoke-400 hover:text-smoke-200 hover:border-carbon-500 disabled:opacity-40 text-sm font-semibold px-4 py-3 rounded-2xl transition-colors"
+          >
+            {closing ? '...' : 'Cerrar mesa'}
+          </button>
         </div>
       </div>
     </>
@@ -1537,7 +1578,7 @@ function InPersonCard({ order, waiters, onConfirm, onAssignWaiter, compact }) {
   )
 }
 
-function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssignWaiter, pendingInPersonOrders = [], paidOrders = [], onConfirmPayment }) {
+function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssignWaiter, pendingInPersonOrders = [], paidOrders = [], onConfirmPayment, onCloseOrder }) {
   const nextStatus = {
     recibido: 'en_preparacion',
     en_preparacion: 'entregado',
@@ -1586,6 +1627,7 @@ function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssi
                 onDismissCall={onDismissCall}
                 waiters={waiters}
                 onAssignWaiter={onAssignWaiter}
+                onCloseOrder={onCloseOrder}
               />
             )
           }
@@ -1608,6 +1650,7 @@ function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssi
                     onDismissCall={onDismissCall}
                     waiters={waiters}
                     onAssignWaiter={onAssignWaiter}
+                    onCloseOrder={onCloseOrder}
                     inGroup
                   />
                 ))}
@@ -1669,7 +1712,7 @@ function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssi
   )
 }
 
-function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCall, waiters, onAssignWaiter, inGroup }) {
+function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCall, waiters, onAssignWaiter, onCloseOrder, inGroup }) {
   const [showWaiterSelect, setShowWaiterSelect] = useState(false)
   const [showQR, setShowQR] = useState(false)
   const elapsedMin = Math.round((Date.now() - new Date(order.created_at).getTime()) / 60000)
@@ -1819,6 +1862,15 @@ function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCal
               className="text-white text-xs font-semibold px-3 py-1.5 rounded-full bg-ember-500 hover:bg-ember-600"
             >
               {STATUS_LABELS[nextStatus]} →
+            </button>
+          )}
+          {onCloseOrder && order.status === 'entregado' && (
+            <button
+              onClick={() => onCloseOrder(order)}
+              className="text-white text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700"
+              title="Archivar el pedido: sale del tablero y queda en Historial"
+            >
+              Cerrar ✓
             </button>
           )}
         </div>

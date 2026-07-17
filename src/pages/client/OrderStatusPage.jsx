@@ -215,7 +215,10 @@ export default function OrderStatusPage() {
   }
 
   const isCancelado = order.status === 'cancelado'
-  const currentStepIndex = STATUS_FLOW.indexOf(order.status)
+  // 'cerrado' es posterior a entregado: para el cliente el pedido se completó
+  const currentStepIndex = order.status === 'cerrado'
+    ? STATUS_FLOW.length - 1
+    : STATUS_FLOW.indexOf(order.status)
 
   return (
     <div className="min-h-screen bg-carbon-950 px-5 pt-6 pb-24">
