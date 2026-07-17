@@ -117,20 +117,30 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
     return decorEdits[zone.id]?.color ?? zone.color ?? DEFAULT_DECOR_COLOR
   }
 
-  function addDecor(shape) {
+  function addPending({ type, shape, name, color = null }) {
     const tempId = `new_${Date.now()}`
     setPendingCopies(prev => [...prev, {
       tempId,
-      name: 'Objeto',
+      name,
       shape,
-      type: 'decor',
-      color: DEFAULT_DECOR_COLOR,
+      type,
+      color,
       parent_zone_id: currentParentId === undefined ? null : currentParentId,
       _activeZoneId: activeZoneId,
     }])
     setPositions(prev => ({ ...prev, [tempId]: { x: 50, y: 50 } }))
     setSizes(prev => ({ ...prev, [tempId]: { ...DEFAULT_SIZES[shape] } }))
     setSelectedIds(new Set([tempId]))
+  }
+
+  function addDecor(shape) {
+    addPending({ type: 'decor', shape, name: 'Objeto', color: DEFAULT_DECOR_COLOR })
+  }
+
+  function addMesa() {
+    const mesaCount = mesas.filter(z => z.type === 'mesa').length
+      + pendingCopies.filter(p => p.type === 'mesa').length
+    addPending({ type: 'mesa', shape: 'cuadrada', name: `Mesa ${mesaCount + 1}` })
   }
 
   function updateSelectedDecor(patch) {
@@ -394,14 +404,6 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
     onSaved?.()
   }
 
-  if (mesas.length === 0) {
-    return (
-      <p className="text-smoke-500 text-sm text-center py-10">
-        No hay mesas activas. Agregalas en la vista Lista primero.
-      </p>
-    )
-  }
-
   return (
     <div>
       {hasZoneTabs && (
@@ -638,9 +640,16 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
         </div>
       )}
 
-      {/* Add reference objects */}
+      {/* Add tables and reference objects */}
       <div className="mt-3 flex items-center gap-2 flex-wrap">
-        <span className="text-smoke-600 text-[11px]">Objetos de referencia (columna, planta, barra...):</span>
+        <span className="text-smoke-600 text-[11px]">Agregar:</span>
+        <button
+          onClick={addMesa}
+          className="border border-dashed border-ember-500/50 text-ember-500 text-xs font-semibold px-2.5 py-1.5 rounded-lg hover:border-ember-500 hover:bg-ember-500/10 transition-colors"
+        >
+          + Mesa
+        </button>
+        <span className="text-smoke-600 text-[11px] ml-2">Objetos de referencia (columna, planta...):</span>
         {DECOR_SHAPES.map(s => (
           <button
             key={s.shape}
