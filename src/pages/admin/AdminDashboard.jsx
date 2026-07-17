@@ -894,20 +894,15 @@ function MesaPanel({ mesa, orders, venueSlug, onClose, onCloseTable, onUpdateSta
 
   async function handleCloseTable() {
     setClosing(true)
-    // Archivar los pedidos activos visibles de la mesa (quedan en Historial)
-    const ids = mesaOrders.map(o => o.id)
-    if (ids.length) {
-      await supabaseStaff.from('orders').update({ status: 'cerrado' }).in('id', ids)
-    }
-    // Huérfanos sin sesión de esta mesa (ej. de otro día): también mantienen
-    // la mesa roja en el mapa, así que se archivan acá
+    // Archivar TODOS los pedidos activos de la mesa (quedan en Historial):
+    // los de hoy, los huérfanos de otros días y los colgados de sesiones muertas
     await supabaseStaff
       .from('orders')
       .update({ status: 'cerrado' })
       .eq('zone_id', mesa.id)
-      .is('session_id', null)
       .in('status', ACTIVE)
     if (sessionId) {
+      // Pedidos de la sesión que puedan tener otra zona (o ninguna)
       await supabaseStaff
         .from('orders')
         .update({ status: 'cerrado' })
