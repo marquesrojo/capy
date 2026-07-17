@@ -19,7 +19,8 @@ export default function FloorPlanViewer({
   const canvasRef = useRef(null)
   const iaRef = useRef(null)
 
-  const mesas = zones.filter(z => z.is_active && z.pos_x != null && z.pos_y != null && z.type !== 'zona' && z.type !== 'retiro')
+  const mesas = zones.filter(z => z.is_active && z.pos_x != null && z.pos_y != null && z.type !== 'zona' && z.type !== 'retiro' && z.type !== 'decor')
+  const decorItems = zones.filter(z => z.is_active && z.pos_x != null && z.pos_y != null && z.type === 'decor')
   const zonas = zones.filter(z => z.type === 'zona' && z.is_active)
   const zonaIdsWithMesas = new Set(mesas.map(m => m.parent_zone_id).filter(Boolean))
   const relevantZonas = zonas.filter(z => zonaIdsWithMesas.has(z.id))
@@ -32,6 +33,12 @@ export default function FloorPlanViewer({
     : hasZoneTabs
       ? mesas.filter(m => m.parent_zone_id === activeZoneId)
       : mesas
+
+  const visibleDecor = filterZoneId
+    ? decorItems.filter(d => d.parent_zone_id === filterZoneId)
+    : hasZoneTabs
+      ? decorItems.filter(d => d.parent_zone_id === activeZoneId)
+      : decorItems
 
   useEffect(() => {
     if (!venueId) return
@@ -188,6 +195,39 @@ export default function FloorPlanViewer({
         onTouchEnd={multiSelect ? onPointerUp : undefined}
       >
         <div className="absolute inset-0">
+          {/* Objetos de referencia: decorativos, no clickeables */}
+          {visibleDecor.map(d => {
+            const w = d.size_w ?? 8
+            const h = d.size_h ?? 13
+            const radius = d.shape === 'redonda' ? 'rounded-full' : d.shape === 'barra' ? 'rounded-lg' : 'rounded-xl'
+            const color = d.color || '#6B7280'
+            return (
+              <div
+                key={d.id}
+                className="absolute pointer-events-none"
+                style={{
+                  left: `${d.pos_x}%`,
+                  top: `${d.pos_y}%`,
+                  width: `${w}%`,
+                  height: `${h}%`,
+                  transform: 'translate(-50%,-50%)',
+                }}
+              >
+                <div
+                  className={`w-full h-full ${radius} border flex items-center justify-center`}
+                  style={{ backgroundColor: `${color}26`, borderColor: `${color}88` }}
+                >
+                  <span
+                    className="text-[8px] font-medium text-center leading-tight px-1 break-words w-full"
+                    style={{ color }}
+                  >
+                    {d.name}
+                  </span>
+                </div>
+              </div>
+            )
+          })}
+
           {visibleMesas.map(zone => {
             const occupied = occupiedIds.has(zone.id)
             const selected = multiSelect ? multiSelectedIds.has(zone.id) : selectedZone?.id === zone.id

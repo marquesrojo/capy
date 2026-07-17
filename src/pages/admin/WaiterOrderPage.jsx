@@ -391,7 +391,7 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
             className="input text-xs py-1 max-w-[120px]"
           >
             <option value="">Elegir mesa...</option>
-            {zones.map(z => (
+            {zones.filter(z => z.type !== 'decor').map(z => (
               <option key={z.id} value={z.id}>{z.name}</option>
             ))}
           </select>

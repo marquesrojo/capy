@@ -15,6 +15,16 @@ const SHAPE_RADIUS = {
   barra:       'rounded-lg',
 }
 
+// Objetos de referencia (columna, planta, escenario...): decorativos, no ocupables
+const DECOR_SHAPES = [
+  { shape: 'cuadrada',    label: '■' },
+  { shape: 'redonda',     label: '●' },
+  { shape: 'rectangular', label: '▬' },
+  { shape: 'barra',       label: '▭' },
+]
+const DECOR_COLORS = ['#6B7280', '#92643E', '#4F8A5B', '#4A7BA6', '#C9A227', '#B0524D', '#7C6BAE', '#2F855A']
+const DEFAULT_DECOR_COLOR = '#6B7280'
+
 export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venueId }) {
   const mesas = zones.filter(z => z.is_active)
   const hasZoneTabs = parentZones.length > 0
@@ -36,6 +46,8 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
     return map
   })
   const [pendingCopies, setPendingCopies] = useState([])
+  // Ediciones de nombre/color de objetos decor ya guardados (se persisten al guardar)
+  const [decorEdits, setDecorEdits] = useState({})
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [rubberBand, setRubberBand] = useState(null) // { x1, y1, x2, y2 } in % of canvas
   const [saving, setSaving] = useState(false)
@@ -91,6 +103,56 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
 
   const singleSelectedId = selectedIds.size === 1 ? [...selectedIds][0] : null
   const selectedPending = pendingCopies.find(p => p.tempId === singleSelectedId)
+  const selectedSavedDecor = !selectedPending && singleSelectedId
+    ? mesas.find(z => z.id === singleSelectedId && z.type === 'decor')
+    : null
+  const selectedIsDecor = selectedPending?.type === 'decor' || !!selectedSavedDecor
+
+  function decorName(zone) {
+    if (zone.isPending) return zone.name
+    return decorEdits[zone.id]?.name ?? zone.name
+  }
+  function decorColor(zone) {
+    if (zone.isPending) return zone.color || DEFAULT_DECOR_COLOR
+    return decorEdits[zone.id]?.color ?? zone.color ?? DEFAULT_DECOR_COLOR
+  }
+
+  function addPending({ type, shape, name, color = null }) {
+    const tempId = `new_${Date.now()}`
+    setPendingCopies(prev => [...prev, {
+      tempId,
+      name,
+      shape,
+      type,
+      color,
+      parent_zone_id: currentParentId === undefined ? null : currentParentId,
+      _activeZoneId: activeZoneId,
+    }])
+    setPositions(prev => ({ ...prev, [tempId]: { x: 50, y: 50 } }))
+    setSizes(prev => ({ ...prev, [tempId]: { ...DEFAULT_SIZES[shape] } }))
+    setSelectedIds(new Set([tempId]))
+  }
+
+  function addDecor(shape) {
+    addPending({ type: 'decor', shape, name: 'Objeto', color: DEFAULT_DECOR_COLOR })
+  }
+
+  function addMesa() {
+    const mesaCount = mesas.filter(z => z.type === 'mesa').length
+      + pendingCopies.filter(p => p.type === 'mesa').length
+    addPending({ type: 'mesa', shape: 'cuadrada', name: `Mesa ${mesaCount + 1}` })
+  }
+
+  function updateSelectedDecor(patch) {
+    if (selectedPending) {
+      setPendingCopies(prev => prev.map(p => p.tempId === singleSelectedId ? { ...p, ...patch } : p))
+    } else if (selectedSavedDecor) {
+      setDecorEdits(prev => ({
+        ...prev,
+        [selectedSavedDecor.id]: { ...prev[selectedSavedDecor.id], ...patch },
+      }))
+    }
+  }
 
   // ── Rubber-band: start on empty canvas ──────────────────────────────────────
   function onCanvasStart(e) {
@@ -276,8 +338,9 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
     const pos = positions[zone.itemId]
     const sz = sizes[zone.itemId]
     setPendingCopies(prev => [...prev, {
-      tempId, name: zone.name, shape: zone.shape || 'cuadrada',
+      tempId, name: decorName(zone), shape: zone.shape || 'cuadrada',
       type: zone.type, parent_zone_id: zone.parent_zone_id ?? null,
+      color: zone.type === 'decor' ? decorColor(zone) : null,
       _activeZoneId: activeZoneId,
     }])
     setPositions(prev => ({ ...prev, [tempId]: { x: clamp((pos?.x ?? 50) + 10, 4, 90), y: clamp((pos?.y ?? 50) + 10, 7, 85) } }))
@@ -299,22 +362,29 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
   async function save() {
     setSaving(true)
     await Promise.all(
-      mesas.map(z =>
-        supabaseStaff.from('venue_zones').update({
+      mesas.map(z => {
+        const upd = {
           pos_x: positions[z.id]?.x ?? null,
           pos_y: positions[z.id]?.y ?? null,
           size_w: sizes[z.id]?.w,
           size_h: sizes[z.id]?.h,
-        }).eq('id', z.id)
-      )
+        }
+        if (z.type === 'decor' && decorEdits[z.id]) {
+          const e = decorEdits[z.id]
+          if (e.name != null) upd.name = e.name.trim() || z.name
+          if (e.color) upd.color = e.color
+        }
+        return supabaseStaff.from('venue_zones').update(upd).eq('id', z.id)
+      })
     )
     if (pendingCopies.length > 0 && venueId) {
       await Promise.all(
         pendingCopies.map(pc =>
           supabaseStaff.from('venue_zones').insert({
             venue_id: venueId,
-            name: pc.name.trim() || 'Nueva mesa',
+            name: pc.name.trim() || (pc.type === 'decor' ? 'Objeto' : 'Nueva mesa'),
             shape: pc.shape, type: pc.type,
+            color: pc.color ?? null,
             parent_zone_id: pc.parent_zone_id,
             pos_x: positions[pc.tempId]?.x ?? null,
             pos_y: positions[pc.tempId]?.y ?? null,
@@ -326,19 +396,12 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
       )
       setPendingCopies([])
     }
+    setDecorEdits({})
     setSaving(false)
     setSavedOk(true)
     setSelectedIds(new Set())
     setTimeout(() => setSavedOk(false), 2000)
     onSaved?.()
-  }
-
-  if (mesas.length === 0) {
-    return (
-      <p className="text-smoke-500 text-sm text-center py-10">
-        No hay mesas activas. Agregalas en la vista Lista primero.
-      </p>
-    )
   }
 
   return (
@@ -434,6 +497,8 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
             const isSoleSelected = isSelected && selectedIds.size === 1
             const isMoving = iaRef.current?.type === 'move' && iaRef.current?.id === id && iaRef.current?.moved
             const radius = SHAPE_RADIUS[zone.shape || 'cuadrada']
+            const isDecor = zone.type === 'decor'
+            const dColor = isDecor ? decorColor(zone) : null
 
             return (
               <div
@@ -454,14 +519,25 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
                     ${isMoving
                       ? 'bg-ember-500 border-ember-400 shadow-lg'
                       : isSelected
-                        ? 'bg-carbon-700 border-ember-500 shadow-ember-500/30 shadow-md'
-                        : zone.isPending
+                        ? isDecor ? 'shadow-md' : 'bg-carbon-700 border-ember-500 shadow-ember-500/30 shadow-md'
+                        : zone.isPending && !isDecor
                           ? 'bg-carbon-800 border-dashed border-ember-500/60'
-                          : 'bg-carbon-800 border-carbon-600 hover:border-carbon-400'
+                          : isDecor ? '' : 'bg-carbon-800 border-carbon-600 hover:border-carbon-400'
                     }`}
+                  style={isDecor && !isMoving
+                    ? {
+                        backgroundColor: `${dColor}33`,
+                        borderColor: isSelected ? '#F97316' : `${dColor}AA`,
+                        borderStyle: zone.isPending ? 'dashed' : 'solid',
+                      }
+                    : undefined
+                  }
                 >
-                  <span className="text-[8px] font-semibold text-smoke-300 text-center leading-tight px-1 break-words w-full">
-                    {zone.name}
+                  <span
+                    className={`text-[8px] font-semibold text-center leading-tight px-1 break-words w-full ${isDecor && !isMoving ? '' : 'text-smoke-300'}`}
+                    style={{ color: isDecor && !isMoving ? dColor : undefined }}
+                  >
+                    {isDecor ? decorName(zone) : zone.name}
                   </span>
                 </div>
 
@@ -523,24 +599,68 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
         </div>
       )}
 
-      {/* Name editor for new pending copies */}
-      {selectedPending && (
-        <div className="mt-2 flex items-center gap-2 border border-ember-500/40 rounded-xl px-3 py-2.5" style={{ background: '#fff' }}>
-          <span className="text-smoke-400 text-xs whitespace-nowrap">Nombre:</span>
-          <input
-            autoFocus
-            className="flex-1 bg-transparent text-sm outline-none min-w-0"
-            style={{ color: '#2A2824' }}
-            value={selectedPending.name}
-            onChange={e => setPendingCopies(prev =>
-              prev.map(p => p.tempId === singleSelectedId ? { ...p, name: e.target.value } : p)
-            )}
-            onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
-            placeholder="Nombre de la nueva ubicación"
-          />
-          <span className="text-smoke-400 text-[10px] whitespace-nowrap">Se guarda con el mapa</span>
+      {/* Name (+ color for decor) editor: new pending copies and saved decor objects */}
+      {(selectedPending || selectedSavedDecor) && (
+        <div className="mt-2 border border-ember-500/40 rounded-xl px-3 py-2.5" style={{ background: '#fff' }}>
+          <div className="flex items-center gap-2">
+            <span className="text-smoke-400 text-xs whitespace-nowrap">Nombre:</span>
+            <input
+              autoFocus={!!selectedPending}
+              className="flex-1 bg-transparent text-sm outline-none min-w-0"
+              style={{ color: '#2A2824' }}
+              value={selectedPending ? selectedPending.name : decorName(selectedSavedDecor)}
+              onChange={e => updateSelectedDecor({ name: e.target.value })}
+              onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
+              placeholder={selectedIsDecor ? 'Ej: Columna, Planta, Escenario...' : 'Nombre de la nueva ubicación'}
+            />
+            <span className="text-smoke-400 text-[10px] whitespace-nowrap">Se guarda con el mapa</span>
+          </div>
+          {selectedIsDecor && (
+            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-black/5">
+              <span className="text-smoke-400 text-xs whitespace-nowrap">Color:</span>
+              <div className="flex gap-1.5 flex-wrap">
+                {DECOR_COLORS.map(c => {
+                  const current = selectedPending ? (selectedPending.color || DEFAULT_DECOR_COLOR) : decorColor(selectedSavedDecor)
+                  return (
+                    <button
+                      key={c}
+                      onClick={() => updateSelectedDecor({ color: c })}
+                      className="w-6 h-6 rounded-full border-2 transition-transform"
+                      style={{
+                        backgroundColor: c,
+                        borderColor: current === c ? '#2A2824' : 'transparent',
+                        transform: current === c ? 'scale(1.15)' : 'none',
+                      }}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
+
+      {/* Add tables and reference objects */}
+      <div className="mt-3 flex items-center gap-2 flex-wrap">
+        <span className="text-smoke-600 text-[11px]">Agregar:</span>
+        <button
+          onClick={addMesa}
+          className="border border-dashed border-ember-500/50 text-ember-500 text-xs font-semibold px-2.5 py-1.5 rounded-lg hover:border-ember-500 hover:bg-ember-500/10 transition-colors"
+        >
+          + Mesa
+        </button>
+        <span className="text-smoke-600 text-[11px] ml-2">Objetos de referencia (columna, planta...):</span>
+        {DECOR_SHAPES.map(s => (
+          <button
+            key={s.shape}
+            onClick={() => addDecor(s.shape)}
+            className="border border-dashed border-carbon-600 text-smoke-400 text-xs px-2.5 py-1.5 rounded-lg hover:border-ember-500 hover:text-smoke-200 transition-colors"
+            title={`Agregar objeto ${s.shape}`}
+          >
+            + {s.label}
+          </button>
+        ))}
+      </div>
 
       {unpositioned.length > 0 && (
         <div className="mt-3">
