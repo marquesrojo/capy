@@ -21,6 +21,7 @@ export default async function handler(req, res) {
     if (req.query.zone_id) fwd.set('zone_id', req.query.zone_id)
     if (req.query.location_label) fwd.set('location_label', req.query.location_label)
     if (req.query.location_type) fwd.set('location_type', req.query.location_type)
+    if (req.query.waiter_id) fwd.set('waiter_id', req.query.waiter_id)
     res.writeHead(302, {
       Location: `/r/${slug}${subpath}?${fwd.toString()}`,
       'Cache-Control': 'no-store',

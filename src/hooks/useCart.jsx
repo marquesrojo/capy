@@ -6,6 +6,7 @@ export function CartProvider({ children }) {
   const [items, setItems] = useState([]) // { product, quantity, notes }
   const [location, setLocation] = useState(null) // { type, zoneId, mapX, mapY, label }
   const [sessionId, setSessionId] = useState(null)
+  const [assignedStaffId, setAssignedStaffId] = useState(null)
 
   function addItem(product, quantity = 1, notes = '') {
     setItems(prev => {
@@ -43,6 +44,7 @@ export function CartProvider({ children }) {
     setItems([])
     setSessionId(null)
     setLocation(null)
+    setAssignedStaffId(null)
   }
 
   const subtotal = useMemo(
@@ -65,7 +67,9 @@ export function CartProvider({ children }) {
     location,
     setLocation,
     sessionId,
-    setSessionId
+    setSessionId,
+    assignedStaffId,
+    setAssignedStaffId,
   }
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>

@@ -13,7 +13,7 @@ import { PinIcon } from '../../components/Icons'
 // requests the bill from their order detail (OrderStatusPage / BillRequest).
 
 export default function PaymentPage() {
-  const { items, subtotal, location, updateQuantity, clearCart, itemCount, sessionId, setSessionId } = useCart()
+  const { items, subtotal, location, updateQuantity, clearCart, itemCount, sessionId, setSessionId, assignedStaffId } = useCart()
   const { customer, loading: customerLoading, registerCustomer } = useCustomer()
   const navigate = useNavigate()
   const base = useClientBase()
@@ -209,6 +209,7 @@ export default function PaymentPage() {
           session_id: activeSessionId,
           is_addition: !!sessionId,
           shift_id: openShift?.id || null,
+          assigned_staff_id: assignedStaffId || null,
         })
         .select()
         .single()

@@ -60,7 +60,7 @@ export default function IdentifyPage() {
     if (lum(waiterColor) < 0.3) return waiterColor
     return '#1A2332'
   })()
-  const { setLocation, setSessionId, addItem } = useCart()
+  const { setLocation, setSessionId, addItem, setAssignedStaffId } = useCart()
   const { customer, isAnonymous, loginWithGoogle } = useCustomer()
   const [googleError, setGoogleError] = useState('')
   const [forceDesktop, setForceDesktop] = useState(() => localStorage.getItem('capy-force-desktop') === '1')
@@ -117,6 +117,7 @@ export default function IdentifyPage() {
   const prefillLabel = searchParams.get('location_label')
   const prefillType = searchParams.get('location_type') || 'zona'
   const prefillSession = searchParams.get('session_id')
+  const prefillWaiterId = searchParams.get('waiter_id')
   const isMostrador = searchParams.get('mostrador') === '1'
   const decodedLabel = prefillLabel ? decodeURIComponent(prefillLabel) : null
 
@@ -133,6 +134,7 @@ export default function IdentifyPage() {
       setLocation({ type: prefillType, zoneId: prefillZoneId, label: decodedLabel })
     }
     if (prefillSession) setSessionId(prefillSession)
+    if (prefillWaiterId) setAssignedStaffId(prefillWaiterId)
   }, [])
 
   useEffect(() => {
@@ -195,7 +197,7 @@ export default function IdentifyPage() {
     } else {
       const zoneWaiterQ = supabaseCustomer
         .from('venue_zones')
-        .select('id, current_waiter:staff_names(whatsapp_number)')
+        .select('id, current_waiter_id, current_waiter:staff_names(whatsapp_number)')
         .eq('id', prefillZoneId)
         .single()
       Promise.all([venueQ, zoneWaiterQ]).then(([{ data }, { data: zoneData }]) => {
@@ -206,6 +208,9 @@ export default function IdentifyPage() {
         if (data?.announcement) setAnnouncement(data.announcement)
         if (data?.schedule) setSchedule(data.schedule)
         setWaiterAlertWa(zoneData?.current_waiter?.whatsapp_number || data?.waiter_alert_whatsapp || data?.whatsapp_number || null)
+        if (!prefillWaiterId && zoneData?.current_waiter_id) {
+          setAssignedStaffId(zoneData.current_waiter_id)
+        }
       }).catch(() => {})
     }
 
