@@ -64,6 +64,7 @@ function AdminDashboardInner() {
   const [showReservationsModal, setShowReservationsModal] = useState(false)
   const prevCallCount = useRef(0)
   const { signOut, profile, venueId, isSuperAdmin, isAdmin, isImpersonating, exitVenue } = useAuth()
+  const navigate = useNavigate()
 
   useEffect(() => {
     const orderCalls = orders.filter(o => o.waiter_called_at).length
@@ -508,14 +509,12 @@ async function loadZones() {
         >
           Cocina
         </button>
-        {venueSlug && (
-          <button
-            onClick={() => window.open(`/r/${venueSlug}/carta?mostrador=1`, '_blank')}
-            className="px-3 py-1.5 rounded-full text-xs font-medium border border-ember-500/40 text-ember-400 active:opacity-70"
-          >
-            Mostrador
-          </button>
-        )}
+        <button
+          onClick={() => navigate('/admin/tomar?location_type=retiro&location_label=Mostrador&return_to=dashboard')}
+          className="px-3 py-1.5 rounded-full text-xs font-medium border border-ember-500/40 text-ember-400 active:opacity-70"
+        >
+          Mostrador
+        </button>
       </div>
 
       {(() => {
@@ -857,15 +856,27 @@ function CocinaView({ orders, categories, onUpdateStatus, onRefresh }) {
 
 function MesaPanel({ mesa, orders, venueSlug, onClose, onCloseTable, onUpdateStatus }) {
   const navigate = useNavigate()
-  const ACTIVE = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo']
-  const STATUS_RANK = { listo: 0, en_preparacion: 1, recibido: 2, pendiente_aprobacion: 3 }
+  const ACTIVE = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo', 'entregado']
+  const STATUS_RANK = { listo: 0, en_preparacion: 1, recibido: 2, pendiente_aprobacion: 3, entregado: 4 }
   const [closing, setClosing] = useState(false)
+  const [activeSession, setActiveSession] = useState(null)
 
   const mesaOrders = orders
     .filter(o => o.zone_id === mesa.id && ACTIVE.includes(o.status))
     .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
 
-  const sessionId = mesaOrders[0]?.session_id || null
+  // Load the active session from the DB — orders may not carry it if all are paid/archived
+  useEffect(() => {
+    supabaseStaff
+      .from('table_sessions')
+      .select('id')
+      .eq('zone_id', mesa.id)
+      .eq('is_active', true)
+      .maybeSingle()
+      .then(({ data }) => setActiveSession(data || null))
+  }, [mesa.id])
+
+  const sessionId = activeSession?.id || mesaOrders[0]?.session_id || null
 
   async function handleCloseTable() {
     if (!sessionId) { onClose(); return }
@@ -875,11 +886,12 @@ function MesaPanel({ mesa, orders, venueSlug, onClose, onCloseTable, onUpdateSta
       .update({ is_active: false, ended_at: new Date().toISOString() })
       .eq('id', sessionId)
     setClosing(false)
+    setActiveSession(null)
     onCloseTable?.()
   }
 
   function handleNuevoPedido() {
-    const params = new URLSearchParams({ zone_id: mesa.id, location_label: mesa.name })
+    const params = new URLSearchParams({ zone_id: mesa.id, location_label: mesa.name, return_to: 'dashboard' })
     if (sessionId) params.set('session_id', sessionId)
     navigate(`/admin/tomar?${params.toString()}`)
   }

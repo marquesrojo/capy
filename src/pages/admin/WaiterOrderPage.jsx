@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice } from '../../lib/utils'
@@ -17,10 +17,13 @@ import { ChefHatIcon, CheckCircleIcon, FileTextIcon } from '../../components/Ico
 export default function WaiterOrderPage({ venueId: propVenueId }) {
   const { profile, venueId: authVenueId } = useAuth()
   const activeVenueId = propVenueId || authVenueId
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const prefillZoneId = searchParams.get('zone_id')
   const prefillZoneLabel = searchParams.get('location_label')
   const prefillSessionId = searchParams.get('session_id') || null
+  const prefillLocationType = searchParams.get('location_type') || null
+  const returnToDashboard = searchParams.get('return_to') === 'dashboard'
   const [step, setStep] = useState('loading') // loading | choose_waiter | menu | confirm | done
   const [staffList, setStaffList] = useState([])
   const [selectedStaff, setSelectedStaff] = useState(null)
@@ -67,6 +70,9 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
         const preZone = zonesData.find(z => z.id === prefillZoneId)
           || { id: prefillZoneId, name: prefillZoneLabel || 'Mesa', type: 'zona' }
         setSelectedZone(preZone)
+      } else if (prefillLocationType === 'retiro' && prefillZoneLabel) {
+        const retiroZone = zonesData.find(z => z.type === 'retiro')
+        setSelectedZone(retiroZone || { id: 'otra', name: prefillZoneLabel, type: 'retiro' })
       }
 
       if (profile?.is_shared_account) {
@@ -135,12 +141,35 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
     setError('')
 
     try {
-      const { data: openShift } = await supabaseStaff
-        .from('shifts')
-        .select('id')
-        .eq('venue_id', activeVenueId)
-        .eq('status', 'open')
-        .maybeSingle()
+      const [{ data: openShift }] = await Promise.all([
+        supabaseStaff.from('shifts').select('id').eq('venue_id', activeVenueId).eq('status', 'open').maybeSingle()
+      ])
+
+      // Create a session if none exists (so the floor map can track the table)
+      let activeSessionId = prefillSessionId
+      if (!activeSessionId && selectedZone.id !== 'otra' && selectedZone.type !== 'retiro') {
+        const { data: existingSession } = await supabaseStaff
+          .from('table_sessions')
+          .select('id')
+          .eq('zone_id', selectedZone.id)
+          .eq('is_active', true)
+          .maybeSingle()
+        if (existingSession) {
+          activeSessionId = existingSession.id
+        } else {
+          const { data: newSession } = await supabaseStaff
+            .from('table_sessions')
+            .insert({
+              venue_id: activeVenueId,
+              zone_id: selectedZone.id,
+              location_label: selectedZone.name,
+              location_type: selectedZone.type || 'mesa',
+            })
+            .select('id')
+            .single()
+          activeSessionId = newSession?.id || null
+        }
+      }
 
       const { data: order, error: orderError } = await supabaseStaff
         .from('orders')
@@ -148,8 +177,8 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
           venue_id: activeVenueId,
           customer_id: null,
           status: 'recibido',
-          location_type: selectedZone.type,
-          zone_id: selectedZone.id,
+          location_type: prefillLocationType || selectedZone.type,
+          zone_id: selectedZone.id !== 'otra' ? selectedZone.id : null,
           location_label: selectedZone.name,
           notes: notes.trim() || null,
           subtotal,
@@ -160,7 +189,7 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
           assigned_staff_id: selectedStaff?.id || null,
           created_by_staff: true,
           shift_id: openShift?.id || null,
-          session_id: prefillSessionId,
+          session_id: activeSessionId,
         })
         .select().single()
 
@@ -271,12 +300,21 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
           </a>
         )}
 
-        <button
-          onClick={() => setStep('menu')}
-          className="w-full bg-[#008080] hover:bg-[#006666] text-white font-semibold py-3.5 rounded-xl mb-2"
-        >
-          Tomar otro pedido
-        </button>
+        {returnToDashboard ? (
+          <button
+            onClick={() => navigate('/admin')}
+            className="w-full bg-[#008080] hover:bg-[#006666] text-white font-semibold py-3.5 rounded-xl mb-2"
+          >
+            ← Volver al dashboard
+          </button>
+        ) : (
+          <button
+            onClick={() => setStep('menu')}
+            className="w-full bg-[#008080] hover:bg-[#006666] text-white font-semibold py-3.5 rounded-xl mb-2"
+          >
+            Tomar otro pedido
+          </button>
+        )}
         {profile?.is_shared_account && (
           <button
             onClick={() => { setSelectedStaff(null); setStep('choose_waiter') }}
