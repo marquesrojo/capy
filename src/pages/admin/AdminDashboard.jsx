@@ -884,6 +884,8 @@ function MesaPanel({ mesa, orders, venueSlug, onClose, onCloseTable, onUpdateSta
       .select('id')
       .eq('zone_id', mesa.id)
       .eq('is_active', true)
+      .order('started_at', { ascending: false })
+      .limit(1)
       .maybeSingle()
       .then(({ data }) => setActiveSession(data || null))
   }, [mesa.id])
@@ -911,11 +913,13 @@ function MesaPanel({ mesa, orders, venueSlug, onClose, onCloseTable, onUpdateSta
         .update({ status: 'cerrado' })
         .eq('session_id', sessionId)
         .in('status', ACTIVE)
-      await supabaseStaff
-        .from('table_sessions')
-        .update({ is_active: false, ended_at: new Date().toISOString() })
-        .eq('id', sessionId)
     }
+    // Cerrar todas las sesiones activas de la zona (por si quedó alguna duplicada)
+    await supabaseStaff
+      .from('table_sessions')
+      .update({ is_active: false, ended_at: new Date().toISOString() })
+      .eq('zone_id', mesa.id)
+      .eq('is_active', true)
     setClosing(false)
     setActiveSession(null)
     onCloseTable?.()
