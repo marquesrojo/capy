@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabaseCustomer, ACTIVE_VENUE_ID } from '../lib/supabase'
 
-const ACTIVE_STATUSES = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo']
-
 export default function ClientFloorMap({ zones, accent, onChoose, confirmStep = true, venueId }) {
   const [selected, setSelected] = useState(null)
   const [occupiedIds, setOccupiedIds] = useState(new Set())
@@ -10,13 +8,35 @@ export default function ClientFloorMap({ zones, accent, onChoose, confirmStep = 
 
   useEffect(() => {
     if (!vid) return
-    supabaseCustomer
-      .from('orders')
-      .select('zone_id')
-      .eq('venue_id', vid)
-      .in('status', ACTIVE_STATUSES)
-      .not('zone_id', 'is', null)
-      .then(({ data }) => setOccupiedIds(new Set((data || []).map(o => o.zone_id))))
+    // Misma fuente que el mapa del staff (FloorPlanViewer): sesiones activas.
+    // La policy permite leer sesiones activas de cualquiera solo para esto.
+    async function loadOccupied() {
+      const [{ data: sessions }, { data: orders }] = await Promise.all([
+        supabaseCustomer
+          .from('table_sessions')
+          .select('zone_id')
+          .eq('venue_id', vid)
+          .eq('is_active', true)
+          .not('zone_id', 'is', null),
+        supabaseCustomer
+          .from('orders')
+          .select('zone_id')
+          .eq('venue_id', vid)
+          .is('session_id', null)
+          .in('status', ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo', 'entregado'])
+          .not('zone_id', 'is', null),
+      ])
+      setOccupiedIds(new Set([
+        ...(sessions || []).map(s => s.zone_id),
+        ...(orders || []).map(o => o.zone_id),
+      ]))
+    }
+    loadOccupied()
+    const channel = supabaseCustomer
+      .channel(`client-floor-${vid}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'table_sessions', filter: `venue_id=eq.${vid}` }, loadOccupied)
+      .subscribe()
+    return () => supabaseCustomer.removeChannel(channel)
   }, [vid])
 
   const mesas = zones.filter(z => z.pos_x != null && z.pos_y != null && z.type === 'mesa')
