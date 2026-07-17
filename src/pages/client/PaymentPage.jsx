@@ -161,6 +161,32 @@ export default function PaymentPage() {
       const locationLabel = buildLocationLabel()
 
       let activeSessionId = sessionId
+      // Si la sesión que traemos (de la URL o de esta visita) ya fue cerrada
+      // por la caja, no la reutilizamos: el pedido quedaría invisible en el mapa
+      if (activeSessionId) {
+        const { data: existing } = await supabaseCustomer
+          .from('table_sessions')
+          .select('id, is_active')
+          .eq('id', activeSessionId)
+          .maybeSingle()
+        if (!existing?.is_active) activeSessionId = null
+      }
+      // Si la mesa ya tiene una sesión activa (abierta por el camarero o por
+      // otro pedido), nos sumamos a ella en vez de abrir una paralela
+      if (!activeSessionId && location.zoneId) {
+        const { data: zoneSession } = await supabaseCustomer
+          .from('table_sessions')
+          .select('id')
+          .eq('zone_id', location.zoneId)
+          .eq('is_active', true)
+          .order('started_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        if (zoneSession) {
+          activeSessionId = zoneSession.id
+          setSessionId(zoneSession.id)
+        }
+      }
       if (!activeSessionId) {
         const { data: session, error: sessionError } = await supabaseCustomer
           .from('table_sessions')

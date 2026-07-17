@@ -208,6 +208,35 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
           if (activeVenueId === venueId && activeMenuId && activeMenuId !== 'all') {
             updates.menu_id = activeMenuId
           }
+          // Conectar el pedido con la mesa del mapa: zona + sesión activa.
+          // Así la mesa queda roja hasta que la caja la cierre, igual que
+          // los pedidos del cliente o del admin.
+          if (selectedZone && selectedZone.id !== 'otra' && selectedZone.type !== 'retiro') {
+            updates.zone_id = selectedZone.id
+            const { data: existingSession } = await supabaseStaff
+              .from('table_sessions')
+              .select('id')
+              .eq('zone_id', selectedZone.id)
+              .eq('is_active', true)
+              .order('started_at', { ascending: false })
+              .limit(1)
+              .maybeSingle()
+            if (existingSession) {
+              updates.session_id = existingSession.id
+            } else {
+              const { data: newSession } = await supabaseStaff
+                .from('table_sessions')
+                .insert({
+                  venue_id: currentVenueId,
+                  zone_id: selectedZone.id,
+                  location_label: selectedZone.name,
+                  location_type: selectedZone.type || 'mesa'
+                })
+                .select('id')
+                .single()
+              if (newSession?.id) updates.session_id = newSession.id
+            }
+          }
           const { data: openShift } = await supabaseStaff
             .from('shifts').select('id')
             .eq('venue_id', currentVenueId).eq('status', 'open').maybeSingle()

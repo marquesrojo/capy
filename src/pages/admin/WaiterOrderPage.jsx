@@ -154,6 +154,8 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
           .select('id')
           .eq('zone_id', selectedZone.id)
           .eq('is_active', true)
+          .order('started_at', { ascending: false })
+          .limit(1)
           .maybeSingle()
         if (existingSession) {
           activeSessionId = existingSession.id
