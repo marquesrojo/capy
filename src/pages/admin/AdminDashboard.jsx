@@ -600,7 +600,7 @@ async function loadZones() {
       )}
 
       {view === 'mapa' ? (
-        <MapaView orders={orders} zones={zones} venueId={venueId} onUpdateStatus={updateStatus} />
+        <MapaView orders={orders} zones={zones} venueId={venueId} venueSlug={venueSlug} onUpdateStatus={updateStatus} />
       ) : view === 'cocina' ? (
         <CocinaView orders={orders} categories={categories} onUpdateStatus={updateStatus} onRefresh={load} />
       ) : (
@@ -1023,7 +1023,7 @@ function MesaPanel({ mesa, orders, onClose, onUpdateStatus }) {
   )
 }
 
-function MapaView({ orders, zones, venueId, onUpdateStatus }) {
+function MapaView({ orders, zones, venueId, venueSlug, onUpdateStatus }) {
   const containerRef = useRef(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [cssFull, setCssFull] = useState(false)
@@ -1152,7 +1152,9 @@ function MapaView({ orders, zones, venueId, onUpdateStatus }) {
         <MesaPanel
           mesa={selectedMesa}
           orders={orders}
+          venueSlug={venueSlug}
           onClose={() => setSelectedMesa(null)}
+          onCloseTable={() => setSelectedMesa(null)}
           onUpdateStatus={onUpdateStatus}
         />
       )}
