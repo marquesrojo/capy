@@ -5,6 +5,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { formatPrice, STATUS_LABELS, STATUS_COLORS } from '../../lib/utils'
 import { fetchVenueWaiters } from '../../lib/staff'
 import FiscalTicket from '../../components/FiscalTicket'
+import AccountSummary from '../../components/AccountSummary'
 import FloorPlanViewer from '../../components/FloorPlanViewer'
 import { PinIcon, FileTextIcon, ChefHatIcon, BellIcon, CreditCardIcon, ClockIcon } from '../../components/Icons'
 
@@ -631,7 +632,7 @@ async function loadZones() {
       )}
 
       {view === 'mapa' ? (
-        <MapaView orders={orders} zones={zones} venueId={venueId} venueSlug={venueSlug} onUpdateStatus={updateStatus} />
+        <MapaView orders={orders} zones={zones} venueId={venueId} venueSlug={venueSlug} venueName={venueName} onUpdateStatus={updateStatus} />
       ) : view === 'cocina' ? (
         <CocinaView orders={orders} categories={categories} onUpdateStatus={updateStatus} onRefresh={load} />
       ) : (
@@ -892,12 +893,13 @@ function CocinaView({ orders, categories, onUpdateStatus, onRefresh }) {
   )
 }
 
-function MesaPanel({ mesa, orders, venueSlug, onClose, onCloseTable, onUpdateStatus }) {
+function MesaPanel({ mesa, orders, venueSlug, venueName, onClose, onCloseTable, onUpdateStatus }) {
   const navigate = useNavigate()
   const ACTIVE = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo', 'entregado']
   const STATUS_RANK = { listo: 0, en_preparacion: 1, recibido: 2, pendiente_aprobacion: 3, entregado: 4 }
   const [closing, setClosing] = useState(false)
   const [activeSession, setActiveSession] = useState(null)
+  const [showSummary, setShowSummary] = useState(false)
 
   const mesaOrders = orders
     .filter(o => o.zone_id === mesa.id && ACTIVE.includes(o.status))
@@ -1109,27 +1111,45 @@ function MesaPanel({ mesa, orders, venueSlug, onClose, onCloseTable, onUpdateSta
         </div>
 
         {/* Sticky bottom actions */}
-        <div className="flex-shrink-0 border-t border-carbon-800 px-5 py-4 flex gap-3">
+        <div className="flex-shrink-0 border-t border-carbon-800 px-5 py-4 flex gap-2">
           <button
             onClick={handleNuevoPedido}
             className="flex-1 bg-ember-500 hover:bg-ember-600 active:opacity-80 text-white text-sm font-bold py-3 rounded-2xl transition-colors"
           >
             + Nuevo pedido
           </button>
+          {mesaOrders.length > 0 && (
+            <button
+              onClick={() => setShowSummary(true)}
+              className="flex-shrink-0 border border-carbon-600 text-smoke-400 hover:text-smoke-200 hover:border-carbon-500 text-sm font-semibold px-3.5 py-3 rounded-2xl transition-colors"
+              title="Resumen de cuenta para el cliente (no fiscal)"
+            >
+              🧾 Cuenta
+            </button>
+          )}
           <button
             onClick={handleCloseTable}
             disabled={closing}
-            className="flex-shrink-0 border border-carbon-600 text-smoke-400 hover:text-smoke-200 hover:border-carbon-500 disabled:opacity-40 text-sm font-semibold px-4 py-3 rounded-2xl transition-colors"
+            className="flex-shrink-0 border border-carbon-600 text-smoke-400 hover:text-smoke-200 hover:border-carbon-500 disabled:opacity-40 text-sm font-semibold px-3.5 py-3 rounded-2xl transition-colors"
           >
             {closing ? '...' : 'Cerrar mesa'}
           </button>
         </div>
       </div>
+
+      {showSummary && (
+        <AccountSummary
+          orders={mesaOrders}
+          venueName={venueName}
+          locationLabel={mesa.name}
+          onClose={() => setShowSummary(false)}
+        />
+      )}
     </>
   )
 }
 
-function MapaView({ orders, zones, venueId, venueSlug, onUpdateStatus }) {
+function MapaView({ orders, zones, venueId, venueSlug, venueName, onUpdateStatus }) {
   const containerRef = useRef(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [cssFull, setCssFull] = useState(false)
@@ -1259,6 +1279,7 @@ function MapaView({ orders, zones, venueId, venueSlug, onUpdateStatus }) {
           mesa={selectedMesa}
           orders={orders}
           venueSlug={venueSlug}
+          venueName={venueName}
           onClose={() => setSelectedMesa(null)}
           onCloseTable={() => setSelectedMesa(null)}
           onUpdateStatus={onUpdateStatus}
@@ -1642,6 +1663,7 @@ function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssi
                 onAssignWaiter={onAssignWaiter}
                 onCloseOrder={onCloseOrder}
                 onConfirmPayment={onConfirmPayment}
+                venueName={venueName}
               />
             )
           }
@@ -1666,6 +1688,7 @@ function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssi
                     onAssignWaiter={onAssignWaiter}
                     onCloseOrder={onCloseOrder}
                     onConfirmPayment={onConfirmPayment}
+                    venueName={venueName}
                     inGroup
                   />
                 ))}
@@ -1736,9 +1759,10 @@ function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssi
   )
 }
 
-function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCall, waiters, onAssignWaiter, onCloseOrder, onConfirmPayment, inGroup }) {
+function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCall, waiters, onAssignWaiter, onCloseOrder, onConfirmPayment, venueName, inGroup }) {
   const [showWaiterSelect, setShowWaiterSelect] = useState(false)
   const [showQR, setShowQR] = useState(false)
+  const [showSummary, setShowSummary] = useState(false)
   const elapsedMin = Math.round((Date.now() - new Date(order.created_at).getTime()) / 60000)
 
   // Semáforo: verde <15, amarillo 15-30, rojo >30
@@ -1888,6 +1912,15 @@ function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCal
               {STATUS_LABELS[nextStatus]} →
             </button>
           )}
+          {order.status === 'entregado' && (
+            <button
+              onClick={() => setShowSummary(true)}
+              className="text-smoke-500 border border-carbon-700 text-xs px-2 py-1.5 rounded-full"
+              title="Resumen de cuenta para el cliente (no fiscal)"
+            >
+              Cuenta
+            </button>
+          )}
           {onConfirmPayment && order.status === 'entregado' && order.payment_status === 'pendiente' && (
             <button
               onClick={() => onConfirmPayment(order)}
@@ -1908,6 +1941,15 @@ function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCal
           )}
         </div>
       </div>
+
+      {showSummary && (
+        <AccountSummary
+          orders={[order]}
+          venueName={venueName}
+          locationLabel={order.location_label}
+          onClose={() => setShowSummary(false)}
+        />
+      )}
 
       {showQR && (
         <div

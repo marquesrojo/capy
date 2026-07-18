@@ -146,7 +146,7 @@ export default function PaymentMethodsPage() {
     <div className="min-h-screen bg-carbon-950 pb-10">
       <header className="px-5 pt-5 pb-4 border-b border-carbon-700">
         <div className="flex items-center justify-between">
-          <h1 className="font-display text-3xl text-ember-500 tracking-wide">MEDIOS DE PAGO</h1>
+          <h1 className="font-display text-3xl text-ember-500 tracking-wide">FISCAL Y MEDIOS DE PAGO</h1>
           <Link to="/admin/configuracion" className="text-smoke-400 text-xs underline">← Volver</Link>
         </div>
       </header>
@@ -194,8 +194,10 @@ export default function PaymentMethodsPage() {
           </div>
         </div>
 
-        {/* Facturación electrónica */}
-        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
+        {/* Fiscal: todo lo relacionado a facturación electrónica */}
+        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5 space-y-4">
+          <p className="text-ember-500 font-display text-lg tracking-wide">FISCAL</p>
+
           <div className="flex items-center justify-between">
             <div>
               <p className="text-smoke-300 font-medium text-sm">Facturación electrónica</p>
@@ -218,7 +220,7 @@ export default function PaymentMethodsPage() {
           </div>
 
           {fiscalEnabled && (
-            <div className="space-y-2 pt-3 mt-3 border-t border-carbon-700">
+            <div className="space-y-2 pt-3 border-t border-carbon-700">
               <p className="text-smoke-400 text-xs">Condición fiscal del local</p>
               <select
                 value={fiscalCondition}

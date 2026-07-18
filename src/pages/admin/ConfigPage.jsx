@@ -19,7 +19,7 @@ const MI_LOCAL_ITEMS = [
     icon: <svg {...ICON_PROPS}><path d="M12 21s-7-7.5-7-12a7 7 0 0 1 14 0c0 4.5-7 12-7 12Z"/><circle cx="12" cy="9" r="2.5"/></svg>
   },
   {
-    to: '/admin/configuracion/medios-pago', label: 'Medios de pago', desc: 'Métodos para clientes',
+    to: '/admin/configuracion/medios-pago', label: 'Fiscal y medios de pago', desc: 'Facturación y métodos de cobro',
     icon: <svg {...ICON_PROPS}><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
   },
   {
