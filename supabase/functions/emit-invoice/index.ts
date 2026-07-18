@@ -46,8 +46,24 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const { orderId } = await req.json() as { orderId?: string }
+    const { orderId, invoiceType = 'B', client } = await req.json() as {
+      orderId?: string
+      invoiceType?: 'A' | 'B'
+      client?: { cuit?: string; razonSocial?: string; domicilio?: string }
+    }
     if (!orderId) return json({ error: 'orderId required' }, 400)
+
+    // Factura A: requiere CUIT y razón social del cliente (Responsable Inscripto)
+    const isA = invoiceType === 'A'
+    const cuitDigits = (client?.cuit || '').replace(/\D/g, '')
+    if (isA) {
+      if (cuitDigits.length !== 11) {
+        return json({ success: false, error: 'CUIT inválido: deben ser 11 dígitos' }, 200)
+      }
+      if (!client?.razonSocial?.trim()) {
+        return json({ success: false, error: 'Falta la razón social del cliente' }, 200)
+      }
+    }
 
     const apiUrl = Deno.env.get('TUSFACTURAS_API_URL') || 'https://www.tusfacturas.app/app/api/v2/facturacion/nuevo'
     const apiToken = Deno.env.get('TUSFACTURAS_API_TOKEN')
@@ -118,23 +134,37 @@ Deno.serve(async (req) => {
       apitoken: apiToken,
       apikey: apiKey,
       usertoken: userToken,
-      cliente: {
-        documento_tipo: 'OTRO',       // consumidor final
-        documento_nro: '0',
-        razon_social: order.customers?.full_name || 'Consumidor Final',
-        email: '',
-        // Obligatorio para TusFacturas pero informativo para consumidor final:
-        // genérico fijo, así no se repite la dirección del emisor en la factura.
-        domicilio: 'Venta en el local',
-        provincia: '2',
-        envia_por_mail: 'N',
-        condicion_pago: '201',        // contado
-        condicion_iva: 'CF',
-        rg5329: 'N',
-      },
+      cliente: isA
+        ? {
+            // Factura A: Responsable Inscripto identificado con CUIT
+            documento_tipo: 'CUIT',
+            documento_nro: cuitDigits,
+            razon_social: client!.razonSocial!.trim(),
+            email: '',
+            domicilio: (client?.domicilio || '').trim() || 'Venta en el local',
+            provincia: '2',
+            envia_por_mail: 'N',
+            condicion_pago: '201',    // contado
+            condicion_iva: 'RI',
+            rg5329: 'N',
+          }
+        : {
+            documento_tipo: 'OTRO',   // consumidor final
+            documento_nro: '0',
+            razon_social: order.customers?.full_name || 'Consumidor Final',
+            email: '',
+            // Obligatorio para TusFacturas pero informativo para consumidor final:
+            // genérico fijo, así no se repite la dirección del emisor en la factura.
+            domicilio: 'Venta en el local',
+            provincia: '2',
+            envia_por_mail: 'N',
+            condicion_pago: '201',    // contado
+            condicion_iva: 'CF',
+            rg5329: 'N',
+          },
       comprobante: {
         rubro: 'Gastronomía',
-        tipo: 'FACTURA B',
+        tipo: isA ? 'FACTURA A' : 'FACTURA B',
         operacion: 'V',
         numero: 0,                    // autonumerado por TusFacturas
         punto_venta: puntoVenta,
@@ -169,7 +199,7 @@ Deno.serve(async (req) => {
       venue_id: order.venue_id,
       order_id: order.id,
       status: 'pending',
-      invoice_type: '6',
+      invoice_type: isA ? '1' : '6',   // cod. AFIP: 1 = Factura A, 6 = Factura B
       punto_venta: puntoVenta,
       total: order.total,
       request_payload: payload,

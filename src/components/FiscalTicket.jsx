@@ -25,13 +25,18 @@ export default function FiscalTicket({ order, invoice, onEmitted, venueName }) {
     setEditingPhone(false)
   }
 
-  async function handleEmit() {
+  const [showAForm, setShowAForm] = useState(false)
+  const [cuit, setCuit] = useState('')
+  const [razonSocial, setRazonSocial] = useState('')
+
+  async function handleEmit(options = {}) {
     setEmitting(true)
     setError('')
     try {
-      const result = await emitFiscalInvoice(order.id)
+      const result = await emitFiscalInvoice(order.id, options)
       if (result.invoice) onEmitted?.(order.id, result.invoice)
       if (!result.success) setError(result.error || 'No se pudo emitir la factura')
+      else setShowAForm(false)
     } catch (e) {
       setError(e?.message || 'Error de red')
     }
@@ -50,7 +55,7 @@ export default function FiscalTicket({ order, invoice, onEmitted, venueName }) {
     return (
       <div className="mt-2 pt-2 border-t border-carbon-800">
         <p className="text-emerald-600 text-[11px] font-semibold mb-1.5">
-          🧾 Factura B {invoice.invoice_number ? `#${invoice.invoice_number}` : ''} · CAE {invoice.cae?.slice(0, 8)}...
+          🧾 Factura {invoice.invoice_type === '1' ? 'A' : 'B'} {invoice.invoice_number ? `#${invoice.invoice_number}` : ''} · CAE {invoice.cae?.slice(0, 8)}...
         </p>
         {invoice.pdf_url && (
           editingPhone ? (
@@ -123,13 +128,61 @@ export default function FiscalTicket({ order, invoice, onEmitted, venueName }) {
 
   return (
     <div className="mt-2 pt-2 border-t border-carbon-800">
-      <button
-        onClick={handleEmit}
-        disabled={emitting}
-        className="w-full text-[11px] font-semibold py-1.5 rounded-lg border border-ember-500/50 text-ember-500 hover:bg-ember-500/10 disabled:opacity-50 transition-colors"
-      >
-        {emitting ? 'Emitiendo...' : invoice?.status === 'error' ? '🧾 Reintentar factura' : '🧾 Facturar'}
-      </button>
+      {showAForm ? (
+        <div className="space-y-1.5">
+          <p className="text-smoke-400 text-[11px] font-semibold">Factura A — cliente Responsable Inscripto</p>
+          <input
+            autoFocus
+            type="text"
+            inputMode="numeric"
+            value={cuit}
+            onChange={e => setCuit(e.target.value)}
+            placeholder="CUIT (11 dígitos, sin guiones)"
+            className="w-full bg-carbon-800 border border-carbon-600 rounded-lg px-3 py-1.5 text-[11px] text-smoke-200 outline-none focus:border-ember-500"
+          />
+          <input
+            type="text"
+            value={razonSocial}
+            onChange={e => setRazonSocial(e.target.value)}
+            placeholder="Razón social"
+            className="w-full bg-carbon-800 border border-carbon-600 rounded-lg px-3 py-1.5 text-[11px] text-smoke-200 outline-none focus:border-ember-500"
+          />
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => handleEmit({ invoiceType: 'A', client: { cuit, razonSocial } })}
+              disabled={emitting || cuit.replace(/\D/g, '').length !== 11 || !razonSocial.trim()}
+              className="flex-1 text-[11px] font-semibold py-1.5 rounded-lg bg-ember-500 hover:bg-ember-600 text-white disabled:opacity-40 transition-colors"
+            >
+              {emitting ? 'Emitiendo...' : 'Emitir Factura A'}
+            </button>
+            <button
+              onClick={() => setShowAForm(false)}
+              disabled={emitting}
+              className="text-smoke-500 text-[11px] px-2.5 rounded-lg border border-carbon-700"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-1.5">
+          <button
+            onClick={() => handleEmit()}
+            disabled={emitting}
+            className="flex-1 text-[11px] font-semibold py-1.5 rounded-lg border border-ember-500/50 text-ember-500 hover:bg-ember-500/10 disabled:opacity-50 transition-colors"
+          >
+            {emitting ? 'Emitiendo...' : invoice?.status === 'error' ? '🧾 Reintentar factura' : '🧾 Facturar'}
+          </button>
+          <button
+            onClick={() => setShowAForm(true)}
+            disabled={emitting}
+            className="text-[11px] font-semibold py-1.5 px-2.5 rounded-lg border border-carbon-600 text-smoke-400 hover:text-smoke-200 hover:border-carbon-500 disabled:opacity-50 transition-colors"
+            title="Factura A: cliente Responsable Inscripto con CUIT"
+          >
+            A
+          </button>
+        </div>
+      )}
       {(error || invoice?.error_message) && (
         <p className="text-red-500 text-[10px] mt-1 leading-snug">{error || invoice.error_message}</p>
       )}
