@@ -49,6 +49,8 @@ export default function VenueSettingsPage() {
   const [announcement, setAnnouncement] = useState('')
   const [schedule, setSchedule] = useState(DEFAULT_SCHEDULE)
   const [address, setAddress] = useState('')
+  const [streetAddress, setStreetAddress] = useState('')
+  const [fiscalEnabled, setFiscalEnabled] = useState(false)
   const [slug, setSlug] = useState('')
   const [copied, setCopied] = useState(false)
   const [activePicker, setActivePicker] = useState(null)
@@ -93,10 +95,12 @@ export default function VenueSettingsPage() {
       try {
         const { data: addr } = await supabaseStaff
           .from('venues')
-          .select('address')
+          .select('address, street_address, fiscal_enabled')
           .eq('id', venueId)
           .single()
         if (addr?.address) setAddress(addr.address)
+        if (addr?.street_address) setStreetAddress(addr.street_address)
+        setFiscalEnabled(!!addr?.fiscal_enabled)
       } catch (_) {}
 
       setLoading(false)
@@ -126,6 +130,10 @@ export default function VenueSettingsPage() {
 
   async function handleSave() {
     if (!name.trim()) { setError('El nombre del local no puede estar vacío.'); return }
+    if (fiscalEnabled && !streetAddress.trim()) {
+      setError('La dirección del local es obligatoria porque la facturación electrónica está activada (aparece como domicilio en las facturas).')
+      return
+    }
     setSaving(true)
     setSaved(false)
     setError('')
@@ -190,6 +198,7 @@ export default function VenueSettingsPage() {
           .from('venues')
           .update({
             address: address.trim() || null,
+            street_address: streetAddress.trim() || null,
           })
           .eq('id', venueId)
       } catch (_) {}
@@ -492,6 +501,19 @@ export default function VenueSettingsPage() {
         </div>
 
         <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
+          <p className="text-smoke-300 font-medium text-sm mb-1">
+            Dirección del local{fiscalEnabled && <span className="text-ember-500"> *</span>}
+          </p>
+          <p className="text-smoke-500 text-xs mb-3">
+            Calle y número escritos. {fiscalEnabled ? 'Obligatoria: aparece como domicilio en las facturas.' : 'Se usa como domicilio si activás la facturación electrónica.'}
+          </p>
+          <input
+            type="text"
+            value={streetAddress}
+            onChange={e => setStreetAddress(e.target.value)}
+            placeholder="Ej: Mitre 1077, Adrogué, Buenos Aires"
+            className="input w-full text-sm mb-4"
+          />
           <p className="text-smoke-300 font-medium text-sm mb-1">Link de Google Maps</p>
           <p className="text-smoke-500 text-xs mb-3">Pegá el link de tu local en Google Maps. Aparece en la página de bienvenida.</p>
           <input
