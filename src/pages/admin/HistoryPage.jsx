@@ -68,6 +68,13 @@ export default function HistoryPage() {
     }
   }
 
+  // Reabrir un pedido cerrado: vuelve a 'entregado' y reaparece en el kanban
+  // (si es de hoy; los de días anteriores quedan visibles solo acá)
+  async function handleReopen(order) {
+    await supabaseStaff.from('orders').update({ status: 'entregado' }).eq('id', order.id)
+    setOrders(prev => prev.map(o => (o.id === order.id ? { ...o, status: 'entregado' } : o)))
+  }
+
   async function handleDelete(orderId) {
     const confirmed = confirm('¿Borrar este pedido definitivamente? Esta acción no se puede deshacer.')
     if (!confirmed) return
@@ -213,15 +220,25 @@ export default function HistoryPage() {
                   ))}
                 </ul>
 
-                {profile?.role === 'admin' && (
-                  <button
-                    onClick={() => handleDelete(order.id)}
-                    disabled={deletingId === order.id}
-                    className="mt-4 text-red-700 text-xs underline disabled:opacity-50"
-                  >
-                    {deletingId === order.id ? 'Borrando...' : 'Borrar pedido'}
-                  </button>
-                )}
+                <div className="mt-4 flex items-center gap-4">
+                  {order.status === 'cerrado' && (
+                    <button
+                      onClick={() => handleReopen(order)}
+                      className="text-ember-500 text-xs underline"
+                    >
+                      Reabrir pedido
+                    </button>
+                  )}
+                  {profile?.role === 'admin' && (
+                    <button
+                      onClick={() => handleDelete(order.id)}
+                      disabled={deletingId === order.id}
+                      className="text-red-700 text-xs underline disabled:opacity-50"
+                    >
+                      {deletingId === order.id ? 'Borrando...' : 'Borrar pedido'}
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>
