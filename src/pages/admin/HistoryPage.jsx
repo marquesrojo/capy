@@ -4,6 +4,7 @@ import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice, STATUS_LABELS, STATUS_COLORS, PAYMENT_STATUS_LABELS } from '../../lib/utils'
 import { PinIcon } from '../../components/Icons'
+import FiscalTicket from '../../components/FiscalTicket'
 
 export default function HistoryPage() {
   const { profile, venueId } = useAuth()
@@ -14,17 +15,38 @@ export default function HistoryPage() {
   const [filterStatus, setFilterStatus] = useState('todos')
   const [search, setSearch] = useState('')
   const [deletingId, setDeletingId] = useState(null)
+  const [fiscalEnabled, setFiscalEnabled] = useState(false)
+  const [venueName, setVenueName] = useState('')
+  const [invoices, setInvoices] = useState({}) // order_id → fiscal_invoice
 
   useEffect(() => {
     if (!venueId) return
     async function load() {
-      const { data } = await supabaseStaff
-        .from('orders')
-        .select('*, order_items(*), customers(full_name, whatsapp)')
-        .eq('venue_id', venueId)
-        .order('created_at', { ascending: false })
-        .limit(200)
+      const [{ data }, { data: venueData }] = await Promise.all([
+        supabaseStaff
+          .from('orders')
+          .select('*, order_items(*), customers(full_name, whatsapp)')
+          .eq('venue_id', venueId)
+          .order('created_at', { ascending: false })
+          .limit(200),
+        supabaseStaff
+          .from('venues')
+          .select('name, fiscal_enabled')
+          .eq('id', venueId)
+          .single(),
+      ])
       setOrders(data || [])
+      setVenueName(venueData?.name || '')
+      setFiscalEnabled(!!venueData?.fiscal_enabled)
+
+      const ids = (data || []).map(o => o.id)
+      if (ids.length) {
+        const { data: invData } = await supabaseStaff
+          .from('fiscal_invoices')
+          .select('*')
+          .in('order_id', ids)
+        setInvoices(Object.fromEntries((invData || []).map(inv => [inv.order_id, inv])))
+      }
       setLoading(false)
     }
     load()
@@ -170,6 +192,17 @@ export default function HistoryPage() {
                   Pago: {PAYMENT_STATUS_LABELS[order.payment_status] || order.payment_status}{' '}
                   {order.payment_method ? `· ${order.payment_method}` : ''}
                 </p>
+
+                {fiscalEnabled && (order.payment_status === 'aprobado' || invoices[order.id]?.status === 'approved') && (
+                  <div className="mb-3">
+                    <FiscalTicket
+                      order={order}
+                      invoice={invoices[order.id]}
+                      onEmitted={(id, inv) => setInvoices(prev => ({ ...prev, [id]: inv }))}
+                      venueName={venueName}
+                    />
+                  </div>
+                )}
 
                 <p className="text-smoke-500 text-xs mb-1.5 font-medium">Línea de tiempo</p>
                 <ul className="space-y-1">
