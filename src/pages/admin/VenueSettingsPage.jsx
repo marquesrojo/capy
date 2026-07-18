@@ -130,10 +130,6 @@ export default function VenueSettingsPage() {
 
   async function handleSave() {
     if (!name.trim()) { setError('El nombre del local no puede estar vacío.'); return }
-    if (fiscalEnabled && !streetAddress.trim()) {
-      setError('La dirección del local es obligatoria porque la facturación electrónica está activada (aparece como domicilio en las facturas).')
-      return
-    }
     setSaving(true)
     setSaved(false)
     setError('')
@@ -501,12 +497,8 @@ export default function VenueSettingsPage() {
         </div>
 
         <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
-          <p className="text-smoke-300 font-medium text-sm mb-1">
-            Dirección del local{fiscalEnabled && <span className="text-ember-500"> *</span>}
-          </p>
-          <p className="text-smoke-500 text-xs mb-3">
-            Calle y número escritos. {fiscalEnabled ? 'Obligatoria: aparece como domicilio en las facturas.' : 'Se usa como domicilio si activás la facturación electrónica.'}
-          </p>
+          <p className="text-smoke-300 font-medium text-sm mb-1">Dirección del local</p>
+          <p className="text-smoke-500 text-xs mb-3">Calle y número escritos (opcional).</p>
           <input
             type="text"
             value={streetAddress}

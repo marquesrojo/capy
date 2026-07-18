@@ -123,15 +123,9 @@ Deno.serve(async (req) => {
         documento_nro: '0',
         razon_social: order.customers?.full_name || 'Consumidor Final',
         email: '',
-        // Obligatorio para TusFacturas: venta en el local → dirección escrita del
-        // venue (street_address). Nunca URLs (address guarda el link de Maps).
-        domicilio: (() => {
-          const v = (order as any).venue || {}
-          const street = (v.street_address || '').trim()
-          if (street) return street
-          const addr = (v.address || '').trim()
-          return addr && !addr.startsWith('http') ? addr : 'Venta en el local'
-        })(),
+        // Obligatorio para TusFacturas pero informativo para consumidor final:
+        // genérico fijo, así no se repite la dirección del emisor en la factura.
+        domicilio: 'Venta en el local',
         provincia: '2',
         envia_por_mail: 'N',
         condicion_pago: '201',        // contado
