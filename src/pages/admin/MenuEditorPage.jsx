@@ -13,6 +13,23 @@ const KIND_COLORS = {
   otro: 'border-carbon-600 text-smoke-500'
 }
 
+// Contexto de categoría para los prompts de búsqueda de fotos: saber si el
+// producto es bebida o comida evita resultados absurdos (ej: "Cuba Libre"
+// devolvía fotos de Cuba en vez del trago).
+function categoryContext(category) {
+  if (!category) return ''
+  const kind = KIND_LABELS[category.kind] ? category.kind : null
+  return ` (categoría: "${category.name}"${kind ? `, tipo: ${kind}` : ''})`
+}
+
+const PHOTO_QUERY_RULES = `Reglas para el término de búsqueda:
+- Si es un PLATO: término gastronómico concreto del plato. Ejemplo: "beef milanesa breaded".
+- Si es una BEBIDA o TRAGO: SIEMPRE describí la bebida servida (vaso, copa o botella), NUNCA lugares, ciudades ni personas. Ejemplos: "Cuba Libre" → "cuba libre cocktail rum coke lime glass"; "Fernet con coca" → "fernet coke cocktail glass"; "Caipirinha" → "caipirinha cocktail lime glass".
+- Si es un VINO con marca: buscá por varietal/tipo, no por la marca. Ejemplo: "Rutini Malbec" → "malbec red wine bottle glass".
+- Si es CERVEZA: "craft beer pint glass" o el estilo ("ipa beer glass").
+- Si es una marca de gaseosa/agua: el tipo de bebida ("Coca-Cola" → "coca cola bottle glass").
+- Si el nombre no es descriptivo, usá la descripción y la categoría para inferir qué es.`
+
 export default function MenuEditorPage() {
   const { venueId, isSuperAdmin, isPropietario } = useAuth()
   const today = new Date().toISOString().slice(0, 10)
@@ -154,6 +171,7 @@ export default function MenuEditorPage() {
             <FotosConIA
               venueId={venueId}
               products={products.filter(p => !p.is_ingredient_only)}
+              categories={categories}
               onUpdated={loadAll}
               unlimited={unlimitedPhotos}
               extraCredits={extraCredits}
@@ -297,7 +315,7 @@ function CategoryNameEditor({ cat, onSave }) {
 
 const UNITS = ['g', 'kg', 'ml', 'l', 'unidad', 'taza', 'cdita', 'cda', 'porción']
 
-function IngredientsPanel({ productId, productName, productDescription, currentImageUrl, onPhotoSaved, venueId, onClose, onRefreshProducts }) {
+function IngredientsPanel({ productId, productName, productDescription, productCategory, currentImageUrl, onPhotoSaved, venueId, onClose, onRefreshProducts }) {
   const [ingredients, setIngredients] = useState(null) // null = loading
   const [saving, setSaving] = useState(false)
   const [suggesting, setSuggesting] = useState(false)
@@ -330,7 +348,10 @@ function IngredientsPanel({ productId, productName, productDescription, currentI
     setFoundPhoto(null)
     try {
       const desc = productDescription ? ` — ${productDescription}` : ''
-      const prompt = `Sos un chef. Para el plato "${productName}"${desc}, respondé con un JSON objeto (sin texto extra ni backticks) con dos campos: "photo_query" (término de búsqueda en inglés para Unsplash — si el nombre no es descriptivo usá la descripción o la categoría para inferir qué es el plato, siempre términos concretos del plato en inglés) e "ingredients" (array de hasta 8 ingredientes principales con cantidad por porción individual, usando solo estas unidades: g, kg, ml, l, unidad, taza, cdita, cda, porción). Ejemplo: {"photo_query":"beef milanesa breaded","ingredients":[{"name":"Carne","quantity":200,"unit":"g"},{"name":"Huevo","quantity":1,"unit":"unidad"}]}`
+      const prompt = `Sos un chef y bartender. Para el producto "${productName}"${desc}${categoryContext(productCategory)} de la carta de un restaurante/bar, respondé con un JSON objeto (sin texto extra ni backticks) con dos campos: "photo_query" (término de búsqueda en inglés para Unsplash) e "ingredients" (array de hasta 8 ingredientes principales con cantidad por porción individual, usando solo estas unidades: g, kg, ml, l, unidad, taza, cdita, cda, porción — para tragos usá los ingredientes del trago).
+${PHOTO_QUERY_RULES}
+Ejemplo plato: {"photo_query":"beef milanesa breaded","ingredients":[{"name":"Carne","quantity":200,"unit":"g"},{"name":"Huevo","quantity":1,"unit":"unidad"}]}
+Ejemplo trago: {"photo_query":"cuba libre cocktail rum coke lime glass","ingredients":[{"name":"Ron","quantity":60,"unit":"ml"},{"name":"Coca-Cola","quantity":120,"unit":"ml"},{"name":"Lima","quantity":1,"unit":"unidad"}]}`
       const data = await geminiGenerate([{ parts: [{ text: prompt }] }])
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}'
       const match = text.match(/\{[\s\S]*\}/)
@@ -706,7 +727,10 @@ function ProductRow({ product, venueId, categories, allProducts = [], onToggle, 
     setFoundPhoto(null)
     try {
       const desc = product.description ? ` — ${product.description}` : ''
-      const prompt = `Para el plato "${product.name}"${desc}, generá un término de búsqueda en inglés para encontrar una foto gastronómica en Unsplash. Si el nombre no es descriptivo usá la descripción para inferir qué es el plato. Respondé ÚNICAMENTE con el término de búsqueda, sin texto extra. Ejemplo: "beef milanesa breaded"`
+      const category = categories.find(c => c.id === product.category_id)
+      const prompt = `Para el producto "${product.name}"${desc}${categoryContext(category)} de la carta de un restaurante/bar, generá un término de búsqueda en inglés para encontrar una foto en Unsplash.
+${PHOTO_QUERY_RULES}
+Respondé ÚNICAMENTE con el término de búsqueda, sin texto extra.`
       const data = await geminiGenerate([{ parts: [{ text: prompt }] }])
       const query = (data.candidates?.[0]?.content?.parts?.[0]?.text || product.name).trim().replace(/^"|"$/g, '')
       const url = await searchUnsplash(query, venueId)
@@ -836,6 +860,7 @@ function ProductRow({ product, venueId, categories, allProducts = [], onToggle, 
           productId={product.id}
           productName={product.name}
           productDescription={product.description}
+          productCategory={categories.find(c => c.id === product.category_id)}
           currentImageUrl={product.image_url}
           onPhotoSaved={url => onSave({ ...product, image_url: url })}
           venueId={venueId}
@@ -1447,7 +1472,7 @@ function BuyPhotoPackBanner({ venueId, noPhotoCount, dailyLimit, price = 10000 }
   )
 }
 
-function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCredits = 0, onExtraCreditsChanged, isSuperAdmin = false, photoPackPrice = 10000 }) {
+function FotosConIA({ venueId, products, categories = [], onUpdated, unlimited = false, extraCredits = 0, onExtraCreditsChanged, isSuperAdmin = false, photoPackPrice = 10000 }) {
   const [open, setOpen] = useState(false)
   const [status, setStatus] = useState('idle') // idle | generating | review | saving
   const [progress, setProgress] = useState({ current: 0, total: 0, name: '' })
@@ -1498,7 +1523,10 @@ function FotosConIA({ venueId, products, onUpdated, unlimited = false, extraCred
         let query = p.name
         try {
           const desc = p.description ? ` — ${p.description}` : ''
-          const prompt = `Para el plato "${p.name}"${desc}, generá un término de búsqueda en inglés para encontrar una foto gastronómica en Unsplash. Si el nombre no es descriptivo usá la descripción para inferir qué es. Respondé ÚNICAMENTE con el término, sin texto extra. Ejemplo: "beef milanesa breaded"`
+          const category = categories.find(c => c.id === p.category_id)
+          const prompt = `Para el producto "${p.name}"${desc}${categoryContext(category)} de la carta de un restaurante/bar, generá un término de búsqueda en inglés para encontrar una foto en Unsplash.
+${PHOTO_QUERY_RULES}
+Respondé ÚNICAMENTE con el término de búsqueda, sin texto extra.`
           const data = await geminiGenerate([{ parts: [{ text: prompt }] }])
           query = (data.candidates?.[0]?.content?.parts?.[0]?.text || p.name).trim().replace(/^"|"$/g, '')
         } catch { /* use product name as fallback */ }
