@@ -1,5 +1,5 @@
 import { Component, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { supabaseCamaut } from '../../lib/supabase'
 import { getLevel, getXPProgress } from '../../lib/xpUtils'
@@ -74,11 +74,17 @@ const CAMAUT_TABS = [
 export default function WaiterModePage({ venueId, staffName, staffXP }) {
   const { profile, signOut } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [tab, setTab] = useState('tomar')
   const [micapyTab, setMicapyTab] = useState('perfil')
 
   const isAutonomous = profile?.is_autonomous
-  const TABS = isAutonomous ? CAMAUT_TABS : STAFF_TABS
+  // Flujo desde el admin (Mostrador / Nuevo pedido del mapa): solo la comanda,
+  // las otras solapas son del modo camarero y acá no aplican
+  const adminFlow = searchParams.get('return_to') === 'dashboard'
+  const TABS = adminFlow
+    ? (isAutonomous ? CAMAUT_TABS : STAFF_TABS).filter(t => t.id === 'tomar')
+    : isAutonomous ? CAMAUT_TABS : STAFF_TABS
   const displayName = staffName || profile?.full_name
 
   const xp = staffXP || 0
@@ -113,11 +119,15 @@ export default function WaiterModePage({ venueId, staffName, staffXP }) {
               </div>
             </div>
           </div>
-          <button onClick={handleSignOut} className="text-[#8896A5] text-xs underline">Salir</button>
+          {adminFlow ? (
+            <button onClick={() => navigate('/admin')} className="text-[#8896A5] text-xs underline">← Dashboard</button>
+          ) : (
+            <button onClick={handleSignOut} className="text-[#8896A5] text-xs underline">Salir</button>
+          )}
         </div>
 
-        {/* Nav tabs */}
-        <div className="flex">
+        {/* Nav tabs (ocultas cuando hay una sola, ej. flujo desde el admin) */}
+        <div className={TABS.length > 1 ? 'flex' : 'hidden'}>
           {TABS.map(t => (
             <button
               key={t.id}
