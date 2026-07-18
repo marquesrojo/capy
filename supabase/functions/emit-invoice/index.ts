@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
 
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('id, venue_id, total, subtotal, discount_amount, cash_discount_amount, daily_number, location_label, payment_status, order_items(product_name, quantity, unit_price, line_total), customers(full_name, whatsapp), venue:venues(name, fiscal_enabled)')
+      .select('id, venue_id, total, subtotal, discount_amount, cash_discount_amount, daily_number, location_label, payment_status, order_items(product_name, quantity, unit_price, line_total), customers(full_name, whatsapp), venue:venues(name, address, fiscal_enabled)')
       .eq('id', orderId)
       .single()
     if (orderError || !order) return json({ error: 'Order not found' }, 404)
@@ -123,7 +123,8 @@ Deno.serve(async (req) => {
         documento_nro: '0',
         razon_social: order.customers?.full_name || 'Consumidor Final',
         email: '',
-        domicilio: '',
+        // Obligatorio para TusFacturas: venta en el local → domicilio del venue
+        domicilio: (order as any).venue?.address || 'Venta en el local',
         provincia: '2',
         envia_por_mail: 'N',
         condicion_pago: '201',        // contado
