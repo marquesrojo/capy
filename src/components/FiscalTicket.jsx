@@ -6,7 +6,10 @@ import { emitFiscalInvoice, buildTicketWaUrl, shareTicket } from '../lib/fiscal'
 // El comprobante es 100% digital (PDF 80mm de TusFacturas): se ve, se manda
 // por WhatsApp o se comparte — sin impresora. Se usa en el kanban (Pagado hoy)
 // y en el Historial.
-export default function FiscalTicket({ order, invoice, onEmitted, venueName }) {
+const TYPE_LETTER = { '1': 'A', '6': 'B', '11': 'C' }
+
+export default function FiscalTicket({ order, invoice, onEmitted, venueName, fiscalCondition = 'responsable_inscripto' }) {
+  const isMono = fiscalCondition === 'monotributo'
   const [emitting, setEmitting] = useState(false)
   const [error, setError] = useState('')
   const [shareState, setShareState] = useState('')
@@ -55,7 +58,7 @@ export default function FiscalTicket({ order, invoice, onEmitted, venueName }) {
     return (
       <div className="mt-2 pt-2 border-t border-carbon-800">
         <p className="text-emerald-600 text-[11px] font-semibold mb-1.5">
-          🧾 Factura {invoice.invoice_type === '1' ? 'A' : 'B'} {invoice.invoice_number ? `#${invoice.invoice_number}` : ''} · CAE {invoice.cae?.slice(0, 8)}...
+          🧾 Factura {TYPE_LETTER[invoice.invoice_type] || 'B'} {invoice.invoice_number ? `#${invoice.invoice_number}` : ''} · CAE {invoice.cae?.slice(0, 8)}...
         </p>
         {invoice.pdf_url && (
           editingPhone ? (
@@ -173,14 +176,16 @@ export default function FiscalTicket({ order, invoice, onEmitted, venueName }) {
           >
             {emitting ? 'Emitiendo...' : invoice?.status === 'error' ? '🧾 Reintentar factura' : '🧾 Facturar'}
           </button>
-          <button
-            onClick={() => setShowAForm(true)}
-            disabled={emitting}
-            className="text-[11px] font-semibold py-1.5 px-2.5 rounded-lg border border-carbon-600 text-smoke-400 hover:text-smoke-200 hover:border-carbon-500 disabled:opacity-50 transition-colors"
-            title="Factura A: cliente Responsable Inscripto con CUIT"
-          >
-            A
-          </button>
+          {!isMono && (
+            <button
+              onClick={() => setShowAForm(true)}
+              disabled={emitting}
+              className="text-[11px] font-semibold py-1.5 px-2.5 rounded-lg border border-carbon-600 text-smoke-400 hover:text-smoke-200 hover:border-carbon-500 disabled:opacity-50 transition-colors"
+              title="Factura A: cliente Responsable Inscripto con CUIT"
+            >
+              A
+            </button>
+          )}
         </div>
       )}
       {(error || invoice?.error_message) && (

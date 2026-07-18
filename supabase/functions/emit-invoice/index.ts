@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
 
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('id, venue_id, total, subtotal, discount_amount, cash_discount_amount, daily_number, location_label, payment_status, order_items(product_name, quantity, unit_price, line_total), customers(full_name, whatsapp), venue:venues(name, address, street_address, fiscal_enabled)')
+      .select('id, venue_id, total, subtotal, discount_amount, cash_discount_amount, daily_number, location_label, payment_status, order_items(product_name, quantity, unit_price, line_total), customers(full_name, whatsapp), venue:venues(name, address, street_address, fiscal_enabled, fiscal_condition)')
       .eq('id', orderId)
       .single()
     if (orderError || !order) return json({ error: 'Order not found' }, 404)
@@ -113,6 +113,14 @@ Deno.serve(async (req) => {
       return json({ success: false, error: 'El pedido todavía no está cobrado' }, 200)
     }
 
+    // Condición fiscal del emisor: RI emite A/B, monotributista emite C
+    const isMono = ((order as any).venue?.fiscal_condition || 'responsable_inscripto') === 'monotributo'
+    if (isA && isMono) {
+      return json({ success: false, error: 'Un monotributista no emite Factura A: emití Factura C (botón Facturar)' }, 200)
+    }
+    const tipoComprobante = isMono ? 'FACTURA C' : isA ? 'FACTURA A' : 'FACTURA B'
+    const invoiceTypeCode = isMono ? '11' : isA ? '1' : '6'   // cod. AFIP: 1=A, 6=B, 11=C
+
     // Descuentos (código o efectivo) se aplican como bonificación porcentual
     // por ítem: la suma de ítems bonificados tiene que cerrar con el total.
     const discountTotal = (Number(order.discount_amount) || 0) + (Number(order.cash_discount_amount) || 0)
@@ -122,8 +130,10 @@ Deno.serve(async (req) => {
       ? +((discountTotal / itemsGross) * 100).toFixed(6)
       : 0
 
-    // Precios de Capy son finales (IVA incluido); TusFacturas pide el neto.
-    const netUnit = (gross: number) => +(gross / 1.21).toFixed(6)
+    // Precios de Capy son finales (IVA incluido). Para A/B TusFacturas pide el
+    // neto; en Factura C (monotributo) no hay IVA: va el precio final tal cual.
+    const netUnit = (gross: number) => isMono ? gross : +(gross / 1.21).toFixed(6)
+    const itemAlicuota = isMono ? '0' : '21'
 
     // Fecha dd/mm/yyyy en horario argentino
     const nowAr = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }))
@@ -164,7 +174,7 @@ Deno.serve(async (req) => {
           },
       comprobante: {
         rubro: 'Gastronomía',
-        tipo: isA ? 'FACTURA A' : 'FACTURA B',
+        tipo: tipoComprobante,
         operacion: 'V',
         numero: 0,                    // autonumerado por TusFacturas
         punto_venta: puntoVenta,
@@ -186,7 +196,7 @@ Deno.serve(async (req) => {
             lista_precios: 'carta',
             leyenda: '',
             unidad_bulto: '1',
-            alicuota: '21',
+            alicuota: itemAlicuota,
             precio_unitario_sin_iva: netUnit(Number(i.unit_price)),
             rg5329: 'N',
           },
@@ -199,7 +209,7 @@ Deno.serve(async (req) => {
       venue_id: order.venue_id,
       order_id: order.id,
       status: 'pending',
-      invoice_type: isA ? '1' : '6',   // cod. AFIP: 1 = Factura A, 6 = Factura B
+      invoice_type: invoiceTypeCode,
       punto_venta: puntoVenta,
       total: order.total,
       request_payload: payload,

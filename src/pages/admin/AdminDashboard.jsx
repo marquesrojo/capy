@@ -56,6 +56,7 @@ function AdminDashboardInner() {
   const [venueSlug, setVenueSlug] = useState('')
   const [venueName, setVenueName] = useState('')
   const [fiscalEnabled, setFiscalEnabled] = useState(false)
+  const [fiscalCondition, setFiscalCondition] = useState('responsable_inscripto')
   const [invoices, setInvoices] = useState({}) // order_id → fiscal_invoice
   const [paidOrders, setPaidOrders] = useState([])
   const [loading, setLoading] = useState(true)
@@ -146,7 +147,7 @@ async function loadZones() {
   async function loadVenue() {
     const { data } = await supabaseStaff
       .from('venues')
-      .select('high_demand, slug, name, fiscal_enabled')
+      .select('high_demand, slug, name, fiscal_enabled, fiscal_condition')
       .eq('id', venueId)
       .single()
     if (data) {
@@ -154,6 +155,7 @@ async function loadZones() {
       if (data.slug) setVenueSlug(data.slug)
       setVenueName(data.name || '')
       setFiscalEnabled(!!data.fiscal_enabled)
+      setFiscalCondition(data.fiscal_condition || 'responsable_inscripto')
     }
   }
 
@@ -729,6 +731,7 @@ async function loadZones() {
               onConfirmPayment={status === 'entregado' ? confirmPayment : null}
               onCloseOrder={status === 'entregado' ? closeOrder : null}
               fiscalEnabled={status === 'entregado' ? fiscalEnabled : false}
+              fiscalCondition={fiscalCondition}
               invoices={invoices}
               onInvoiceEmitted={(orderId, inv) => setInvoices(prev => ({ ...prev, [orderId]: inv }))}
               venueName={venueName}
@@ -1588,7 +1591,7 @@ function InPersonCard({ order, waiters, onConfirm, onAssignWaiter, compact }) {
   )
 }
 
-function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssignWaiter, pendingInPersonOrders = [], paidOrders = [], onConfirmPayment, onCloseOrder, fiscalEnabled = false, invoices = {}, onInvoiceEmitted, venueName }) {
+function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssignWaiter, pendingInPersonOrders = [], paidOrders = [], onConfirmPayment, onCloseOrder, fiscalEnabled = false, fiscalCondition, invoices = {}, onInvoiceEmitted, venueName }) {
   const nextStatus = {
     recibido: 'en_preparacion',
     en_preparacion: 'entregado',
@@ -1720,6 +1723,7 @@ function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssi
                       invoice={invoices[order.id]}
                       onEmitted={onInvoiceEmitted}
                       venueName={venueName}
+                      fiscalCondition={fiscalCondition}
                     />
                   )}
                 </div>
