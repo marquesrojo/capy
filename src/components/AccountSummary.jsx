@@ -1,9 +1,33 @@
+import { useState } from 'react'
 import { formatPrice } from '../lib/utils'
+import { supabaseStaff } from '../lib/supabase'
 
 // Resumen de cuenta NO fiscal: detalle de ítems y precios para que el
 // cliente revise antes de cobrar/facturar (la "pre-cuenta"). Se imprime
 // desde el navegador o se comparte por WhatsApp — sin impresora térmica.
 export default function AccountSummary({ orders, venueName, locationLabel, onClose }) {
+  const [localPhone, setLocalPhone] = useState('')
+  const [editingPhone, setEditingPhone] = useState(false)
+  const [phoneInput, setPhoneInput] = useState('')
+
+  // WhatsApp del cliente: perfil o cargado por el cajero en cualquiera de
+  // los pedidos de la mesa
+  const phone = localPhone
+    || orders.map(o => o.contact_whatsapp || o.customers?.whatsapp).find(Boolean)
+    || ''
+
+  async function savePhone() {
+    const digits = phoneInput.replace(/\D/g, '')
+    if (!digits) { setEditingPhone(false); return }
+    // Se guarda en todos los pedidos de la cuenta: el ticket fiscal después
+    // lo encuentra sin volver a pedirlo
+    await supabaseStaff
+      .from('orders')
+      .update({ contact_whatsapp: digits })
+      .in('id', orders.map(o => o.id))
+    setLocalPhone(digits)
+    setEditingPhone(false)
+  }
   const items = []
   orders.forEach(o => {
     ;(o.order_items || []).forEach(it => {
@@ -38,7 +62,9 @@ export default function AccountSummary({ orders, venueName, locationLabel, onClo
   }
 
   function handleWhatsApp() {
-    window.open(`https://wa.me/?text=${encodeURIComponent(buildText())}`, '_blank')
+    const digits = phone.replace(/\D/g, '')
+    const base = digits ? `https://wa.me/${digits}` : 'https://wa.me/'
+    window.open(`${base}?text=${encodeURIComponent(buildText())}`, '_blank')
   }
 
   function handlePrint() {
@@ -125,7 +151,42 @@ export default function AccountSummary({ orders, venueName, locationLabel, onClo
           <p className="text-center text-gray-400 text-[10px] mt-3">Resumen de cuenta — no válido como factura</p>
         </div>
 
-        <div className="px-4 py-3 border-t border-gray-200 grid grid-cols-2 gap-2">
+        <div className="px-4 pt-2.5 border-t border-gray-200">
+          {editingPhone ? (
+            <div className="flex items-center gap-1.5 pb-1">
+              <input
+                autoFocus
+                type="tel"
+                value={phoneInput}
+                onChange={e => setPhoneInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') savePhone() }}
+                placeholder="WhatsApp del cliente (ej: 5491122334455)"
+                className="flex-1 min-w-0 border border-gray-300 rounded-full px-3 py-1.5 text-xs text-gray-800 outline-none focus:border-emerald-500"
+              />
+              <button
+                onClick={savePhone}
+                className="bg-emerald-600 text-white text-xs font-semibold px-3 py-1.5 rounded-full flex-shrink-0"
+              >
+                Guardar
+              </button>
+              <button onClick={() => setEditingPhone(false)} className="text-gray-400 text-xs px-1 flex-shrink-0">✕</button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between pb-1">
+              <span className="text-gray-500 text-xs">
+                {phone ? `WhatsApp: ${phone}` : 'Sin WhatsApp del cliente'}
+              </span>
+              <button
+                onClick={() => { setPhoneInput(phone); setEditingPhone(true) }}
+                className="text-emerald-700 text-xs font-semibold underline"
+              >
+                {phone ? '✎ cambiar' : '+ cargar número'}
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="px-4 pb-3 pt-1.5 grid grid-cols-2 gap-2">
           <button
             onClick={handlePrint}
             className="bg-gray-900 text-white text-xs font-semibold py-2.5 rounded-xl"
