@@ -1638,6 +1638,7 @@ function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssi
                 waiters={waiters}
                 onAssignWaiter={onAssignWaiter}
                 onCloseOrder={onCloseOrder}
+                onConfirmPayment={onConfirmPayment}
               />
             )
           }
@@ -1661,6 +1662,7 @@ function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssi
                     waiters={waiters}
                     onAssignWaiter={onAssignWaiter}
                     onCloseOrder={onCloseOrder}
+                    onConfirmPayment={onConfirmPayment}
                     inGroup
                   />
                 ))}
@@ -1816,7 +1818,7 @@ function FiscalTicket({ order, invoice, onEmitted, venueName }) {
   )
 }
 
-function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCall, waiters, onAssignWaiter, onCloseOrder, inGroup }) {
+function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCall, waiters, onAssignWaiter, onCloseOrder, onConfirmPayment, inGroup }) {
   const [showWaiterSelect, setShowWaiterSelect] = useState(false)
   const [showQR, setShowQR] = useState(false)
   const elapsedMin = Math.round((Date.now() - new Date(order.created_at).getTime()) / 60000)
@@ -1966,6 +1968,15 @@ function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCal
               className="text-white text-xs font-semibold px-3 py-1.5 rounded-full bg-ember-500 hover:bg-ember-600"
             >
               {STATUS_LABELS[nextStatus]} →
+            </button>
+          )}
+          {onConfirmPayment && order.status === 'entregado' && order.payment_status === 'pendiente' && (
+            <button
+              onClick={() => onConfirmPayment(order)}
+              className="text-white text-xs font-semibold px-3 py-1.5 rounded-full bg-blue-600 hover:bg-blue-700"
+              title="Marcar como cobrado (pasa a Pagado hoy, donde se puede facturar)"
+            >
+              💰 Cobrar
             </button>
           )}
           {onCloseOrder && order.status === 'entregado' && (
