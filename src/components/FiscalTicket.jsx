@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { supabaseStaff } from '../lib/supabase'
 import { emitFiscalInvoice, buildTicketWaUrl, shareTicket } from '../lib/fiscal'
 
 // Facturación explícita: el cajero aprieta Facturar en un pedido ya cobrado.
@@ -9,6 +10,20 @@ export default function FiscalTicket({ order, invoice, onEmitted, venueName }) {
   const [emitting, setEmitting] = useState(false)
   const [error, setError] = useState('')
   const [shareState, setShareState] = useState('')
+  const [localPhone, setLocalPhone] = useState('')
+  const [editingPhone, setEditingPhone] = useState(false)
+  const [phoneInput, setPhoneInput] = useState('')
+
+  // WhatsApp del cliente: el del perfil, o el cargado por el cajero en el pedido
+  const phone = localPhone || order.contact_whatsapp || order.customers?.whatsapp || ''
+
+  async function savePhone() {
+    const digits = phoneInput.replace(/\D/g, '')
+    if (!digits) { setEditingPhone(false); return }
+    await supabaseStaff.from('orders').update({ contact_whatsapp: digits }).eq('id', order.id)
+    setLocalPhone(digits)
+    setEditingPhone(false)
+  }
 
   async function handleEmit() {
     setEmitting(true)
@@ -38,35 +53,69 @@ export default function FiscalTicket({ order, invoice, onEmitted, venueName }) {
           🧾 Factura B {invoice.invoice_number ? `#${invoice.invoice_number}` : ''} · CAE {invoice.cae?.slice(0, 8)}...
         </p>
         {invoice.pdf_url && (
-          <div className="flex flex-wrap gap-1.5">
-            <a
-              href={invoice.pdf_url}
-              target="_blank"
-              rel="noreferrer"
-              className="text-smoke-400 border border-carbon-700 text-[11px] px-2.5 py-1 rounded-full hover:text-smoke-200"
-            >
-              Ver ticket
-            </a>
-            <a
-              href={buildTicketWaUrl({
-                phone: order.customers?.whatsapp,
-                venueName,
-                pdfUrl: invoice.pdf_url,
-                dailyNumber: order.daily_number,
-              })}
-              target="_blank"
-              rel="noreferrer"
-              className="text-white bg-emerald-600 hover:bg-emerald-700 text-[11px] font-semibold px-2.5 py-1 rounded-full"
-            >
-              WhatsApp
-            </a>
-            <button
-              onClick={handleShare}
-              className="text-smoke-400 border border-carbon-700 text-[11px] px-2.5 py-1 rounded-full hover:text-smoke-200"
-            >
-              {shareState || 'Compartir'}
-            </button>
-          </div>
+          editingPhone ? (
+            <div className="flex items-center gap-1.5">
+              <input
+                autoFocus
+                type="tel"
+                value={phoneInput}
+                onChange={e => setPhoneInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') savePhone() }}
+                placeholder="WhatsApp del cliente (ej: 5491122334455)"
+                className="flex-1 min-w-0 bg-carbon-800 border border-carbon-600 rounded-full px-3 py-1 text-[11px] text-smoke-200 outline-none focus:border-emerald-500"
+              />
+              <button
+                onClick={savePhone}
+                className="text-white bg-emerald-600 hover:bg-emerald-700 text-[11px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0"
+              >
+                Guardar
+              </button>
+              <button
+                onClick={() => setEditingPhone(false)}
+                className="text-smoke-500 text-[11px] px-1 flex-shrink-0"
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              <a
+                href={invoice.pdf_url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-smoke-400 border border-carbon-700 text-[11px] px-2.5 py-1 rounded-full hover:text-smoke-200"
+              >
+                Ver ticket
+              </a>
+              <a
+                href={buildTicketWaUrl({
+                  phone,
+                  venueName,
+                  pdfUrl: invoice.pdf_url,
+                  dailyNumber: order.daily_number,
+                })}
+                target="_blank"
+                rel="noreferrer"
+                className="text-white bg-emerald-600 hover:bg-emerald-700 text-[11px] font-semibold px-2.5 py-1 rounded-full"
+                title={phone ? `Enviar a ${phone}` : 'Sin número: abre WhatsApp para elegir contacto'}
+              >
+                WhatsApp{phone ? '' : ' (elegir contacto)'}
+              </a>
+              <button
+                onClick={() => { setPhoneInput(phone); setEditingPhone(true) }}
+                className="text-smoke-400 border border-carbon-700 text-[11px] px-2.5 py-1 rounded-full hover:text-smoke-200"
+                title="Cargar o cambiar el WhatsApp del cliente"
+              >
+                {phone ? '✎ N°' : '+ N°'}
+              </button>
+              <button
+                onClick={handleShare}
+                className="text-smoke-400 border border-carbon-700 text-[11px] px-2.5 py-1 rounded-full hover:text-smoke-200"
+              >
+                {shareState || 'Compartir'}
+              </button>
+            </div>
+          )
         )}
       </div>
     )
