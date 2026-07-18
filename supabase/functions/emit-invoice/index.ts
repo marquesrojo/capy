@@ -3,9 +3,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 // Adaptador TusFacturasAPP (ARCA/AFIP): emite la factura de un pedido cobrado.
 // Idempotente: si el pedido ya tiene factura aprobada, devuelve la existente.
 // Secrets requeridos (supabase secrets set ...):
-//   TUSFACTURAS_API_URL   (sandbox: https://www.tusfacturas.app/api/v1/facturacion/emitir)
-//   TUSFACTURAS_API_KEY
-//   TUSFACTURAS_USER_TOKEN
+//   TUSFACTURAS_API_URL    (default https://www.tusfacturas.app/app/api/v2/facturacion/nuevo)
+//   TUSFACTURAS_API_TOKEN  (apitoken)
+//   TUSFACTURAS_API_KEY    (apikey)
+//   TUSFACTURAS_USER_TOKEN (usertoken)
 //   CAPY_FISCAL_PUNTO_VENTA (default 00001)
 
 const corsHeaders = {
@@ -48,12 +49,13 @@ Deno.serve(async (req) => {
     const { orderId } = await req.json() as { orderId?: string }
     if (!orderId) return json({ error: 'orderId required' }, 400)
 
-    const apiUrl = Deno.env.get('TUSFACTURAS_API_URL')
+    const apiUrl = Deno.env.get('TUSFACTURAS_API_URL') || 'https://www.tusfacturas.app/app/api/v2/facturacion/nuevo'
+    const apiToken = Deno.env.get('TUSFACTURAS_API_TOKEN')
     const apiKey = Deno.env.get('TUSFACTURAS_API_KEY')
     const userToken = Deno.env.get('TUSFACTURAS_USER_TOKEN')
     const puntoVenta = Deno.env.get('CAPY_FISCAL_PUNTO_VENTA') || '00001'
-    if (!apiUrl || !apiKey || !userToken) {
-      return json({ success: false, error: 'Fiscal no configurado (faltan secrets de TusFacturas)' }, 200)
+    if (!apiToken || !apiKey || !userToken) {
+      return json({ success: false, error: 'Fiscal no configurado (faltan secrets de TusFacturas: apitoken/apikey/usertoken)' }, 200)
     }
 
     const supabase = createClient(
@@ -95,31 +97,67 @@ Deno.serve(async (req) => {
       return json({ success: false, error: 'El pedido todavía no está cobrado' }, 200)
     }
 
-    // Descuentos (código o efectivo) van como bonificación: la suma de ítems
-    // menos la bonificación tiene que cerrar con el total, o AFIP rechaza.
+    // Descuentos (código o efectivo) se aplican como bonificación porcentual
+    // por ítem: la suma de ítems bonificados tiene que cerrar con el total.
     const discountTotal = (Number(order.discount_amount) || 0) + (Number(order.cash_discount_amount) || 0)
+    const itemsGross = (order.order_items || []).reduce(
+      (s: number, i: any) => s + (Number(i.line_total) || Number(i.quantity) * Number(i.unit_price)), 0)
+    const discountPct = discountTotal > 0 && itemsGross > 0
+      ? +((discountTotal / itemsGross) * 100).toFixed(6)
+      : 0
 
-    // Payload según la especificación del Sandbox de TusFacturasAPP
+    // Precios de Capy son finales (IVA incluido); TusFacturas pide el neto.
+    const netUnit = (gross: number) => +(gross / 1.21).toFixed(6)
+
+    // Fecha dd/mm/yyyy en horario argentino
+    const nowAr = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }))
+    const fecha = `${String(nowAr.getDate()).padStart(2, '0')}/${String(nowAr.getMonth() + 1).padStart(2, '0')}/${nowAr.getFullYear()}`
+
+    // Payload API v2 de TusFacturasAPP (facturacion/nuevo)
     const payload = {
-      usertoken: userToken,
+      apitoken: apiToken,
       apikey: apiKey,
+      usertoken: userToken,
+      cliente: {
+        documento_tipo: 'OTRO',       // consumidor final
+        documento_nro: '0',
+        razon_social: order.customers?.full_name || 'Consumidor Final',
+        email: '',
+        domicilio: '',
+        provincia: '2',
+        envia_por_mail: 'N',
+        condicion_pago: '201',        // contado
+        condicion_iva: 'CF',
+        rg5329: 'N',
+      },
       comprobante: {
-        tipo: '6',                    // Factura B
+        rubro: 'Gastronomía',
+        tipo: 'FACTURA B',
+        operacion: 'V',
+        numero: 0,                    // autonumerado por TusFacturas
         punto_venta: puntoVenta,
-        condicion_pago: '0',          // contado
-        concepto: '1',                // productos
-        documento_tipo: '99',         // consumidor final
-        documento_numero: '0',
-        cliente_nombre: order.customers?.full_name || 'Consumidor Final',
-        fecha: new Date().toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }),
-        total: order.total,
-        bonificacion: discountTotal > 0 ? discountTotal : 0,
-        items: (order.order_items || []).map((i: any) => ({
-          descripcion: i.product_name,
-          cantidad: i.quantity,
-          precio_unitario: i.unit_price,
-          importe: i.line_total ?? i.quantity * i.unit_price,
-          alicuota: '21',
+        fecha,
+        vencimiento: fecha,
+        rubro_grupo_contable: 'Gastronomía',
+        moneda: 'PES',
+        cotizacion: 1,
+        external_reference: order.id,
+        total: Number(order.total),
+        detalle: (order.order_items || []).map((i: any, idx: number) => ({
+          cantidad: String(i.quantity),
+          afecta_stock: 'N',
+          actualiza_precio: 'N',
+          bonificacion_porcentaje: String(discountPct),
+          producto: {
+            descripcion: i.product_name,
+            codigo: idx + 1,
+            lista_precios: 'carta',
+            leyenda: '',
+            unidad_bulto: '1',
+            alicuota: '21',
+            precio_unitario_sin_iva: netUnit(Number(i.unit_price)),
+            rg5329: 'N',
+          },
         })),
       },
     }
