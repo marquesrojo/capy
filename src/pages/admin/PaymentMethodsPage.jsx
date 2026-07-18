@@ -20,6 +20,7 @@ export default function PaymentMethodsPage() {
   const [cashSaved, setCashSaved] = useState(false)
   const [fiscalEnabled, setFiscalEnabled] = useState(false)
   const [fiscalSaving, setFiscalSaving] = useState(false)
+  const [fiscalCondition, setFiscalCondition] = useState('responsable_inscripto')
 
   useEffect(() => {
     if (!venueId) return
@@ -29,12 +30,13 @@ export default function PaymentMethodsPage() {
   async function loadAll() {
     const [methodsRes, venueRes] = await Promise.all([
       supabaseStaff.from('payment_methods').select('*').eq('venue_id', venueId).order('sort_order'),
-      supabaseStaff.from('venues').select('mp_enabled, mp_access_token, cash_discount_enabled, cash_discount_percent, fiscal_enabled').eq('id', venueId).single()
+      supabaseStaff.from('venues').select('mp_enabled, mp_access_token, cash_discount_enabled, cash_discount_percent, fiscal_enabled, fiscal_condition').eq('id', venueId).single()
     ])
     setMethods(methodsRes.data || [])
     if (venueRes.data?.mp_enabled !== undefined) setMpEnabled(venueRes.data.mp_enabled)
     if (venueRes.data?.mp_access_token) setMpToken(venueRes.data.mp_access_token)
     if (venueRes.data?.fiscal_enabled !== undefined) setFiscalEnabled(venueRes.data.fiscal_enabled)
+    if (venueRes.data?.fiscal_condition) setFiscalCondition(venueRes.data.fiscal_condition)
     if (venueRes.data?.cash_discount_enabled !== undefined) setCashDiscountEnabled(venueRes.data.cash_discount_enabled)
     if (venueRes.data?.cash_discount_percent !== undefined) setCashDiscountPercent(String(venueRes.data.cash_discount_percent || ''))
     setLoading(false)
@@ -79,6 +81,11 @@ export default function PaymentMethodsPage() {
     setFiscalSaving(true)
     await supabaseStaff.from('venues').update({ fiscal_enabled: newVal }).eq('id', venueId)
     setFiscalSaving(false)
+  }
+
+  async function saveFiscalCondition(value) {
+    setFiscalCondition(value)
+    await supabaseStaff.from('venues').update({ fiscal_condition: value }).eq('id', venueId)
   }
 
   async function toggleCashDiscount() {
@@ -193,7 +200,7 @@ export default function PaymentMethodsPage() {
             <div>
               <p className="text-smoke-300 font-medium text-sm">Facturación electrónica</p>
               <p className="text-smoke-500 text-xs mt-0.5">
-                Emite Factura B (ARCA/AFIP via TusFacturasAPP) con el botón Facturar en cada pedido cobrado. El ticket digital se comparte por WhatsApp — no requiere impresora.
+                Emite facturas (ARCA/AFIP via TusFacturasAPP) con el botón Facturar en cada pedido cobrado. El ticket digital se comparte por WhatsApp — no requiere impresora.
               </p>
             </div>
             <button
@@ -209,6 +216,23 @@ export default function PaymentMethodsPage() {
               }`} />
             </button>
           </div>
+
+          {fiscalEnabled && (
+            <div className="space-y-2 pt-3 mt-3 border-t border-carbon-700">
+              <p className="text-smoke-400 text-xs">Condición fiscal del local</p>
+              <select
+                value={fiscalCondition}
+                onChange={e => saveFiscalCondition(e.target.value)}
+                className="input w-full text-sm"
+              >
+                <option value="responsable_inscripto">Responsable Inscripto — emite Factura A y B</option>
+                <option value="monotributo">Monotributista — emite Factura C</option>
+              </select>
+              <p className="text-smoke-600 text-[11px]">
+                Tiene que coincidir con la condición registrada en ARCA y en tu cuenta de TusFacturasAPP.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Descuento en efectivo */}

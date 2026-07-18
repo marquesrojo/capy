@@ -16,6 +16,7 @@ export default function HistoryPage() {
   const [search, setSearch] = useState('')
   const [deletingId, setDeletingId] = useState(null)
   const [fiscalEnabled, setFiscalEnabled] = useState(false)
+  const [fiscalCondition, setFiscalCondition] = useState('responsable_inscripto')
   const [venueName, setVenueName] = useState('')
   const [invoices, setInvoices] = useState({}) // order_id → fiscal_invoice
 
@@ -31,13 +32,14 @@ export default function HistoryPage() {
           .limit(200),
         supabaseStaff
           .from('venues')
-          .select('name, fiscal_enabled')
+          .select('name, fiscal_enabled, fiscal_condition')
           .eq('id', venueId)
           .single(),
       ])
       setOrders(data || [])
       setVenueName(venueData?.name || '')
       setFiscalEnabled(!!venueData?.fiscal_enabled)
+      setFiscalCondition(venueData?.fiscal_condition || 'responsable_inscripto')
 
       const ids = (data || []).map(o => o.id)
       if (ids.length) {
@@ -207,6 +209,7 @@ export default function HistoryPage() {
                       invoice={invoices[order.id]}
                       onEmitted={(id, inv) => setInvoices(prev => ({ ...prev, [id]: inv }))}
                       venueName={venueName}
+                      fiscalCondition={fiscalCondition}
                     />
                   </div>
                 )}
