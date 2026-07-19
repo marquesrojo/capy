@@ -271,7 +271,7 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
       : null
 
     return (
-      <div className="px-5 py-10 text-center">
+      <div className={`px-5 py-10 text-center ${returnToDashboard ? 'pb-28' : ''}`}>
         <div className="w-12 h-12 mx-auto mb-3 flex items-center justify-center">
           <CheckCircleIcon size={40} className="text-[#008080]" />
         </div>
@@ -304,12 +304,15 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
         )}
 
         {returnToDashboard ? (
-          <button
-            onClick={() => navigate('/admin')}
-            className="w-full bg-[#008080] hover:bg-[#006666] text-white font-semibold py-3.5 rounded-xl mb-2"
-          >
-            ← Volver al dashboard
-          </button>
+          /* Barra fija: siempre visible sin scrollear, en pantalla completa */
+          <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#F0F4F8] border-t border-black/10 px-5 py-4">
+            <button
+              onClick={() => navigate('/admin')}
+              className="w-full max-w-md mx-auto flex items-center justify-center gap-2 bg-[#008080] hover:bg-[#006666] text-white font-bold text-lg py-4 rounded-2xl shadow-lg"
+            >
+              ← Volver al dashboard
+            </button>
+          </div>
         ) : (
           <button
             onClick={() => setStep('menu')}
