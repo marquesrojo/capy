@@ -287,6 +287,39 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
         {lastOrder?.order?.id && (
           <OrderQR orderId={lastOrder.order.id} />
         )}
+
+        {/* Tiempo de preparación: el cliente lo ve como cuenta regresiva en su pedido */}
+        {lastOrder?.order?.id && !lastOrder.prepMins && (
+          <div className="bg-white border border-black/10 rounded-2xl p-4 mb-4 max-w-sm mx-auto">
+            <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">
+              ¿Cuánto tiempo tarda? El cliente lo ve en su pedido
+            </p>
+            <div className="flex gap-2 justify-center flex-wrap">
+              {[5, 10, 15, 20, 30, 45].map(min => (
+                <button
+                  key={min}
+                  onClick={async () => {
+                    await supabaseStaff.from('orders').update({
+                      prep_time_minutes: min,
+                      prep_started_at: new Date().toISOString(),
+                      status: 'en_preparacion',
+                    }).eq('id', lastOrder.order.id)
+                    setLastOrder(prev => ({ ...prev, prepMins: min }))
+                  }}
+                  className="w-12 h-12 rounded-xl bg-[#F0F4F8] border border-black/10 text-sm font-bold text-[#3A4A5A] active:bg-[#008080] active:text-white"
+                >
+                  {min}m
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {lastOrder?.prepMins && (
+          <p className="text-[#008080] text-sm font-semibold mb-4">
+            ⏱ {lastOrder.prepMins} min estimados — el cliente ve la cuenta regresiva en su pedido
+          </p>
+        )}
+
         <p className="text-[#8896A5] text-sm mb-6">El pedido entró directo a preparación.</p>
 
         {waLink && (
