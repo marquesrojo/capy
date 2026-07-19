@@ -906,6 +906,66 @@ function CocinaView({ orders, categories, onUpdateStatus, onRefresh }) {
   )
 }
 
+// Link de seguimiento del pedido por WhatsApp, con carga/edición del número
+// del cliente ahí mismo (se guarda en orders.contact_whatsapp)
+function SeguimientoButton({ order }) {
+  const [localPhone, setLocalPhone] = useState('')
+  const [editing, setEditing] = useState(false)
+  const [input, setInput] = useState('')
+
+  const phone = (localPhone || order.contact_whatsapp || order.customers?.whatsapp || '').replace(/\D/g, '')
+  const text = encodeURIComponent(
+    `🧾 Seguí tu pedido${order.daily_number ? ` #${order.daily_number}` : ''} en vivo: https://capyapp.co/ver-pedido/${order.id}\nAhí ves el detalle y el tiempo de preparación.`
+  )
+
+  async function save() {
+    const digits = input.replace(/\D/g, '')
+    if (!digits) { setEditing(false); return }
+    await supabaseStaff.from('orders').update({ contact_whatsapp: digits }).eq('id', order.id)
+    setLocalPhone(digits)
+    setEditing(false)
+  }
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1">
+        <input
+          autoFocus
+          type="tel"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') save() }}
+          placeholder="WA cliente (54911...)"
+          className="w-36 bg-carbon-800 border border-carbon-600 rounded-full px-2.5 py-1 text-[11px] text-smoke-200 outline-none focus:border-emerald-500"
+        />
+        <button onClick={save} className="bg-emerald-600 text-white text-[11px] font-semibold px-2 py-1 rounded-full">OK</button>
+        <button onClick={() => setEditing(false)} className="text-smoke-500 text-[11px] px-1">✕</button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      <a
+        href={phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`}
+        target="_blank"
+        rel="noreferrer"
+        className="text-smoke-500 border border-carbon-700 text-[11px] px-2 py-1 rounded-full hover:text-smoke-200"
+        title={phone ? `Enviar seguimiento al ${phone}` : 'Enviar link de seguimiento (elegir contacto)'}
+      >
+        Seguimiento
+      </a>
+      <button
+        onClick={() => { setInput(phone); setEditing(true) }}
+        className="text-smoke-500 border border-carbon-700 text-[11px] px-1.5 py-1 rounded-full hover:text-smoke-200"
+        title="Cargar o cambiar el WhatsApp del cliente"
+      >
+        {phone ? '✎' : '+N°'}
+      </button>
+    </div>
+  )
+}
+
 function MesaPanel({ mesa, orders, venueSlug, venueName, onClose, onCloseTable, onUpdateStatus, onConfirmPayment, fiscalEnabled = false, fiscalCondition, invoices = {}, onInvoiceEmitted }) {
   const navigate = useNavigate()
   const ACTIVE = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo', 'entregado']
@@ -1106,25 +1166,7 @@ function MesaPanel({ mesa, orders, venueSlug, venueName, onClose, onCloseTable, 
                             {isBillAlert && (
                               <span className="text-amber-400 text-xs font-semibold">⚡ Cuenta</span>
                             )}
-                            {(() => {
-                              // Va directo al WhatsApp del cliente si lo tenemos;
-                              // si no, abre el picker de contactos
-                              const phone = (order.contact_whatsapp || order.customers?.whatsapp || '').replace(/\D/g, '')
-                              const text = encodeURIComponent(
-                                `🧾 Seguí tu pedido${order.daily_number ? ` #${order.daily_number}` : ''} en vivo: https://capyapp.co/ver-pedido/${order.id}\nAhí ves el detalle y el tiempo de preparación.`
-                              )
-                              return (
-                                <a
-                                  href={phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-smoke-500 border border-carbon-700 text-[11px] px-2 py-1 rounded-full hover:text-smoke-200"
-                                  title={phone ? `Enviar seguimiento al ${phone}` : 'Enviar link de seguimiento (elegir contacto)'}
-                                >
-                                  Seguimiento
-                                </a>
-                              )
-                            })()}
+                            <SeguimientoButton order={order} />
                             {/* Avance de estado directo desde el panel: el cajero
                                 puede manejar todo el ciclo sin ir al kanban */}
                             {onUpdateStatus && order.status === 'pendiente_aprobacion' && (
