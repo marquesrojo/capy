@@ -322,9 +322,12 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
 
         <p className="text-[#8896A5] text-sm mb-6">El pedido entró directo a preparación.</p>
 
-        {waLink && (
+        {/* Link de seguimiento para el cliente: detalle + cuenta regresiva */}
+        {lastOrder?.order?.id && (
           <a
-            href={waLink}
+            href={`https://wa.me/?text=${encodeURIComponent(
+              `🧾 Seguí tu pedido${lastOrder.order.daily_number ? ` #${lastOrder.order.daily_number}` : ''} en vivo: https://capyapp.co/ver-pedido/${lastOrder.order.id}\nAhí ves el detalle y el tiempo de preparación.`
+            )}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3.5 rounded-xl mb-3"
@@ -332,7 +335,21 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.86 9.86 0 0 0 12.04 2"/>
             </svg>
-            Enviar comanda por WhatsApp
+            Enviar seguimiento al cliente
+          </a>
+        )}
+
+        {waLink && (
+          <a
+            href={waLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full border border-emerald-600 text-emerald-700 font-semibold py-3 rounded-xl mb-3"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.86 9.86 0 0 0 12.04 2"/>
+            </svg>
+            Enviar comanda al local
           </a>
         )}
 
