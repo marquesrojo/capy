@@ -62,7 +62,7 @@ function AdminDashboardInner() {
   const [paidOrders, setPaidOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [view, setView] = useState('pedidos')
+  const [view, setView] = useState('mapa')
   const [zones, setZones] = useState([])
   const [waiterCalls, setWaiterCalls] = useState([])
   const [lowStockCount, setLowStockCount] = useState(0)
@@ -519,20 +519,20 @@ async function loadZones() {
 
       <div className="px-4 pt-3 flex gap-2">
         <button
-          onClick={() => setView('pedidos')}
-          className={`px-3 py-1.5 rounded-full text-xs font-medium border ${
-            view === 'pedidos' ? 'bg-ember-500 text-white border-ember-500' : 'border-carbon-700 text-smoke-400'
-          }`}
-        >
-          Pedidos
-        </button>
-        <button
           onClick={() => setView('mapa')}
           className={`px-3 py-1.5 rounded-full text-xs font-medium border ${
             view === 'mapa' ? 'bg-ember-500 text-white border-ember-500' : 'border-carbon-700 text-smoke-400'
           }`}
         >
           Mapa
+        </button>
+        <button
+          onClick={() => setView('pedidos')}
+          className={`px-3 py-1.5 rounded-full text-xs font-medium border ${
+            view === 'pedidos' ? 'bg-ember-500 text-white border-ember-500' : 'border-carbon-700 text-smoke-400'
+          }`}
+        >
+          Pedidos
         </button>
         <button
           onClick={() => setView('cocina')}
@@ -632,7 +632,19 @@ async function loadZones() {
       )}
 
       {view === 'mapa' ? (
-        <MapaView orders={orders} zones={zones} venueId={venueId} venueSlug={venueSlug} venueName={venueName} onUpdateStatus={updateStatus} onConfirmPayment={confirmPayment} />
+        <MapaView
+          orders={orders}
+          zones={zones}
+          venueId={venueId}
+          venueSlug={venueSlug}
+          venueName={venueName}
+          onUpdateStatus={updateStatus}
+          onConfirmPayment={confirmPayment}
+          fiscalEnabled={fiscalEnabled}
+          fiscalCondition={fiscalCondition}
+          invoices={invoices}
+          onInvoiceEmitted={(orderId, inv) => setInvoices(prev => ({ ...prev, [orderId]: inv }))}
+        />
       ) : view === 'cocina' ? (
         <CocinaView orders={orders} categories={categories} onUpdateStatus={updateStatus} onRefresh={load} />
       ) : (
@@ -893,7 +905,7 @@ function CocinaView({ orders, categories, onUpdateStatus, onRefresh }) {
   )
 }
 
-function MesaPanel({ mesa, orders, venueSlug, venueName, onClose, onCloseTable, onUpdateStatus, onConfirmPayment }) {
+function MesaPanel({ mesa, orders, venueSlug, venueName, onClose, onCloseTable, onUpdateStatus, onConfirmPayment, fiscalEnabled = false, fiscalCondition, invoices = {}, onInvoiceEmitted }) {
   const navigate = useNavigate()
   const ACTIVE = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo', 'entregado']
   const STATUS_RANK = { listo: 0, en_preparacion: 1, recibido: 2, pendiente_aprobacion: 3, entregado: 4 }
@@ -1140,6 +1152,16 @@ function MesaPanel({ mesa, orders, venueSlug, venueName, onClose, onCloseTable, 
                             )}
                           </div>
                         </div>
+
+                        {fiscalEnabled && (order.payment_status === 'aprobado' || invoices[order.id]?.status === 'approved') && (
+                          <FiscalTicket
+                            order={order}
+                            invoice={invoices[order.id]}
+                            onEmitted={onInvoiceEmitted}
+                            venueName={venueName}
+                            fiscalCondition={fiscalCondition}
+                          />
+                        )}
                       </div>
                     )
                   })}
@@ -1188,7 +1210,7 @@ function MesaPanel({ mesa, orders, venueSlug, venueName, onClose, onCloseTable, 
   )
 }
 
-function MapaView({ orders, zones, venueId, venueSlug, venueName, onUpdateStatus, onConfirmPayment }) {
+function MapaView({ orders, zones, venueId, venueSlug, venueName, onUpdateStatus, onConfirmPayment, fiscalEnabled, fiscalCondition, invoices, onInvoiceEmitted }) {
   const containerRef = useRef(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [cssFull, setCssFull] = useState(false)
@@ -1320,6 +1342,10 @@ function MapaView({ orders, zones, venueId, venueSlug, venueName, onUpdateStatus
           venueSlug={venueSlug}
           venueName={venueName}
           onConfirmPayment={onConfirmPayment}
+          fiscalEnabled={fiscalEnabled}
+          fiscalCondition={fiscalCondition}
+          invoices={invoices}
+          onInvoiceEmitted={onInvoiceEmitted}
           onClose={() => setSelectedMesa(null)}
           onCloseTable={() => setSelectedMesa(null)}
           onUpdateStatus={onUpdateStatus}
