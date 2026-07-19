@@ -10,6 +10,7 @@ export default function FloorPlanViewer({
   multiSelect = false,
   selectedZones,
   onSelectMultiple,
+  refreshKey = 0,
 }) {
   const [occupiedIds, setOccupiedIds] = useState(new Set())
   const [multiSelectedIds, setMultiSelectedIds] = useState(new Set(
@@ -39,6 +40,12 @@ export default function FloorPlanViewer({
     : hasZoneTabs
       ? decorItems.filter(d => d.parent_zone_id === activeZoneId)
       : decorItems
+
+  // Refresh inmediato cuando el padre sabe que la ocupación cambió
+  // (ej. Cerrar mesa) — sin esperar el evento de realtime
+  useEffect(() => {
+    if (venueId && refreshKey > 0) loadActive()
+  }, [refreshKey])
 
   useEffect(() => {
     if (!venueId) return

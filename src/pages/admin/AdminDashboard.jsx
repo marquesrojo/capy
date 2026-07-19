@@ -1214,6 +1214,7 @@ function MapaView({ orders, zones, venueId, venueSlug, venueName, onUpdateStatus
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [cssFull, setCssFull] = useState(false)
   const [selectedMesa, setSelectedMesa] = useState(null)
+  const [mapRefresh, setMapRefresh] = useState(0)
 
   function handleMesaSelect(zone) {
     setSelectedMesa(prev => prev?.id === zone.id ? null : zone)
@@ -1320,6 +1321,7 @@ function MapaView({ orders, zones, venueId, venueSlug, venueName, onUpdateStatus
                 filterZoneId={zona.id}
                 selectedZone={selectedMesa}
                 onSelect={handleMesaSelect}
+                refreshKey={mapRefresh}
               />
             </div>
           ))
@@ -1330,6 +1332,7 @@ function MapaView({ orders, zones, venueId, venueSlug, venueName, onUpdateStatus
             supabaseClient={supabaseStaff}
             selectedZone={selectedMesa}
             onSelect={handleMesaSelect}
+            refreshKey={mapRefresh}
           />
         )}
       </div>
@@ -1346,7 +1349,7 @@ function MapaView({ orders, zones, venueId, venueSlug, venueName, onUpdateStatus
           invoices={invoices}
           onInvoiceEmitted={onInvoiceEmitted}
           onClose={() => setSelectedMesa(null)}
-          onCloseTable={() => setSelectedMesa(null)}
+          onCloseTable={() => { setSelectedMesa(null); setMapRefresh(k => k + 1) }}
           onUpdateStatus={onUpdateStatus}
         />
       )}
