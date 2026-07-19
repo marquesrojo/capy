@@ -1333,28 +1333,37 @@ function MapaView({ orders, zones, venueId, venueSlug, venueName, onUpdateStatus
       </div>
 
       {/* Floor plan */}
-      <div className={effectiveFullscreen ? 'flex-1 flex gap-4 overflow-hidden' : ''}>
+      <div className={effectiveFullscreen ? 'flex-1 overflow-y-auto' : ''}>
         {effectiveFullscreen && relevantZonas.length > 1 ? (
-          relevantZonas.map(zona => (
-            <div key={zona.id} className="flex-1 flex flex-col min-w-0">
-              <p className="text-smoke-500 text-[10px] font-semibold uppercase tracking-widest mb-2">{zona.name}</p>
-              <div className="flex-1 overflow-auto">
-                <div style={{ width: `${zoom * 100}%` }}>
-                  <FloorPlanViewer
-                    zones={zones}
-                    venueId={venueId}
-                    supabaseClient={supabaseStaff}
-                    filterZoneId={zona.id}
-                    selectedZone={selectedMesa}
-                    onSelect={handleMesaSelect}
-                    refreshKey={mapRefresh}
-                  />
-                </div>
+          /* El zoom reduce las columnas (3 → 2 → 1): cada sector ocupa más
+             ancho y las mesas crecen proporcionalmente; scroll vertical */
+          (() => {
+            const baseCols = Math.min(relevantZonas.length, 3)
+            const cols = zoom >= 1.75 ? 1 : zoom >= 1.25 ? Math.min(2, baseCols) : baseCols
+            return (
+              <div
+                className="grid gap-4 content-start"
+                style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+              >
+                {relevantZonas.map(zona => (
+                  <div key={zona.id} className="min-w-0">
+                    <p className="text-smoke-500 text-[10px] font-semibold uppercase tracking-widest mb-2">{zona.name}</p>
+                    <FloorPlanViewer
+                      zones={zones}
+                      venueId={venueId}
+                      supabaseClient={supabaseStaff}
+                      filterZoneId={zona.id}
+                      selectedZone={selectedMesa}
+                      onSelect={handleMesaSelect}
+                      refreshKey={mapRefresh}
+                    />
+                  </div>
+                ))}
               </div>
-            </div>
-          ))
+            )
+          })()
         ) : (
-          <div className={effectiveFullscreen ? 'flex-1 overflow-auto' : ''}>
+          <div className={effectiveFullscreen ? 'overflow-x-auto' : ''}>
             <div style={effectiveFullscreen ? { width: `${zoom * 100}%` } : undefined}>
               <FloorPlanViewer
                 zones={zones}
