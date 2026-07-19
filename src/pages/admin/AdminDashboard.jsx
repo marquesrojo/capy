@@ -1217,6 +1217,7 @@ function MapaView({ orders, zones, venueId, venueSlug, venueName, onUpdateStatus
   const [cssFull, setCssFull] = useState(false)
   const [selectedMesa, setSelectedMesa] = useState(null)
   const [mapRefresh, setMapRefresh] = useState(0)
+  const [zoom, setZoom] = useState(1) // escala del plano en pantalla completa
 
   function handleMesaSelect(zone) {
     setSelectedMesa(prev => prev?.id === zone.id ? null : zone)
@@ -1288,6 +1289,26 @@ function MapaView({ orders, zones, venueId, venueSlug, venueName, onUpdateStatus
             </div>
           )}
         </div>
+        <div className="flex items-center gap-2">
+        {effectiveFullscreen && (
+          <div className="flex items-center gap-1 border border-carbon-700 rounded-lg px-1 py-0.5">
+            <button
+              onClick={() => setZoom(z => Math.max(1, +(z - 0.25).toFixed(2)))}
+              className="w-7 h-7 flex items-center justify-center text-smoke-400 hover:text-smoke-200 text-base font-bold"
+              title="Achicar plano"
+            >
+              −
+            </button>
+            <span className="text-smoke-500 text-[10px] font-mono w-9 text-center">{Math.round(zoom * 100)}%</span>
+            <button
+              onClick={() => setZoom(z => Math.min(2.5, +(z + 0.25).toFixed(2)))}
+              className="w-7 h-7 flex items-center justify-center text-smoke-400 hover:text-smoke-200 text-base font-bold"
+              title="Agrandar plano"
+            >
+              +
+            </button>
+          </div>
+        )}
         <button
           onClick={toggleFullscreen}
           className="flex items-center gap-1.5 text-smoke-500 border border-carbon-700 rounded-lg px-2.5 py-1.5 text-xs hover:text-smoke-300 transition-colors"
@@ -1308,6 +1329,7 @@ function MapaView({ orders, zones, venueId, venueSlug, venueName, onUpdateStatus
             </>
           )}
         </button>
+        </div>
       </div>
 
       {/* Floor plan */}
@@ -1316,26 +1338,34 @@ function MapaView({ orders, zones, venueId, venueSlug, venueName, onUpdateStatus
           relevantZonas.map(zona => (
             <div key={zona.id} className="flex-1 flex flex-col min-w-0">
               <p className="text-smoke-500 text-[10px] font-semibold uppercase tracking-widest mb-2">{zona.name}</p>
+              <div className="flex-1 overflow-auto">
+                <div style={{ width: `${zoom * 100}%` }}>
+                  <FloorPlanViewer
+                    zones={zones}
+                    venueId={venueId}
+                    supabaseClient={supabaseStaff}
+                    filterZoneId={zona.id}
+                    selectedZone={selectedMesa}
+                    onSelect={handleMesaSelect}
+                    refreshKey={mapRefresh}
+                  />
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className={effectiveFullscreen ? 'flex-1 overflow-auto' : ''}>
+            <div style={effectiveFullscreen ? { width: `${zoom * 100}%` } : undefined}>
               <FloorPlanViewer
                 zones={zones}
                 venueId={venueId}
                 supabaseClient={supabaseStaff}
-                filterZoneId={zona.id}
                 selectedZone={selectedMesa}
                 onSelect={handleMesaSelect}
                 refreshKey={mapRefresh}
               />
             </div>
-          ))
-        ) : (
-          <FloorPlanViewer
-            zones={zones}
-            venueId={venueId}
-            supabaseClient={supabaseStaff}
-            selectedZone={selectedMesa}
-            onSelect={handleMesaSelect}
-            refreshKey={mapRefresh}
-          />
+          </div>
         )}
       </div>
 
