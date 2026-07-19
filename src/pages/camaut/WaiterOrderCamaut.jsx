@@ -90,7 +90,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
       // is_ingredient_only may be NULL in older rows — treat NULL as false
       supabaseStaff.from('products').select('id, name, price, category_id, is_daily_special').eq('venue_id', vId).or('is_available.is.null,is_available.eq.true').or('is_ingredient_only.is.null,is_ingredient_only.eq.false'),
       supabaseStaff.from('staff_names').select('id').eq('venue_id', venueId).limit(1).maybeSingle(),
-      supabaseStaff.from('venue_zones').select('*').eq('venue_id', vId).eq('is_active', true).order('sort_order'),
+      supabaseStaff.from('venue_zones').select('*').eq('venue_id', vId).eq('is_active', true).order('sort_order', { ascending: true, nullsFirst: true }).order('name'),
       supabaseStaff.from('quick_notes').select('*').eq('venue_id', vId).eq('is_active', true).order('sort_order'),
       supabaseStaff.from('staff_menus').select('*').eq('venue_id', vId).order('created_at'),
       supabaseStaff.from('venue_discounts').select('*').eq('venue_id', vId).eq('is_active', true).order('created_at'),
