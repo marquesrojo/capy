@@ -33,7 +33,8 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
   const [step, setStep] = useState('carta') // 'carta' | 'confirmar'
   const [searchQuery, setSearchQuery] = useState('')
   const [showMap, setShowMap] = useState(false)
-  const [menuQrModal, setMenuQrModal] = useState(null) // { slug, name }
+  const [menuQrModal, setMenuQrModal] = useState(null) // { slug, name, menuId, zoneId, zoneLabel, staffId }
+  const [ownSlug, setOwnSlug] = useState(null)
   const [showCategorySheet, setShowCategorySheet] = useState(false)
   const [showLocationSheet, setShowLocationSheet] = useState(false)
   const [discounts, setDiscounts] = useState([])
@@ -74,6 +75,13 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
       onPrefillUsed?.()
     }
   }, [prefillLocation])
+
+  // Slug del venue propio, para compartir las cartas propias por QR
+  useEffect(() => {
+    if (!venueId) return
+    supabaseStaff.from('venues').select('slug').eq('id', venueId).single()
+      .then(({ data }) => setOwnSlug(data?.slug || null))
+  }, [venueId])
 
   async function fetchCarta(vid, resetCategory = false) {
     const vId = vid ?? activeVenueId
@@ -719,7 +727,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
           <div className="bg-white rounded-3xl p-6 w-full max-w-xs text-center" onClick={e => e.stopPropagation()}>
             <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-1">Carta digital</p>
             <p className="font-bold text-[#1A2A3A] text-base mb-4">{menuQrModal.name}</p>
-            <MenuQRCanvas slug={menuQrModal.slug} zoneId={menuQrModal.zoneId} zoneLabel={menuQrModal.zoneLabel} staffId={menuQrModal.staffId} />
+            <MenuQRCanvas slug={menuQrModal.slug} zoneId={menuQrModal.zoneId} zoneLabel={menuQrModal.zoneLabel} staffId={menuQrModal.staffId} menuId={menuQrModal.menuId} />
             <p className="text-[#8896A5] text-xs mt-3 mb-4">
               {menuQrModal.zoneId
                 ? `El cliente escanea esto y queda asignado a ${menuQrModal.zoneLabel || 'la mesa'}`
@@ -740,14 +748,19 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {activeVenueId !== venueId && (() => {
-              const av = linkedVenues.find(v => v.id === activeVenueId)
-              if (!av) return null
+            {(() => {
+              const isOwn = activeVenueId === venueId
+              const av = isOwn ? null : linkedVenues.find(v => v.id === activeVenueId)
+              if (!isOwn && !av) return null
+              const activeMenu = isOwn ? menus.find(m => m.id === activeMenuId) : null
               return (
                 <button
                   onClick={() => setMenuQrModal({
-                    slug: av.slug || null,
-                    name: av.name.replace(' — Capy', '').replace(' - Capy', ''),
+                    slug: isOwn ? ownSlug : (av.slug || null),
+                    name: isOwn
+                      ? (activeMenu ? activeMenu.name : 'Mi carta')
+                      : av.name.replace(' — Capy', '').replace(' - Capy', ''),
+                    menuId: isOwn && activeMenuId && activeMenuId !== 'all' ? activeMenuId : null,
                     zoneId: selectedZone && selectedZone.id !== 'otra' ? selectedZone.id : null,
                     zoneLabel: selectedZone && selectedZone.id !== 'otra' ? selectedZone.name : null,
                     staffId: staffId || waiterStaffId || null,
@@ -776,7 +789,32 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
       {/* Mis Cartas (venue propio): selector de carta/menú */}
       {activeVenueId === venueId && menus.length > 0 && (
         <div className="flex-shrink-0 px-4 pt-3 pb-1">
-          <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-2">Seleccioná tu carta</p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide">Seleccioná tu carta</p>
+            {linkedVenues.length === 0 && (
+              <button
+                onClick={() => {
+                  const activeMenu = menus.find(m => m.id === activeMenuId)
+                  setMenuQrModal({
+                    slug: ownSlug,
+                    name: activeMenu ? activeMenu.name : 'Mi carta',
+                    menuId: activeMenuId && activeMenuId !== 'all' ? activeMenuId : null,
+                    zoneId: selectedZone && selectedZone.id !== 'otra' ? selectedZone.id : null,
+                    zoneLabel: selectedZone && selectedZone.id !== 'otra' ? selectedZone.name : null,
+                    staffId: staffId || waiterStaffId || null,
+                  })
+                }}
+                className="flex items-center gap-1.5 text-[#008080] text-xs font-semibold border border-[#008080]/30 px-3 py-1.5 rounded-xl"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="5" height="5"/><rect x="16" y="3" width="5" height="5"/>
+                  <rect x="3" y="16" width="5" height="5"/>
+                  <path d="M21 16h-3a2 2 0 0 0-2 2v3M21 21v.01M12 7v3a2 2 0 0 1-2 2H7M3 12h.01M12 3h.01M7 17H4a1 1 0 0 1-1-1v-3"/>
+                </svg>
+                QR carta
+              </button>
+            )}
+          </div>
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
             <button
               onClick={() => { setActiveMenuId('all'); setActiveCategory(categories[0]?.id || null) }}
@@ -1600,7 +1638,7 @@ function QRCanvas({ orderId }) {
   )
 }
 
-function MenuQRCanvas({ slug, zoneId, zoneLabel, staffId }) {
+function MenuQRCanvas({ slug, zoneId, zoneLabel, staffId, menuId }) {
   const canvasRef = useRef(null)
   let url = null
   if (slug) {
@@ -1608,9 +1646,10 @@ function MenuQRCanvas({ slug, zoneId, zoneLabel, staffId }) {
       const params = new URLSearchParams({ go: '1', zone_id: zoneId, location_type: 'mesa' })
       if (zoneLabel) params.set('location_label', zoneLabel)
       if (staffId) params.set('waiter_id', staffId)
+      if (menuId) params.set('menu', menuId)
       url = `https://capyapp.co/r/${slug}?${params.toString()}`
     } else {
-      url = `https://capyapp.co/r/${slug}/carta`
+      url = `https://capyapp.co/r/${slug}/carta${menuId ? `?menu=${menuId}` : ''}`
     }
   }
 
