@@ -248,10 +248,9 @@ async function loadZones() {
         return !method.includes('transfer')
       })
 
-      // Excluir pedidos cerrados: entregado + pagado = ya no aparecen en el panel
-      let openOrders = (boardRes.data || []).filter(o =>
-        !(o.status === 'entregado' && o.payment_status === 'aprobado')
-      )
+      // Los pedidos cobrados siguen visibles (panel de mesa y kanban) hasta que
+      // el cajero los cierre: ahí se archivan y quedan solo en Pagado hoy/Historial
+      let openOrders = boardRes.data || []
 
       // Cuando el FK join de assigned_staff falla (camarero de otro venue),
       // assigned_staff queda null aunque assigned_staff_id esté seteado.
@@ -740,7 +739,7 @@ async function loadZones() {
               waiters={waiters}
               onAssignWaiter={assignWaiter}
               pendingInPersonOrders={status === 'entregado' ? pendingInPersonOrders : []}
-              paidOrders={status === 'entregado' ? paidOrders : []}
+              paidOrders={status === 'entregado' ? paidOrders.filter(p => !orders.some(o => o.id === p.id)) : []}
               onConfirmPayment={status === 'entregado' ? confirmPayment : null}
               onCloseOrder={status === 'entregado' ? closeOrder : null}
               fiscalEnabled={status === 'entregado' ? fiscalEnabled : false}
@@ -1730,6 +1729,10 @@ function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssi
                 onCloseOrder={onCloseOrder}
                 onConfirmPayment={onConfirmPayment}
                 venueName={venueName}
+                fiscalEnabled={fiscalEnabled}
+                fiscalCondition={fiscalCondition}
+                invoice={invoices[order.id]}
+                onInvoiceEmitted={onInvoiceEmitted}
               />
             )
           }
@@ -1755,6 +1758,10 @@ function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssi
                     onCloseOrder={onCloseOrder}
                     onConfirmPayment={onConfirmPayment}
                     venueName={venueName}
+                    fiscalEnabled={fiscalEnabled}
+                    fiscalCondition={fiscalCondition}
+                    invoice={invoices[order.id]}
+                    onInvoiceEmitted={onInvoiceEmitted}
                     inGroup
                   />
                 ))}
@@ -1825,7 +1832,7 @@ function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssi
   )
 }
 
-function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCall, waiters, onAssignWaiter, onCloseOrder, onConfirmPayment, venueName, inGroup }) {
+function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCall, waiters, onAssignWaiter, onCloseOrder, onConfirmPayment, venueName, fiscalEnabled = false, fiscalCondition, invoice, onInvoiceEmitted, inGroup }) {
   const [showWaiterSelect, setShowWaiterSelect] = useState(false)
   const [showQR, setShowQR] = useState(false)
   const [showSummary, setShowSummary] = useState(false)
@@ -1991,10 +1998,13 @@ function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCal
             <button
               onClick={() => onConfirmPayment(order)}
               className="text-white text-xs font-semibold px-3 py-1.5 rounded-full bg-blue-600 hover:bg-blue-700"
-              title="Marcar como cobrado (pasa a Pagado hoy, donde se puede facturar)"
+              title="Marcar como cobrado"
             >
               💰 Cobrar
             </button>
+          )}
+          {order.status === 'entregado' && order.payment_status === 'aprobado' && (
+            <span className="text-emerald-500 text-xs font-semibold">Pagado ✓</span>
           )}
           {onCloseOrder && order.status === 'entregado' && (
             <button
@@ -2007,6 +2017,16 @@ function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCal
           )}
         </div>
       </div>
+
+      {fiscalEnabled && order.status === 'entregado' && (order.payment_status === 'aprobado' || invoice?.status === 'approved') && (
+        <FiscalTicket
+          order={order}
+          invoice={invoice}
+          onEmitted={onInvoiceEmitted}
+          venueName={venueName}
+          fiscalCondition={fiscalCondition}
+        />
+      )}
 
       {showSummary && (
         <AccountSummary
