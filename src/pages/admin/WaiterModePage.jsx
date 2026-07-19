@@ -120,7 +120,12 @@ export default function WaiterModePage({ venueId, staffName, staffXP }) {
             </div>
           </div>
           {adminFlow ? (
-            <button onClick={() => navigate('/admin')} className="text-[#8896A5] text-xs underline">← Dashboard</button>
+            <button
+              onClick={() => navigate('/admin')}
+              className="flex items-center gap-1.5 bg-[#008080] hover:bg-[#006666] text-white text-sm font-bold px-5 py-2.5 rounded-xl shadow-sm"
+            >
+              ← Dashboard
+            </button>
           ) : (
             <button onClick={handleSignOut} className="text-[#8896A5] text-xs underline">Salir</button>
           )}
