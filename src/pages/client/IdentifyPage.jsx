@@ -118,8 +118,11 @@ export default function IdentifyPage() {
   const prefillType = searchParams.get('location_type') || 'zona'
   const prefillSession = searchParams.get('session_id')
   const prefillWaiterId = searchParams.get('waiter_id')
+  const prefillMenu = searchParams.get('menu')
   const isMostrador = searchParams.get('mostrador') === '1'
   const decodedLabel = prefillLabel ? decodeURIComponent(prefillLabel) : null
+  // Si el QR compartió una carta específica, el filtro viaja hasta la carta
+  const cartaPath = `${base}/carta${prefillMenu ? `?menu=${prefillMenu}` : ''}`
 
   const activeZoneId = prefillZoneId || pickedZone?.id || null
   const activeLabel = decodedLabel || pickedZone?.name || null
@@ -191,7 +194,7 @@ export default function IdentifyPage() {
           } else {
             setLocation({ type: 'retiro', label: 'Mostrador', mostrador: true })
           }
-          navigate(`${base}/carta`, { replace: true })
+          navigate(cartaPath, { replace: true })
         }
       }).catch(() => {})
     } else {
@@ -794,7 +797,7 @@ export default function IdentifyPage() {
 
         {/* ── Quiero pedir yo mismo ── */}
         <button
-          onClick={() => navigate(`${base}/carta`)}
+          onClick={() => navigate(cartaPath)}
           className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl shadow-lg active:scale-[0.98] transition-transform"
           style={{ backgroundColor: selfColor }}
         >
@@ -956,7 +959,7 @@ export default function IdentifyPage() {
                 <div className={`grid gap-3 px-4 pb-4 ${retiroExternoEnabled && deliveryEnabled ? 'grid-cols-2' : 'grid-cols-1'}`}>
                   {retiroExternoEnabled && (
                     <button
-                      onClick={() => { setLocation({ type: 'retiro_externo', label: 'Retiro en local' }); navigate(`${base}/carta`) }}
+                      onClick={() => { setLocation({ type: 'retiro_externo', label: 'Retiro en local' }); navigate(cartaPath) }}
                       className="border-2 rounded-2xl p-4 text-left active:scale-[0.97] transition-transform"
                       style={{ borderColor: `${accentOnWhite}40`, backgroundColor: `${accentOnWhite}08` }}
                     >
@@ -971,7 +974,7 @@ export default function IdentifyPage() {
                   )}
                   {deliveryEnabled && (
                     <button
-                      onClick={() => { setLocation({ type: 'delivery', label: 'Delivery' }); navigate(`${base}/carta`) }}
+                      onClick={() => { setLocation({ type: 'delivery', label: 'Delivery' }); navigate(cartaPath) }}
                       className="border-2 rounded-2xl p-4 text-left active:scale-[0.97] transition-transform"
                       style={{ borderColor: `${accentOnWhite}40`, backgroundColor: `${accentOnWhite}08` }}
                     >
@@ -1021,7 +1024,7 @@ export default function IdentifyPage() {
               {topProducts.slice(0, 4).map(p => (
                 <button
                   key={p.id}
-                  onClick={() => { addItem(p, 1); navigate(`${base}/carta`) }}
+                  onClick={() => { addItem(p, 1); navigate(cartaPath) }}
                   className="bg-white rounded-2xl overflow-hidden shadow-sm border border-black/[0.05] text-left active:scale-[0.97] transition-transform"
                 >
                   {p.image_url ? (

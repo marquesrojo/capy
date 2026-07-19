@@ -78,9 +78,22 @@ export default function MenuPage() {
         supabaseCustomer.from('products').select('*').eq('venue_id', venueId).order('sort_order'),
         supabaseCustomer.from('venues').select('high_demand, name, logo_url, header_bg_color, header_text_color').eq('id', venueId).single(),
       ])
-      setCategories(catRes.data || [])
-      setProducts(prodRes.data || [])
-      if (catRes.data?.length) setActiveCategory(catRes.data[0].id)
+      // ?menu=<id>: el QR compartió una carta específica (camarero autónomo) —
+      // se muestran solo sus categorías. Si el id no matchea nada, carta completa.
+      const menuFilter = searchParams.get('menu')
+      let cats = catRes.data || []
+      let prods = prodRes.data || []
+      if (menuFilter) {
+        const filtered = cats.filter(c => c.menu_id === menuFilter)
+        if (filtered.length) {
+          cats = filtered
+          const catIds = new Set(cats.map(c => c.id))
+          prods = prods.filter(p => catIds.has(p.category_id))
+        }
+      }
+      setCategories(cats)
+      setProducts(prods)
+      if (cats.length) setActiveCategory(cats[0].id)
       if (venueRes.data) {
         setHighDemand(venueRes.data.high_demand)
         setVenueName(venueRes.data.name)
