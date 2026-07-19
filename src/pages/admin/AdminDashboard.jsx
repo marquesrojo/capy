@@ -632,7 +632,7 @@ async function loadZones() {
       )}
 
       {view === 'mapa' ? (
-        <MapaView orders={orders} zones={zones} venueId={venueId} venueSlug={venueSlug} venueName={venueName} onUpdateStatus={updateStatus} />
+        <MapaView orders={orders} zones={zones} venueId={venueId} venueSlug={venueSlug} venueName={venueName} onUpdateStatus={updateStatus} onConfirmPayment={confirmPayment} />
       ) : view === 'cocina' ? (
         <CocinaView orders={orders} categories={categories} onUpdateStatus={updateStatus} onRefresh={load} />
       ) : (
@@ -893,7 +893,7 @@ function CocinaView({ orders, categories, onUpdateStatus, onRefresh }) {
   )
 }
 
-function MesaPanel({ mesa, orders, venueSlug, venueName, onClose, onCloseTable, onUpdateStatus }) {
+function MesaPanel({ mesa, orders, venueSlug, venueName, onClose, onCloseTable, onUpdateStatus, onConfirmPayment }) {
   const navigate = useNavigate()
   const ACTIVE = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo', 'entregado']
   const STATUS_RANK = { listo: 0, en_preparacion: 1, recibido: 2, pendiente_aprobacion: 3, entregado: 4 }
@@ -958,7 +958,7 @@ function MesaPanel({ mesa, orders, venueSlug, venueName, onClose, onCloseTable, 
   mesaOrders.forEach(order => {
     ;(order.order_items || []).forEach(item => {
       const key = item.product_name
-      if (!itemMap[key]) itemMap[key] = { name: key, qty: 0, worstStatus: 'pendiente_aprobacion' }
+      if (!itemMap[key]) itemMap[key] = { name: key, qty: 0, worstStatus: order.status }
       itemMap[key].qty += item.quantity
       if (STATUS_RANK[order.status] < STATUS_RANK[itemMap[key].worstStatus]) {
         itemMap[key].worstStatus = order.status
@@ -977,12 +977,14 @@ function MesaPanel({ mesa, orders, venueSlug, venueName, onClose, onCloseTable, 
     en_preparacion: 'text-ember-500',
     recibido: 'text-blue-400',
     pendiente_aprobacion: 'text-amber-400',
+    entregado: 'text-smoke-500',
   }
   const STATUS_SHORT = {
     listo: 'Listo',
     en_preparacion: 'En prep.',
     recibido: 'Recibido',
     pendiente_aprobacion: 'Por aprobar',
+    entregado: 'Entregado',
   }
 
   return (
@@ -1091,13 +1093,50 @@ function MesaPanel({ mesa, orders, venueSlug, venueName, onClose, onCloseTable, 
                             {isBillAlert && (
                               <span className="text-amber-400 text-xs font-semibold">⚡ Cuenta</span>
                             )}
-                            {isListo && onUpdateStatus && (
+                            {/* Avance de estado directo desde el panel: el cajero
+                                puede manejar todo el ciclo sin ir al kanban */}
+                            {onUpdateStatus && order.status === 'pendiente_aprobacion' && (
+                              <button
+                                onClick={() => onUpdateStatus(order.id, 'recibido')}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-colors"
+                              >
+                                Aprobar ✓
+                              </button>
+                            )}
+                            {onUpdateStatus && order.status === 'recibido' && (
+                              <button
+                                onClick={() => onUpdateStatus(order.id, 'en_preparacion')}
+                                className="bg-ember-500 hover:bg-ember-600 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-colors"
+                              >
+                                Preparación →
+                              </button>
+                            )}
+                            {onUpdateStatus && order.status === 'en_preparacion' && (
+                              <button
+                                onClick={() => onUpdateStatus(order.id, 'listo')}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-colors"
+                              >
+                                Listo ✓
+                              </button>
+                            )}
+                            {onUpdateStatus && isListo && (
                               <button
                                 onClick={() => onUpdateStatus(order.id, 'entregado')}
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-colors"
                               >
                                 Entregar ✓
                               </button>
+                            )}
+                            {onConfirmPayment && order.status === 'entregado' && order.payment_status === 'pendiente' && (
+                              <button
+                                onClick={() => onConfirmPayment(order)}
+                                className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-colors"
+                              >
+                                💰 Cobrar
+                              </button>
+                            )}
+                            {order.status === 'entregado' && order.payment_status === 'aprobado' && (
+                              <span className="text-emerald-500 text-xs font-semibold">Pagado ✓</span>
                             )}
                           </div>
                         </div>
@@ -1149,7 +1188,7 @@ function MesaPanel({ mesa, orders, venueSlug, venueName, onClose, onCloseTable, 
   )
 }
 
-function MapaView({ orders, zones, venueId, venueSlug, venueName, onUpdateStatus }) {
+function MapaView({ orders, zones, venueId, venueSlug, venueName, onUpdateStatus, onConfirmPayment }) {
   const containerRef = useRef(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [cssFull, setCssFull] = useState(false)
@@ -1280,6 +1319,7 @@ function MapaView({ orders, zones, venueId, venueSlug, venueName, onUpdateStatus
           orders={orders}
           venueSlug={venueSlug}
           venueName={venueName}
+          onConfirmPayment={onConfirmPayment}
           onClose={() => setSelectedMesa(null)}
           onCloseTable={() => setSelectedMesa(null)}
           onUpdateStatus={onUpdateStatus}
