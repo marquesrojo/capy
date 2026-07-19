@@ -107,11 +107,13 @@ function AdminDashboardInner() {
   }
 
 async function loadZones() {
+    // Mismo criterio de orden que Ubicaciones: sort_order y desempate por nombre
     const { data } = await supabaseStaff
       .from('venue_zones')
       .select('*')
       .eq('venue_id', venueId)
-      .order('sort_order')
+      .order('sort_order', { ascending: true, nullsFirst: true })
+      .order('name')
     setZones(data || [])
   }
 

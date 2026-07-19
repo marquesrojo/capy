@@ -50,7 +50,7 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
     async function init() {
       const [staffData, zoneRes, catRes, prodRes, venueRes, notesRes, discountsRes] = await Promise.all([
         fetchVenueWaiters(activeVenueId),
-        supabaseStaff.from('venue_zones').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order'),
+        supabaseStaff.from('venue_zones').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order', { ascending: true, nullsFirst: true }).order('name'),
         supabaseStaff.from('categories').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order'),
         supabaseStaff.from('products').select('*').eq('venue_id', activeVenueId).eq('is_available', true).order('sort_order'),
         supabaseStaff.from('venues').select('whatsapp_number').eq('id', activeVenueId).single(),
