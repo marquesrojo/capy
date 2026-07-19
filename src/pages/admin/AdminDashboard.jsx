@@ -1106,6 +1106,17 @@ function MesaPanel({ mesa, orders, venueSlug, venueName, onClose, onCloseTable, 
                             {isBillAlert && (
                               <span className="text-amber-400 text-xs font-semibold">⚡ Cuenta</span>
                             )}
+                            <a
+                              href={`https://wa.me/?text=${encodeURIComponent(
+                                `🧾 Seguí tu pedido${order.daily_number ? ` #${order.daily_number}` : ''} en vivo: https://capyapp.co/ver-pedido/${order.id}\nAhí ves el detalle y el tiempo de preparación.`
+                              )}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-smoke-500 border border-carbon-700 text-[11px] px-2 py-1 rounded-full hover:text-smoke-200"
+                              title="Enviar link de seguimiento al cliente por WhatsApp (detalle + cuenta regresiva)"
+                            >
+                              Seguimiento
+                            </a>
                             {/* Avance de estado directo desde el panel: el cajero
                                 puede manejar todo el ciclo sin ir al kanban */}
                             {onUpdateStatus && order.status === 'pendiente_aprobacion' && (
