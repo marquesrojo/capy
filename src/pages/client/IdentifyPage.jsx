@@ -68,6 +68,16 @@ export default function IdentifyPage() {
   // En la web app instalada el OAuth de Google no completa el flujo
   // (limitación de las PWA): se usa login por código de email
   const isStandaloneApp = window.matchMedia('(display-mode: standalone)').matches || !!window.navigator.standalone
+
+  async function handleLoginClick() {
+    try {
+      if (isStandaloneApp) { setShowEmailLogin(true); return }
+      const r = await loginWithGoogle(`${base}/carta`)
+      if (r?.error) setGoogleError(r.error.message)
+    } catch (e) {
+      alert(`Error de login: ${e?.message || e}`)
+    }
+  }
   const [forceDesktop, setForceDesktop] = useState(() => localStorage.getItem('capy-force-desktop') === '1')
   function toggleDesktop(v) {
     setForceDesktop(v)
@@ -396,15 +406,7 @@ export default function IdentifyPage() {
             </button>
           ) : (
             <button
-              onClick={async () => {
-                try {
-                  if (isStandaloneApp) { setShowEmailLogin(true); return }
-                  const r = await loginWithGoogle(`${base}/carta`)
-                  if (r?.error) setGoogleError(r.error.message)
-                } catch (e) {
-                  alert(`Error de login: ${e?.message || e}`)
-                }
-              }}
+              onClick={handleLoginClick}
               className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center text-white"
               title="Iniciar sesión"
             >
@@ -1378,6 +1380,31 @@ export default function IdentifyPage() {
               </>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Login accesible al pie: mismo flujo que la personita del hero */}
+      {(isAnonymous || !customer) ? (
+        <div className="flex justify-center pb-2">
+          <button
+            onClick={handleLoginClick}
+            className="flex items-center gap-2 border border-black/15 text-[#3A4A5A] text-sm font-semibold px-5 py-2.5 rounded-full bg-white shadow-sm active:opacity-70"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            Iniciar sesión
+          </button>
+        </div>
+      ) : (
+        <div className="flex justify-center pb-2">
+          <button
+            onClick={() => navigate(`${base}/cuenta`)}
+            className="flex items-center gap-2 border border-black/15 text-[#3A4A5A] text-sm font-semibold px-5 py-2.5 rounded-full bg-white shadow-sm active:opacity-70"
+          >
+            Mi cuenta · {customer.full_name?.split(' ')[0] || ''}
+          </button>
         </div>
       )}
 
