@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { supabaseCustomer } from '../lib/supabase'
 
 // Login por código de email: para la web app instalada (standalone), donde
@@ -39,8 +40,10 @@ export default function EmailLoginModal({ onClose, onSuccess, accent = '#1A3A6B'
     onClose()
   }
 
-  return (
-    <div className="fixed inset-0 z-[70] bg-black/60 flex items-center justify-center p-5" onClick={onClose}>
+  // Portal al body: evita quedar atrapado en contextos de apilamiento
+  // (transform/filter de contenedores) que dejan el modal invisible
+  return createPortal(
+    <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-5" onClick={onClose}>
       <div
         className="bg-white rounded-3xl w-full max-w-sm p-6"
         onClick={e => e.stopPropagation()}
@@ -107,6 +110,7 @@ export default function EmailLoginModal({ onClose, onSuccess, accent = '#1A3A6B'
 
         <button onClick={onClose} className="w-full text-[#8896A5] text-sm mt-4">Cancelar</button>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
