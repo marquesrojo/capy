@@ -6,6 +6,7 @@ import { useCart } from '../../hooks/useCart'
 import { useCustomer } from '../../hooks/useCustomer'
 import { ClipboardIcon, HelpCircleIcon, FileTextIcon, MessageIcon, PinIcon, UtensilsIcon, XIcon } from '../../components/Icons'
 import ClientFloorMap from '../../components/ClientFloorMap'
+import EmailLoginModal from '../../components/EmailLoginModal'
 
 const WAITER_REASONS = [
   { id: 'tomar_pedido', label: 'Tomar mi pedido', Icon: ClipboardIcon },
@@ -63,6 +64,10 @@ export default function IdentifyPage() {
   const { setLocation, setSessionId, addItem, setAssignedStaffId } = useCart()
   const { customer, isAnonymous, loginWithGoogle } = useCustomer()
   const [googleError, setGoogleError] = useState('')
+  const [showEmailLogin, setShowEmailLogin] = useState(false)
+  // En la web app instalada el OAuth de Google no completa el flujo
+  // (limitación de las PWA): se usa login por código de email
+  const isStandaloneApp = window.matchMedia('(display-mode: standalone)').matches || !!window.navigator.standalone
   const [forceDesktop, setForceDesktop] = useState(() => localStorage.getItem('capy-force-desktop') === '1')
   function toggleDesktop(v) {
     setForceDesktop(v)
@@ -391,7 +396,11 @@ export default function IdentifyPage() {
             </button>
           ) : (
             <button
-              onClick={async () => { const r = await loginWithGoogle(`${base}/carta`); if (r?.error) setGoogleError(r.error.message) }}
+              onClick={async () => {
+                if (isStandaloneApp) { setShowEmailLogin(true); return }
+                const r = await loginWithGoogle(`${base}/carta`)
+                if (r?.error) setGoogleError(r.error.message)
+              }}
               className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center text-white"
               title="Iniciar sesión"
             >
@@ -402,6 +411,13 @@ export default function IdentifyPage() {
             </button>
           )}
         </div>
+
+        {showEmailLogin && (
+          <EmailLoginModal
+            onClose={() => setShowEmailLogin(false)}
+            onSuccess={() => window.location.reload()}
+          />
+        )}
 
         <div className={`relative z-10 px-6 text-center ${fd ? 'flex-1 flex flex-col items-center justify-center py-10' : fc ? '' : 'lg:flex-1 lg:flex lg:flex-col lg:items-center lg:justify-center lg:py-10'}`}>
           <div className={`${fd ? 'w-28 h-28' : fc ? 'w-20 h-20' : 'w-20 h-20 lg:w-28 lg:h-28'} mx-auto mb-3 rounded-2xl bg-white/95 p-1.5 shadow-lg`}>

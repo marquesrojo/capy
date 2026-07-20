@@ -8,6 +8,7 @@ import BottomNav from '../../components/BottomNav'
 import { useClientBase, useVenueOptional } from '../../hooks/useVenue'
 import { PinIcon, SunIcon, ShoppingBagIcon, ClockIcon, XIcon, DIETARY_TAGS } from '../../components/Icons'
 import RecommendModal from '../../components/RecommendModal'
+import EmailLoginModal from '../../components/EmailLoginModal'
 
 export default function MenuPage() {
   const [categories, setCategories] = useState([])
@@ -25,6 +26,9 @@ export default function MenuPage() {
   const { items, addItem, updateQuantity, itemCount, subtotal, location, setLocation, setSessionId } = useCart()
   const [searchParams] = useSearchParams()
   const { customer, isAnonymous, forgetCustomer, loginWithGoogle } = useCustomer()
+  const [showEmailLogin, setShowEmailLogin] = useState(false)
+  // En la web app instalada el OAuth de Google no completa: login por código de email
+  const isStandaloneApp = window.matchMedia('(display-mode: standalone)').matches || !!window.navigator.standalone
   const navigate = useNavigate()
   const base = useClientBase()
   const venueCtx = useVenueOptional()
@@ -231,7 +235,7 @@ export default function MenuPage() {
             </div>
           ) : isAnonymous ? (
             <button
-              onClick={() => loginWithGoogle(`${base}/carta`)}
+              onClick={() => { if (isStandaloneApp) { setShowEmailLogin(true); return } loginWithGoogle(`${base}/carta`) }}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[11px] font-semibold shrink-0"
               style={{ borderColor: `${accentText}40`, color: accentText, backgroundColor: `${accentText}15` }}
             >
@@ -245,6 +249,13 @@ export default function MenuPage() {
             </button>
           ) : null}
         </div>
+
+        {showEmailLogin && (
+          <EmailLoginModal
+            onClose={() => setShowEmailLogin(false)}
+            onSuccess={() => window.location.reload()}
+          />
+        )}
 
         {/* Search + Category filter */}
         <div className="flex items-center gap-2">
