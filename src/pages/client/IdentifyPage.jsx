@@ -395,8 +395,9 @@ export default function IdentifyPage() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/10 to-black/80 pointer-events-none" />
         <div className="absolute bottom-0 inset-x-0 h-2/3 bg-gradient-to-t from-black/70 via-black/30 to-transparent pointer-events-none" />
 
-        {/* Login / cuenta — top right */}
-        <div className="absolute z-10" style={{ top: 'max(0.75rem, env(safe-area-inset-top))', right: '1rem' }}>
+        {/* Login / cuenta — top right. En standalone iOS la franja del notch se
+            queda con los toques: el botón va DEBAJO del safe-area, no al ras */}
+        <div className="absolute z-10" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)', right: '1rem' }}>
           {!isAnonymous && customer ? (
             <button
               onClick={() => navigate(`${base}/cuenta`)}
