@@ -397,9 +397,13 @@ export default function IdentifyPage() {
           ) : (
             <button
               onClick={async () => {
-                if (isStandaloneApp) { setShowEmailLogin(true); return }
-                const r = await loginWithGoogle(`${base}/carta`)
-                if (r?.error) setGoogleError(r.error.message)
+                try {
+                  if (isStandaloneApp) { setShowEmailLogin(true); return }
+                  const r = await loginWithGoogle(`${base}/carta`)
+                  if (r?.error) setGoogleError(r.error.message)
+                } catch (e) {
+                  alert(`Error de login: ${e?.message || e}`)
+                }
               }}
               className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center text-white"
               title="Iniciar sesión"
@@ -1376,6 +1380,11 @@ export default function IdentifyPage() {
           </div>
         </div>
       )}
+
+      {/* Marca de build para diagnosticar PWAs con bundle viejo */}
+      <p className="text-center text-[9px] text-black/25 py-1 select-none">
+        capy {typeof __BUILD_TS__ !== 'undefined' ? __BUILD_TS__ : 'dev'}
+      </p>
     </div>
   )
 }
