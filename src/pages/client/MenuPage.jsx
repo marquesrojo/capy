@@ -180,8 +180,12 @@ export default function MenuPage() {
 
       <header
         ref={headerRef}
-        className="flex-shrink-0 px-4 pt-4 pb-3"
-        style={headerBgColor ? { backgroundColor: headerBgColor } : { backgroundColor: accentBg }}
+        className="flex-shrink-0 px-4 pb-3"
+        style={{
+          // Respeta la barra de estado del iPhone en la PWA instalada
+          paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1rem)',
+          ...(headerBgColor ? { backgroundColor: headerBgColor } : { backgroundColor: accentBg }),
+        }}
       >
         <div className="flex items-center justify-between mb-2.5">
           <div className="flex items-center gap-2.5">
