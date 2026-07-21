@@ -62,7 +62,11 @@ export default function IdentifyPage() {
     return '#1A2332'
   })()
   const { setLocation, setSessionId, addItem, setAssignedStaffId } = useCart()
-  const { customer, isAnonymous, loginWithGoogle } = useCustomer()
+  const { customer, isAnonymous, userEmail, loginWithGoogle } = useCustomer()
+  // "Logueado" = sesión real (no anónima), aunque todavía no haya completado
+  // su perfil de cliente (nombre/WhatsApp). El perfil se completa al pedir.
+  const isLoggedIn = !isAnonymous
+  const accountInitial = (customer?.full_name || userEmail || '?').trim()[0]?.toUpperCase() || '?'
   const [googleError, setGoogleError] = useState('')
   const [showEmailLogin, setShowEmailLogin] = useState(false)
   // En la web app instalada el OAuth de Google no completa el flujo
@@ -398,12 +402,12 @@ export default function IdentifyPage() {
         {/* Login / cuenta — top right. z alto + área táctil grande: en standalone
             iOS el bloque del logo (misma capa) se comía el toque en esta esquina */}
         <div className="absolute z-[60]" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)', right: '0.5rem' }}>
-          {!isAnonymous && customer ? (
+          {isLoggedIn ? (
             <button
               onClick={() => navigate(`${base}/cuenta`)}
               className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center text-white font-bold text-sm"
             >
-              {customer.full_name?.[0]?.toUpperCase() || '?'}
+              {accountInitial}
             </button>
           ) : (
             <button
@@ -1385,7 +1389,7 @@ export default function IdentifyPage() {
       )}
 
       {/* Login accesible al pie: mismo flujo que la personita del hero */}
-      {(isAnonymous || !customer) ? (
+      {!isLoggedIn ? (
         <div className="flex justify-center pb-2">
           <button
             onClick={handleLoginClick}
@@ -1404,7 +1408,7 @@ export default function IdentifyPage() {
             onClick={() => navigate(`${base}/cuenta`)}
             className="flex items-center gap-2 border border-black/15 text-[#3A4A5A] text-sm font-semibold px-5 py-2.5 rounded-full bg-white shadow-sm active:opacity-70"
           >
-            Mi cuenta · {customer.full_name?.split(' ')[0] || ''}
+            Mi cuenta{customer?.full_name ? ` · ${customer.full_name.split(' ')[0]}` : ''}
           </button>
         </div>
       )}
