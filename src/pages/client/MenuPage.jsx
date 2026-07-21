@@ -25,7 +25,7 @@ export default function MenuPage() {
   const [headerTextColor, setHeaderTextColor] = useState('#FFFFFF')
   const { items, addItem, updateQuantity, itemCount, subtotal, location, setLocation, setSessionId } = useCart()
   const [searchParams] = useSearchParams()
-  const { customer, isAnonymous, forgetCustomer, loginWithGoogle } = useCustomer()
+  const { customer, isAnonymous, userEmail, forgetCustomer, loginWithGoogle } = useCustomer()
   const [showEmailLogin, setShowEmailLogin] = useState(false)
   // En la web app instalada el OAuth de Google no completa: login por código de email
   const isStandaloneApp = window.matchMedia('(display-mode: standalone)').matches || !!window.navigator.standalone
@@ -220,10 +220,10 @@ export default function MenuPage() {
               )}
             </div>
           </div>
-          {customer?.full_name ? (
+          {customer?.full_name || (!isAnonymous && userEmail) ? (
             <div className="text-right shrink-0">
               <p className="text-[11px] font-semibold leading-none mb-0.5" style={{ color: accentText }}>
-                {customer.full_name}
+                {customer?.full_name || userEmail}
               </p>
               <button
                 onClick={async () => { await forgetCustomer(); navigate(base || '/identificacion') }}
