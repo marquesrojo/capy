@@ -15,10 +15,17 @@ serve(async (req) => {
   }
 
   const { user, email_data } = payload
-  const { token_hash, redirect_to, email_action_type } = email_data
+  const { token, token_hash, redirect_to, email_action_type } = email_data
   console.log('email_action_type:', email_action_type, 'to:', user?.email)
 
   const verifyUrl = `${SUPABASE_URL}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${encodeURIComponent(redirect_to)}`
+
+  // Bloque del código de 6 dígitos (para login desde la web app instalada,
+  // donde el link no completa la sesión dentro del contenedor PWA)
+  const codeBlock = token ? `
+        <p style="color:#4A5568;font-size:15px;margin:0 0 8px">Tu código de acceso:</p>
+        <p style="font-family:monospace;font-size:38px;font-weight:bold;letter-spacing:10px;color:#1A2A3A;background:#F0F4F8;border-radius:12px;padding:16px 0;text-align:center;margin:0 0 20px">${token}</p>
+  ` : ''
 
   let subject = ''
   let html = ''
@@ -46,7 +53,9 @@ serve(async (req) => {
           <span style="font-size:22px;font-weight:800;color:#E85D26;letter-spacing:2px">CAPY</span>
         </div>
         <h2 style="font-size:20px;font-weight:700;color:#1A2A3A;margin:0 0 12px">Confirmá tu cuenta</h2>
-        <p style="color:#4A5568;font-size:15px;margin:0 0 24px">Bienvenido a Capy. Hacé click para activar tu cuenta y empezar.</p>
+        <p style="color:#4A5568;font-size:15px;margin:0 0 20px">Bienvenido a Capy. Ingresá este código en la app:</p>
+        ${codeBlock}
+        <p style="color:#8896A5;font-size:13px;margin:0 0 20px">O confirmá desde este dispositivo:</p>
         <a href="${verifyUrl}" style="display:inline-block;background:#E85D26;color:#fff;font-weight:700;font-size:15px;padding:14px 28px;border-radius:12px;text-decoration:none">
           Confirmar cuenta →
         </a>
@@ -69,16 +78,19 @@ serve(async (req) => {
     `
   } else {
     // magic link u otros
-    subject = 'Tu link de acceso a CAPY'
+    subject = 'Tu código de acceso a CAPY'
     html = `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#fff">
         <div style="margin-bottom:24px">
           <span style="font-size:22px;font-weight:800;color:#E85D26;letter-spacing:2px">CAPY</span>
         </div>
-        <p style="color:#4A5568;font-size:15px;margin:0 0 24px">Hacé click para acceder a tu cuenta.</p>
+        <p style="color:#4A5568;font-size:15px;margin:0 0 20px">Usá este código para iniciar sesión en la app:</p>
+        ${codeBlock}
+        <p style="color:#8896A5;font-size:13px;margin:0 0 20px">O accedé desde este dispositivo:</p>
         <a href="${verifyUrl}" style="display:inline-block;background:#E85D26;color:#fff;font-weight:700;font-size:15px;padding:14px 28px;border-radius:12px;text-decoration:none">
           Acceder →
         </a>
+        <p style="color:#8896A5;font-size:12px;margin:24px 0 0">Vence en 1 hora. Si no fuiste vos, ignorá este email.</p>
       </div>
     `
   }

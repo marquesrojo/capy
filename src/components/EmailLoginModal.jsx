@@ -53,7 +53,7 @@ export default function EmailLoginModal({ onClose, onSuccess, accent = '#1A3A6B'
         {step === 'email' ? (
           <>
             <p className="text-[#8896A5] text-sm mb-4">
-              Te mandamos un código de 6 dígitos a tu email para entrar.
+              Te mandamos un código a tu email para entrar.
             </p>
             <input
               autoFocus
@@ -77,23 +77,23 @@ export default function EmailLoginModal({ onClose, onSuccess, accent = '#1A3A6B'
         ) : (
           <>
             <p className="text-[#8896A5] text-sm mb-4">
-              Revisá <span className="font-semibold text-[#1A2332]">{email}</span> y escribí el código de 6 dígitos.
+              Revisá <span className="font-semibold text-[#1A2332]">{email}</span> y escribí el código que te enviamos.
             </p>
             <input
               autoFocus
               type="text"
               inputMode="numeric"
-              maxLength={6}
+              maxLength={8}
               value={code}
               onChange={e => setCode(e.target.value.replace(/\D/g, ''))}
               onKeyDown={e => { if (e.key === 'Enter') verify() }}
-              placeholder="123456"
-              className="w-full border border-black/15 rounded-xl px-4 py-3 text-center font-mono text-2xl tracking-[0.4em] text-[#1A2332] outline-none focus:border-[#1A3A6B] mb-3"
+              placeholder="Código"
+              className="w-full border border-black/15 rounded-xl px-4 py-3 text-center font-mono text-2xl tracking-[0.25em] text-[#1A2332] outline-none focus:border-[#1A3A6B] mb-3"
             />
             {error && <p className="text-red-600 text-xs mb-3">{error}</p>}
             <button
               onClick={verify}
-              disabled={busy || code.length !== 6}
+              disabled={busy || code.length < 6}
               className="w-full text-white font-semibold py-3.5 rounded-xl disabled:opacity-50"
               style={{ backgroundColor: accent }}
             >
