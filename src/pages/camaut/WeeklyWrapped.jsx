@@ -119,7 +119,7 @@ export default function WeeklyWrapped({ staffId, staffAlias, staffName, staffAva
       onClick={handleTap}
     >
       {/* Progress bars */}
-      <div className="absolute top-0 inset-x-0 flex gap-1 px-3 pt-12 z-20 pointer-events-none">
+      <div className="absolute top-0 inset-x-0 flex gap-1 px-3 z-20 pointer-events-none" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 2.5rem)' }}>
         {Array.from({ length: SLIDES }).map((_, i) => (
           <div key={i} className="flex-1 h-[3px] rounded-full bg-white/25 overflow-hidden">
             <div
@@ -134,12 +134,13 @@ export default function WeeklyWrapped({ staffId, staffAlias, staffName, staffAva
         ))}
       </div>
 
-      {/* Header */}
-      <div className="absolute top-3 inset-x-0 flex items-center justify-between px-4 z-20">
+      {/* Header — debajo del safe-area para que el botón cerrar no quede bajo el notch */}
+      <div className="absolute inset-x-0 flex items-center justify-between px-4 z-30" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)' }}>
         <span className="text-white/80 text-xs font-bold tracking-widest uppercase">⚡ Capy</span>
         <button
           onClick={(e) => { e.stopPropagation(); onClose() }}
-          className="text-white/60 w-8 h-8 flex items-center justify-center text-lg"
+          className="text-white/80 w-11 h-11 flex items-center justify-center text-2xl -mr-2"
+          aria-label="Cerrar"
         >×</button>
       </div>
 
