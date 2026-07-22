@@ -257,7 +257,7 @@ export default function AccountPage() {
 
   return (
     <div className="min-h-screen bg-carbon-950 pb-24">
-      <header className="px-5 pt-6 pb-4">
+      <header className="px-5 pb-4" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1.5rem)' }}>
         <h1 className="font-display text-3xl text-ember-500 tracking-wide">MI CUENTA</h1>
       </header>
 
