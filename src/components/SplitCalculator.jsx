@@ -8,7 +8,7 @@ const TIP_OPTIONS = [
   { label: '20%', value: 0.20 },
 ]
 
-export default function SplitCalculator({ total, assignedStaff }) {
+export default function SplitCalculator({ total, assignedStaff, venueTipAlias }) {
   const [splitCount, setSplitCount] = useState(1)
   const [tipPct, setTipPct] = useState(0)
   const [copied, setCopied] = useState(false)
@@ -17,9 +17,14 @@ export default function SplitCalculator({ total, assignedStaff }) {
   const totalWithTip = total + tipAmount
   const perPerson = totalWithTip / Math.max(1, splitCount)
 
+  // La propina va al camarero asignado (su alias); si no hay camarero,
+  // al alias del local. Sin ninguno de los dos, no se muestra alias.
+  const tipAlias = assignedStaff?.alias_bancario || venueTipAlias || null
+  const tipTarget = assignedStaff?.alias_bancario ? assignedStaff.full_name : null
+
   async function handleCopyAlias() {
     try {
-      await navigator.clipboard.writeText(assignedStaff.alias_bancario)
+      await navigator.clipboard.writeText(tipAlias)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
@@ -96,13 +101,13 @@ export default function SplitCalculator({ total, assignedStaff }) {
                 <span className="font-mono text-pucara-blue-400">{formatPrice(perPerson)}</span>
               </div>
             )}
-            {assignedStaff?.alias_bancario && (
+            {tipAlias && tipPct > 0 && (
               <div className="mt-3 pt-3 border-t border-carbon-700">
                 <p className="text-smoke-400 text-xs mb-2">
-                  Transferile la propina a {assignedStaff.full_name}:
+                  {tipTarget ? `Transferile la propina a ${tipTarget}:` : 'Transferí la propina a:'}
                 </p>
                 <div className="flex items-center justify-between gap-3 bg-carbon-800 rounded-xl px-3 py-2.5 mb-2">
-                  <span className="font-mono text-smoke-200 text-sm">{assignedStaff.alias_bancario}</span>
+                  <span className="font-mono text-smoke-200 text-sm">{tipAlias}</span>
                   <button
                     type="button"
                     onClick={handleCopyAlias}
