@@ -1,13 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-// Adaptador TusFacturasAPP (ARCA/AFIP): emite la factura de un pedido cobrado.
-// Idempotente: si el pedido ya tiene factura aprobada, devuelve la existente.
-// Secrets requeridos (supabase secrets set ...):
-//   TUSFACTURAS_API_URL    (default https://www.tusfacturas.app/app/api/v2/facturacion/nuevo)
-//   TUSFACTURAS_API_TOKEN  (apitoken)
-//   TUSFACTURAS_API_KEY    (apikey)
-//   TUSFACTURAS_USER_TOKEN (usertoken)
-//   CAPY_FISCAL_PUNTO_VENTA (default 00001)
+// Adaptador TusFacturasAPP (ARCA/AFIP): emite la factura de un pedido cobrado,
+// o UNA factura consolidada de todos los pedidos cobrados de una mesa (sesión).
+// Idempotente. Secrets: TUSFACTURAS_API_URL / _API_TOKEN / _API_KEY /
+// _USER_TOKEN, CAPY_FISCAL_PUNTO_VENTA.
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,7 +17,6 @@ function json(body: object, status = 200) {
   })
 }
 
-// Extrae los datos del comprobante tolerando variantes de la respuesta de TusFacturas
 function parseTfResponse(resp: Record<string, unknown>) {
   const r = resp as Record<string, any>
   const cae = r.cae || r.CAE || r.comprobante?.cae || null
@@ -29,11 +24,7 @@ function parseTfResponse(resp: Record<string, unknown>) {
     r.comprobante_nro || r.numero || r.comprobante?.numero || r.comprobante_numero || null
   const caeExpiry = r.vencimiento_cae || r.cae_vto || r.comprobante?.vencimiento_cae || null
   const pdfUrl =
-    r.comprobante_ticket_url ||       // ticket 80mm
-    r.comprobante_pdf_url_ticket ||
-    r.comprobante_pdf_url ||
-    r.pdf_url ||
-    null
+    r.comprobante_ticket_url || r.comprobante_pdf_url_ticket || r.comprobante_pdf_url || r.pdf_url || null
   const hasError = r.error === 'S' || r.error === true
   const errorMessage = Array.isArray(r.errores) ? r.errores.join(' | ') : (r.errores || r.message || null)
   const success = !hasError && !!cae
@@ -41,28 +32,25 @@ function parseTfResponse(resp: Record<string, unknown>) {
 }
 
 const STAFF_ROLES = ['admin', 'propietario', 'camarero', 'cocina']
+const ORDER_FIELDS = 'id, venue_id, total, subtotal, discount_amount, cash_discount_amount, daily_number, location_label, payment_status, order_items(product_name, quantity, unit_price, line_total), customers(full_name, whatsapp), venue:venues(name, fiscal_enabled, fiscal_condition)'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const { orderId, invoiceType = 'B', client } = await req.json() as {
+    const { orderId, sessionId, invoiceType = 'B', client } = await req.json() as {
       orderId?: string
+      sessionId?: string
       invoiceType?: 'A' | 'B'
       client?: { cuit?: string; razonSocial?: string; domicilio?: string }
     }
-    if (!orderId) return json({ error: 'orderId required' }, 400)
+    if (!orderId && !sessionId) return json({ error: 'orderId o sessionId requerido' }, 400)
 
-    // Factura A: requiere CUIT y razón social del cliente (Responsable Inscripto)
     const isA = invoiceType === 'A'
     const cuitDigits = (client?.cuit || '').replace(/\D/g, '')
     if (isA) {
-      if (cuitDigits.length !== 11) {
-        return json({ success: false, error: 'CUIT inválido: deben ser 11 dígitos' }, 200)
-      }
-      if (!client?.razonSocial?.trim()) {
-        return json({ success: false, error: 'Falta la razón social del cliente' }, 200)
-      }
+      if (cuitDigits.length !== 11) return json({ success: false, error: 'CUIT inválido: deben ser 11 dígitos' }, 200)
+      if (!client?.razonSocial?.trim()) return json({ success: false, error: 'Falta la razón social del cliente' }, 200)
     }
 
     const apiUrl = Deno.env.get('TUSFACTURAS_API_URL') || 'https://www.tusfacturas.app/app/api/v2/facturacion/nuevo'
@@ -71,128 +59,71 @@ Deno.serve(async (req) => {
     const userToken = Deno.env.get('TUSFACTURAS_USER_TOKEN')
     const puntoVenta = Deno.env.get('CAPY_FISCAL_PUNTO_VENTA') || '00001'
     if (!apiToken || !apiKey || !userToken) {
-      return json({ success: false, error: 'Fiscal no configurado (faltan secrets de TusFacturas: apitoken/apikey/usertoken)' }, 200)
+      return json({ success: false, error: 'Fiscal no configurado (faltan secrets de TusFacturas)' }, 200)
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-    )
+    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
 
-    // Emisión solo explícita por staff autenticado: se valida el JWT del
-    // cajero/admin que apretó el botón, nunca el anon key.
+    // Solo staff autenticado
     const jwt = (req.headers.get('Authorization') || '').replace('Bearer ', '')
     const { data: { user } = { user: null } } = await supabase.auth.getUser(jwt)
     if (!user) return json({ error: 'No autorizado' }, 401)
     const { data: prof } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-    if (!prof || !STAFF_ROLES.includes(prof.role)) {
-      return json({ error: 'Solo el staff puede facturar' }, 403)
+    if (!prof || !STAFF_ROLES.includes(prof.role)) return json({ error: 'Solo el staff puede facturar' }, 403)
+
+    // Idempotencia
+    const existingQuery = sessionId
+      ? supabase.from('fiscal_invoices').select('*').eq('session_id', sessionId).eq('status', 'approved').maybeSingle()
+      : supabase.from('fiscal_invoices').select('*').eq('order_id', orderId!).maybeSingle()
+    const { data: existing } = await existingQuery
+    if (existing?.status === 'approved') return json({ success: true, alreadyEmitted: true, invoice: existing })
+
+    // Resolver los pedidos a facturar (uno, o todos los cobrados de la sesión)
+    let orders: any[] = []
+    if (sessionId) {
+      const { data } = await supabase.from('orders').select(ORDER_FIELDS)
+        .eq('session_id', sessionId).eq('payment_status', 'aprobado')
+        .order('created_at', { ascending: true })
+      orders = data || []
+      if (!orders.length) return json({ success: false, error: 'La mesa no tiene pedidos cobrados para facturar' }, 200)
+    } else {
+      const { data: order, error } = await supabase.from('orders').select(ORDER_FIELDS).eq('id', orderId!).single()
+      if (error || !order) return json({ error: 'Order not found' }, 404)
+      if (order.payment_status !== 'aprobado') return json({ success: false, error: 'El pedido todavía no está cobrado' }, 200)
+      orders = [order]
     }
 
-    // Idempotencia: factura aprobada existente se devuelve tal cual
-    const { data: existing } = await supabase
-      .from('fiscal_invoices')
-      .select('*')
-      .eq('order_id', orderId)
-      .maybeSingle()
-    if (existing?.status === 'approved') {
-      return json({ success: true, alreadyEmitted: true, invoice: existing })
-    }
+    const venue = orders[0].venue || {}
+    if (!venue.fiscal_enabled) return json({ success: false, error: 'Facturación desactivada para este local' }, 200)
 
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
-      .select('id, venue_id, total, subtotal, discount_amount, cash_discount_amount, daily_number, location_label, payment_status, order_items(product_name, quantity, unit_price, line_total), customers(full_name, whatsapp), venue:venues(name, address, street_address, fiscal_enabled, fiscal_condition)')
-      .eq('id', orderId)
-      .single()
-    if (orderError || !order) return json({ error: 'Order not found' }, 404)
-
-    if (!(order as any).venue?.fiscal_enabled) {
-      return json({ success: false, error: 'Facturación desactivada para este local' }, 200)
-    }
-    if (order.payment_status !== 'aprobado') {
-      return json({ success: false, error: 'El pedido todavía no está cobrado' }, 200)
-    }
-
-    // Condición fiscal del emisor: RI emite A/B, monotributista emite C
-    const isMono = ((order as any).venue?.fiscal_condition || 'responsable_inscripto') === 'monotributo'
-    if (isA && isMono) {
-      return json({ success: false, error: 'Un monotributista no emite Factura A: emití Factura C (botón Facturar)' }, 200)
-    }
+    const isMono = (venue.fiscal_condition || 'responsable_inscripto') === 'monotributo'
+    if (isA && isMono) return json({ success: false, error: 'Un monotributista no emite Factura A: emití Factura C' }, 200)
     const tipoComprobante = isMono ? 'FACTURA C' : isA ? 'FACTURA A' : 'FACTURA B'
-    const invoiceTypeCode = isMono ? '11' : isA ? '1' : '6'   // cod. AFIP: 1=A, 6=B, 11=C
+    const invoiceTypeCode = isMono ? '11' : isA ? '1' : '6'
 
-    // Descuentos (código o efectivo) se aplican como bonificación porcentual
-    // por ítem: la suma de ítems bonificados tiene que cerrar con el total.
-    const discountTotal = (Number(order.discount_amount) || 0) + (Number(order.cash_discount_amount) || 0)
-    const itemsGross = (order.order_items || []).reduce(
-      (s: number, i: any) => s + (Number(i.line_total) || Number(i.quantity) * Number(i.unit_price)), 0)
-    const discountPct = discountTotal > 0 && itemsGross > 0
-      ? +((discountTotal / itemsGross) * 100).toFixed(6)
-      : 0
-
-    // Precios de Capy son finales (IVA incluido). Para A/B TusFacturas pide el
-    // neto; en Factura C (monotributo) no hay IVA: va el precio final tal cual.
     const netUnit = (gross: number) => isMono ? gross : +(gross / 1.21).toFixed(6)
     const itemAlicuota = isMono ? '0' : '21'
 
-    // Fecha dd/mm/yyyy en horario argentino
-    const nowAr = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }))
-    const fecha = `${String(nowAr.getDate()).padStart(2, '0')}/${String(nowAr.getMonth() + 1).padStart(2, '0')}/${nowAr.getFullYear()}`
-
-    // Payload API v2 de TusFacturasAPP (facturacion/nuevo)
-    const payload = {
-      apitoken: apiToken,
-      apikey: apiKey,
-      usertoken: userToken,
-      cliente: isA
-        ? {
-            // Factura A: Responsable Inscripto identificado con CUIT
-            documento_tipo: 'CUIT',
-            documento_nro: cuitDigits,
-            razon_social: client!.razonSocial!.trim(),
-            email: '',
-            domicilio: (client?.domicilio || '').trim() || 'Venta en el local',
-            provincia: '2',
-            envia_por_mail: 'N',
-            condicion_pago: '201',    // contado
-            condicion_iva: 'RI',
-            rg5329: 'N',
-          }
-        : {
-            documento_tipo: 'OTRO',   // consumidor final
-            documento_nro: '0',
-            razon_social: order.customers?.full_name || 'Consumidor Final',
-            email: '',
-            // Obligatorio para TusFacturas pero informativo para consumidor final:
-            // genérico fijo, así no se repite la dirección del emisor en la factura.
-            domicilio: 'Venta en el local',
-            provincia: '2',
-            envia_por_mail: 'N',
-            condicion_pago: '201',    // contado
-            condicion_iva: 'CF',
-            rg5329: 'N',
-          },
-      comprobante: {
-        rubro: 'Gastronomía',
-        tipo: tipoComprobante,
-        operacion: 'V',
-        numero: 0,                    // autonumerado por TusFacturas
-        punto_venta: puntoVenta,
-        fecha,
-        vencimiento: fecha,
-        rubro_grupo_contable: 'Gastronomía',
-        moneda: 'PES',
-        cotizacion: 1,
-        external_reference: order.id,
-        total: Number(order.total),
-        detalle: (order.order_items || []).map((i: any, idx: number) => ({
+    // Ítems de todos los pedidos, con bonificación por el descuento de cada uno
+    const detalle: any[] = []
+    let codigo = 0
+    let totalGeneral = 0
+    for (const ord of orders) {
+      totalGeneral += Number(ord.total) || 0
+      const discountTotal = (Number(ord.discount_amount) || 0) + (Number(ord.cash_discount_amount) || 0)
+      const gross = (ord.order_items || []).reduce(
+        (s: number, i: any) => s + (Number(i.line_total) || Number(i.quantity) * Number(i.unit_price)), 0)
+      const discountPct = discountTotal > 0 && gross > 0 ? +((discountTotal / gross) * 100).toFixed(6) : 0
+      for (const i of (ord.order_items || [])) {
+        codigo += 1
+        detalle.push({
           cantidad: String(i.quantity),
           afecta_stock: 'N',
           actualiza_precio: 'N',
           bonificacion_porcentaje: String(discountPct),
           producto: {
             descripcion: i.product_name,
-            codigo: idx + 1,
+            codigo,
             lista_precios: 'carta',
             leyenda: '',
             unidad_bulto: '1',
@@ -200,18 +131,47 @@ Deno.serve(async (req) => {
             precio_unitario_sin_iva: netUnit(Number(i.unit_price)),
             rg5329: 'N',
           },
-        })),
+        })
+      }
+    }
+
+    const nowAr = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }))
+    const fecha = `${String(nowAr.getDate()).padStart(2, '0')}/${String(nowAr.getMonth() + 1).padStart(2, '0')}/${nowAr.getFullYear()}`
+
+    const clienteBlock = isA
+      ? {
+          documento_tipo: 'CUIT', documento_nro: cuitDigits,
+          razon_social: client!.razonSocial!.trim(), email: '',
+          domicilio: (client?.domicilio || '').trim() || 'Venta en el local',
+          provincia: '2', envia_por_mail: 'N', condicion_pago: '201', condicion_iva: 'RI', rg5329: 'N',
+        }
+      : {
+          documento_tipo: 'OTRO', documento_nro: '0',
+          razon_social: orders[0].customers?.full_name || 'Consumidor Final', email: '',
+          domicilio: 'Venta en el local',
+          provincia: '2', envia_por_mail: 'N', condicion_pago: '201', condicion_iva: 'CF', rg5329: 'N',
+        }
+
+    const payload = {
+      apitoken: apiToken, apikey: apiKey, usertoken: userToken,
+      cliente: clienteBlock,
+      comprobante: {
+        rubro: 'Gastronomía', tipo: tipoComprobante, operacion: 'V',
+        numero: 0, punto_venta: puntoVenta, fecha, vencimiento: fecha,
+        rubro_grupo_contable: 'Gastronomía', moneda: 'PES', cotizacion: 1,
+        external_reference: sessionId || orderId,
+        total: Number(totalGeneral), detalle,
       },
     }
 
-    // Upsert del registro en pending antes de llamar (queda rastro si falla)
     const baseRow = {
-      venue_id: order.venue_id,
-      order_id: order.id,
+      venue_id: orders[0].venue_id,
+      order_id: sessionId ? null : orderId,
+      session_id: sessionId || null,
       status: 'pending',
       invoice_type: invoiceTypeCode,
       punto_venta: puntoVenta,
-      total: order.total,
+      total: totalGeneral,
       request_payload: payload,
       updated_at: new Date().toISOString(),
     }
@@ -222,9 +182,7 @@ Deno.serve(async (req) => {
     let tfData: Record<string, unknown>
     try {
       const tfRes = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
       })
       tfData = await tfRes.json().catch(() => ({ error: 'S', errores: [`HTTP ${tfRes.status} sin JSON`] }))
     } catch (e) {
@@ -234,31 +192,23 @@ Deno.serve(async (req) => {
     const parsed = parseTfResponse(tfData)
     const update = {
       status: parsed.success ? 'approved' : 'error',
-      cae: parsed.cae,
-      cae_expiry: parsed.caeExpiry,
-      invoice_number: parsed.invoiceNumber,
-      pdf_url: parsed.pdfUrl,
+      cae: parsed.cae, cae_expiry: parsed.caeExpiry,
+      invoice_number: parsed.invoiceNumber, pdf_url: parsed.pdfUrl,
       error_message: parsed.success ? null : (parsed.errorMessage || 'Respuesta sin CAE'),
-      response_payload: tfData,
-      updated_at: new Date().toISOString(),
+      response_payload: tfData, updated_at: new Date().toISOString(),
     }
-    const { data: finalRow } = await supabase
-      .from('fiscal_invoices')
-      .update(update)
-      .eq('id', invoiceRow!.id)
-      .select()
-      .single()
+    const { data: finalRow } = await supabase.from('fiscal_invoices').update(update).eq('id', invoiceRow!.id).select().single()
 
-    // Datos listos para el link de refuerzo de WhatsApp (wa.me)
-    const venueName = (order as any).venue?.name || 'el local'
+    const venueName = venue.name || 'el local'
+    const phone = orders[0].customers?.whatsapp || null
     const waText = parsed.success && parsed.pdfUrl
-      ? `🧾 Tu ticket digital de *${venueName}*${order.daily_number ? ` (pedido #${order.daily_number})` : ''}: ${parsed.pdfUrl}`
+      ? `🧾 Tu ticket digital de *${venueName}*: ${parsed.pdfUrl}`
       : null
 
     return json({
       success: parsed.success,
       invoice: finalRow,
-      wa: waText ? { text: waText, phone: order.customers?.whatsapp || null } : null,
+      wa: waText ? { text: waText, phone } : null,
       error: parsed.success ? null : update.error_message,
     })
   } catch (e) {

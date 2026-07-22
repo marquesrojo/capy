@@ -6,6 +6,7 @@ import { formatPrice, STATUS_LABELS, STATUS_COLORS } from '../../lib/utils'
 import { fetchVenueWaiters } from '../../lib/staff'
 import FiscalTicket from '../../components/FiscalTicket'
 import AccountSummary from '../../components/AccountSummary'
+import { emitMesaInvoice, buildTicketWaUrl } from '../../lib/fiscal'
 import FloorPlanViewer from '../../components/FloorPlanViewer'
 import { PinIcon, FileTextIcon, ChefHatIcon, BellIcon, CreditCardIcon, ClockIcon } from '../../components/Icons'
 
@@ -982,6 +983,9 @@ function MesaPanel({ mesa, orders, venueSlug, venueName, onClose, onCloseTable, 
   const [closing, setClosing] = useState(false)
   const [activeSession, setActiveSession] = useState(null)
   const [showSummary, setShowSummary] = useState(false)
+  const [mesaInvoice, setMesaInvoice] = useState(null) // factura consolidada de la mesa
+  const [emittingMesa, setEmittingMesa] = useState(false)
+  const [mesaFiscalError, setMesaFiscalError] = useState('')
 
   const mesaOrders = orders
     .filter(o => o.zone_id === mesa.id && ACTIVE.includes(o.status))
@@ -1001,6 +1005,24 @@ function MesaPanel({ mesa, orders, venueSlug, venueName, onClose, onCloseTable, 
   }, [mesa.id])
 
   const sessionId = activeSession?.id || mesaOrders[0]?.session_id || null
+
+  // Factura consolidada de la mesa (por sesión), si ya se emitió
+  useEffect(() => {
+    if (!sessionId) { setMesaInvoice(null); return }
+    supabaseStaff
+      .from('fiscal_invoices')
+      .select('*')
+      .eq('session_id', sessionId)
+      .eq('status', 'approved')
+      .maybeSingle()
+      .then(({ data }) => setMesaInvoice(data || null))
+  }, [sessionId])
+
+  const paidMesaOrders = mesaOrders.filter(o => o.payment_status === 'aprobado')
+  // Mostrar "Facturar mesa" cuando hay 2+ pedidos cobrados y aún no se
+  // consolidó ni se facturó ninguno individualmente
+  const someIndividuallyInvoiced = mesaOrders.some(o => invoices[o.id]?.status === 'approved')
+  const canInvoiceMesa = fiscalEnabled && sessionId && paidMesaOrders.length >= 2 && !mesaInvoice && !someIndividuallyInvoiced
 
   async function handleCloseTable() {
     setClosing(true)
@@ -1224,7 +1246,7 @@ function MesaPanel({ mesa, orders, venueSlug, venueName, onClose, onCloseTable, 
                           </div>
                         </div>
 
-                        {fiscalEnabled && (order.payment_status === 'aprobado' || invoices[order.id]?.status === 'approved') && (
+                        {fiscalEnabled && !mesaInvoice && (order.payment_status === 'aprobado' || invoices[order.id]?.status === 'approved') && (
                           <FiscalTicket
                             order={order}
                             invoice={invoices[order.id]}
@@ -1241,6 +1263,53 @@ function MesaPanel({ mesa, orders, venueSlug, venueName, onClose, onCloseTable, 
             </>
           )}
         </div>
+
+        {/* Factura consolidada de la mesa (una sola factura para todos los pedidos) */}
+        {fiscalEnabled && (mesaInvoice || canInvoiceMesa) && (
+          <div className="flex-shrink-0 border-t border-carbon-800 px-5 pt-3">
+            {mesaInvoice ? (
+              <div>
+                <p className="text-emerald-600 text-xs font-semibold mb-1.5">
+                  🧾 Factura de mesa {mesaInvoice.invoice_number ? `#${mesaInvoice.invoice_number}` : ''} · CAE {mesaInvoice.cae?.slice(0, 8)}...
+                </p>
+                {mesaInvoice.pdf_url && (
+                  <div className="flex flex-wrap gap-1.5">
+                    <a href={mesaInvoice.pdf_url} target="_blank" rel="noreferrer"
+                      className="text-smoke-400 border border-carbon-700 text-[11px] px-2.5 py-1 rounded-full hover:text-smoke-200">
+                      Ver ticket
+                    </a>
+                    <a
+                      href={buildTicketWaUrl({
+                        phone: mesaOrders.map(o => o.contact_whatsapp || o.customers?.whatsapp).find(Boolean),
+                        venueName, pdfUrl: mesaInvoice.pdf_url,
+                      })}
+                      target="_blank" rel="noreferrer"
+                      className="text-white bg-emerald-600 hover:bg-emerald-700 text-[11px] font-semibold px-2.5 py-1 rounded-full">
+                      WhatsApp
+                    </a>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={async () => {
+                    setEmittingMesa(true); setMesaFiscalError('')
+                    const result = await emitMesaInvoice(sessionId)
+                    if (result.success && result.invoice) setMesaInvoice(result.invoice)
+                    else setMesaFiscalError(result.error || 'No se pudo facturar la mesa')
+                    setEmittingMesa(false)
+                  }}
+                  disabled={emittingMesa}
+                  className="w-full text-xs font-semibold py-2 rounded-lg border border-ember-500/50 text-ember-500 hover:bg-ember-500/10 disabled:opacity-50 transition-colors"
+                >
+                  {emittingMesa ? 'Emitiendo...' : `🧾 Facturar mesa (una sola factura · ${paidMesaOrders.length} pedidos)`}
+                </button>
+                {mesaFiscalError && <p className="text-red-500 text-[10px] mt-1">{mesaFiscalError}</p>}
+              </>
+            )}
+          </div>
+        )}
 
         {/* Sticky bottom actions */}
         <div className="flex-shrink-0 border-t border-carbon-800 px-5 py-4 flex gap-2">

@@ -3,8 +3,8 @@
 // con el ticket digital de 80mm.
 import { supabaseStaff } from './supabase'
 
-// options: { invoiceType: 'A'|'B', client: { cuit, razonSocial, domicilio } }
-export async function emitFiscalInvoice(orderId, options = {}) {
+// payload: { orderId } | { sessionId }, más { invoiceType: 'A'|'B', client }
+async function callEmitInvoice(payload) {
   // La edge function exige el JWT del cajero/admin logueado: la emisión es
   // siempre una acción explícita del staff.
   const { data: { session } } = await supabaseStaff.auth.getSession()
@@ -16,9 +16,20 @@ export async function emitFiscalInvoice(orderId, options = {}) {
       apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
       Authorization: `Bearer ${session.access_token}`,
     },
-    body: JSON.stringify({ orderId, ...options }),
+    body: JSON.stringify(payload),
   })
   return res.json()
+}
+
+// Factura de un pedido individual
+export function emitFiscalInvoice(orderId, options = {}) {
+  return callEmitInvoice({ orderId, ...options })
+}
+
+// Factura consolidada de una mesa: un comprobante con todos los pedidos
+// cobrados de la sesión
+export function emitMesaInvoice(sessionId, options = {}) {
+  return callEmitInvoice({ sessionId, ...options })
 }
 
 // Compartir nativo del dispositivo con fallback a copiar el link
