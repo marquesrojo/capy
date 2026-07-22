@@ -31,7 +31,7 @@ function parseTfResponse(resp: Record<string, unknown>) {
   return { success, cae, invoiceNumber: invoiceNumber != null ? String(invoiceNumber) : null, caeExpiry, pdfUrl, errorMessage }
 }
 
-const STAFF_ROLES = ['admin', 'propietario', 'camarero', 'cocina']
+const STAFF_ROLES = ['superadmin', 'admin', 'propietario', 'camarero', 'cocina']
 const ORDER_FIELDS = 'id, venue_id, total, subtotal, discount_amount, cash_discount_amount, daily_number, location_label, payment_status, order_items(product_name, quantity, unit_price, line_total), customers(full_name, whatsapp), venue:venues(name, fiscal_enabled, fiscal_condition)'
 
 Deno.serve(async (req) => {
