@@ -10,6 +10,15 @@ import FloorPlanViewer from '../../components/FloorPlanViewer'
 import { PinIcon, FileTextIcon, ChefHatIcon, BellIcon, CreditCardIcon, ClockIcon } from '../../components/Icons'
 
 const BOARD_COLUMNS = ['recibido', 'en_preparacion', 'entregado']
+
+// Red de seguridad: el tablero muestra solo pedidos de hoy. Los de días
+// anteriores viven en Historial (evita que se acumulen en Entregado).
+function isToday(ts) {
+  if (!ts) return true
+  const d = new Date(ts)
+  const now = new Date()
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate()
+}
 const PROOF_BUCKET = 'payment-proofs'
 const ORDER_SELECT = '*, order_items(*, products(category_id)), customers(full_name, whatsapp), assigned_staff:staff_names!orders_assigned_staff_id_fkey(id, full_name)'
 
@@ -730,12 +739,12 @@ async function loadZones() {
             <Column
               key={status}
               status={status}
-              orders={status === 'recibido'
+              orders={(status === 'recibido'
                 ? orders.filter(o => o.status === 'recibido' || o.status === 'pendiente_aprobacion')
                 : status === 'en_preparacion'
                   ? orders.filter(o => o.status === 'en_preparacion' || o.status === 'listo')
                   : orders.filter(o => o.status === status)
-              }
+              ).filter(o => isToday(o.created_at))}
               onUpdateStatus={updateStatus}
               onDismissCall={dismissWaiterCall}
               waiters={waiters}
