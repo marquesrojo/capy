@@ -37,6 +37,7 @@ export default function VenueSettingsPage() {
   const [headerBgColor, setHeaderBgColor] = useState('#1A1A1A')
   const [headerTextColor, setHeaderTextColor] = useState('#E8772A')
   const [kitchenAlias, setKitchenAlias] = useState('')
+  const [tipAlias, setTipAlias] = useState('')
   const [landingSelfColor, setLandingSelfColor] = useState('#008080')
   const [landingWaiterColor, setLandingWaiterColor] = useState('#FF8C69')
   const [instagram, setInstagram] = useState('')
@@ -64,7 +65,7 @@ export default function VenueSettingsPage() {
     async function load() {
       const { data } = await supabaseStaff
         .from('venues')
-        .select('name, whatsapp_number, logo_url, header_bg_color, header_text_color, kitchen_alias, slug')
+        .select('name, whatsapp_number, logo_url, header_bg_color, header_text_color, kitchen_alias, tip_alias, slug')
         .eq('id', venueId)
         .single()
       setName(data?.name || '')
@@ -73,6 +74,7 @@ export default function VenueSettingsPage() {
       if (data?.header_bg_color) setHeaderBgColor(data.header_bg_color)
       if (data?.header_text_color) setHeaderTextColor(data.header_text_color)
       if (data?.kitchen_alias) setKitchenAlias(data.kitchen_alias)
+      if (data?.tip_alias) setTipAlias(data.tip_alias)
       if (data?.slug) setSlug(data.slug)
 
       try {
@@ -156,6 +158,7 @@ export default function VenueSettingsPage() {
           header_bg_color: headerBgColor,
           header_text_color: headerTextColor,
           kitchen_alias: kitchenAlias.trim() || null,
+          tip_alias: tipAlias.trim() || null,
         })
         .eq('id', venueId)
       if (updateError) throw updateError
@@ -443,6 +446,20 @@ export default function VenueSettingsPage() {
             value={kitchenAlias}
             onChange={e => setKitchenAlias(e.target.value)}
             placeholder="Ej: cocina.pucara"
+            className="input text-sm"
+          />
+        </div>
+
+        <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
+          <p className="text-smoke-300 font-medium text-sm mb-1">Alias de propina — Local</p>
+          <p className="text-smoke-500 text-xs mb-3">
+            Cuando el cliente elige propina en su pedido, la transfiere al alias del camarero asignado. Si el pedido no tiene camarero (mostrador, autoservicio), se muestra este alias del local.
+          </p>
+          <input
+            type="text"
+            value={tipAlias}
+            onChange={e => setTipAlias(e.target.value)}
+            placeholder="Ej: propinas.pucara"
             className="input text-sm"
           />
         </div>

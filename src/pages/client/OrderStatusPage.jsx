@@ -63,6 +63,7 @@ export default function OrderStatusPage() {
   const [calling, setCalling] = useState(false)
   const [showQR, setShowQR] = useState(false)
   const [venueColor, setVenueColor] = useState('#002F6C')
+  const [venueTipAlias, setVenueTipAlias] = useState(null)
   const [discountCode, setDiscountCode] = useState('')
   const [discountLoading, setDiscountLoading] = useState(false)
   const [discountError, setDiscountError] = useState('')
@@ -86,8 +87,11 @@ export default function OrderStatusPage() {
   useEffect(() => {
     const vid = order?.venue_id || ACTIVE_VENUE_ID
     if (!vid) return
-    supabaseCustomer.from('venues').select('header_bg_color').eq('id', vid).single()
-      .then(({ data }) => { if (data?.header_bg_color) setVenueColor(accentColor(data.header_bg_color)) })
+    supabaseCustomer.from('venues').select('header_bg_color, tip_alias').eq('id', vid).single()
+      .then(({ data }) => {
+        if (data?.header_bg_color) setVenueColor(accentColor(data.header_bg_color))
+        setVenueTipAlias(data?.tip_alias || null)
+      })
   }, [order?.venue_id])
 
   async function applyDiscount() {
@@ -459,7 +463,7 @@ export default function OrderStatusPage() {
         </div>
       )}
 
-      <SplitCalculator total={order.total} assignedStaff={order.assigned_staff} />
+      <SplitCalculator total={order.total} assignedStaff={order.assigned_staff} venueTipAlias={venueTipAlias} />
 
       {!isCancelado && order.session_id && (
         <button
