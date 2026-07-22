@@ -235,7 +235,7 @@ export default function OrderStatusPage() {
     : STATUS_FLOW.indexOf(order.status)
 
   return (
-    <div className="min-h-screen bg-carbon-950 px-5 pt-6 pb-24">
+    <div className="min-h-screen bg-carbon-950 px-5 pb-24" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1.5rem)' }}>
       <Link
         to={order.session_id
           ? `${base}/carta?session_id=${order.session_id}&zone_id=${order.zone_id || ''}&location_label=${encodeURIComponent(order.location_label || '')}&location_type=${order.location_type || 'zona'}`

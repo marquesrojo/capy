@@ -277,7 +277,7 @@ export default function PaymentPage() {
 
   return (
     <div className="min-h-screen bg-[#F0F4F8] pb-40" style={{ '--input-focus-color': accent }}>
-      <header className="px-5 pt-6 pb-4" style={{ backgroundColor: venueColor, color: headerTextColor }}>
+      <header className="px-5 pb-4" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1.5rem)', backgroundColor: venueColor, color: headerTextColor }}>
         <h1 className="font-display text-3xl tracking-wide">TU PEDIDO</h1>
         <p className="text-sm flex items-center gap-1" style={{ opacity: 0.7 }}><PinIcon size={14} /> {location.label}</p>
       </header>
