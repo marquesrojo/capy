@@ -159,7 +159,7 @@ export default function CamautLandingPage() {
       {/* Hero */}
       <section className="max-w-4xl mx-auto px-5 md:px-8 pt-12 md:pt-20 lg:pt-28 pb-12 md:pb-16 text-center">
         <span className="inline-block bg-ember-500/10 text-ember-500 text-[11px] font-bold px-3 py-1.5 rounded-full uppercase tracking-widest">
-          Para Camareros Independientes y Extras
+          Cobrá al instante y laburá más tranquilo
         </span>
 
         <h1 className="font-display text-5xl md:text-7xl lg:text-8xl text-[#3C2A21] mt-5 tracking-wide leading-tight">
