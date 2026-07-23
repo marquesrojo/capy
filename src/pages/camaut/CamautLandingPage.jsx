@@ -271,7 +271,7 @@ export default function CamautLandingPage() {
               Paz para el cliente<br />= mejores propinas para vos
             </h2>
             <p className="text-xs md:text-sm text-smoke-400 mt-3 leading-relaxed max-w-xs md:max-w-lg mx-auto">
-              Eliminamos los estresores tradicionales de una mesa para que la experiencia fluya y los clientes lo valoren.
+              Eliminamos las tensiones tradicionales de una mesa para que la experiencia fluya y los clientes lo valoren.
             </p>
           </div>
 
