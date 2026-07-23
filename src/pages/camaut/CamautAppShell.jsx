@@ -1275,11 +1275,11 @@ function InvitarTab({ staffName }) {
   const INVITE_CONFIG = {
     camaut: {
       label: 'Camaut',
-      message: `${staffName ? `${staffName} te invita a` : 'Unite a'} Camaut, la app para camareros 🍽️\n\nhttps://capyapp.co`,
+      message: `${staffName ? `${staffName} te invita a` : 'Unite a'} Camaut, la app para camareros 🍽️\n\nhttps://capyapp.co/camareroa`,
     },
     local: {
       label: 'Capy',
-      message: `${staffName ? `${staffName} te recomienda` : 'Conocé'} Capy, el sistema de pedidos para restaurantes 🚀\n\nhttps://capyapp.co`,
+      message: `${staffName ? `${staffName} te recomienda` : 'Conocé'} Capy, el sistema de pedidos para restaurantes 🚀\n\nhttps://capyapp.co/admin/login`,
     },
   }
 
