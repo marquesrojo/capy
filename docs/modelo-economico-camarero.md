@@ -130,9 +130,10 @@ subida).
 
 - **Precio del pack de cartas** (`CAPY_CARTA_PACK_ARS`) y tamaño del pack.
 - **Referidos**: nueva recompensa (packs de cartas gratis) — ver §7.
-- **Perfil profesional / CV Pro**: antes era un desbloqueo del Pro; ahora que el
-  Pro se eliminó, definir si queda libre o se monetiza aparte.
 - **Esquema económico del venue / centro gastronómico** (track separado).
+
+> **Perfil profesional / CV Pro:** liberado (gratis). Ya no está atado a ningún
+> pago.
 
 ---
 
