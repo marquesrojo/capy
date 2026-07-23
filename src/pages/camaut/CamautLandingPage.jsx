@@ -43,7 +43,7 @@ const FEATURES = [
       </svg>
     ),
     title: 'Tu carta, con IA',
-    desc: 'Cargá tu propia carta con ayuda de inteligencia artificial. No dependés de que el local use Capy para tener tu menú listo y tomar pedidos.',
+    desc: 'Cargá tu propia carta con ayuda de inteligencia artificial. No dependés de que el local use Capy para tener tu menú listo y tomar pedidos. El plan sin cargo incluye un cupo inicial.',
   },
 ]
 
@@ -79,7 +79,7 @@ const STEPS = [
   {
     num: '3',
     title: '¡Listo para el turno!',
-    desc: 'Ya podés usar la app en extras o vincularte a cualquier local del ecosistema Capy.',
+    desc: 'Ya podés tomar pedidos y cobrar propinas en cualquier turno, vinculado o por tu cuenta.',
   },
 ]
 
@@ -190,7 +190,11 @@ export default function CamautLandingPage() {
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
           </svg>
-          Sin descargas · 100% gratis · Funciona en Chrome y Safari
+          Sin descargas · Gratis para empezar · Funciona en Chrome y Safari
+        </p>
+        <p className="text-[11px] text-smoke-600 mt-2">
+          El plan sin cargo incluye cupos de uso. Funciones, límites y precios sujetos a las condiciones vigentes.{' '}
+          <Link to="/terminos" className="text-ember-500 underline">Ver Términos</Link>.
         </p>
 
       </section>
