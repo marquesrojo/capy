@@ -1006,23 +1006,26 @@ function MesaPanel({ mesa, orders, venueSlug, venueName, onClose, onCloseTable, 
 
   const sessionId = activeSession?.id || mesaOrders[0]?.session_id || null
 
-  // Factura consolidada de la mesa (por sesión), si ya se emitió
+  const paidMesaOrders = mesaOrders.filter(o => o.payment_status === 'aprobado')
+  const anchorId = paidMesaOrders[0]?.id || null
+
+  // Factura consolidada ya emitida para esta mesa (buscada por el pedido ancla)
   useEffect(() => {
-    if (!sessionId) { setMesaInvoice(null); return }
+    if (!anchorId) { setMesaInvoice(null); return }
     supabaseStaff
       .from('fiscal_invoices')
       .select('*')
-      .eq('session_id', sessionId)
+      .eq('order_id', anchorId)
       .eq('status', 'approved')
+      .not('covered_order_ids', 'is', null)
       .maybeSingle()
       .then(({ data }) => setMesaInvoice(data || null))
-  }, [sessionId])
+  }, [anchorId])
 
-  const paidMesaOrders = mesaOrders.filter(o => o.payment_status === 'aprobado')
   // Mostrar "Facturar mesa" cuando hay 2+ pedidos cobrados y aún no se
   // consolidó ni se facturó ninguno individualmente
   const someIndividuallyInvoiced = mesaOrders.some(o => invoices[o.id]?.status === 'approved')
-  const canInvoiceMesa = fiscalEnabled && sessionId && paidMesaOrders.length >= 2 && !mesaInvoice && !someIndividuallyInvoiced
+  const canInvoiceMesa = fiscalEnabled && paidMesaOrders.length >= 2 && !mesaInvoice && !someIndividuallyInvoiced
 
   async function handleCloseTable() {
     setClosing(true)
@@ -1295,7 +1298,7 @@ function MesaPanel({ mesa, orders, venueSlug, venueName, onClose, onCloseTable, 
                 <button
                   onClick={async () => {
                     setEmittingMesa(true); setMesaFiscalError('')
-                    const result = await emitMesaInvoice(sessionId)
+                    const result = await emitMesaInvoice(paidMesaOrders.map(o => o.id))
                     if (result.success && result.invoice) setMesaInvoice(result.invoice)
                     else setMesaFiscalError(result.error || 'No se pudo facturar la mesa')
                     setEmittingMesa(false)
@@ -2003,14 +2006,16 @@ function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssi
   )
 }
 
-// Agrupa pedidos pagados por sesión de mesa (para facturar juntos)
+// Agrupa pedidos pagados de la misma mesa (por sesión o, si no hay, por
+// ubicación) para poder facturarlos juntos
 function groupBySession(orders) {
   const groups = []
   const idx = new Map()
   orders.forEach(o => {
-    if (o.session_id) {
-      if (idx.has(o.session_id)) groups[idx.get(o.session_id)].orders.push(o)
-      else { idx.set(o.session_id, groups.length); groups.push({ sessionId: o.session_id, orders: [o] }) }
+    const key = o.session_id || (o.location_label ? `loc:${o.location_label}` : null)
+    if (key) {
+      if (idx.has(key)) groups[idx.get(key)].orders.push(o)
+      else { idx.set(key, groups.length); groups.push({ sessionId: o.session_id || null, orders: [o] }) }
     } else {
       groups.push({ sessionId: null, orders: [o] })
     }
@@ -2021,19 +2026,20 @@ function groupBySession(orders) {
 // Un grupo de pedidos pagados de "Pagado hoy". Si son varios de la misma mesa,
 // ofrece facturar todo junto (consolidado) además de por separado.
 function PaidGroup({ group, fiscalEnabled, fiscalCondition, venueName, invoices, onInvoiceEmitted }) {
-  const { sessionId, orders } = group
-  const isMulti = orders.length > 1 && sessionId
+  const { orders } = group
+  const isMulti = orders.length > 1
+  const anchorId = orders[0]?.id || null
   const [mesaInvoice, setMesaInvoice] = useState(null)
   const [emitting, setEmitting] = useState(false)
   const [error, setError] = useState('')
   const [showSplit, setShowSplit] = useState(false)
 
   useEffect(() => {
-    if (!isMulti) return
+    if (!isMulti || !anchorId) return
     supabaseStaff.from('fiscal_invoices').select('*')
-      .eq('session_id', sessionId).eq('status', 'approved').maybeSingle()
+      .eq('order_id', anchorId).eq('status', 'approved').not('covered_order_ids', 'is', null).maybeSingle()
       .then(({ data }) => setMesaInvoice(data || null))
-  }, [sessionId, isMulti])
+  }, [anchorId, isMulti])
 
   const total = orders.reduce((s, o) => s + (o.total || 0), 0)
   const method = (orders[0].payment_method || '').toLowerCase().includes('mercado') ? 'Mercado Pago' : orders[0].payment_method
@@ -2096,7 +2102,7 @@ function PaidGroup({ group, fiscalEnabled, fiscalCondition, venueName, invoices,
           <button
             onClick={async () => {
               setEmitting(true); setError('')
-              const result = await emitMesaInvoice(sessionId)
+              const result = await emitMesaInvoice(orders.map(o => o.id))
               if (result.success && result.invoice) setMesaInvoice(result.invoice)
               else setError(result.error || 'No se pudo facturar la mesa')
               setEmitting(false)

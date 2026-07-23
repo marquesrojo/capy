@@ -26,10 +26,10 @@ export function emitFiscalInvoice(orderId, options = {}) {
   return callEmitInvoice({ orderId, ...options })
 }
 
-// Factura consolidada de una mesa: un comprobante con todos los pedidos
-// cobrados de la sesión
-export function emitMesaInvoice(sessionId, options = {}) {
-  return callEmitInvoice({ sessionId, ...options })
+// Factura consolidada de una mesa: un comprobante con la lista de pedidos
+// cobrados que se le pasa (no depende de la sesión de mesa)
+export function emitMesaInvoice(orderIds, options = {}) {
+  return callEmitInvoice({ orderIds, ...options })
 }
 
 // Compartir nativo del dispositivo con fallback a copiar el link
