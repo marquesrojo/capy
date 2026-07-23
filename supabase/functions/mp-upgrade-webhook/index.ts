@@ -53,37 +53,31 @@ serve(async (req) => {
     // external_reference format: "${id}:${featureKey}"
     const [refId, featureKey] = (payment.external_reference || '').split(':')
 
-    // ── Pack Pro / recarga de cartas del camarero ──
-    if (featureKey === 'pro_camarero' || featureKey === 'recarga_cartas') {
+    // ── Pack de cartas con IA del camarero ──
+    if (featureKey === 'carta_pack') {
       const staffId = refId
       if (!staffId) return json({ ok: false, reason: 'no_staff' })
 
       // Idempotencia por pago de MP
       const { data: existingPurchase } = await supabase
-        .from('camarero_pro_purchases')
+        .from('camarero_carta_purchases')
         .select('id')
         .eq('mp_payment_id', String(paymentId))
         .maybeSingle()
       if (existingPurchase) return json({ ok: true, already: true })
 
-      const isRecarga = featureKey === 'recarga_cartas'
-      const cartasAdded = isRecarga ? 5 : null
+      const packCartas = Number(Deno.env.get('CAPY_CARTA_PACK_SIZE') || 10)
 
-      await supabase.from('camarero_pro_purchases').insert({
+      await supabase.from('camarero_carta_purchases').insert({
         staff_id: staffId,
-        kind: isRecarga ? 'recarga_cartas' : 'pro',
         mp_payment_id: String(paymentId),
         amount_ars: payment.transaction_amount,
-        cartas_added: cartasAdded,
+        cartas: packCartas,
         status: 'approved',
         approved_at: new Date().toISOString(),
       })
 
-      if (isRecarga) {
-        await supabase.rpc('add_camarero_cartas', { p_staff: staffId, p_cartas: cartasAdded })
-      } else {
-        await supabase.rpc('grant_camarero_pro', { p_staff: staffId, p_source: 'paid' })
-      }
+      await supabase.rpc('add_camarero_cartas', { p_staff: staffId, p_cartas: packCartas })
       return json({ ok: true, feature: featureKey })
     }
 

@@ -300,15 +300,12 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
       setVoiceTranscript(transcript)
       setVoiceState('processing')
       try {
-        const { data: { session } } = await supabaseStaff.auth.getSession()
-        const token = session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY
         const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-voice-order`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', apikey: import.meta.env.VITE_SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` },
           body: JSON.stringify({ transcript, venue_id: activeVenueId, zones: locationZones.map(z => ({ id: z.id, name: z.name })) }),
         })
         const data = await res.json()
-        if (data.quota_exceeded) { setVoiceError('Alcanzaste el límite de comandas por voz de tu plan. Podés seguir cargando el pedido a mano o pasar a Pro.'); setVoiceState('error'); return }
         if (data.error) throw new Error(data.error)
         setVoiceItems(data.items || [])
         setVoiceZoneId(data.zone_id || null)

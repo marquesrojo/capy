@@ -26,24 +26,6 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
 
-    // Gating de cupo: si viene el JWT del camarero, consumimos cupo de voz.
-    // Si no se puede resolver la identidad, se procesa igual (compatibilidad).
-    const jwt = (req.headers.get('Authorization') || '').replace('Bearer ', '')
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
-    if (jwt && jwt !== anonKey) {
-      const { data: { user } = { user: null } } = await supabase.auth.getUser(jwt)
-      if (user) {
-        const { data: quota } = await supabase.rpc('consume_ia_quota', { p_staff: user.id, p_kind: 'voice' })
-        if (quota && quota.allowed === false) {
-          return new Response(JSON.stringify({
-            error: 'Alcanzaste el límite de comandas por voz de tu plan.',
-            quota_exceeded: true,
-            quota,
-          }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-        }
-      }
-    }
-
     const { data: products } = await supabase
       .from('products')
       .select('id, name, price')
