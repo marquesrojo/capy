@@ -193,7 +193,7 @@ export default function CamautLandingPage() {
           Sin descargas · Gratis, sin vueltas · Funciona en Chrome y Safari
         </p>
         <p className="text-[11px] text-smoke-600 mt-2">
-          El plan sin cargo incluye cupos de uso. ¿Querés más IA? Sumás un upgrade opcional de pago único.
+          El plan sin cargo incluye cupos de uso para las funciones de IA. ¿Después querés más IA? Sumás un upgrade opcional de pago único.
           Funciones, límites y precios sujetos a las condiciones vigentes.{' '}
           <Link to="/terminos" className="text-ember-500 underline">Ver Términos</Link>.
         </p>
