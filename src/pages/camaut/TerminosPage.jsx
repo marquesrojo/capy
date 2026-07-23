@@ -8,7 +8,7 @@ export default function TerminosPage() {
       <div className="mt-8 max-w-lg mx-auto">
         <p className="font-display text-2xl text-ember-500 tracking-wide mb-1">CAPY</p>
         <h1 className="font-bold text-smoke-200 text-xl mb-1">Términos y Condiciones</h1>
-        <p className="text-smoke-600 text-xs mb-8">Última actualización: junio de 2026</p>
+        <p className="text-smoke-600 text-xs mb-8">Última actualización: julio de 2026</p>
 
         <div className="space-y-6 text-smoke-400 text-sm leading-relaxed">
 
@@ -77,11 +77,30 @@ export default function TerminosPage() {
           </section>
 
           <section>
-            <h2 className="text-smoke-200 font-semibold mb-2">7. Plan gratuito y pago</h2>
+            <h2 className="text-smoke-200 font-semibold mb-2">7. Plan sin cargo y funciones pagas</h2>
             <p>
-              CAPY ofrece un plan gratuito con funciones básicas. Funciones avanzadas pueden requerir
-              una suscripción paga. Los precios y condiciones del plan pago se informan dentro de la app
-              antes de cualquier cobro. Podés cancelar tu suscripción en cualquier momento.
+              CAPY ofrece un plan sin cargo con las funciones esenciales (toma de comandas, registro de
+              propinas, reputación y estadísticas), sujeto a los límites de uso vigentes. Algunas funciones
+              —en particular las asistidas por inteligencia artificial, como la carga de cartas y la toma de
+              comandas por voz— tienen cupos de uso dentro del plan sin cargo.
+            </p>
+            <p className="mt-2">
+              CAPY ofrece además un desbloqueo pago ("Pack Pro"), de <strong>pago único</strong>, que amplía o
+              habilita funciones (por ejemplo, el perfil profesional y mayores cupos de las funciones con IA),
+              siempre dentro de límites de uso razonable. Al agotarse un cupo, podés adquirir recargas
+              adicionales o continuar usando las funciones sin IA sin cargo.
+            </p>
+            <p className="mt-2">
+              Los cupos, límites, funciones incluidas y precios vigentes se informan dentro de la app antes de
+              cualquier cobro. CAPY puede modificar los cupos, límites, funciones y precios, así como incorporar
+              nuevas funciones o planes, notificando los cambios relevantes. El plan sin cargo <strong>no implica
+              gratuidad permanente ni ilimitada</strong> de ninguna función.
+            </p>
+            <p className="mt-2">
+              Las promociones, bonificaciones y programas de referidos (por ejemplo, desbloqueos bonificados por
+              referir usuarios o locales, o comisiones por referir restaurantes) están sujetos a las condiciones
+              específicas vigentes al momento de cada promoción y pueden ser modificados o discontinuados, sin
+              obligación de continuidad.
             </p>
           </section>
 
