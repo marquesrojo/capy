@@ -86,7 +86,7 @@ const STEPS = [
 const METRICS = [
   { num: '+30%', label: 'Propinas promedio' },
   { num: '100%', label: 'Historial verificado' },
-  { num: 'Gratis', label: 'Para empezar' },
+  { num: 'Gratis', label: 'Para usar' },
 ]
 
 export default function CamautLandingPage() {
@@ -190,7 +190,7 @@ export default function CamautLandingPage() {
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
           </svg>
-          Sin descargas · Gratis para empezar · Funciona en Chrome y Safari
+          Sin descargas · Gratis, sin vueltas · Funciona en Chrome y Safari
         </p>
         <p className="text-[11px] text-smoke-600 mt-2">
           El plan sin cargo incluye cupos de uso. Funciones, límites y precios sujetos a las condiciones vigentes.{' '}
