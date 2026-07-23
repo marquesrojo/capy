@@ -145,17 +145,13 @@ límites/precios en el futuro.
 
 ## 8. Referidos
 
-### 8.A — Camarero refiere un **restaurante** (palanca principal)
+### 8.A — Camarero refiere un **restaurante**
 
 - **Atribución** venue → camarero registrada desde el alta del local (se deja
-  contemplada en el modelo de datos desde el arranque, aunque el monto no esté
-  definido).
-- **Forma de la comisión:** **revenue-share recurrente** (un % de lo que pague
-  el local mientras siga activo) por sobre un bounty único — alinea incentivos
-  y motiva la retención del local. **Monto/%: pendiente**, atado al pricing del
-  venue (§10).
-- **Interino** (hasta definir el pricing de venue): premiar la referencia de un
-  restaurante con **Pro gratis + recargas**, para no frenar el incentivo.
+  contemplada en el modelo de datos desde el arranque, para poder reconocer la
+  referencia más adelante).
+- El esquema de incentivo/recompensa por referir un restaurante **no se define
+  en esta especificación**; queda para el track del pricing del venue (§10).
 
 ### 8.B — Camarero refiere **5 camareros** → Pro bonificado
 
@@ -200,7 +196,7 @@ Pago:
 ## 10. Pendientes de definir
 
 - **Precio de la recarga de cartas** (y si existe pack de voz).
-- **% / forma de la comisión** por restaurante (atado al pricing del venue).
+- **Incentivo por referir restaurantes** (atado al pricing del venue).
 - **Cupos finales del plan sin cargo** (propuesto: 40 voz/mes + 2 cartas).
 - **Esquema económico del venue / centro gastronómico** (track separado; debe
   conversar con el sistema de referidos del camarero).
@@ -216,5 +212,5 @@ Pago:
 | Plan sin cargo (propuesto) | voz 40/mes + 2 cartas IA + todo el core |
 | Referir 5 camareros válidos | Pro bonificado (mismos topes) |
 | Referidos extra (>5) | recargas de cartas gratis |
-| Referir restaurante | revenue-share recurrente (% pendiente) |
+| Referir restaurante | atribución registrada; incentivo a definir (fuera de alcance) |
 | Costo real IA por uso | voz ≈ US$0.0007 · carta ≈ US$0.005–0.02 |
