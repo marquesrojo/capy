@@ -1,25 +1,24 @@
-// Modelo freemium del camarero: cupo de cartas con IA.
-// Voz: gratis, sin límite. Cartas: 10 gratis; al superarlas se compra un pack
-// con el mismo Mercado Pago que las imágenes IA del venue.
-// Ver docs/modelo-economico-camarero.md
+// Modelo freemium del camarero: cupo de imágenes con IA.
+// Voz: gratis, sin límite. Imágenes de carta: 10 gratis; al superarlas se
+// compra un pack (10 por $8.000) con el mismo Mercado Pago que las imágenes
+// IA del venue. Ver docs/modelo-economico-camarero.md
 import { supabaseStaff } from './supabase'
 
-// Snapshot del cupo de cartas del camarero logueado
-// → { quota, used, remaining }
-export async function getCartaQuota() {
+// Snapshot del cupo de imágenes del camarero logueado → { quota, used, remaining }
+export async function getImageQuota() {
   const { data: { user } } = await supabaseStaff.auth.getUser()
   if (!user) return null
-  const { data, error } = await supabaseStaff.rpc('get_camarero_carta_quota', { p_staff: user.id })
+  const { data, error } = await supabaseStaff.rpc('get_camarero_image_quota', { p_staff: user.id })
   if (error) return null
   return data
 }
 
-// Inicia el checkout de Mercado Pago para comprar un pack de cartas.
+// Inicia el checkout de Mercado Pago para comprar un pack de imágenes.
 // Devuelve { url } para redirigir, o { error }.
-export async function startCartaPackCheckout() {
+export async function startImagePackCheckout() {
   const { data: { session } } = await supabaseStaff.auth.getSession()
   if (!session) return { error: 'Sesión expirada, volvé a iniciar sesión' }
-  const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-camarero-carta-payment`, {
+  const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-camarero-image-payment`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

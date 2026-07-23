@@ -3,39 +3,40 @@
 -- Ver docs/modelo-economico-camarero.md
 --
 -- Comanda por voz: GRATIS, sin límite.
--- Cartas con IA: 10 gratis (de por vida). Al superar las 10, se compra un
--- pack de cartas con el mismo Mercado Pago que las imágenes IA del venue
--- (capy_settings.mp_access_token).
+-- Imágenes de carta con IA: 10 gratis (de por vida). Al superarlas, se compra
+-- un pack de imágenes (10 por $8.000) con el mismo Mercado Pago que las
+-- imágenes IA del venue (capy_settings.mp_access_token).
+-- La unidad es la IMAGEN procesada con IA (una carta puede ser varias imágenes).
 -- ============================================================
 
--- Cupo de cartas con IA en el perfil del camarero
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS ia_carta_quota int NOT NULL DEFAULT 10;  -- cartas gratis + compradas
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS ia_cartas_used int NOT NULL DEFAULT 0;    -- cartas consumidas (de por vida)
+-- Cupo de imágenes con IA en el perfil del camarero
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS ia_image_quota int NOT NULL DEFAULT 10;  -- gratis + compradas
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS ia_images_used int NOT NULL DEFAULT 0;    -- consumidas (de por vida)
 
 -- ============================================================
--- Compras de packs de cartas — idempotencia por pago de MP
+-- Compras de packs de imágenes — idempotencia por pago de MP
 -- Espejo de photo_pack_purchases (pack de fotos del venue)
 -- ============================================================
-CREATE TABLE IF NOT EXISTS camarero_carta_purchases (
+CREATE TABLE IF NOT EXISTS camarero_image_purchases (
   id            uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
   staff_id      uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   mp_payment_id text UNIQUE,
   amount_ars    numeric,
-  cartas        int NOT NULL DEFAULT 10,   -- cuántas cartas sumó el pack
+  images        int NOT NULL DEFAULT 10,   -- cuántas imágenes sumó el pack
   status        text NOT NULL DEFAULT 'approved',
   approved_at   timestamptz,
   created_at    timestamptz NOT NULL DEFAULT now()
 );
-ALTER TABLE camarero_carta_purchases ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS camarero_carta_purchases_select_own ON camarero_carta_purchases;
-CREATE POLICY camarero_carta_purchases_select_own ON camarero_carta_purchases
+ALTER TABLE camarero_image_purchases ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS camarero_image_purchases_select_own ON camarero_image_purchases;
+CREATE POLICY camarero_image_purchases_select_own ON camarero_image_purchases
   FOR SELECT USING (staff_id = auth.uid());
 
 -- ============================================================
--- RPC: consumir 1 carta (al subir una carta con IA). Atómico.
+-- RPC: consumir 1 imagen (al subir una imagen de carta con IA). Atómico.
 -- Devuelve { allowed, remaining, limit }.
 -- ============================================================
-CREATE OR REPLACE FUNCTION consume_ia_carta(p_staff uuid)
+CREATE OR REPLACE FUNCTION consume_ia_image(p_staff uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -45,7 +46,7 @@ DECLARE
   v_quota int;
   v_used  int;
 BEGIN
-  SELECT ia_carta_quota, ia_cartas_used INTO v_quota, v_used
+  SELECT ia_image_quota, ia_images_used INTO v_quota, v_used
     FROM profiles WHERE id = p_staff FOR UPDATE;
 
   IF NOT FOUND THEN
@@ -56,15 +57,15 @@ BEGIN
     RETURN jsonb_build_object('allowed', false, 'remaining', 0, 'limit', v_quota);
   END IF;
 
-  UPDATE profiles SET ia_cartas_used = v_used + 1 WHERE id = p_staff;
+  UPDATE profiles SET ia_images_used = v_used + 1 WHERE id = p_staff;
   RETURN jsonb_build_object('allowed', true, 'remaining', v_quota - (v_used + 1), 'limit', v_quota);
 END;
 $$;
 
 -- ============================================================
--- RPC: snapshot del cupo de cartas (para la UI). No muta.
+-- RPC: snapshot del cupo de imágenes (para la UI). No muta.
 -- ============================================================
-CREATE OR REPLACE FUNCTION get_camarero_carta_quota(p_staff uuid)
+CREATE OR REPLACE FUNCTION get_camarero_image_quota(p_staff uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -74,7 +75,7 @@ DECLARE
   v_quota int;
   v_used  int;
 BEGIN
-  SELECT ia_carta_quota, ia_cartas_used INTO v_quota, v_used
+  SELECT ia_image_quota, ia_images_used INTO v_quota, v_used
     FROM profiles WHERE id = p_staff;
   IF NOT FOUND THEN
     RETURN jsonb_build_object('error', 'staff_not_found');
@@ -88,15 +89,15 @@ END;
 $$;
 
 -- ============================================================
--- RPC: sumar cartas por compra de pack (desde el webhook, service role)
+-- RPC: sumar imágenes por compra de pack (desde el webhook, service role)
 -- ============================================================
-CREATE OR REPLACE FUNCTION add_camarero_cartas(p_staff uuid, p_cartas int)
+CREATE OR REPLACE FUNCTION add_camarero_images(p_staff uuid, p_images int)
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  UPDATE profiles SET ia_carta_quota = ia_carta_quota + p_cartas WHERE id = p_staff;
+  UPDATE profiles SET ia_image_quota = ia_image_quota + p_images WHERE id = p_staff;
 END;
 $$;

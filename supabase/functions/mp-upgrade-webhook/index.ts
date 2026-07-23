@@ -53,31 +53,31 @@ serve(async (req) => {
     // external_reference format: "${id}:${featureKey}"
     const [refId, featureKey] = (payment.external_reference || '').split(':')
 
-    // ── Pack de cartas con IA del camarero ──
-    if (featureKey === 'carta_pack') {
+    // ── Pack de imágenes con IA del camarero ──
+    if (featureKey === 'image_pack') {
       const staffId = refId
       if (!staffId) return json({ ok: false, reason: 'no_staff' })
 
       // Idempotencia por pago de MP
       const { data: existingPurchase } = await supabase
-        .from('camarero_carta_purchases')
+        .from('camarero_image_purchases')
         .select('id')
         .eq('mp_payment_id', String(paymentId))
         .maybeSingle()
       if (existingPurchase) return json({ ok: true, already: true })
 
-      const packCartas = Number(Deno.env.get('CAPY_CARTA_PACK_SIZE') || 10)
+      const packImages = Number(Deno.env.get('CAPY_IMAGE_PACK_SIZE') || 10)
 
-      await supabase.from('camarero_carta_purchases').insert({
+      await supabase.from('camarero_image_purchases').insert({
         staff_id: staffId,
         mp_payment_id: String(paymentId),
         amount_ars: payment.transaction_amount,
-        cartas: packCartas,
+        images: packImages,
         status: 'approved',
         approved_at: new Date().toISOString(),
       })
 
-      await supabase.rpc('add_camarero_cartas', { p_staff: staffId, p_cartas: packCartas })
+      await supabase.rpc('add_camarero_images', { p_staff: staffId, p_images: packImages })
       return json({ ok: true, feature: featureKey })
     }
 
