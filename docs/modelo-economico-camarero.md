@@ -193,6 +193,30 @@ Pago:
 
 ---
 
+## 9.b Estado de implementación
+
+**Incremento 1 (backend) — hecho:**
+- Migración `0079_camarero_freemium.sql`: contadores en `profiles`
+  (`ia_voice_period/used`, `ia_carta_quota/used`, `pro_active`, `pro_source`,
+  `pro_activated_at`), tablas `camarero_pro_purchases` y `camarero_referrals`,
+  y RPCs `consume_ia_quota`, `get_camarero_quota`, `grant_camarero_pro`,
+  `add_camarero_cartas`.
+- Gating de **voz** en `parse-voice-order` (identifica al camarero por JWT y
+  consume cupo; si no hay identidad, procesa igual por compatibilidad).
+- Pago del Pro: edge `create-camarero-pro-payment` (ARS 9.000, o recarga) +
+  `mp-upgrade-webhook` extendido para `pro_camarero` / `recarga_cartas`
+  (idempotente, otorga Pro / suma cartas).
+- Frontend: `src/lib/camareroPro.js` (`getCamareroQuota`,
+  `startCamareroProCheckout`).
+
+**Incremento 2 (pendiente):**
+- Gating de **cartas** (rutear la subida por un edge autenticado que consuma
+  `consume_ia_quota(..., 'carta')`, hoy la carta pasa por `gemini-proxy` anon).
+- UI: mostrar cupos, paywall/nudge al agotar, botón de upgrade y flujo de
+  referidos (5 camareros válidos = Pro bonificado).
+- Recarga de cartas: default 5 cartas; precio en `CAPY_RECARGA_CARTAS_ARS`
+  (pendiente de definir).
+
 ## 10. Pendientes de definir
 
 - **Precio de la recarga de cartas** (y si existe pack de voz).

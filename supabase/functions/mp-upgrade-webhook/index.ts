@@ -50,8 +50,45 @@ serve(async (req) => {
       return json({ ok: false, reason: 'not_approved', status: payment.status })
     }
 
-    // external_reference format: "${venueId}:extra_photos"
-    const [venueId, featureKey] = (payment.external_reference || '').split(':')
+    // external_reference format: "${id}:${featureKey}"
+    const [refId, featureKey] = (payment.external_reference || '').split(':')
+
+    // ── Pack Pro / recarga de cartas del camarero ──
+    if (featureKey === 'pro_camarero' || featureKey === 'recarga_cartas') {
+      const staffId = refId
+      if (!staffId) return json({ ok: false, reason: 'no_staff' })
+
+      // Idempotencia por pago de MP
+      const { data: existingPurchase } = await supabase
+        .from('camarero_pro_purchases')
+        .select('id')
+        .eq('mp_payment_id', String(paymentId))
+        .maybeSingle()
+      if (existingPurchase) return json({ ok: true, already: true })
+
+      const isRecarga = featureKey === 'recarga_cartas'
+      const cartasAdded = isRecarga ? 5 : null
+
+      await supabase.from('camarero_pro_purchases').insert({
+        staff_id: staffId,
+        kind: isRecarga ? 'recarga_cartas' : 'pro',
+        mp_payment_id: String(paymentId),
+        amount_ars: payment.transaction_amount,
+        cartas_added: cartasAdded,
+        status: 'approved',
+        approved_at: new Date().toISOString(),
+      })
+
+      if (isRecarga) {
+        await supabase.rpc('add_camarero_cartas', { p_staff: staffId, p_cartas: cartasAdded })
+      } else {
+        await supabase.rpc('grant_camarero_pro', { p_staff: staffId, p_source: 'paid' })
+      }
+      return json({ ok: true, feature: featureKey })
+    }
+
+    // ── Pack de fotos del venue ──
+    const venueId = refId
     if (!venueId || featureKey !== 'extra_photos') {
       return json({ ok: false, reason: 'not_extra_photos' })
     }
