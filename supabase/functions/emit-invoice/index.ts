@@ -38,13 +38,18 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const { orderId, sessionId, invoiceType = 'B', client } = await req.json() as {
+    const { orderId, orderIds, sessionId, invoiceType = 'B', client } = await req.json() as {
       orderId?: string
+      orderIds?: string[]
       sessionId?: string
       invoiceType?: 'A' | 'B'
       client?: { cuit?: string; razonSocial?: string; domicilio?: string }
     }
-    if (!orderId && !sessionId) return json({ error: 'orderId o sessionId requerido' }, 400)
+    const idList = Array.isArray(orderIds) ? orderIds.filter(Boolean) : []
+    if (!orderId && !sessionId && idList.length === 0) return json({ error: 'orderId, orderIds o sessionId requerido' }, 400)
+    // Ancla para idempotencia/almacenamiento de la factura consolidada
+    const anchorId = idList[0] || orderId || null
+    const isConsolidated = idList.length > 1 || !!sessionId
 
     const isA = invoiceType === 'A'
     const cuitDigits = (client?.cuit || '').replace(/\D/g, '')
@@ -71,16 +76,22 @@ Deno.serve(async (req) => {
     const { data: prof } = await supabase.from('profiles').select('role').eq('id', user.id).single()
     if (!prof || !STAFF_ROLES.includes(prof.role)) return json({ error: 'Solo el staff puede facturar' }, 403)
 
-    // Idempotencia
+    // Idempotencia: factura aprobada existente para el ancla (o la sesión)
     const existingQuery = sessionId
       ? supabase.from('fiscal_invoices').select('*').eq('session_id', sessionId).eq('status', 'approved').maybeSingle()
-      : supabase.from('fiscal_invoices').select('*').eq('order_id', orderId!).maybeSingle()
+      : supabase.from('fiscal_invoices').select('*').eq('order_id', anchorId!).maybeSingle()
     const { data: existing } = await existingQuery
     if (existing?.status === 'approved') return json({ success: true, alreadyEmitted: true, invoice: existing })
 
-    // Resolver los pedidos a facturar (uno, o todos los cobrados de la sesión)
+    // Resolver los pedidos a facturar
     let orders: any[] = []
-    if (sessionId) {
+    if (idList.length) {
+      const { data } = await supabase.from('orders').select(ORDER_FIELDS)
+        .in('id', idList).eq('payment_status', 'aprobado')
+        .order('created_at', { ascending: true })
+      orders = data || []
+      if (!orders.length) return json({ success: false, error: 'No hay pedidos cobrados para facturar' }, 200)
+    } else if (sessionId) {
       const { data } = await supabase.from('orders').select(ORDER_FIELDS)
         .eq('session_id', sessionId).eq('payment_status', 'aprobado')
         .order('created_at', { ascending: true })
@@ -166,8 +177,9 @@ Deno.serve(async (req) => {
 
     const baseRow = {
       venue_id: orders[0].venue_id,
-      order_id: sessionId ? null : orderId,
-      session_id: sessionId || null,
+      order_id: sessionId ? (orders[0].id || null) : (anchorId || null),
+      session_id: sessionId || orders[0].session_id || null,
+      covered_order_ids: isConsolidated ? orders.map((o: any) => o.id) : null,
       status: 'pending',
       invoice_type: invoiceTypeCode,
       punto_venta: puntoVenta,
