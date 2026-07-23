@@ -98,9 +98,8 @@ export default function TerminosPage() {
             </p>
             <p className="mt-2">
               Las promociones, bonificaciones y programas de referidos (por ejemplo, desbloqueos bonificados por
-              referir usuarios o locales, o comisiones por referir restaurantes) están sujetos a las condiciones
-              específicas vigentes al momento de cada promoción y pueden ser modificados o discontinuados, sin
-              obligación de continuidad.
+              referir usuarios o locales) están sujetos a las condiciones específicas vigentes al momento de cada
+              promoción y pueden ser modificados o discontinuados, sin obligación de continuidad.
             </p>
           </section>
 
