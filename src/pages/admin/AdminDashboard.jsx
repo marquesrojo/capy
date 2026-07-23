@@ -1984,33 +1984,144 @@ function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssi
               Pagado hoy · {paidOrders.length}
             </p>
             <div className="space-y-2">
-              {paidOrders.map(order => (
-                <div key={order.id} className="bg-carbon-900 border border-emerald-500/20 rounded-xl px-3 py-2.5 opacity-75">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-mono text-ember-500 font-bold text-sm">
-                      #{order.daily_number || order.id.slice(0, 6)}
-                    </span>
-                    <span className="text-emerald-700 text-xs font-medium">
-                      {(order.payment_method || '').toLowerCase().includes('mercado') ? 'Mercado Pago' : order.payment_method}
-                    </span>
-                  </div>
-                  <p className="text-smoke-400 text-xs flex items-center gap-1"><PinIcon size={12} /> {order.location_label}</p>
-                  <p className="font-mono text-smoke-300 text-sm mt-1">{formatPrice(order.total)}</p>
-                  {fiscalEnabled && (
-                    <FiscalTicket
-                      order={order}
-                      invoice={invoices[order.id]}
-                      onEmitted={onInvoiceEmitted}
-                      venueName={venueName}
-                      fiscalCondition={fiscalCondition}
-                    />
-                  )}
-                </div>
+              {groupBySession(paidOrders).map(group => (
+                <PaidGroup
+                  key={group.sessionId || group.orders[0].id}
+                  group={group}
+                  fiscalEnabled={fiscalEnabled}
+                  fiscalCondition={fiscalCondition}
+                  venueName={venueName}
+                  invoices={invoices}
+                  onInvoiceEmitted={onInvoiceEmitted}
+                />
               ))}
             </div>
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// Agrupa pedidos pagados por sesión de mesa (para facturar juntos)
+function groupBySession(orders) {
+  const groups = []
+  const idx = new Map()
+  orders.forEach(o => {
+    if (o.session_id) {
+      if (idx.has(o.session_id)) groups[idx.get(o.session_id)].orders.push(o)
+      else { idx.set(o.session_id, groups.length); groups.push({ sessionId: o.session_id, orders: [o] }) }
+    } else {
+      groups.push({ sessionId: null, orders: [o] })
+    }
+  })
+  return groups
+}
+
+// Un grupo de pedidos pagados de "Pagado hoy". Si son varios de la misma mesa,
+// ofrece facturar todo junto (consolidado) además de por separado.
+function PaidGroup({ group, fiscalEnabled, fiscalCondition, venueName, invoices, onInvoiceEmitted }) {
+  const { sessionId, orders } = group
+  const isMulti = orders.length > 1 && sessionId
+  const [mesaInvoice, setMesaInvoice] = useState(null)
+  const [emitting, setEmitting] = useState(false)
+  const [error, setError] = useState('')
+  const [showSplit, setShowSplit] = useState(false)
+
+  useEffect(() => {
+    if (!isMulti) return
+    supabaseStaff.from('fiscal_invoices').select('*')
+      .eq('session_id', sessionId).eq('status', 'approved').maybeSingle()
+      .then(({ data }) => setMesaInvoice(data || null))
+  }, [sessionId, isMulti])
+
+  const total = orders.reduce((s, o) => s + (o.total || 0), 0)
+  const method = (orders[0].payment_method || '').toLowerCase().includes('mercado') ? 'Mercado Pago' : orders[0].payment_method
+
+  // Pedido individual (sin mesa o único): igual que antes
+  if (!isMulti) {
+    const order = orders[0]
+    return (
+      <div className="bg-carbon-900 border border-emerald-500/20 rounded-xl px-3 py-2.5 opacity-75">
+        <div className="flex items-center justify-between mb-1">
+          <span className="font-mono text-ember-500 font-bold text-sm">#{order.daily_number || order.id.slice(0, 6)}</span>
+          <span className="text-emerald-700 text-xs font-medium">{method}</span>
+        </div>
+        <p className="text-smoke-400 text-xs flex items-center gap-1"><PinIcon size={12} /> {order.location_label}</p>
+        <p className="font-mono text-smoke-300 text-sm mt-1">{formatPrice(order.total)}</p>
+        {fiscalEnabled && (
+          <FiscalTicket order={order} invoice={invoices[order.id]} onEmitted={onInvoiceEmitted} venueName={venueName} fiscalCondition={fiscalCondition} />
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-carbon-900 border border-violet-500/30 rounded-xl px-3 py-2.5">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-violet-400 text-[10px] font-bold uppercase tracking-wider">
+          {orders[0].location_label} · {orders.length} pedidos
+        </span>
+        <span className="text-emerald-700 text-xs font-medium">{method}</span>
+      </div>
+      <div className="space-y-0.5 mb-2">
+        {orders.map(o => (
+          <div key={o.id} className="flex justify-between text-xs text-smoke-400">
+            <span>#{o.daily_number || o.id.slice(0, 6)}</span>
+            <span className="font-mono">{formatPrice(o.total)}</span>
+          </div>
+        ))}
+        <div className="flex justify-between text-sm font-semibold text-smoke-200 pt-1 border-t border-carbon-800">
+          <span>Total mesa</span><span className="font-mono">{formatPrice(total)}</span>
+        </div>
+      </div>
+
+      {fiscalEnabled && (mesaInvoice ? (
+        <div>
+          <p className="text-emerald-600 text-[11px] font-semibold mb-1.5">
+            🧾 Factura de mesa {mesaInvoice.invoice_number ? `#${mesaInvoice.invoice_number}` : ''} · CAE {mesaInvoice.cae?.slice(0, 8)}...
+          </p>
+          {mesaInvoice.pdf_url && (
+            <div className="flex flex-wrap gap-1.5">
+              <a href={mesaInvoice.pdf_url} target="_blank" rel="noreferrer" className="text-smoke-400 border border-carbon-700 text-[11px] px-2.5 py-1 rounded-full hover:text-smoke-200">Ver ticket</a>
+              <a
+                href={buildTicketWaUrl({ phone: orders.map(o => o.contact_whatsapp || o.customers?.whatsapp).find(Boolean), venueName, pdfUrl: mesaInvoice.pdf_url })}
+                target="_blank" rel="noreferrer"
+                className="text-white bg-emerald-600 hover:bg-emerald-700 text-[11px] font-semibold px-2.5 py-1 rounded-full">WhatsApp</a>
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          <button
+            onClick={async () => {
+              setEmitting(true); setError('')
+              const result = await emitMesaInvoice(sessionId)
+              if (result.success && result.invoice) setMesaInvoice(result.invoice)
+              else setError(result.error || 'No se pudo facturar la mesa')
+              setEmitting(false)
+            }}
+            disabled={emitting}
+            className="w-full text-[11px] font-semibold py-1.5 rounded-lg border border-ember-500/50 text-ember-500 hover:bg-ember-500/10 disabled:opacity-50 transition-colors"
+          >
+            {emitting ? 'Emitiendo...' : `🧾 Facturar mesa (una sola factura · ${orders.length})`}
+          </button>
+          {error && <p className="text-red-500 text-[10px] mt-1">{error}</p>}
+          <button onClick={() => setShowSplit(s => !s)} className="w-full text-smoke-500 text-[10px] mt-1.5 underline">
+            {showSplit ? 'Ocultar' : 'Facturar por separado'}
+          </button>
+          {showSplit && (
+            <div className="mt-1.5 space-y-1.5">
+              {orders.map(o => (
+                <div key={o.id} className="border-t border-carbon-800 pt-1.5">
+                  <span className="text-smoke-500 text-[10px]">#{o.daily_number || o.id.slice(0, 6)} · {formatPrice(o.total)}</span>
+                  <FiscalTicket order={o} invoice={invoices[o.id]} onEmitted={onInvoiceEmitted} venueName={venueName} fiscalCondition={fiscalCondition} />
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      ))}
     </div>
   )
 }
