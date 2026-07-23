@@ -264,6 +264,55 @@ export default function CamautLandingPage() {
         </div>
       </section>
 
+      {/* La IA de Capy */}
+      <section className="max-w-6xl mx-auto px-5 md:px-8 pb-12 md:pb-16">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-smoke-500 mb-1">Inteligencia artificial</p>
+        <h2 className="font-display text-3xl md:text-5xl text-[#3C2A21] tracking-wide mb-3 leading-tight">
+          La IA que te hace<br />el laburo más fácil
+        </h2>
+        <p className="text-sm text-smoke-400 leading-relaxed max-w-lg mb-6 md:mb-8">
+          Capy usa inteligencia artificial en dos momentos clave del turno, para que cargues menos y atiendas más.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Carta con IA */}
+          <div className="bg-white border border-carbon-800 rounded-2xl p-5 md:p-6">
+            <div className="w-11 h-11 rounded-xl bg-ember-500/10 flex items-center justify-center text-ember-500 mb-4">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                <circle cx="12" cy="13" r="3"/>
+              </svg>
+            </div>
+            <p className="font-bold text-[#3C2A21] text-sm md:text-base mb-1.5">Tu carta, en una foto</p>
+            <p className="text-xs md:text-sm text-smoke-400 leading-relaxed">
+              Sacale una foto a cualquier menú —el del local o el tuyo— y la IA lo digitaliza: arma la carta con
+              productos y precios, lista para tomar pedidos. Sin cargar ítem por ítem.
+            </p>
+          </div>
+
+          {/* Comanda por voz */}
+          <div className="bg-white border border-carbon-800 rounded-2xl p-5 md:p-6">
+            <div className="w-11 h-11 rounded-xl bg-ember-500/10 flex items-center justify-center text-ember-500 mb-4">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/>
+              </svg>
+            </div>
+            <p className="font-bold text-[#3C2A21] text-sm md:text-base mb-1.5">Dictá el pedido y listo</p>
+            <p className="text-xs md:text-sm text-smoke-400 leading-relaxed">
+              Hablale a la app en plena mesa: <span className="italic">"dos milanesas sin sal y una Quilmes"</span>.
+              La IA reconoce productos, cantidades y notas, y carga la comanda sola. Menos tipeo, más rapidez.
+            </p>
+          </div>
+        </div>
+
+        <p className="text-[11px] text-smoke-600 mt-4">
+          Las dos funciones con IA vienen con un cupo de uso sin cargo. Si las usás seguido, sumás un upgrade
+          opcional de pago único.{' '}
+          <Link to="/terminos" className="text-ember-500 underline">Ver Términos</Link>.
+        </p>
+      </section>
+
       {/* El Círculo Virtuoso */}
       <section className="bg-carbon-900 border-y border-carbon-800 py-12 md:py-16">
         <div className="max-w-6xl mx-auto px-5 md:px-8">
