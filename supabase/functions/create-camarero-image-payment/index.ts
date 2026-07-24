@@ -11,9 +11,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Pack por defecto: 10 imágenes por $8.000. Configurable por secrets.
+// Pack por defecto: 10 imágenes. El precio sale de capy_settings
+// (camarero_image_pack_price, editable por el superadmin); si no está, cae al
+// secret CAPY_IMAGE_PACK_ARS o a $8.000.
 const PACK_IMAGES = Number(Deno.env.get('CAPY_IMAGE_PACK_SIZE') || 10)
-const PACK_PRICE_ARS = Number(Deno.env.get('CAPY_IMAGE_PACK_ARS') || 8000)
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -32,13 +33,14 @@ serve(async (req) => {
     const { data: { user } = { user: null } } = await supabase.auth.getUser(jwt)
     if (!user) return json({ error: 'No autorizado' }, 401)
 
-    if (!PACK_PRICE_ARS) return json({ error: 'Precio del pack no configurado' }, 400)
-
     const { data: settings } = await supabase
       .from('capy_settings')
-      .select('mp_access_token')
+      .select('mp_access_token, camarero_image_pack_price')
       .eq('id', 1)
       .single()
+
+    const price = Number(settings?.camarero_image_pack_price || Deno.env.get('CAPY_IMAGE_PACK_ARS') || 8000)
+    if (!price) return json({ error: 'Precio del pack no configurado' }, 400)
 
     const accessToken = settings?.mp_access_token || Deno.env.get('MP_ACCESS_TOKEN')
     if (!accessToken) return json({ error: 'MP no configurado' }, 400)
@@ -52,7 +54,7 @@ serve(async (req) => {
         description: `Sumá ${PACK_IMAGES} imágenes para subir cartas con inteligencia artificial`,
         quantity: 1,
         currency_id: 'ARS',
-        unit_price: PACK_PRICE_ARS,
+        unit_price: price,
       }],
       back_urls: {
         success: `https://capyapp.co/camareroa/app?image_pack=success`,

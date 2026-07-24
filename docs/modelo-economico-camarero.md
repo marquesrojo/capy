@@ -109,21 +109,32 @@ reconocer la referencia más adelante.
 - `profiles`: `ia_image_quota` (default 10) e `ia_images_used`.
 - Tabla `camarero_image_purchases` (idempotencia por pago de MP).
 - RPCs: `consume_ia_image` (consume 1 imagen, atómico), `get_camarero_image_quota`
-  (snapshot para la UI), `add_camarero_images` (suma un pack desde el webhook).
+  (snapshot para la UI), `add_camarero_images` (suma un pack), `refund_ia_image`
+  (devuelve la imagen si la IA falla).
+- `capy_settings.camarero_image_pack_price` (precio editable por el superadmin).
+
+**Gating server-side — hecho:**
+- Edge `parse-menu-image`: identifica al camarero por JWT, consume 1 imagen del
+  cupo (atómico), corre las 2 llamadas a Gemini (transcribir + parsear) y
+  devuelve los productos. Si no hay cupo → `quota_exceeded` (cartel de pago). Si
+  la IA falla, hace `refund_ia_image` (no cobra la imagen).
 
 **Pago — hecho:**
-- Edge `create-camarero-image-payment`: crea la preferencia de MP con la cuenta
-  de `capy_settings`. Pack **10 imágenes por $8.000** (secrets
-  `CAPY_IMAGE_PACK_SIZE` / `CAPY_IMAGE_PACK_ARS`).
+- Edge `create-camarero-image-payment`: preferencia de MP con la cuenta de
+  `capy_settings`. Precio de `camarero_image_pack_price` (fallback
+  `CAPY_IMAGE_PACK_ARS` / $8.000). Pack de 10 (`CAPY_IMAGE_PACK_SIZE`).
 - `mp-upgrade-webhook` extendido para `image_pack` (idempotente, suma imágenes).
 
 **Voz — hecho:** sin gating (gratis, sin límite).
 
-**Frontend — parcial:** `src/lib/camareroImages.js` (`getImageQuota`,
-`startImagePackCheckout`). Falta la UI (contador + cartel de pago al superar 10)
-y el gating server-side de la subida de imagen (hoy pasa por `gemini-proxy` anon;
-hay que consumir `consume_ia_image` en un edge autenticado o al confirmar la
-subida).
+**Frontend — hecho:**
+- `src/lib/camareroImages.js`: `getImageQuota`, `getImagePackPrice`,
+  `parseMenuImage`, `startImagePackCheckout`.
+- `ImportarConIA` (CamautConfigPage): sube por `parse-menu-image`, muestra el
+  contador de imágenes restantes, el cartel de pago al agotarlas (con el nudge
+  de activar el restaurante) y maneja la vuelta de MP (`?image_pack=success`)
+  con polling del cupo.
+- SuperAdmin → Pagos: editor del precio del pack de imágenes del camarero.
 
 ---
 

@@ -13,6 +13,39 @@ export async function getImageQuota() {
   return data
 }
 
+// Precio vigente del pack (capy_settings) para mostrarlo en el cartel.
+export async function getImagePackPrice() {
+  const { data } = await supabaseStaff
+    .from('capy_settings')
+    .select('camarero_image_pack_price')
+    .eq('id', 1)
+    .maybeSingle()
+  return Number(data?.camarero_image_pack_price || 8000)
+}
+
+// Procesa una imagen de menú con IA gateando el cupo server-side.
+// Devuelve { items } | { quota_exceeded, quota } | { error }.
+export async function parseMenuImage(file) {
+  const { data: { session } } = await supabaseStaff.auth.getSession()
+  if (!session) return { error: 'Sesión expirada, volvé a iniciar sesión' }
+  const imageBase64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = ev => resolve(String(ev.target.result).split(',')[1])
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+  const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-menu-image`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ imageBase64, mimeType: file.type }),
+  })
+  return res.json()
+}
+
 // Inicia el checkout de Mercado Pago para comprar un pack de imágenes.
 // Devuelve { url } para redirigir, o { error }.
 export async function startImagePackCheckout() {

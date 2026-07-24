@@ -101,3 +101,23 @@ BEGIN
   UPDATE profiles SET ia_image_quota = ia_image_quota + p_images WHERE id = p_staff;
 END;
 $$;
+
+-- ============================================================
+-- RPC: devolver 1 imagen (si el procesamiento con IA falló tras consumir)
+-- ============================================================
+CREATE OR REPLACE FUNCTION refund_ia_image(p_staff uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  UPDATE profiles SET ia_images_used = GREATEST(ia_images_used - 1, 0) WHERE id = p_staff;
+END;
+$$;
+
+-- ============================================================
+-- Precio del pack de imágenes del camarero, editable por el superadmin
+-- (mismo patrón que photo_pack_price del venue).
+-- ============================================================
+ALTER TABLE capy_settings ADD COLUMN IF NOT EXISTS camarero_image_pack_price numeric;
