@@ -1113,6 +1113,8 @@ function ImportarConIA({ venueId, menuId, onImported }) {
   const [quota, setQuota] = useState(null)      // { quota, used, remaining }
   const [packPrice, setPackPrice] = useState(8000)
   const [payLoading, setPayLoading] = useState(false)
+  const [progress, setProgress] = useState(null) // { current, total }
+  const [limitReached, setLimitReached] = useState(false)
   const fileRef = useRef(null)
 
   async function refreshQuota() {
@@ -1140,33 +1142,48 @@ function ImportarConIA({ venueId, menuId, onImported }) {
   }, [])
 
   async function handleFile(e) {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
     if (fileRef.current) fileRef.current.value = ''
     setError('')
+    setLimitReached(false)
     // Sin cupo → cartel de pago, sin llamar a la IA
     if (quota && quota.remaining <= 0) { setStep('paywall'); return }
     setStep('analyzing')
-    setPreview(URL.createObjectURL(file))
+    setPreview(URL.createObjectURL(files[0]))
 
-    const result = await parseMenuImage(file)
-    if (result.quota_exceeded) {
-      const limit = result.quota?.limit ?? (quota?.quota ?? 0)
-      setQuota({ quota: limit, used: limit, remaining: 0 })
+    const all = []
+    let hitLimit = false
+    let lastQuota = null
+    let firstError = ''
+    for (let i = 0; i < files.length; i++) {
+      setProgress({ current: i + 1, total: files.length })
+      const result = await parseMenuImage(files[i])
+      if (result.quota_exceeded) { hitLimit = true; if (result.quota) lastQuota = result.quota; break }
+      if (result.error) { if (!firstError) firstError = result.error; continue }
+      if (result.quota) lastQuota = result.quota
+      for (const it of (result.items || [])) all.push({ ...it, selected: true })
+    }
+    setProgress(null)
+
+    // Actualizar el cupo con lo que devolvió la última llamada
+    if (lastQuota && lastQuota.limit != null) {
+      setQuota({ quota: lastQuota.limit, used: lastQuota.limit - lastQuota.remaining, remaining: lastQuota.remaining })
+    } else {
+      await refreshQuota()
+    }
+
+    if (all.length) {
+      setDetected(all)
+      setLimitReached(hitLimit)
+      setStep('review')
+    } else if (hitLimit) {
       setStep('paywall')
-      return
-    }
-    if (result.error) {
-      setError(result.error)
+    } else {
+      setError(firstError || 'No se pudo analizar la imagen. Intentá de nuevo.')
       setStep('idle')
-      return
     }
-    if (result.quota) {
-      const { limit, remaining } = result.quota
-      setQuota({ quota: limit, used: limit - remaining, remaining })
-    }
-    setDetected((result.items || []).map(i => ({ ...i, selected: true })))
-    setStep('review')
+    return
   }
 
   async function buyPack() {
@@ -1276,7 +1293,7 @@ function ImportarConIA({ venueId, menuId, onImported }) {
   if (step === 'idle' || step === 'analyzing') {
     return (
       <div>
-        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+        <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFile} />
         <button
           onClick={() => fileRef.current?.click()}
           disabled={step === 'analyzing'}
@@ -1290,7 +1307,9 @@ function ImportarConIA({ venueId, menuId, onImported }) {
                 </svg>
               </div>
               <div className="text-left">
-                <p className="font-semibold text-[#1A2A3A] text-sm">Analizando imagen...</p>
+                <p className="font-semibold text-[#1A2A3A] text-sm">
+                  {progress && progress.total > 1 ? `Analizando ${progress.current} de ${progress.total}…` : 'Analizando imagen…'}
+                </p>
                 <p className="text-[#8896A5] text-xs">Gemini está leyendo tu menú</p>
               </div>
             </>
@@ -1304,15 +1323,15 @@ function ImportarConIA({ venueId, menuId, onImported }) {
               </div>
               <div className="text-left">
                 <p className="font-semibold text-[#1A2A3A] text-sm">Importar carta con IA</p>
-                <p className="text-[#8896A5] text-xs">Sacá una foto de tu menú y Gemini lo carga automático</p>
+                <p className="text-[#8896A5] text-xs">Sacá una o varias fotos de tu menú y Gemini las carga solas</p>
               </div>
             </>
           )}
         </button>
-        {quota && quota.remaining <= 3 && step === 'idle' && (
-          <p className="text-[#8896A5] text-[11px] mt-2 text-center">
+        {quota && step === 'idle' && (
+          <p className={`text-[11px] mt-2 text-center ${quota.remaining <= 3 ? 'text-[#E8772A] font-medium' : 'text-[#8896A5]'}`}>
             {quota.remaining > 0
-              ? `Te quedan ${quota.remaining} ${quota.remaining === 1 ? 'imagen' : 'imágenes'} con IA`
+              ? `Te quedan ${quota.remaining} de ${quota.quota} imágenes con IA`
               : 'Sin imágenes con IA — al subir otra vas a poder sumar un pack'}
           </p>
         )}
@@ -1330,6 +1349,20 @@ function ImportarConIA({ venueId, menuId, onImported }) {
             {detected.filter(i => i.selected).length} productos detectados
           </p>
           <p className="text-[#8896A5] text-xs mb-3">Revisá y editá antes de importar</p>
+          {limitReached && (
+            <div className="mb-3 bg-[#FFF7ED] border border-[#E8772A]/25 rounded-xl px-3 py-2 flex items-center justify-between gap-2">
+              <p className="text-[#9A5B2A] text-[11px] leading-snug">
+                Te quedaste sin imágenes para el resto de las fotos. Sumá un pack para seguir.
+              </p>
+              <button
+                onClick={buyPack}
+                disabled={payLoading}
+                className="flex-shrink-0 bg-[#009ee3] hover:bg-[#0081c8] disabled:opacity-50 text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-lg"
+              >
+                {payLoading ? '…' : 'Sumar pack'}
+              </button>
+            </div>
+          )}
 
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {detected.map((item, i) => (
