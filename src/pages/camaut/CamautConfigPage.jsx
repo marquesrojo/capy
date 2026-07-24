@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabaseCamaut, supabaseStaff, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice } from '../../lib/utils'
-import { geminiGenerate } from '../../lib/gemini'
+import { parseMenuImage, getImageQuota, getImagePackPrice, startImagePackCheckout } from '../../lib/camareroImages'
 
 export default function CamautConfigPage({ initialTab, embedded, staffId, overrideStaffId }) {
   const { profile, signOut } = useAuth()
@@ -1106,59 +1106,74 @@ function ProductRow({ product, categories, onToggle, onDelete, onUpdate }) {
 }
 
 function ImportarConIA({ venueId, menuId, onImported }) {
-  const [step, setStep] = useState('idle') // idle | analyzing | review | saving
+  const [step, setStep] = useState('idle') // idle | analyzing | review | saving | paywall
   const [preview, setPreview] = useState(null)
   const [detected, setDetected] = useState([]) // [{ name, price, category, selected }]
   const [error, setError] = useState('')
+  const [quota, setQuota] = useState(null)      // { quota, used, remaining }
+  const [packPrice, setPackPrice] = useState(8000)
+  const [payLoading, setPayLoading] = useState(false)
   const fileRef = useRef(null)
+
+  async function refreshQuota() {
+    const q = await getImageQuota()
+    if (q && !q.error) setQuota(q)
+    return q
+  }
+
+  useEffect(() => {
+    refreshQuota()
+    getImagePackPrice().then(setPackPrice)
+    // Vuelta del pago de Mercado Pago: el webhook suma las imágenes de forma
+    // asincrónica, así que refrescamos con un pequeño polling.
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('image_pack') === 'success') {
+      let tries = 0
+      const iv = setInterval(async () => {
+        tries++
+        const q = await getImageQuota()
+        if ((q && q.remaining > 0) || tries >= 6) { if (q && !q.error) setQuota(q); clearInterval(iv) }
+      }, 1500)
+      params.delete('image_pack')
+      window.history.replaceState({}, '', window.location.pathname + (params.toString() ? '?' + params.toString() : ''))
+    }
+  }, [])
 
   async function handleFile(e) {
     const file = e.target.files?.[0]
     if (!file) return
+    if (fileRef.current) fileRef.current.value = ''
     setError('')
+    // Sin cupo → cartel de pago, sin llamar a la IA
+    if (quota && quota.remaining <= 0) { setStep('paywall'); return }
     setStep('analyzing')
+    setPreview(URL.createObjectURL(file))
 
-    const reader = new FileReader()
-    reader.onload = async (ev) => {
-      const base64 = ev.target.result.split(',')[1]
-      setPreview(ev.target.result)
-      try {
-        // PASO 1: Transcribir el texto de la imagen
-        const transcriptData = await geminiGenerate([{
-          parts: [
-            { inline_data: { mime_type: file.type, data: base64 } },
-            { text: 'Transcribí exactamente todo el texto que ves en esta imagen. Incluí nombres, precios y categorías tal como aparecen. No agregues nada extra.' }
-          ]
-        }])
-
-        if (transcriptData.error) throw new Error(transcriptData.error.message)
-
-        const transcriptText = transcriptData.candidates?.[0]?.content?.parts?.[0]?.text || ''
-        if (!transcriptText) throw new Error('Gemini no devolvió texto. Respuesta: ' + JSON.stringify(transcriptData).slice(0, 200))
-
-        // PASO 2: Convertir el texto a JSON de productos
-        const parseData = await geminiGenerate([{
-          parts: [{
-            text: `Este es el texto de un menú de restaurante:\n\n${transcriptText}\n\nConvertí esto a un JSON array de productos. Para cada producto incluí: name (nombre), price (precio como número sin símbolo), category (categoría en español). Respondé ÚNICAMENTE con el JSON array, sin texto adicional, sin backticks. Ejemplo: [{"name":"Milanesa","price":2500,"category":"Platos principales"}]`
-          }]
-        }])
-        const parseText = parseData.candidates?.[0]?.content?.parts?.[0]?.text || '[]'
-        const jsonMatch = parseText.match(/\[[\s\S]*\]/)
-        const clean = jsonMatch ? jsonMatch[0] : '[]'
-        const items = JSON.parse(clean)
-        setDetected(items.map(i => ({ ...i, selected: true })))
-        setStep('review')
-      } catch (err) {
-        console.error(err)
-        const msg = err.message || ''
-        const isOverloaded = /high demand|overload|capacity|try again later/i.test(msg)
-        setError(isOverloaded
-          ? 'La IA tiene mucha demanda en este momento. Esperá unos minutos e intentá de nuevo.'
-          : 'No se pudo analizar la imagen. Intentá de nuevo.')
-        setStep('idle')
-      }
+    const result = await parseMenuImage(file)
+    if (result.quota_exceeded) {
+      const limit = result.quota?.limit ?? (quota?.quota ?? 0)
+      setQuota({ quota: limit, used: limit, remaining: 0 })
+      setStep('paywall')
+      return
     }
-    reader.readAsDataURL(file)
+    if (result.error) {
+      setError(result.error)
+      setStep('idle')
+      return
+    }
+    if (result.quota) {
+      const { limit, remaining } = result.quota
+      setQuota({ quota: limit, used: limit - remaining, remaining })
+    }
+    setDetected((result.items || []).map(i => ({ ...i, selected: true })))
+    setStep('review')
+  }
+
+  async function buyPack() {
+    setPayLoading(true)
+    const { url, error: e } = await startImagePackCheckout()
+    if (url) window.location.href = url
+    else { setError(e || 'No se pudo iniciar el pago'); setPayLoading(false) }
   }
 
   async function handleSave() {
@@ -1212,6 +1227,52 @@ function ImportarConIA({ venueId, menuId, onImported }) {
     setDetected(prev => prev.map((item, idx) => idx === i ? { ...item, [field]: value } : item))
   }
 
+  if (step === 'paywall') {
+    return (
+      <div className="w-full bg-white border border-black/10 rounded-2xl px-4 py-4 shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-xl bg-[#008080]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#008080" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[#1A2A3A] font-semibold text-sm">Usaste tus imágenes con IA</p>
+            <p className="text-[#8896A5] text-xs mt-1">
+              Sumá un pack de 10 imágenes para seguir cargando cartas con IA.
+            </p>
+            <div className="mt-3 bg-[#F0FDF8] border border-[#008080]/15 rounded-xl px-3 py-2.5 flex items-center justify-between">
+              <div>
+                <p className="text-[#1A2A3A] font-bold text-sm">10 imágenes IA</p>
+                <p className="text-[#8896A5] text-xs">No vencen</p>
+              </div>
+              <p className="text-[#008080] font-bold text-base">${packPrice.toLocaleString('es-AR')}</p>
+            </div>
+            <p className="text-[#B0BEC5] text-[11px] mt-2">
+              ¿Tu restaurante usa Capy? Si lo activás, su carta entra sola y no gasta tus imágenes.
+            </p>
+            {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={() => { setError(''); setStep('idle') }}
+                className="flex-shrink-0 border border-black/10 text-[#8896A5] text-sm px-3 py-2.5 rounded-xl"
+              >
+                Ahora no
+              </button>
+              <button
+                onClick={buyPack}
+                disabled={payLoading}
+                className="flex-1 bg-[#009ee3] hover:bg-[#0081c8] disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl flex items-center justify-center gap-2"
+              >
+                {payLoading ? 'Iniciando pago…' : 'Pagar con Mercado Pago'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (step === 'idle' || step === 'analyzing') {
     return (
       <div>
@@ -1248,6 +1309,13 @@ function ImportarConIA({ venueId, menuId, onImported }) {
             </>
           )}
         </button>
+        {quota && quota.remaining <= 3 && step === 'idle' && (
+          <p className="text-[#8896A5] text-[11px] mt-2 text-center">
+            {quota.remaining > 0
+              ? `Te quedan ${quota.remaining} ${quota.remaining === 1 ? 'imagen' : 'imágenes'} con IA`
+              : 'Sin imágenes con IA — al subir otra vas a poder sumar un pack'}
+          </p>
+        )}
         {error && <p className="text-red-500 text-xs mt-2 text-center">{error}</p>}
       </div>
     )

@@ -220,7 +220,7 @@ export default function CamautLandingPage() {
             Así se ve en tu celular
           </h2>
         </div>
-        <div className="overflow-x-auto overflow-y-hidden pb-4">
+        <div className="overflow-x-auto overflow-y-hidden overscroll-x-contain pb-4">
           <div className="flex gap-4 px-5 md:px-8" style={{ width: 'max-content' }}>
             {[
               { src: '/camaut-comanda.png',        label: 'Comanda' },

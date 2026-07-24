@@ -450,6 +450,9 @@ function SoporteTab() {
 function PagosTab() {
   const [mpToken, setMpToken] = useState('')
   const [photoPackPrice, setPhotoPackPrice] = useState('')
+  const [camImagePrice, setCamImagePrice] = useState('')
+  const [savingCamPrice, setSavingCamPrice] = useState(false)
+  const [savedCamPrice, setSavedCamPrice] = useState(false)
   const [waPhoneNumberId, setWaPhoneNumberId] = useState('')
   const [waAccessToken, setWaAccessToken] = useState('')
   const [waEnabled, setWaEnabled] = useState(false)
@@ -467,12 +470,13 @@ function PagosTab() {
   useEffect(() => {
     supabaseStaff
       .from('capy_settings')
-      .select('mp_access_token, photo_pack_price, wa_phone_number_id, wa_access_token, wa_enabled')
+      .select('mp_access_token, photo_pack_price, camarero_image_pack_price, wa_phone_number_id, wa_access_token, wa_enabled')
       .eq('id', 1)
       .single()
       .then(({ data }) => {
         if (data?.mp_access_token) setMpToken(data.mp_access_token)
         if (data?.photo_pack_price != null) setPhotoPackPrice(String(data.photo_pack_price))
+        if (data?.camarero_image_pack_price != null) setCamImagePrice(String(data.camarero_image_pack_price))
         if (data?.wa_phone_number_id) setWaPhoneNumberId(data.wa_phone_number_id)
         if (data?.wa_access_token) setWaAccessToken(data.wa_access_token)
         if (data?.wa_enabled != null) setWaEnabled(data.wa_enabled)
@@ -500,6 +504,18 @@ function PagosTab() {
     setSavingPrice(false)
     setSavedPrice(true)
     setTimeout(() => setSavedPrice(false), 2000)
+  }
+
+  async function saveCamPrice() {
+    const val = parseInt(camImagePrice, 10)
+    if (!val || val < 0) return
+    setSavingCamPrice(true)
+    await supabaseStaff
+      .from('capy_settings')
+      .upsert({ id: 1, camarero_image_pack_price: val, updated_at: new Date().toISOString() })
+    setSavingCamPrice(false)
+    setSavedCamPrice(true)
+    setTimeout(() => setSavedCamPrice(false), 2000)
   }
 
   async function saveWa() {
@@ -620,7 +636,31 @@ function PagosTab() {
             </button>
           </div>
         </div>
-        <div className="border border-carbon-700 rounded-xl px-4 py-3 opacity-40">
+        <div className="border border-carbon-700 rounded-xl p-4 space-y-3">
+          <div>
+            <p className="text-smoke-300 text-sm font-medium">Pack de imágenes IA (camarero)</p>
+            <p className="text-smoke-500 text-xs mt-0.5">10 imágenes para cargar cartas con IA (tras las 10 gratis)</p>
+          </div>
+          <div className="flex gap-2 items-center">
+            <span className="text-smoke-500 text-sm">$</span>
+            <input
+              type="number"
+              min={0}
+              value={camImagePrice}
+              onChange={e => { setCamImagePrice(e.target.value); setSavedCamPrice(false) }}
+              placeholder="8000"
+              className="input flex-1 text-sm"
+            />
+            <button
+              onClick={saveCamPrice}
+              disabled={savingCamPrice || !camImagePrice}
+              className="bg-ember-500 hover:bg-ember-600 disabled:opacity-40 text-white font-semibold px-4 py-2 rounded-xl text-sm flex-shrink-0"
+            >
+              {savingCamPrice ? '...' : savedCamPrice ? '✓' : 'Guardar'}
+            </button>
+          </div>
+        </div>
+        <div className="border border-carbon-700 rounded-xl px-4 py-3 opacity-40 hidden">
           <p className="text-smoke-300 text-sm font-medium">Importación con IA</p>
           <p className="text-smoke-500 text-xs mt-0.5">Próximamente</p>
         </div>

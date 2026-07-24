@@ -9,6 +9,8 @@ html, body, #root {
 body {
   -webkit-tap-highlight-color: transparent;
   overflow-x: hidden;
+  /* Evita el rubber-band / scroll fantasma al final en PWA iOS */
+  overscroll-behavior-y: none;
 }
 
 * {

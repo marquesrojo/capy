@@ -50,8 +50,39 @@ serve(async (req) => {
       return json({ ok: false, reason: 'not_approved', status: payment.status })
     }
 
-    // external_reference format: "${venueId}:extra_photos"
-    const [venueId, featureKey] = (payment.external_reference || '').split(':')
+    // external_reference format: "${id}:${featureKey}"
+    const [refId, featureKey] = (payment.external_reference || '').split(':')
+
+    // ── Pack de imágenes con IA del camarero ──
+    if (featureKey === 'image_pack') {
+      const staffId = refId
+      if (!staffId) return json({ ok: false, reason: 'no_staff' })
+
+      // Idempotencia por pago de MP
+      const { data: existingPurchase } = await supabase
+        .from('camarero_image_purchases')
+        .select('id')
+        .eq('mp_payment_id', String(paymentId))
+        .maybeSingle()
+      if (existingPurchase) return json({ ok: true, already: true })
+
+      const packImages = Number(Deno.env.get('CAPY_IMAGE_PACK_SIZE') || 10)
+
+      await supabase.from('camarero_image_purchases').insert({
+        staff_id: staffId,
+        mp_payment_id: String(paymentId),
+        amount_ars: payment.transaction_amount,
+        images: packImages,
+        status: 'approved',
+        approved_at: new Date().toISOString(),
+      })
+
+      await supabase.rpc('add_camarero_images', { p_staff: staffId, p_images: packImages })
+      return json({ ok: true, feature: featureKey })
+    }
+
+    // ── Pack de fotos del venue ──
+    const venueId = refId
     if (!venueId || featureKey !== 'extra_photos') {
       return json({ ok: false, reason: 'not_extra_photos' })
     }
