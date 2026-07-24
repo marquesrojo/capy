@@ -1106,7 +1106,7 @@ function ProductRow({ product, categories, onToggle, onDelete, onUpdate }) {
 }
 
 function ImportarConIA({ venueId, menuId, onImported }) {
-  const [step, setStep] = useState('idle') // idle | analyzing | review | saving | paywall
+  const [step, setStep] = useState('idle') // idle | confirm | analyzing | review | saving | paywall
   const [preview, setPreview] = useState(null)
   const [detected, setDetected] = useState([]) // [{ name, price, category, selected }]
   const [error, setError] = useState('')
@@ -1116,6 +1116,7 @@ function ImportarConIA({ venueId, menuId, onImported }) {
   const [progress, setProgress] = useState(null) // { current, total }
   const [limitReached, setLimitReached] = useState(false)
   const fileRef = useRef(null)
+  const pendingFilesRef = useRef([])
 
   async function refreshQuota() {
     const q = await getImageQuota()
@@ -1149,6 +1150,18 @@ function ImportarConIA({ venueId, menuId, onImported }) {
     setLimitReached(false)
     // Sin cupo → cartel de pago, sin llamar a la IA
     if (quota && quota.remaining <= 0) { setStep('paywall'); return }
+    // Aviso previo: seleccionó más de las que le quedan (antes de gastar ninguna)
+    if (quota && quota.remaining > 0 && files.length > quota.remaining) {
+      pendingFilesRef.current = files
+      setStep('confirm')
+      return
+    }
+    await processFiles(files)
+  }
+
+  async function processFiles(files) {
+    setError('')
+    setLimitReached(false)
     setStep('analyzing')
     setPreview(URL.createObjectURL(files[0]))
 
@@ -1244,6 +1257,52 @@ function ImportarConIA({ venueId, menuId, onImported }) {
     setDetected(prev => prev.map((item, idx) => idx === i ? { ...item, [field]: value } : item))
   }
 
+  if (step === 'confirm') {
+    const sel = pendingFilesRef.current?.length || 0
+    const rem = quota?.remaining || 0
+    const left = Math.max(sel - rem, 0)
+    return (
+      <div className="w-full bg-white border border-black/10 rounded-2xl px-4 py-4 shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-xl bg-[#E8772A]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E8772A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[#1A2A3A] font-semibold text-sm">Seleccionaste más de las que te quedan</p>
+            <p className="text-[#8896A5] text-xs mt-1">
+              Elegiste {sel} imágenes y te quedan {rem}. Se van a procesar {rem} y {left} van a quedar afuera.
+              Podés sumar un pack para cargarlas todas.
+            </p>
+            {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
+            <div className="flex flex-wrap gap-2 mt-3">
+              <button
+                onClick={() => { pendingFilesRef.current = []; setStep('idle') }}
+                className="flex-shrink-0 border border-black/10 text-[#8896A5] text-sm px-3 py-2.5 rounded-xl"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => { const f = pendingFilesRef.current; pendingFilesRef.current = []; processFiles(f) }}
+                className="flex-1 border border-[#008080]/30 text-[#008080] font-semibold text-sm py-2.5 rounded-xl"
+              >
+                Procesar {rem}
+              </button>
+              <button
+                onClick={buyPack}
+                disabled={payLoading}
+                className="flex-1 bg-[#009ee3] hover:bg-[#0081c8] disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-xl"
+              >
+                {payLoading ? '…' : 'Sumar pack'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (step === 'paywall') {
     return (
       <div className="w-full bg-white border border-black/10 rounded-2xl px-4 py-4 shadow-sm">
@@ -1310,7 +1369,7 @@ function ImportarConIA({ venueId, menuId, onImported }) {
                 <p className="font-semibold text-[#1A2A3A] text-sm">
                   {progress && progress.total > 1 ? `Analizando ${progress.current} de ${progress.total}…` : 'Analizando imagen…'}
                 </p>
-                <p className="text-[#8896A5] text-xs">Gemini está leyendo tu menú</p>
+                <p className="text-[#8896A5] text-xs">CAPY está leyendo tu menú</p>
               </div>
             </>
           ) : (
@@ -1323,7 +1382,7 @@ function ImportarConIA({ venueId, menuId, onImported }) {
               </div>
               <div className="text-left">
                 <p className="font-semibold text-[#1A2A3A] text-sm">Importar carta con IA</p>
-                <p className="text-[#8896A5] text-xs">Sacá una o varias fotos de tu menú y Gemini las carga solas</p>
+                <p className="text-[#8896A5] text-xs">Sacá una o varias fotos de tu menú y CAPY las carga solas</p>
               </div>
             </>
           )}

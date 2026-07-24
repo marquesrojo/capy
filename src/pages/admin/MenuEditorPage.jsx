@@ -1309,7 +1309,7 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
               {step === 'enriching' ? 'Buscando fotos...' : imageCount > 1 ? `Analizando ${imageCount} imágenes...` : 'Analizando imagen...'}
             </p>
             <p className="text-smoke-500 text-xs">
-              {step === 'enriching' ? 'Obteniendo imágenes para cada producto' : 'Gemini está leyendo tu menú'}
+              {step === 'enriching' ? 'Obteniendo imágenes para cada producto' : 'CAPY está leyendo tu menú'}
             </p>
           </div>
         </div>
