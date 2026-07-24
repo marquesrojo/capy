@@ -372,7 +372,7 @@ export default function ConsumoPage() {
               <div className="flex items-center justify-between mb-2">
                 <div>
                   <p className="text-smoke-300 text-sm font-medium">Resumen IA</p>
-                  <p className="text-smoke-600 text-[10px]">Genera un análisis narrativo usando Gemini</p>
+                  <p className="text-smoke-600 text-[10px]">Genera un análisis narrativo con la IA de CAPY</p>
                 </div>
                 <button
                   onClick={generateAiSummary}
