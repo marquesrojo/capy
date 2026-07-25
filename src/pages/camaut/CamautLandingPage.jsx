@@ -294,79 +294,108 @@ export default function CamautLandingPage() {
           Capy usa inteligencia artificial en dos momentos clave del turno, para que cargues menos y atiendas más.
         </p>
 
-        {/* Capy señalando la IA en acción: la carta leyéndose sola */}
-        <div className="mb-6 md:mb-8 bg-white border border-carbon-800 rounded-2xl p-4 md:p-5 grid sm:grid-cols-[auto_1fr] gap-4 md:gap-6 items-center">
-          <div
-            className="rounded-xl overflow-hidden w-36 sm:w-40 md:w-44 mx-auto sm:mx-0 flex-shrink-0"
-            style={{ background: '#BD6A35' }}
-          >
-            <img
-              src="/capy-ia.png"
-              alt="Capy señalando las funciones con IA"
-              loading="lazy"
-              className="w-full h-auto block"
-            />
-          </div>
-
-          <div className="min-w-0">
-            <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-ember-500">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="flex-shrink-0">
-                <path d="M12 2l2.2 6.4L20.6 10l-6.4 2.2L12 18.6 9.8 12.2 3.4 10l6.4-1.6z" />
-              </svg>
-              Leyendo tu carta
-            </p>
-            <div className="mt-3 space-y-2">
-              {[
-                ['Milanesa napolitana', '$8.500'],
-                ['Papas fritas', '$4.200'],
-                ['Quilmes 1 L', '$3.800'],
-              ].map(([name, price]) => (
-                <div key={name} className="flex items-baseline gap-2 text-xs md:text-sm">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500 flex-shrink-0 translate-y-0.5">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  <span className="text-[#3C2A21] font-medium truncate">{name}</span>
-                  <span className="flex-1 border-b border-dotted border-carbon-700 -translate-y-1" />
-                  <span className="text-smoke-400 font-mono flex-shrink-0">{price}</span>
-                </div>
-              ))}
-            </div>
-            <p className="text-[11px] text-smoke-500 mt-3">
-              Le sacás una foto al menú y la IA arma la carta sola.
-            </p>
-          </div>
-        </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Carta con IA */}
-          <div className="bg-white border border-carbon-800 rounded-2xl p-5 md:p-6">
-            <div className="w-11 h-11 rounded-xl bg-ember-500/10 flex items-center justify-center text-ember-500 mb-4">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
-                <circle cx="12" cy="13" r="3"/>
-              </svg>
+
+          {/* ── Carta con IA ── */}
+          <div className="bg-white border border-carbon-800 rounded-2xl overflow-hidden flex flex-col">
+            <div className="p-4 md:p-5 flex justify-center" style={{ background: '#BD6A35' }}>
+              <img
+                src="/capy-ia.png"
+                alt="Capy señalando la carta que se arma con IA"
+                loading="lazy"
+                className="w-40 sm:w-44 h-auto block"
+              />
             </div>
-            <p className="font-bold text-[#3C2A21] text-sm md:text-base mb-1.5">Tu carta, en una foto</p>
-            <p className="text-xs md:text-sm text-smoke-400 leading-relaxed">
-              Sacale una foto a cualquier menú —el del local o el tuyo— y la IA lo digitaliza: arma la carta con
-              productos y precios, lista para tomar pedidos. Sin cargar ítem por ítem.
-            </p>
+
+            <div className="p-5 md:p-6 flex-1 flex flex-col">
+              <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-ember-500">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="flex-shrink-0">
+                  <path d="M12 2l2.2 6.4L20.6 10l-6.4 2.2L12 18.6 9.8 12.2 3.4 10l6.4-1.6z" />
+                </svg>
+                Leyendo tu carta
+              </p>
+
+              <div className="mt-3 space-y-2">
+                {[
+                  ['Milanesa napolitana', '$8.500'],
+                  ['Papas fritas', '$4.200'],
+                  ['Quilmes 1 L', '$3.800'],
+                ].map(([name, price]) => (
+                  <div key={name} className="flex items-baseline gap-2 text-xs md:text-sm">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500 flex-shrink-0 translate-y-0.5">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    <span className="text-[#3C2A21] font-medium truncate">{name}</span>
+                    <span className="flex-1 border-b border-dotted border-carbon-700 -translate-y-1" />
+                    <span className="text-smoke-400 font-mono flex-shrink-0">{price}</span>
+                  </div>
+                ))}
+              </div>
+
+              <p className="font-bold text-[#3C2A21] text-sm md:text-base mt-5 mb-1.5">Tu carta, en una foto</p>
+              <p className="text-xs md:text-sm text-smoke-400 leading-relaxed">
+                Sacale una foto a cualquier menú —el del local o el tuyo— y la IA lo digitaliza: arma la carta con
+                productos y precios, lista para tomar pedidos. Sin cargar ítem por ítem.
+              </p>
+            </div>
           </div>
 
-          {/* Comanda por voz */}
-          <div className="bg-white border border-carbon-800 rounded-2xl p-5 md:p-6">
-            <div className="w-11 h-11 rounded-xl bg-ember-500/10 flex items-center justify-center text-ember-500 mb-4">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/>
+          {/* ── Comanda por voz ── */}
+          <div className="bg-white border border-carbon-800 rounded-2xl overflow-hidden flex flex-col">
+            <div className="p-4 md:p-5 flex items-center justify-center gap-3" style={{ background: '#BD6A35' }}>
+              <img
+                src="/capy-mozo.png"
+                alt="Capy escuchando la comanda dictada"
+                loading="lazy"
+                className="w-20 sm:w-24 h-auto block flex-shrink-0"
+              />
+              {/* micrófono y ondas de sonido */}
+              <svg width="86" height="52" viewBox="0 0 86 52" fill="none" className="flex-shrink-0" aria-hidden="true">
+                <rect x="4" y="10" width="20" height="30" rx="10" fill="#F7EFE2" />
+                <path d="M14 20v10M11 23v4M17 23v4" stroke="#BD6A35" strokeWidth="2" strokeLinecap="round" />
+                <g stroke="#F7EFE2" strokeWidth="3" strokeLinecap="round" opacity="0.95">
+                  <path d="M36 20v12" /><path d="M46 12v28" /><path d="M56 17v18" />
+                  <path d="M66 8v36" /><path d="M76 21v10" />
+                </g>
               </svg>
             </div>
-            <p className="font-bold text-[#3C2A21] text-sm md:text-base mb-1.5">Dictá el pedido y listo</p>
-            <p className="text-xs md:text-sm text-smoke-400 leading-relaxed">
-              Hablale a la app en plena mesa: <span className="italic">"dos milanesas sin sal y una Quilmes"</span>.
-              La IA reconoce productos, cantidades y notas, y carga la comanda sola. Menos tipeo, más rapidez.
-            </p>
+
+            <div className="p-5 md:p-6 flex-1 flex flex-col">
+              <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-ember-500">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="flex-shrink-0">
+                  <path d="M12 2l2.2 6.4L20.6 10l-6.4 2.2L12 18.6 9.8 12.2 3.4 10l6.4-1.6z" />
+                </svg>
+                Escuchando tu comanda
+              </p>
+
+              <p className="mt-3 text-xs md:text-sm text-[#3C2A21] italic bg-carbon-900 border border-carbon-800 rounded-xl px-3 py-2">
+                “Dos milanesas sin sal y una Quilmes”
+              </p>
+
+              <div className="mt-3 space-y-2">
+                {[
+                  ['2', 'Milanesa napolitana', 'sin sal'],
+                  ['1', 'Quilmes 1 L', ''],
+                ].map(([qty, name, note]) => (
+                  <div key={name} className="flex items-baseline gap-2 text-xs md:text-sm">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500 flex-shrink-0 translate-y-0.5">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    <span className="text-ember-500 font-mono font-bold flex-shrink-0">{qty}×</span>
+                    <span className="text-[#3C2A21] font-medium truncate">{name}</span>
+                    {note && <span className="text-smoke-500 text-[11px] flex-shrink-0">· {note}</span>}
+                  </div>
+                ))}
+              </div>
+
+              <p className="font-bold text-[#3C2A21] text-sm md:text-base mt-5 mb-1.5">Dictá el pedido y listo</p>
+              <p className="text-xs md:text-sm text-smoke-400 leading-relaxed">
+                Hablale a la app en plena mesa y la IA reconoce productos, cantidades y notas, y carga la comanda
+                sola. Menos tipeo, más rapidez.
+              </p>
+            </div>
           </div>
+
         </div>
 
         <p className="text-[11px] text-smoke-600 mt-4">
