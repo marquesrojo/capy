@@ -157,53 +157,59 @@ export default function CamautLandingPage() {
       </nav>
 
       {/* Hero */}
-      <section className="max-w-5xl mx-auto px-5 md:px-8 pt-8 md:pt-14 lg:pt-16 pb-12 md:pb-16">
-        {/* Título arriba, a todo el ancho */}
-        <p className="flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-widest text-ember-500">
-          <span className="w-6 h-px bg-ember-500/50 flex-shrink-0" />
-          Cobrá al instante y laburá más tranquilo
-        </p>
+      <section className="relative max-w-5xl mx-auto px-5 md:px-8 pt-8 md:pt-14 lg:pt-16 pb-12 md:pb-16">
+        {/* Capy sube al hueco que deja el título (solo desktop) */}
+        <img
+          src="/capy-mozo.png"
+          alt=""
+          aria-hidden="true"
+          className="hidden md:block absolute right-5 lg:right-8 top-12 lg:top-14 w-56 lg:w-72 h-auto"
+        />
 
-        <h1 className="font-display text-[2.9rem] sm:text-6xl md:text-7xl lg:text-8xl text-[#3C2A21] mt-3 md:mt-4 tracking-wide leading-[0.92]">
-          Tu talento.<br />Tu reputación.<br />
-          <span className="text-ember-500">Tus propinas.</span>
-        </h1>
+        <div className="md:max-w-[62%]">
+          <p className="flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-widest text-ember-500">
+            <span className="w-6 h-px bg-ember-500/50 flex-shrink-0" />
+            Cobrá al instante y laburá más tranquilo
+          </p>
 
-        {/* Capy abajo, con el subtítulo al lado */}
-        <div className="mt-6 md:mt-8 grid md:grid-cols-[auto_1fr] gap-5 md:gap-10 items-center">
-          <img
-            src="/capy-mozo.png"
-            alt="Capy, el mozo de Capy Camarero, con bandeja y comanda"
-            className="w-48 sm:w-56 md:w-64 lg:w-72 h-auto block mx-auto md:mx-0"
-          />
+          <h1 className="font-display text-[2.9rem] sm:text-6xl md:text-6xl lg:text-7xl text-[#3C2A21] mt-3 md:mt-4 tracking-wide leading-[0.92] whitespace-nowrap">
+            Tu talento.<br />Tu reputación.<br />
+            <span className="text-ember-500">Tus propinas.</span>
+          </h1>
 
-          <div>
+          {/* En móvil Capy va al lado del subtítulo, para que el CTA quede más arriba */}
+          <div className="mt-5 md:mt-6 flex items-center gap-4 md:block">
+            <img
+              src="/capy-mozo.png"
+              alt="Capy, el mozo de Capy Camarero, con bandeja y comanda"
+              className="w-28 sm:w-32 h-auto flex-shrink-0 md:hidden"
+            />
             <p className="text-sm md:text-lg text-smoke-400 leading-relaxed max-w-md">
               La herramienta gratuita para cobrar al instante, construir reputación verificada y laburar más tranquilo en cada turno.
             </p>
-
-            <div className="mt-5 md:mt-6 flex flex-col sm:flex-row sm:flex-wrap gap-3">
-              <Link
-                to="/camareroa/registro"
-                className="w-full sm:w-auto bg-ember-500 hover:bg-ember-600 text-white font-bold py-4 px-7 rounded-2xl text-base shadow-ember transition-colors text-center"
-              >
-                Crear mi cuenta gratis
-              </Link>
-              <Link
-                to="/camareroa/login"
-                className="w-full sm:w-auto border border-carbon-700 text-smoke-400 font-semibold py-4 px-6 rounded-2xl text-sm text-center hover:border-carbon-600 transition-colors"
-              >
-                Ya tengo cuenta
-              </Link>
-            </div>
-
-            <p className="text-[11px] text-smoke-500 mt-4 flex items-center gap-1.5">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
-                <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
-              </svg>
-              Sin descargas · Gratis, sin vueltas · Chrome y Safari
-            </p>
           </div>
+
+          <div className="mt-5 md:mt-6 flex flex-col sm:flex-row sm:flex-wrap gap-3">
+            <Link
+              to="/camareroa/registro"
+              className="w-full sm:w-auto bg-ember-500 hover:bg-ember-600 text-white font-bold py-4 px-7 rounded-2xl text-base shadow-ember transition-colors text-center"
+            >
+              Crear mi cuenta gratis
+            </Link>
+            <Link
+              to="/camareroa/login"
+              className="w-full sm:w-auto border border-carbon-700 text-smoke-400 font-semibold py-4 px-6 rounded-2xl text-sm text-center hover:border-carbon-600 transition-colors"
+            >
+              Ya tengo cuenta
+            </Link>
+          </div>
+
+          <p className="text-[11px] text-smoke-500 mt-4 flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+              <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
+            </svg>
+            Sin descargas · Gratis, sin vueltas · Chrome y Safari
+          </p>
         </div>
 
         <p className="text-[11px] text-smoke-600 mt-6 md:mt-8 max-w-2xl">
