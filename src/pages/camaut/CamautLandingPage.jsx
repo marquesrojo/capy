@@ -208,7 +208,7 @@ export default function CamautLandingPage() {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
               <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
             </svg>
-            Sin descargas · Gratis, sin vueltas · Chrome y Safari
+            Sin descargas · Gratis, sin vueltas · Funciona en tu celular
           </p>
         </div>
 
@@ -290,16 +290,51 @@ export default function CamautLandingPage() {
         <h2 className="font-display text-3xl md:text-5xl text-[#3C2A21] tracking-wide mb-3 leading-tight">
           La IA que te hace<br />el laburo más fácil
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-5 md:gap-7 items-center mb-6 md:mb-8">
-          <img
-            src="/capy-mozo-senala.png"
-            alt="Capy señalando las funciones con IA"
-            loading="lazy"
-            className="w-full md:w-64 h-auto rounded-2xl"
-          />
-          <p className="text-sm text-smoke-400 leading-relaxed max-w-lg">
-            Capy usa inteligencia artificial en dos momentos clave del turno, para que cargues menos y atiendas más.
-          </p>
+        <p className="text-sm text-smoke-400 leading-relaxed max-w-lg mb-5 md:mb-6">
+          Capy usa inteligencia artificial en dos momentos clave del turno, para que cargues menos y atiendas más.
+        </p>
+
+        {/* Capy señalando la IA en acción: la carta leyéndose sola */}
+        <div className="mb-6 md:mb-8 bg-white border border-carbon-800 rounded-2xl p-4 md:p-5 grid sm:grid-cols-[auto_1fr] gap-4 md:gap-6 items-center">
+          <div
+            className="rounded-xl overflow-hidden w-36 sm:w-40 md:w-44 mx-auto sm:mx-0 flex-shrink-0"
+            style={{ background: '#BD6A35' }}
+          >
+            <img
+              src="/capy-ia.png"
+              alt="Capy señalando las funciones con IA"
+              loading="lazy"
+              className="w-full h-auto block"
+            />
+          </div>
+
+          <div className="min-w-0">
+            <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-ember-500">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="flex-shrink-0">
+                <path d="M12 2l2.2 6.4L20.6 10l-6.4 2.2L12 18.6 9.8 12.2 3.4 10l6.4-1.6z" />
+              </svg>
+              Leyendo tu carta
+            </p>
+            <div className="mt-3 space-y-2">
+              {[
+                ['Milanesa napolitana', '$8.500'],
+                ['Papas fritas', '$4.200'],
+                ['Quilmes 1 L', '$3.800'],
+              ].map(([name, price]) => (
+                <div key={name} className="flex items-baseline gap-2 text-xs md:text-sm">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500 flex-shrink-0 translate-y-0.5">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  <span className="text-[#3C2A21] font-medium truncate">{name}</span>
+                  <span className="flex-1 border-b border-dotted border-carbon-700 -translate-y-1" />
+                  <span className="text-smoke-400 font-mono flex-shrink-0">{price}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] text-smoke-500 mt-3">
+              Le sacás una foto al menú y la IA arma la carta sola.
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -430,7 +465,7 @@ export default function CamautLandingPage() {
             </div>
             <p className="font-bold text-[#3C2A21] text-base md:text-xl mb-2">Sin ocupar espacio en tu celu</p>
             <p className="text-xs md:text-sm text-smoke-400 leading-relaxed">
-              Capy es una web app. No se descarga de ninguna tienda. Abrila en Chrome o Safari y guardala como acceso directo en tu pantalla de inicio.
+              Capy es una web app. No se descarga de ninguna tienda. Abrila en el navegador de tu celular y guardala como acceso directo en tu pantalla de inicio.
             </p>
           </div>
           <div className="md:flex-1 space-y-2">
