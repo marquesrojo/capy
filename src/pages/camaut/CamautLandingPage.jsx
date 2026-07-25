@@ -162,33 +162,27 @@ export default function CamautLandingPage() {
 
           {/* Capy con la propina cayendo en la bandeja */}
           <div className="order-first md:order-last flex justify-center">
-            <div className="relative inline-block">
-              <img
-                src="/capy-mozo.png"
-                alt="Capy, el mozo de Capy Camarero, con bandeja y comanda"
-                className="w-52 sm:w-60 md:w-full md:max-w-[340px] h-auto block"
-              />
-              <div className="absolute top-[6%] -left-7 sm:-left-9 md:-left-10 bg-white border border-carbon-700 rounded-2xl shadow-lg px-2.5 py-1.5 md:px-3 md:py-2 whitespace-nowrap">
-                <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-600 leading-none">Propina acreditada</p>
-                <p className="font-mono font-bold text-base md:text-xl text-[#3C2A21] leading-tight mt-1">+ $4.500</p>
-              </div>
-            </div>
+            <img
+              src="/capy-mozo.png"
+              alt="Capy, el mozo de Capy Camarero, con bandeja y comanda"
+              className="w-52 sm:w-60 md:w-full md:max-w-[350px] h-auto block"
+            />
           </div>
 
           {/* Texto */}
           <div>
             <p className="flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-widest text-ember-500">
-              <span className="w-6 h-px bg-ember-500/50" />
-              App para camareros
+              <span className="w-6 h-px bg-ember-500/50 flex-shrink-0" />
+              Cobrá al instante y laburá más tranquilo
             </p>
 
-            <h1 className="font-display text-[2.6rem] sm:text-5xl md:text-[3.4rem] lg:text-6xl text-[#3C2A21] mt-3 md:mt-4 tracking-wide leading-[0.95]">
-              Terminás el turno<br />
-              <span className="text-ember-500">y la plata ya está.</span>
+            <h1 className="font-display text-[2.9rem] sm:text-5xl md:text-[3.6rem] lg:text-[4.2rem] text-[#3C2A21] mt-3 md:mt-4 tracking-wide leading-[0.92]">
+              Tu talento.<br />Tu reputación.<br />
+              <span className="text-ember-500">Tus propinas.</span>
             </h1>
 
             <p className="text-sm md:text-lg text-smoke-400 mt-4 md:mt-5 leading-relaxed max-w-md">
-              Cobrás las propinas a tu Mercado Pago mesa por mesa. Sin perseguir efectivo ni esperar el cierre del turno.
+              La herramienta gratuita para cobrar al instante, construir reputación verificada y laburar más tranquilo en cada turno.
             </p>
 
             <div className="mt-6 md:mt-7 flex flex-col sm:flex-row sm:flex-wrap gap-3">
