@@ -157,53 +157,69 @@ export default function CamautLandingPage() {
       </nav>
 
       {/* Hero */}
-      <section className="max-w-4xl mx-auto px-5 md:px-8 pt-12 md:pt-20 lg:pt-28 pb-12 md:pb-16 text-center">
-        <span className="inline-block bg-ember-500/10 text-ember-500 text-[11px] font-bold px-3 py-1.5 rounded-full uppercase tracking-widest">
-          Cobrá al instante y laburá más tranquilo
-        </span>
+      <section className="max-w-5xl mx-auto px-5 md:px-8 pt-8 md:pt-14 lg:pt-16 pb-12 md:pb-16">
+        <div className="grid md:grid-cols-[1.3fr_1fr] gap-6 md:gap-10 items-center">
 
-        <h1 className="font-display text-5xl md:text-7xl lg:text-8xl text-[#3C2A21] mt-5 tracking-wide leading-tight">
-          Tu talento.<br />Tu reputación.<br />
-          <span className="text-ember-500">Tus propinas.</span>
-        </h1>
+          {/* Capy con la propina cayendo en la bandeja */}
+          <div className="order-first md:order-last flex justify-center">
+            <div className="relative inline-block">
+              <img
+                src="/capy-mozo.png"
+                alt="Capy, el mozo de Capy Camarero, con bandeja y comanda"
+                className="w-52 sm:w-60 md:w-full md:max-w-[340px] h-auto block"
+              />
+              <div className="absolute top-[6%] -left-7 sm:-left-9 md:-left-10 bg-white border border-carbon-700 rounded-2xl shadow-lg px-2.5 py-1.5 md:px-3 md:py-2 whitespace-nowrap">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-600 leading-none">Propina acreditada</p>
+                <p className="font-mono font-bold text-base md:text-xl text-[#3C2A21] leading-tight mt-1">+ $4.500</p>
+              </div>
+            </div>
+          </div>
 
-        <p className="text-sm md:text-lg text-smoke-400 mt-4 md:mt-6 leading-relaxed max-w-xs md:max-w-xl mx-auto">
-          La herramienta gratuita para cobrar al instante, construir reputación verificada y laburar más tranquilo en cada turno.
-        </p>
+          {/* Texto */}
+          <div>
+            <p className="flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-widest text-ember-500">
+              <span className="w-6 h-px bg-ember-500/50" />
+              App para camareros
+            </p>
 
-        <div className="mt-7 md:mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Link
-            to="/camareroa/registro"
-            className="block w-full sm:w-auto bg-ember-500 hover:bg-ember-600 text-white font-bold py-4 px-8 rounded-2xl text-base shadow-ember transition-colors text-center"
-          >
-            Crear mi cuenta gratis
-          </Link>
-          <Link
-            to="/camareroa/login"
-            className="block w-full sm:w-auto border border-carbon-700 text-smoke-400 font-semibold py-4 px-8 rounded-2xl text-sm text-center hover:border-carbon-600 transition-colors"
-          >
-            Ya tengo cuenta
-          </Link>
+            <h1 className="font-display text-[2.6rem] sm:text-5xl md:text-[3.4rem] lg:text-6xl text-[#3C2A21] mt-3 md:mt-4 tracking-wide leading-[0.95]">
+              Terminás el turno<br />
+              <span className="text-ember-500">y la plata ya está.</span>
+            </h1>
+
+            <p className="text-sm md:text-lg text-smoke-400 mt-4 md:mt-5 leading-relaxed max-w-md">
+              Cobrás las propinas a tu Mercado Pago mesa por mesa. Sin perseguir efectivo ni esperar el cierre del turno.
+            </p>
+
+            <div className="mt-6 md:mt-7 flex flex-col sm:flex-row sm:flex-wrap gap-3">
+              <Link
+                to="/camareroa/registro"
+                className="w-full sm:w-auto bg-ember-500 hover:bg-ember-600 text-white font-bold py-4 px-7 rounded-2xl text-base shadow-ember transition-colors text-center"
+              >
+                Crear mi cuenta gratis
+              </Link>
+              <Link
+                to="/camareroa/login"
+                className="w-full sm:w-auto border border-carbon-700 text-smoke-400 font-semibold py-4 px-6 rounded-2xl text-sm text-center hover:border-carbon-600 transition-colors"
+              >
+                Ya tengo cuenta
+              </Link>
+            </div>
+
+            <p className="text-[11px] text-smoke-500 mt-4 flex items-center gap-1.5">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
+              </svg>
+              Sin descargas · Gratis, sin vueltas · Chrome y Safari
+            </p>
+          </div>
         </div>
 
-        <p className="text-[11px] text-smoke-500 mt-4 flex items-center justify-center gap-1.5">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
-          </svg>
-          Sin descargas · Gratis, sin vueltas · Funciona en Chrome y Safari
-        </p>
-        <p className="text-[11px] text-smoke-600 mt-2">
+        <p className="text-[11px] text-smoke-600 mt-6 md:mt-8 max-w-2xl">
           El plan sin cargo incluye cupos de uso para las funciones de IA. ¿Después querés más IA? Sumás un upgrade opcional de pago único.
           Funciones, límites y precios sujetos a las condiciones vigentes.{' '}
           <Link to="/terminos" className="text-ember-500 underline">Ver Términos</Link>.
         </p>
-
-        {/* Capy mozo — presenta los números de abajo */}
-        <img
-          src="/capy-mozo.png"
-          alt="Capy, el mozo de Capy Camarero, con bandeja y comanda"
-          className="w-40 md:w-52 h-auto mx-auto mt-8 md:mt-10 -mb-2"
-        />
 
       </section>
 
