@@ -198,6 +198,13 @@ export default function CamautLandingPage() {
           <Link to="/terminos" className="text-ember-500 underline">Ver Términos</Link>.
         </p>
 
+        {/* Capy mozo — presenta los números de abajo */}
+        <img
+          src="/capy-mozo.png"
+          alt="Capy, el mozo de Capy Camarero, con bandeja y comanda"
+          className="w-40 md:w-52 h-auto mx-auto mt-8 md:mt-10 -mb-2"
+        />
+
       </section>
 
       {/* Metrics */}
@@ -270,9 +277,17 @@ export default function CamautLandingPage() {
         <h2 className="font-display text-3xl md:text-5xl text-[#3C2A21] tracking-wide mb-3 leading-tight">
           La IA que te hace<br />el laburo más fácil
         </h2>
-        <p className="text-sm text-smoke-400 leading-relaxed max-w-lg mb-6 md:mb-8">
-          Capy usa inteligencia artificial en dos momentos clave del turno, para que cargues menos y atiendas más.
-        </p>
+        <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-5 md:gap-7 items-center mb-6 md:mb-8">
+          <img
+            src="/capy-mozo-senala.png"
+            alt="Capy señalando las funciones con IA"
+            loading="lazy"
+            className="w-full md:w-64 h-auto rounded-2xl"
+          />
+          <p className="text-sm text-smoke-400 leading-relaxed max-w-lg">
+            Capy usa inteligencia artificial en dos momentos clave del turno, para que cargues menos y atiendas más.
+          </p>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Carta con IA */}
@@ -446,9 +461,10 @@ export default function CamautLandingPage() {
       <footer className="bg-[#3C2A21] text-white rounded-t-3xl">
         <div className="max-w-2xl mx-auto px-5 md:px-8 pt-12 pb-12 md:pt-16 md:pb-14 text-center">
           <img
-            src="https://ycgptakgpsvmstoftkdk.supabase.co/storage/v1/object/public/icons/icon-512.png"
-            alt="Capy"
-            className="w-14 h-14 md:w-16 md:h-16 rounded-2xl mx-auto mb-6 shadow-lg"
+            src="/capy-mozo-sentado.png"
+            alt="Capy descansando con la bandeja"
+            loading="lazy"
+            className="w-36 md:w-44 h-auto mx-auto mb-5"
           />
           <h2 className="font-display text-4xl md:text-5xl tracking-wide leading-tight">
             Hacé tus turnos<br />más ágiles y tranquilos
