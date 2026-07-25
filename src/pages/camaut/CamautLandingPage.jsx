@@ -298,13 +298,27 @@ export default function CamautLandingPage() {
 
           {/* ── Carta con IA ── */}
           <div className="bg-white border border-carbon-800 rounded-2xl overflow-hidden flex flex-col">
-            <div className="p-4 md:p-5 flex justify-center" style={{ background: '#BD6A35' }}>
+            <div className="p-4 md:p-5 flex items-center justify-center gap-3" style={{ background: '#BD6A35' }}>
               <img
-                src="/capy-ia.png"
-                alt="Capy señalando la carta que se arma con IA"
+                src="/capy-mozo.png"
+                alt="Capy escaneando la carta"
                 loading="lazy"
-                className="w-40 sm:w-44 h-auto block"
+                className="w-20 sm:w-24 h-auto block flex-shrink-0"
               />
+              {/* escaneo de la carta */}
+              <svg width="86" height="52" viewBox="0 0 86 52" fill="none" className="flex-shrink-0" aria-hidden="true">
+                <rect x="29" y="11" width="30" height="31" rx="3" fill="#F7EFE2" />
+                <g stroke="#BD6A35" strokeWidth="2" strokeLinecap="round">
+                  <path d="M34 18h20" /><path d="M34 24h13" /><path d="M34 30h17" /><path d="M34 36h10" />
+                </g>
+                <g stroke="#F7EFE2" strokeWidth="3" strokeLinecap="round">
+                  <path d="M14 18v-6a2 2 0 0 1 2-2h6" />
+                  <path d="M74 18v-6a2 2 0 0 0-2-2h-6" />
+                  <path d="M14 35v6a2 2 0 0 0 2 2h6" />
+                  <path d="M74 35v6a2 2 0 0 1-2 2h-6" />
+                </g>
+                <path d="M18 26.5h52" stroke="#FFD2A0" strokeWidth="2.5" strokeLinecap="round" />
+              </svg>
             </div>
 
             <div className="p-5 md:p-6 flex-1 flex flex-col">
