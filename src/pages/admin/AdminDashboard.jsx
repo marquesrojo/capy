@@ -298,7 +298,14 @@ async function loadZones() {
           .from('fiscal_invoices')
           .select('*')
           .in('order_id', paidIds)
-        setInvoices(Object.fromEntries((invData || []).map(inv => [inv.order_id, inv])))
+        // Una factura consolidada cubre varios pedidos (incluso de distintas
+        // ubicaciones): que todos la encuentren, no solo el pedido ancla.
+        const invMap = {}
+        for (const inv of invData || []) {
+          if (inv.order_id) invMap[inv.order_id] = inv
+          for (const oid of (inv.covered_order_ids || [])) invMap[oid] = inv
+        }
+        setInvoices(invMap)
       } else {
         setInvoices({})
       }
@@ -976,20 +983,36 @@ function SeguimientoButton({ order }) {
   )
 }
 
-function MesaPanel({ mesa, orders, venueSlug, venueName, onClose, onCloseTable, onUpdateStatus, onConfirmPayment, fiscalEnabled = false, fiscalCondition, invoices = {}, onInvoiceEmitted }) {
+function MesaPanel({ mesa, orders, zones = [], venueSlug, venueName, onClose, onCloseTable, onUpdateStatus, onConfirmPayment, fiscalEnabled = false, fiscalCondition, invoices = {}, onInvoiceEmitted }) {
   const navigate = useNavigate()
   const ACTIVE = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo', 'entregado']
   const STATUS_RANK = { listo: 0, en_preparacion: 1, recibido: 2, pendiente_aprobacion: 3, entregado: 4 }
   const [closing, setClosing] = useState(false)
   const [activeSession, setActiveSession] = useState(null)
   const [showSummary, setShowSummary] = useState(false)
-  const [mesaInvoice, setMesaInvoice] = useState(null) // factura consolidada de la mesa
   const [emittingMesa, setEmittingMesa] = useState(false)
   const [mesaFiscalError, setMesaFiscalError] = useState('')
+  // Unión transitoria de ubicaciones: una sola cuenta para cobrar y facturar
+  const [mergedIds, setMergedIds] = useState([])
+  const [showMerge, setShowMerge] = useState(false)
+
+  // Al cambiar de mesa se deshace la unión (es sólo para este momento)
+  useEffect(() => { setMergedIds([]); setShowMerge(false) }, [mesa.id])
+
+  const groupIds = [mesa.id, ...mergedIds]
+  const isMerged = mergedIds.length > 0
+  const mergedZones = zones.filter(z => mergedIds.includes(z.id))
+  const groupTitle = [mesa.name, ...mergedZones.map(z => z.name)].join(' + ')
 
   const mesaOrders = orders
-    .filter(o => o.zone_id === mesa.id && ACTIVE.includes(o.status))
+    .filter(o => groupIds.includes(o.zone_id) && ACTIVE.includes(o.status))
     .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+
+  // Otras ubicaciones ocupadas, candidatas a unirse a esta cuenta
+  const mergeCandidates = zones
+    .filter(z => z.id !== mesa.id && z.is_active && z.type !== 'zona' && z.type !== 'decor')
+    .map(z => ({ zone: z, count: orders.filter(o => o.zone_id === z.id && ACTIVE.includes(o.status)).length }))
+    .filter(c => c.count > 0)
 
   // Load the active session from the DB — orders may not carry it if all are paid/archived
   useEffect(() => {
@@ -1007,34 +1030,30 @@ function MesaPanel({ mesa, orders, venueSlug, venueName, onClose, onCloseTable, 
   const sessionId = activeSession?.id || mesaOrders[0]?.session_id || null
 
   const paidMesaOrders = mesaOrders.filter(o => o.payment_status === 'aprobado')
-  const anchorId = paidMesaOrders[0]?.id || null
 
-  // Factura consolidada ya emitida para esta mesa (buscada por el pedido ancla)
-  useEffect(() => {
-    if (!anchorId) { setMesaInvoice(null); return }
-    supabaseStaff
-      .from('fiscal_invoices')
-      .select('*')
-      .eq('order_id', anchorId)
-      .eq('status', 'approved')
-      .not('covered_order_ids', 'is', null)
-      .maybeSingle()
-      .then(({ data }) => setMesaInvoice(data || null))
-  }, [anchorId])
+  // Factura consolidada ya emitida: la encuentra cualquiera de los pedidos que
+  // cubre, así no se puede facturar dos veces al unir ubicaciones
+  const mesaInvoice = paidMesaOrders
+    .map(o => invoices[o.id])
+    .find(inv => inv?.status === 'approved' && inv?.covered_order_ids) || null
 
-  // Mostrar "Facturar mesa" cuando hay 2+ pedidos cobrados y aún no se
+  // Mostrar "Facturar" cuando hay 2+ pedidos cobrados y aún no se
   // consolidó ni se facturó ninguno individualmente
-  const someIndividuallyInvoiced = mesaOrders.some(o => invoices[o.id]?.status === 'approved')
+  const someIndividuallyInvoiced = mesaOrders.some(o => {
+    const inv = invoices[o.id]
+    return inv?.status === 'approved' && !inv?.covered_order_ids
+  })
   const canInvoiceMesa = fiscalEnabled && paidMesaOrders.length >= 2 && !mesaInvoice && !someIndividuallyInvoiced
 
   async function handleCloseTable() {
     setClosing(true)
-    // Archivar TODOS los pedidos activos de la mesa (quedan en Historial):
-    // los de hoy, los huérfanos de otros días y los colgados de sesiones muertas
+    // Archivar TODOS los pedidos activos de las ubicaciones de la cuenta
+    // (quedan en Historial): los de hoy, los huérfanos de otros días y los
+    // colgados de sesiones muertas
     await supabaseStaff
       .from('orders')
       .update({ status: 'cerrado' })
-      .eq('zone_id', mesa.id)
+      .in('zone_id', groupIds)
       .in('status', ACTIVE)
     if (sessionId) {
       // Pedidos de la sesión que puedan tener otra zona (o ninguna)
@@ -1044,11 +1063,11 @@ function MesaPanel({ mesa, orders, venueSlug, venueName, onClose, onCloseTable, 
         .eq('session_id', sessionId)
         .in('status', ACTIVE)
     }
-    // Cerrar todas las sesiones activas de la zona (por si quedó alguna duplicada)
+    // Cerrar todas las sesiones activas de las zonas (por si quedó alguna duplicada)
     await supabaseStaff
       .from('table_sessions')
       .update({ is_active: false, ended_at: new Date().toISOString() })
-      .eq('zone_id', mesa.id)
+      .in('zone_id', groupIds)
       .eq('is_active', true)
     setClosing(false)
     setActiveSession(null)
@@ -1110,7 +1129,12 @@ function MesaPanel({ mesa, orders, venueSlug, venueName, onClose, onCloseTable, 
 
         <div className="px-5 pb-4 pt-1 md:pt-5 flex items-start justify-between flex-shrink-0 border-b border-carbon-800">
           <div>
-            <h2 className="text-smoke-100 font-bold text-2xl leading-tight">{mesa.name}</h2>
+            <h2 className="text-smoke-100 font-bold text-2xl leading-tight">{groupTitle}</h2>
+            {isMerged && (
+              <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wider text-ember-400 bg-ember-500/10 border border-ember-500/30 rounded-full px-2 py-0.5">
+                Cuenta unida · {groupIds.length} ubicaciones
+              </span>
+            )}
             <p className="text-smoke-500 text-xs mt-0.5">
               {mesaOrders.length === 0
                 ? 'Sin pedidos activos'
@@ -1129,6 +1153,57 @@ function MesaPanel({ mesa, orders, venueSlug, venueName, onClose, onCloseTable, 
         </div>
 
         <div className="overflow-y-auto flex-1 pb-4">
+          {/* Unir ubicaciones en una sola cuenta (grupo grande en varias mesas) */}
+          {(mergeCandidates.length > 0 || isMerged) && (
+            <div className="px-5 pt-3">
+              {isMerged && (
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {mergedZones.map(z => (
+                    <button
+                      key={z.id}
+                      onClick={() => setMergedIds(prev => prev.filter(id => id !== z.id))}
+                      className="flex items-center gap-1.5 bg-ember-500/10 border border-ember-500/30 text-ember-300 text-[11px] font-semibold rounded-full pl-2.5 pr-1.5 py-1"
+                      title="Quitar de la cuenta"
+                    >
+                      {z.name}
+                      <span className="w-4 h-4 rounded-full bg-ember-500/20 flex items-center justify-center text-ember-200 text-[10px]">×</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <button
+                onClick={() => setShowMerge(s => !s)}
+                className="w-full border border-dashed border-carbon-700 hover:border-ember-500/50 text-smoke-400 hover:text-ember-400 text-xs font-semibold rounded-xl py-2 transition-colors"
+              >
+                {showMerge ? 'Listo' : isMerged ? '+ Unir otra ubicación' : '+ Unir con otra ubicación'}
+              </button>
+
+              {showMerge && (
+                <div className="mt-2 bg-carbon-800/60 border border-carbon-700 rounded-xl p-2 space-y-1">
+                  <p className="text-smoke-600 text-[10px] px-1 pb-1">
+                    Se cobran y facturan juntas. La unión dura sólo este momento.
+                  </p>
+                  {mergeCandidates.map(({ zone, count }) => {
+                    const on = mergedIds.includes(zone.id)
+                    return (
+                      <button
+                        key={zone.id}
+                        onClick={() => setMergedIds(prev => on ? prev.filter(id => id !== zone.id) : [...prev, zone.id])}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-colors ${
+                          on ? 'bg-ember-500/15 text-ember-300 border border-ember-500/40'
+                             : 'bg-carbon-900 text-smoke-300 border border-transparent hover:border-carbon-600'
+                        }`}
+                      >
+                        <span className="font-semibold">{zone.name}</span>
+                        <span className="text-smoke-500">{count} pedido{count !== 1 ? 's' : ''}{on ? ' ✓' : ''}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           {mesaOrders.length === 0 ? (
             <div className="py-16 text-center">
               <svg className="mx-auto mb-3 text-smoke-700" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1299,14 +1374,16 @@ function MesaPanel({ mesa, orders, venueSlug, venueName, onClose, onCloseTable, 
                   onClick={async () => {
                     setEmittingMesa(true); setMesaFiscalError('')
                     const result = await emitMesaInvoice(paidMesaOrders.map(o => o.id))
-                    if (result.success && result.invoice) setMesaInvoice(result.invoice)
+                    if (result.success && result.invoice) onInvoiceEmitted?.()
                     else setMesaFiscalError(result.error || 'No se pudo facturar la mesa')
                     setEmittingMesa(false)
                   }}
                   disabled={emittingMesa}
                   className="w-full text-xs font-semibold py-2 rounded-lg border border-ember-500/50 text-ember-500 hover:bg-ember-500/10 disabled:opacity-50 transition-colors"
                 >
-                  {emittingMesa ? 'Emitiendo...' : `🧾 Facturar mesa (una sola factura · ${paidMesaOrders.length} pedidos)`}
+                  {emittingMesa
+                    ? 'Emitiendo...'
+                    : `🧾 Facturar ${isMerged ? 'cuenta unida' : 'mesa'} (una sola factura · ${paidMesaOrders.length} pedidos${isMerged ? ` · ${groupIds.length} ubicaciones` : ''})`}
                 </button>
                 {mesaFiscalError && <p className="text-red-500 text-[10px] mt-1">{mesaFiscalError}</p>}
               </>
@@ -1336,7 +1413,7 @@ function MesaPanel({ mesa, orders, venueSlug, venueName, onClose, onCloseTable, 
             disabled={closing}
             className="flex-shrink-0 border border-carbon-600 text-smoke-400 hover:text-smoke-200 hover:border-carbon-500 disabled:opacity-40 text-sm font-semibold px-3.5 py-3 rounded-2xl transition-colors"
           >
-            {closing ? '...' : 'Cerrar mesa'}
+            {closing ? '...' : isMerged ? `Cerrar ${groupIds.length} mesas` : 'Cerrar mesa'}
           </button>
         </div>
       </div>
@@ -1345,7 +1422,7 @@ function MesaPanel({ mesa, orders, venueSlug, venueName, onClose, onCloseTable, 
         <AccountSummary
           orders={mesaOrders}
           venueName={venueName}
-          locationLabel={mesa.name}
+          locationLabel={groupTitle}
           onClose={() => setShowSummary(false)}
         />
       )}
@@ -1524,6 +1601,7 @@ function MapaView({ orders, zones, venueId, venueSlug, venueName, onUpdateStatus
         <MesaPanel
           mesa={selectedMesa}
           orders={orders}
+          zones={zones}
           venueSlug={venueSlug}
           venueName={venueName}
           onConfirmPayment={onConfirmPayment}
