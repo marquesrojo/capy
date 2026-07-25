@@ -158,34 +158,31 @@ export default function CamautLandingPage() {
 
       {/* Hero */}
       <section className="max-w-5xl mx-auto px-5 md:px-8 pt-8 md:pt-14 lg:pt-16 pb-12 md:pb-16">
-        <div className="grid md:grid-cols-[1.3fr_1fr] gap-6 md:gap-10 items-center">
+        {/* Título arriba, a todo el ancho */}
+        <p className="flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-widest text-ember-500">
+          <span className="w-6 h-px bg-ember-500/50 flex-shrink-0" />
+          Cobrá al instante y laburá más tranquilo
+        </p>
 
-          {/* Capy con la propina cayendo en la bandeja */}
-          <div className="order-first md:order-last flex justify-center">
-            <img
-              src="/capy-mozo.png"
-              alt="Capy, el mozo de Capy Camarero, con bandeja y comanda"
-              className="w-52 sm:w-60 md:w-full md:max-w-[350px] h-auto block"
-            />
-          </div>
+        <h1 className="font-display text-[2.9rem] sm:text-6xl md:text-7xl lg:text-8xl text-[#3C2A21] mt-3 md:mt-4 tracking-wide leading-[0.92]">
+          Tu talento.<br />Tu reputación.<br />
+          <span className="text-ember-500">Tus propinas.</span>
+        </h1>
 
-          {/* Texto */}
+        {/* Capy abajo, con el subtítulo al lado */}
+        <div className="mt-6 md:mt-8 grid md:grid-cols-[auto_1fr] gap-5 md:gap-10 items-center">
+          <img
+            src="/capy-mozo.png"
+            alt="Capy, el mozo de Capy Camarero, con bandeja y comanda"
+            className="w-48 sm:w-56 md:w-64 lg:w-72 h-auto block mx-auto md:mx-0"
+          />
+
           <div>
-            <p className="flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-widest text-ember-500">
-              <span className="w-6 h-px bg-ember-500/50 flex-shrink-0" />
-              Cobrá al instante y laburá más tranquilo
-            </p>
-
-            <h1 className="font-display text-[2.9rem] sm:text-5xl md:text-[3.6rem] lg:text-[4.2rem] text-[#3C2A21] mt-3 md:mt-4 tracking-wide leading-[0.92]">
-              Tu talento.<br />Tu reputación.<br />
-              <span className="text-ember-500">Tus propinas.</span>
-            </h1>
-
-            <p className="text-sm md:text-lg text-smoke-400 mt-4 md:mt-5 leading-relaxed max-w-md">
+            <p className="text-sm md:text-lg text-smoke-400 leading-relaxed max-w-md">
               La herramienta gratuita para cobrar al instante, construir reputación verificada y laburar más tranquilo en cada turno.
             </p>
 
-            <div className="mt-6 md:mt-7 flex flex-col sm:flex-row sm:flex-wrap gap-3">
+            <div className="mt-5 md:mt-6 flex flex-col sm:flex-row sm:flex-wrap gap-3">
               <Link
                 to="/camareroa/registro"
                 className="w-full sm:w-auto bg-ember-500 hover:bg-ember-600 text-white font-bold py-4 px-7 rounded-2xl text-base shadow-ember transition-colors text-center"
