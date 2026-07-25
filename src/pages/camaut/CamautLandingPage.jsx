@@ -11,7 +11,7 @@ const FEATURES = [
       </svg>
     ),
     title: 'Propinas al instante',
-    desc: 'Cobrá directo a tu alias de Mercado Pago mesa por mesa. Sin perseguir efectivo ni esperar el cierre del turno.',
+    desc: 'Cobrá directo a tu alias, mesa por mesa. Sin perseguir efectivo ni esperar el cierre del turno.',
   },
   {
     icon: (
@@ -51,7 +51,7 @@ const CIRCLE = [
   {
     num: '01',
     title: 'Sin señas',
-    desc: 'El cliente te llama desde el QR de la mesa. Recibís el aviso al instante en tu app.',
+    desc: 'El cliente te llama desde el QR que le compartiste. Recibís el aviso al instante en tu app.',
   },
   {
     num: '02',
@@ -74,7 +74,7 @@ const STEPS = [
   {
     num: '2',
     title: 'Cargá tu alias',
-    desc: 'Vinculás tu Mercado Pago y los clientes te transfieren las propinas al instante.',
+    desc: 'Cargás tu alias —de Mercado Pago o de cualquier banco— y los clientes te transfieren las propinas al instante.',
   },
   {
     num: '3',
@@ -379,7 +379,7 @@ export default function CamautLandingPage() {
               Lo que ve<br />en su mesa
             </h2>
             <p className="text-sm text-smoke-400 leading-relaxed max-w-sm mb-6">
-              Sin tener que llamarte, el cliente sigue su pedido, elige propina y paga — todo desde el QR de la mesa. Vos lo recibís directo en tu Mercado Pago.
+              Sin tener que llamarte, el cliente sigue su pedido, elige propina y paga — todo desde el QR que le compartís desde tu celular, con la carta que vos elijas. Vos lo recibís directo en tu cuenta.
             </p>
             <ul className="space-y-2.5">
               {[
