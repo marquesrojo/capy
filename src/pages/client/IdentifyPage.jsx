@@ -822,7 +822,7 @@ export default function IdentifyPage() {
         </div>
       )}
 
-        {/* ── Quiero pedir yo mismo ── */}
+        {/* ── Pedir sin esperar ── */}
         <button
           onClick={() => navigate(cartaPath)}
           className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl shadow-lg active:scale-[0.98] transition-transform"
@@ -832,8 +832,8 @@ export default function IdentifyPage() {
             <UtensilsIcon size={22} style={{ color: selfTextColor }} />
           </div>
           <div className="flex-1 text-left">
-            <p className="font-black text-sm leading-tight" style={{ color: selfTextColor }}>Quiero pedir yo mismo</p>
-            <p className="text-xs mt-0.5" style={{ color: selfTextColor, opacity: 0.7 }}>Ver la carta y hacer mi pedido</p>
+            <p className="font-black text-sm leading-tight" style={{ color: selfTextColor }}>Pedir sin esperar</p>
+            <p className="text-xs mt-0.5" style={{ color: selfTextColor, opacity: 0.7 }}>Ver la carta y hacer tu pedido</p>
           </div>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={selfTextColor} strokeWidth="2.5" strokeOpacity="0.6">
             <polyline points="9 18 15 12 9 6"/>
