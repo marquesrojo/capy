@@ -64,8 +64,12 @@ import WhatsAppPage from './pages/admin/WhatsAppPage'
 function CapyChatOverlay() {
   const { isStaff } = useAuth()
   const location = useLocation()
-  const isAdminOrCamaut = location.pathname.startsWith('/admin') || location.pathname.startsWith('/camareroa')
-  if (!isStaff || !isAdminOrCamaut) return null
+  // Solo dentro de la app (panel de admin y app de camarero). La landing
+  // pública /camareroa queda afuera: ahí el asistente que corresponde es el
+  // de dudas previas al registro, no el interno de gestión del local.
+  const isInsideApp = location.pathname.startsWith('/admin')
+    || location.pathname.startsWith('/camareroa/app')
+  if (!isStaff || !isInsideApp) return null
   return <CapyChat />
 }
 
