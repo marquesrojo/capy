@@ -358,10 +358,10 @@ export default function CamautLandingPage() {
           <div className="bg-white border border-carbon-800 rounded-2xl overflow-hidden flex flex-col">
             <div className="p-4 md:p-5 flex items-center justify-center gap-3" style={{ background: '#BD6A35' }}>
               <img
-                src="/capy-mozo.png"
+                src="/capy-mozo-sentado.png"
                 alt="Capy escuchando la comanda dictada"
                 loading="lazy"
-                className="w-20 sm:w-24 h-auto block flex-shrink-0"
+                className="w-24 sm:w-28 h-auto block flex-shrink-0"
               />
               {/* micrófono y ondas de sonido */}
               <svg width="86" height="52" viewBox="0 0 86 52" fill="none" className="flex-shrink-0" aria-hidden="true">
