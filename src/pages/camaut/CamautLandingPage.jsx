@@ -537,7 +537,7 @@ export default function CamautLandingPage() {
       </section>
 
       {/* Footer CTA */}
-      <footer className="bg-[#3C2A21] text-white rounded-t-3xl">
+      <footer id="registro" className="bg-[#3C2A21] text-white rounded-t-3xl scroll-mt-4">
         <div className="max-w-2xl mx-auto px-5 md:px-8 pt-12 pb-12 md:pt-16 md:pb-14 text-center">
           <img
             src="/capy-mozo-sentado.png"
