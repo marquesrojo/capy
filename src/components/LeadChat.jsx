@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react'
-import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
 // Flujo para camareros: resuelve las dudas previas al registro y empuja a
@@ -287,12 +286,19 @@ export default function LeadChat({ page = 'main' }) {
                     <div className="flex flex-col gap-1.5">
                       {/* El cierre del flujo de camarero es la cuenta, no un lead */}
                       {currentFlow?.cta && (
-                        <Link
-                          to="/camareroa/registro"
+                        <button
+                          onClick={() => {
+                            // Lleva al CTA que ya tiene la landing, en vez de
+                            // abrir un camino de registro paralelo
+                            const target = document.getElementById('registro')
+                            setOpen(false)
+                            if (target) target.scrollIntoView({ behavior: 'smooth' })
+                            else window.location.href = '/camareroa/registro'
+                          }}
                           className="bg-ember-500 hover:bg-ember-600 text-white font-bold rounded-xl px-3 py-2.5 text-sm text-center transition-colors"
                         >
                           Crear mi cuenta gratis →
-                        </Link>
+                        </button>
                       )}
                       {currentFlow?.options?.map((opt) => (
                         <button
