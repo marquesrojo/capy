@@ -980,6 +980,7 @@ function DocsTab() {
   const [content, setContent] = useState('')
   const [tags, setTags] = useState('')
   const [docType, setDocType] = useState('info')
+  const [docAudience, setDocAudience] = useState('all')
   const [saving, setSaving] = useState(false)
   const [seeding, setSeeding] = useState(false)
 
@@ -1012,6 +1013,7 @@ function DocsTab() {
     setContent('')
     setTags('')
     setDocType('info')
+    setDocAudience('all')
   }
 
   function startEdit(doc) {
@@ -1020,6 +1022,7 @@ function DocsTab() {
     setContent(doc.content)
     setTags((doc.tags || []).join(', '))
     setDocType(doc.type || 'info')
+    setDocAudience(doc.audience || 'all')
   }
 
   async function save() {
@@ -1030,6 +1033,7 @@ function DocsTab() {
       content: content.trim(),
       tags: tags.split(',').map(t => t.trim()).filter(Boolean),
       type: docType,
+      audience: docAudience,
       updated_at: new Date().toISOString(),
     }
     if (editing === 'new') {
@@ -1083,6 +1087,30 @@ function DocsTab() {
               <p className="text-smoke-600 text-[10px] mt-0.5 leading-tight">{opt.desc}</p>
             </button>
           ))}
+        </div>
+        {/* Audiencia: a qué chat se le inyecta este documento */}
+        <div>
+          <p className="text-smoke-500 text-[10px] font-semibold uppercase tracking-wider mb-1.5">¿A quién le habla?</p>
+          <div className="flex gap-2">
+            {[
+              { id: 'all',    label: 'Ambos',    desc: 'Local y camarero' },
+              { id: 'venue',  label: 'Local',    desc: 'Solo el panel de admin' },
+              { id: 'waiter', label: 'Camarero', desc: 'Solo Capy Camarero' },
+            ].map(opt => (
+              <button
+                key={opt.id}
+                onClick={() => setDocAudience(opt.id)}
+                className={`flex-1 rounded-xl border px-3 py-2 text-left transition-colors ${
+                  docAudience === opt.id ? 'border-ember-500/60 bg-ember-500/10' : 'border-carbon-700 bg-carbon-900'
+                }`}
+              >
+                <p className={`text-xs font-semibold ${docAudience === opt.id ? 'text-ember-400' : 'text-smoke-400'}`}>
+                  {opt.label}
+                </p>
+                <p className="text-smoke-600 text-[10px] mt-0.5 leading-tight">{opt.desc}</p>
+              </button>
+            ))}
+          </div>
         </div>
         <input
           value={title}
@@ -1152,6 +1180,11 @@ function DocsTab() {
                     <p className="text-smoke-200 font-semibold text-sm">{doc.title}</p>
                     {doc.type === 'instruction' && (
                       <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-400 border border-violet-500/30 leading-none flex-shrink-0">instrucción</span>
+                    )}
+                    {doc.audience && doc.audience !== 'all' && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-ember-500/15 text-ember-400 border border-ember-500/30 leading-none flex-shrink-0">
+                        {doc.audience === 'waiter' ? 'camarero' : 'local'}
+                      </span>
                     )}
                   </div>
                   <p className="text-smoke-500 text-xs mt-0.5 line-clamp-2">{doc.content}</p>
