@@ -148,8 +148,10 @@ export default function LeadChat({ page = 'main' }) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Don't show for authenticated staff (after all hooks)
-  if (isStaff) return null
+  // El staff logueado no necesita el chat comercial de las landings de local.
+  // En la landing de camarero sí se muestra siempre: es una página pública de
+  // marketing y tiene que verse igual para cualquiera que entre.
+  if (isStaff && !isWaiter) return null
 
   function selectOption(opt) {
     setMessages(prev => [...prev, { from: 'user', text: opt.label }])
