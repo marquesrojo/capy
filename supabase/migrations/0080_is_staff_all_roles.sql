@@ -1,16 +1,17 @@
 -- ============================================================
--- is_staff() quedó desactualizada y bloquea a media plantilla
+-- is_staff() no incluía a 'superadmin'
 --
--- La función se definió por última vez en 0004, cuando los únicos roles
--- eran 'admin' y 'camarero'. En 0005 se agregaron 'cocina', 'propietario'
--- y 'superadmin' al check de profiles, pero is_staff() nunca se actualizó.
+-- 0005 actualizó is_staff() a ('admin', 'cocina', 'camarero', 'propietario'),
+-- pero 0017 agregó el rol 'superadmin' sin sumarlo a la función. Al
+-- superadmin sólo se le dieron policies de SELECT (0017) y de escritura
+-- sobre products/categories/venue_zones (0065), así que en el resto de las
+-- tablas el UPDATE le quedaba bloqueado.
 --
--- Consecuencia: esos tres roles fallan is_staff() y RLS les bloquea el
--- UPDATE en orders, table_sessions, etc. Se ve como "cierro la mesa y
--- sigue roja": el SELECT funciona (hay policies propias de superadmin en
--- 0017), pero el UPDATE se rechaza en silencio.
+-- Se veía como "cierro la mesa y sigue roja": impersonando un venue, el
+-- mapa se leía bien pero el UPDATE en orders y table_sessions se rechazaba
+-- en silencio. Con un usuario admin funcionaba.
 --
--- Afecta a las ~48 policies que usan is_staff().
+-- Los demás roles (admin, camarero, cocina, propietario) ya estaban bien.
 -- ============================================================
 
 CREATE OR REPLACE FUNCTION is_staff()
