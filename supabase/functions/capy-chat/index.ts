@@ -76,9 +76,13 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
 
+    const isWaiter = source === 'waiter'
     const lastUserMsg = [...messages].reverse().find((m: { role: string }) => m.role === 'user')
-    let systemPrompt = source === 'waiter' ? WAITER_SYSTEM_PROMPT : SYSTEM_PROMPT
+    let systemPrompt = isWaiter ? WAITER_SYSTEM_PROMPT : SYSTEM_PROMPT
     if (venue_name) systemPrompt += `\n\nEl usuario trabaja en el local: "${venue_name}".`
+
+    // Cada chat recibe solo la documentación de su audiencia (más la común)
+    const audiences = isWaiter ? ['all', 'waiter'] : ['all', 'venue']
 
     // 1. Always inject active instruction docs into the system prompt
     const { data: instructionDocs } = await supabase
@@ -86,12 +90,14 @@ Deno.serve(async (req) => {
       .select('title, content')
       .eq('is_active', true)
       .eq('type', 'instruction')
+      .in('audience', audiences)
 
     if (instructionDocs?.length) {
       const instructions = instructionDocs
         .map((d: { title: string; content: string }) => `[${d.title}]\n${d.content}`)
         .join('\n\n')
-      systemPrompt += `\n\nINSTRUCCIONES DEL LOCAL (seguí estas reglas siempre, tienen prioridad):\n${instructions}`
+      const heading = isWaiter ? 'INSTRUCCIONES PARA EL CAMARERO' : 'INSTRUCCIONES DEL LOCAL'
+      systemPrompt += `\n\n${heading} (seguí estas reglas siempre, tienen prioridad):\n${instructions}`
     }
 
     // 2. RAG: search info docs relevant to this specific message
@@ -101,6 +107,7 @@ Deno.serve(async (req) => {
         .select('title, content')
         .eq('is_active', true)
         .eq('type', 'info')
+        .in('audience', audiences)
         .textSearch('title, content', lastUserMsg.content, {
           type: 'websearch',
           config: 'spanish',
