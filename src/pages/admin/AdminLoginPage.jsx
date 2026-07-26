@@ -782,7 +782,7 @@ export default function AdminLoginPage() {
           </div>
 
           <div className="flex items-center justify-center gap-4 mt-8 pt-6 border-t border-white/10">
-            <a href="mailto:hola@capyapp.co" className="text-white/40 text-[11px] hover:text-white/60 transition-colors">Contacto</a>
+            <a href="mailto:capy@bravosm.com" className="text-white/40 text-[11px] hover:text-white/60 transition-colors">Contacto</a>
             <span className="text-white/20 text-[11px]">·</span>
             <span className="text-white/40 text-[11px]">capyapp.co © 2026</span>
           </div>

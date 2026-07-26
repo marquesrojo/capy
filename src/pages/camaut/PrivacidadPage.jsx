@@ -17,7 +17,7 @@ export default function PrivacidadPage() {
             <p>
               CAPY es una plataforma digital desarrollada en Argentina que ofrece herramientas profesionales
               para camareros y personal gastronómico. Nos podés contactar en{' '}
-              <a href="mailto:hola@capyapp.co" className="text-ember-500 underline">hola@capyapp.co</a>.
+              <a href="mailto:capy@bravosm.com" className="text-ember-500 underline">capy@bravosm.com</a>.
             </p>
           </section>
 
@@ -71,7 +71,7 @@ export default function PrivacidadPage() {
             </ul>
             <p className="mt-2">
               Para ejercer estos derechos, escribinos a{' '}
-              <a href="mailto:hola@capyapp.co" className="text-ember-500 underline">hola@capyapp.co</a>.
+              <a href="mailto:capy@bravosm.com" className="text-ember-500 underline">capy@bravosm.com</a>.
             </p>
           </section>
 
@@ -104,7 +104,7 @@ export default function PrivacidadPage() {
             <h2 className="text-smoke-200 font-semibold mb-2">10. Contacto</h2>
             <p>
               Para cualquier consulta sobre privacidad:{' '}
-              <a href="mailto:hola@capyapp.co" className="text-ember-500 underline">hola@capyapp.co</a>
+              <a href="mailto:capy@bravosm.com" className="text-ember-500 underline">capy@bravosm.com</a>
             </p>
           </section>
 

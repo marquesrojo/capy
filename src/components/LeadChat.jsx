@@ -312,7 +312,7 @@ export default function LeadChat({ page = 'main' }) {
                       {isWaiter && currentFlow?.cta && (
                         <p className="text-[11px] text-smoke-500 mt-1 leading-snug">
                           ¿Otra duda? Escribinos a{' '}
-                          <a href="mailto:hola@capyapp.co" className="text-ember-500 underline">hola@capyapp.co</a>
+                          <a href="mailto:capy@bravosm.com" className="text-ember-500 underline">capy@bravosm.com</a>
                         </p>
                       )}
                     </div>
