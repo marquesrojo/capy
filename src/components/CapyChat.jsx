@@ -5,7 +5,8 @@ import { supabaseStaff, ACTIVE_VENUE_ID } from '../lib/supabase'
 const CHAT_ENDPOINT = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/capy-chat`
 const TICKET_ENDPOINT = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/support-ticket`
 
-const WELCOME = '¡Hola! Soy Capy 🦫\n\n¿En qué puedo ayudarte hoy? Puedo orientarte con la configuración de la app, tips de gestión de tu local o cualquier duda sobre Capy.'
+const WELCOME_ADMIN = '¡Hola! Soy Capy 🦫\n\n¿En qué puedo ayudarte hoy? Puedo orientarte con la configuración de la app, tips de gestión de tu local o cualquier duda sobre Capy.'
+const WELCOME_WAITER = '¡Hola! Soy Capy 🦫\n\n¿En qué te doy una mano? Puedo ayudarte a tomar la comanda, cargar tu carta, cobrar las propinas o con las reglas del local donde estás trabajando.'
 
 const CAPY_ICON_URL = 'https://ycgptakgpsvmstoftkdk.supabase.co/storage/v1/object/public/icons/icon-512.png'
 
@@ -33,7 +34,8 @@ export default function CapyChat({ venueName = '' }) {
   const textareaRef = useRef(null)
   const location = useLocation()
 
-  const isWaiter = location.pathname === '/admin/tomar'
+  // Camarero: la app de Capy Camarero y la pantalla de tomar pedido del admin
+  const isWaiter = location.pathname === '/admin/tomar' || location.pathname.startsWith('/camareroa')
 
   // ── Draggable button ──────────────────────────────────────────
   const defaultBottom = isWaiter ? 88 : 24
@@ -75,7 +77,7 @@ export default function CapyChat({ venueName = '' }) {
 
   useEffect(() => {
     if (open && messages.length === 0) {
-      setMessages([{ role: 'assistant', content: WELCOME }])
+      setMessages([{ role: 'assistant', content: isWaiter ? WELCOME_WAITER : WELCOME_ADMIN }])
     }
   }, [open])
 
