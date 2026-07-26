@@ -526,16 +526,16 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
                     }`}
                   style={isDecor && !isMoving
                     ? {
-                        backgroundColor: `${dColor}33`,
-                        borderColor: isSelected ? '#F97316' : `${dColor}AA`,
-                        borderStyle: zone.isPending ? 'dashed' : 'solid',
+                        backgroundColor: `${dColor}59`,
+                        borderColor: isSelected ? '#F97316' : dColor,
+                        borderStyle: 'dashed',
                       }
                     : undefined
                   }
                 >
                   <span
-                    className={`text-[8px] font-semibold text-center leading-tight px-1 break-words w-full ${isDecor && !isMoving ? '' : 'text-smoke-300'}`}
-                    style={{ color: isDecor && !isMoving ? dColor : undefined }}
+                    className={`text-[8px] text-center leading-tight px-1 break-words w-full ${isDecor && !isMoving ? 'font-bold uppercase tracking-wide' : 'font-semibold text-smoke-300'}`}
+                    style={isDecor && !isMoving ? { color: '#F5F2EC', textShadow: '0 1px 2px rgba(0,0,0,.7)' } : undefined}
                   >
                     {isDecor ? decorName(zone) : zone.name}
                   </span>
