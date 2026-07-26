@@ -192,7 +192,7 @@ export default function HubPage() {
             <Link to="/camareroa" className="text-white/60 text-xs hover:text-white/90 transition-colors">Capy Camarero/a</Link>
             <Link to="/privacidad" className="text-white/60 text-xs hover:text-white/90 transition-colors">Privacidad</Link>
             <Link to="/terminos" className="text-white/60 text-xs hover:text-white/90 transition-colors">Términos</Link>
-            <a href="mailto:hola@capyapp.co" className="text-white/60 text-xs hover:text-white/90 transition-colors">Contacto</a>
+            <a href="mailto:capy@bravosm.com" className="text-white/60 text-xs hover:text-white/90 transition-colors">Contacto</a>
           </div>
           <span className="text-white/30 text-[11px]">capyapp.co © 2026</span>
         </div>

@@ -577,7 +577,7 @@ export default function CamautLandingPage() {
             <span className="text-white/20 text-[11px]">·</span>
             <Link to="/terminos" className="text-white/40 text-[11px] hover:text-white/60 transition-colors">Términos</Link>
             <span className="text-white/20 text-[11px]">·</span>
-            <a href="mailto:hola@capyapp.co" className="text-white/40 text-[11px] hover:text-white/60 transition-colors">Contacto</a>
+            <a href="mailto:capy@bravosm.com" className="text-white/40 text-[11px] hover:text-white/60 transition-colors">Contacto</a>
           </div>
         </div>
       </footer>

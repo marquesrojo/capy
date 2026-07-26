@@ -40,7 +40,7 @@ export default function TerminosPage() {
               <li>Sos responsable de mantener la confidencialidad de tus credenciales.</li>
               <li>Debés proporcionar información veraz al registrarte.</li>
               <li>No podés ceder, vender ni transferir tu cuenta a otra persona.</li>
-              <li>Podés eliminar tu cuenta en cualquier momento escribiéndonos a <a href="mailto:hola@capyapp.co" className="text-ember-500 underline">hola@capyapp.co</a>.</li>
+              <li>Podés eliminar tu cuenta en cualquier momento escribiéndonos a <a href="mailto:capy@bravosm.com" className="text-ember-500 underline">capy@bravosm.com</a>.</li>
             </ul>
           </section>
 
@@ -141,7 +141,7 @@ export default function TerminosPage() {
             <h2 className="text-smoke-200 font-semibold mb-2">12. Contacto</h2>
             <p>
               Para consultas sobre estos términos:{' '}
-              <a href="mailto:hola@capyapp.co" className="text-ember-500 underline">hola@capyapp.co</a>
+              <a href="mailto:capy@bravosm.com" className="text-ember-500 underline">capy@bravosm.com</a>
             </p>
           </section>
 
