@@ -76,25 +76,22 @@ export default function ConfigPage() {
   const { profile, venueId } = useAuth()
   const [hasProducts, setHasProducts] = useState(true)
   const [hasLocations, setHasLocations] = useState(true)
-  const [hasCamautStaff, setHasCamautStaff] = useState(true)
 
   useEffect(() => {
     if (!venueId) return
     async function checkSetup() {
-      const [prodRes, zoneRes, staffRes] = await Promise.all([
+      const [prodRes, zoneRes] = await Promise.all([
         supabaseStaff.from('products').select('id', { count: 'exact', head: true }).eq('venue_id', venueId),
-        supabaseStaff.from('venue_zones').select('id', { count: 'exact', head: true }).eq('venue_id', venueId),
-        supabaseStaff.from('venue_staff').select('id', { count: 'exact', head: true }).eq('venue_id', venueId)
+        supabaseStaff.from('venue_zones').select('id', { count: 'exact', head: true }).eq('venue_id', venueId)
       ])
       setHasProducts((prodRes.count || 0) > 0)
       setHasLocations((zoneRes.count || 0) > 0)
-      setHasCamautStaff((staffRes.count || 0) > 0)
     }
     checkSetup()
   }, [venueId])
 
   const items = MI_LOCAL_ITEMS.filter(item => !item.adminOnly || profile?.role === 'admin')
-  const setupIncomplete = !hasProducts || !hasLocations || !hasCamautStaff
+  const setupIncomplete = !hasProducts || !hasLocations
 
   return (
     <div className="min-h-screen bg-carbon-950 pb-10">
@@ -119,12 +116,6 @@ export default function ConfigPage() {
               <div className="flex items-center justify-between">
                 <span className="text-smoke-400 text-xs">Ubicaciones del local</span>
                 <Link to="/admin/ubicaciones" className="text-amber-600 text-xs font-medium underline">Crear →</Link>
-              </div>
-            )}
-            {!hasCamautStaff && (
-              <div className="flex items-center justify-between">
-                <span className="text-smoke-400 text-xs">App Camarero vinculada</span>
-                <Link to="/admin/qr" className="text-amber-600 text-xs font-medium underline">Ver QR →</Link>
               </div>
             )}
           </div>
