@@ -217,13 +217,18 @@ async function loadZones() {
     if (!silent) setRefreshing(true)
     try {
       const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).toISOString()
+      const last30Days = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
       const [boardRes, proofRes, inPersonRes, paidRes] = await Promise.all([
         supabaseStaff
           .from('orders')
           .select(ORDER_SELECT)
           .eq('venue_id', venueId)
           .in('status', [...BOARD_COLUMNS, 'listo', 'pendiente_aprobacion'])
-          .gte('created_at', todayStart)
+          // Ventana de 30 días (no solo hoy): un pedido reabierto desde
+          // Historial tiene que volver al tablero, y el panel de mesa necesita
+          // ver los pedidos viejos sin cerrar que mantienen la mesa ocupada.
+          // La columna Entregado igual muestra solo los de hoy (ver abajo).
+          .gte('created_at', last30Days)
           .order('created_at', { ascending: true }),
         supabaseStaff
           .from('orders')
@@ -752,7 +757,7 @@ async function loadZones() {
                 : status === 'en_preparacion'
                   ? orders.filter(o => o.status === 'en_preparacion' || o.status === 'listo')
                   : orders.filter(o => o.status === status)
-              ).filter(o => isToday(o.created_at))}
+              ).filter(o => o.status !== 'entregado' || isToday(o.created_at))}
               onUpdateStatus={updateStatus}
               onDismissCall={dismissWaiterCall}
               waiters={waiters}
