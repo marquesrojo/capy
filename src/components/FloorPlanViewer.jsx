@@ -221,12 +221,12 @@ export default function FloorPlanViewer({
                 }}
               >
                 <div
-                  className={`w-full h-full ${radius} border flex items-center justify-center`}
-                  style={{ backgroundColor: `${color}26`, borderColor: `${color}88` }}
+                  className={`w-full h-full ${radius} border-2 border-dashed flex items-center justify-center`}
+                  style={{ backgroundColor: `${color}59`, borderColor: color }}
                 >
                   <span
-                    className="text-[8px] font-medium text-center leading-tight px-1 break-words w-full"
-                    style={{ color }}
+                    className="text-[8px] font-bold uppercase tracking-wide text-center leading-tight px-1 break-words w-full"
+                    style={{ color: '#F5F2EC', textShadow: '0 1px 2px rgba(0,0,0,.7)' }}
                   >
                     {d.name}
                   </span>
