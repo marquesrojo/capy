@@ -370,7 +370,7 @@ export default function VenueSettingsPage() {
           <div className="space-y-2">
             <div className="w-full py-3 rounded-xl flex items-center justify-center gap-2" style={{ backgroundColor: headerBgColor }}>
               <UtensilsIcon size={16} className="text-white" />
-              <span className="text-white font-semibold text-sm">Quiero pedir yo mismo</span>
+              <span className="text-white font-semibold text-sm">Pedir sin esperar</span>
             </div>
             <div className="w-full py-3 rounded-xl flex items-center justify-center gap-2" style={{ backgroundColor: headerTextColor }}>
               <BellIcon size={16} className="text-white" />
