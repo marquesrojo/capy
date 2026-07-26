@@ -1,7 +1,64 @@
 import { useState, useRef, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
-const FLOWS = {
+// Flujo para camareros: resuelve las dudas previas al registro y empuja a
+// crear la cuenta. No pide datos de contacto — el producto es gratis y
+// self-service, así que el cierre es la cuenta, no un lead.
+const WAITER_FLOWS = {
+  welcome: {
+    bot: '¡Hola! Soy Capy 🦫\n\n¿Qué querés saber de la app para camareros?',
+    options: [
+      { label: '¿Qué es Capy Camarero?',      next: 'que-es' },
+      { label: '¿Es gratis?',                 next: 'precio' },
+      { label: '¿Cómo cobro las propinas?',   next: 'propinas' },
+      { label: '¿Tengo que descargar algo?',  next: 'descarga' },
+      { label: 'Hago extras, ¿me sirve?',     next: 'extras' },
+    ],
+  },
+  'que-es': {
+    bot: 'Es la app para camareros: tomás los pedidos desde tu celular, cobrás las propinas directo a tu alias y vas sumando experiencia verificada en un certificado digital.\n\nLa podés usar por tu cuenta o vinculada al local donde trabajás.',
+    cta: true,
+    options: [
+      { label: '¿Es gratis?',               next: 'precio' },
+      { label: '¿Cómo cobro las propinas?', next: 'propinas' },
+    ],
+  },
+  'precio': {
+    bot: 'Tomar pedidos, cobrar propinas y tu perfil profesional son sin cargo.\n\nLas funciones con IA vienen con un cupo de uso: la comanda por voz es libre, y para armar cartas sacándole una foto al menú tenés 10 imágenes incluidas. Si las agotás podés sumar más con un pago único, pero no es obligatorio.',
+    cta: true,
+    options: [
+      { label: '¿Cómo cobro las propinas?',  next: 'propinas' },
+      { label: '¿Tengo que descargar algo?', next: 'descarga' },
+    ],
+  },
+  'propinas': {
+    bot: 'El cliente te transfiere directo a tu alias, mesa por mesa. Puede ser de Mercado Pago o de cualquier banco.\n\nCapy no retiene ni procesa el dinero: la transferencia va del cliente a vos.',
+    cta: true,
+    options: [
+      { label: '¿Es gratis?',             next: 'precio' },
+      { label: 'Hago extras, ¿me sirve?', next: 'extras' },
+    ],
+  },
+  'descarga': {
+    bot: 'No hace falta descargar nada. Es una web app: la abrís en el navegador del celular y la guardás en tu pantalla de inicio, y te queda como una app más.\n\nNo ocupa espacio ni se baja de ninguna tienda.',
+    cta: true,
+    options: [
+      { label: '¿Qué es Capy Camarero?', next: 'que-es' },
+      { label: '¿Es gratis?',            next: 'precio' },
+    ],
+  },
+  'extras': {
+    bot: 'Sí, es justo para eso. No dependés de que el local tenga sistema: le sacás una foto al menú, la IA te arma la carta y arrancás a tomar pedidos.\n\nY si el restaurante ya usa Capy, te vinculás con un QR y tu app se conecta a su carta y a las mesas que te asignaron.',
+    cta: true,
+    options: [
+      { label: '¿Cómo cobro las propinas?', next: 'propinas' },
+      { label: '¿Es gratis?',               next: 'precio' },
+    ],
+  },
+}
+
+const OWNER_FLOWS = {
   welcome: {
     bot: '¡Hola! Soy el asistente de Capy. ¿En qué te puedo ayudar?',
     options: [
@@ -67,6 +124,10 @@ function BotAvatar() {
 
 export default function LeadChat({ page = 'main' }) {
   const { isStaff } = useAuth()
+  // En la landing de camarero el interlocutor es otro: dudas de camarero y
+  // cierre en "crear cuenta". En las de local, el flujo comercial de siempre.
+  const isWaiter = page === 'camareroa'
+  const FLOWS = isWaiter ? WAITER_FLOWS : OWNER_FLOWS
   const [open, setOpen]       = useState(false)
   const [messages, setMessages] = useState([])
   const [step, setStep]       = useState('welcome')
@@ -146,7 +207,7 @@ export default function LeadChat({ page = 'main' }) {
                 <span className="text-2xl leading-none">🦫</span>
                 <div>
                   <p className="text-white font-bold text-sm leading-tight">Capy</p>
-                  <p className="text-white/50 text-[10px]">Asistente comercial</p>
+                  <p className="text-white/50 text-[10px]">{isWaiter ? 'Dudas frecuentes' : 'Asistente comercial'}</p>
                 </div>
               </div>
               <button
@@ -222,6 +283,15 @@ export default function LeadChat({ page = 'main' }) {
                     </form>
                   ) : (
                     <div className="flex flex-col gap-1.5">
+                      {/* El cierre del flujo de camarero es la cuenta, no un lead */}
+                      {currentFlow?.cta && (
+                        <Link
+                          to="/camareroa/registro"
+                          className="bg-ember-500 hover:bg-ember-600 text-white font-bold rounded-xl px-3 py-2.5 text-sm text-center transition-colors"
+                        >
+                          Crear mi cuenta gratis →
+                        </Link>
+                      )}
                       {currentFlow?.options?.map((opt) => (
                         <button
                           key={opt.next}
@@ -231,6 +301,12 @@ export default function LeadChat({ page = 'main' }) {
                           {opt.label}
                         </button>
                       ))}
+                      {isWaiter && currentFlow?.cta && (
+                        <p className="text-[11px] text-smoke-500 mt-1 leading-snug">
+                          ¿Otra duda? Escribinos a{' '}
+                          <a href="mailto:hola@capyapp.co" className="text-ember-500 underline">hola@capyapp.co</a>
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
