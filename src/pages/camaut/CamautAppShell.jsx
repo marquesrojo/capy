@@ -34,7 +34,7 @@ const TABS = [
     icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
   },
   {
-    id: 'micapy', label: 'Mi Capy',
+    id: 'micapy', label: 'Mi CAPY',
     icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
   },
 ]
@@ -164,14 +164,14 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
   useEffect(() => {
     if (!staffName) return
     const firstName = staffName.split(' ')[0]
-    const appName = `Capy · ${firstName}`
+    const appName = `CAPY · ${firstName}`
     // iOS "Add to Home Screen" reads document.title for the dialog pre-fill;
     // apple-mobile-web-app-title is only used for the icon label after install.
     document.title = appName
     const appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]')
     if (appleTitle) appleTitle.content = appName
     // Android/Chrome: swap manifest to a personalised Blob so the install dialog
-    // shows the waiter's first name instead of the generic "Capy Camarero"
+    // shows the waiter's first name instead of the generic "CAPY Camarero"
     const manifest = {
       name: appName,
       short_name: firstName,
@@ -196,7 +196,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
     }
     return () => {
       URL.revokeObjectURL(url)
-      if (appleTitle) appleTitle.content = 'Capy Camarero/a'
+      if (appleTitle) appleTitle.content = 'CAPY Camarero/a'
     }
   }, [staffName])
 
@@ -280,10 +280,10 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
     const firstName = staffName?.split(' ')[0] || 'Camarero/a'
     return (
       <div className="min-h-screen bg-[#0F1923] flex flex-col items-center justify-center px-8 text-center" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <img src="/icon-512.png" alt="Capy" className="w-24 h-24 rounded-3xl shadow-2xl mb-6" />
+        <img src="/icon-512.png" alt="CAPY" className="w-24 h-24 rounded-3xl shadow-2xl mb-6" />
         <h1 className="text-white font-bold text-2xl mb-2">Hola, {firstName}</h1>
         <p className="text-[#6B8A8A] text-sm leading-relaxed mb-8">
-          Agregá Capy a tu pantalla de inicio para recibir notificaciones de pedidos y acceder más rápido.
+          Agregá CAPY a tu pantalla de inicio para recibir notificaciones de pedidos y acceder más rápido.
         </p>
 
         {isIOS ? (
@@ -565,7 +565,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
         <div className="bg-[#F0F4F8]">
           {!micapyTab ? (
             <div className="px-4 pt-5 pb-8">
-              <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-4 px-1">Mi Capy</p>
+              <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-4 px-1">Mi CAPY</p>
               <div className="grid grid-cols-2 gap-3">
                 {[
                   ...MICAPY_ITEMS,
@@ -735,7 +735,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                     >
                       <div className="px-5 py-4 flex items-center justify-between gap-4">
                         <div>
-                          <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mb-0.5">Capy Pro</p>
+                          <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mb-0.5">CAPY Pro</p>
                           <p className="text-white font-bold text-base leading-tight">Tu carrera profesional</p>
                           <p className="text-white/70 text-xs mt-1">CV certificado · PDF descargable · QR verificado</p>
                         </div>
@@ -1206,7 +1206,7 @@ function SoporteTab({ staffId, staffName }) {
       <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
         <div className="w-14 h-14 rounded-full bg-[#E8F5F5] flex items-center justify-center text-[#008080] text-2xl">✓</div>
         <p className="font-bold text-[#1A2A3A] text-base">Mensaje enviado</p>
-        <p className="text-[#8896A5] text-sm">El equipo de Capy lo va a revisar pronto.</p>
+        <p className="text-[#8896A5] text-sm">El equipo de CAPY lo va a revisar pronto.</p>
         <button onClick={() => { setSent(false); setMessage('') }} className="text-[#008080] text-sm underline mt-2">Enviar otro mensaje</button>
       </div>
     )
@@ -1233,7 +1233,7 @@ function SoporteTab({ staffId, staffName }) {
                 <p className="text-[#8896A5] text-sm mt-1">{t.message}</p>
                 {t.response && (
                   <div className="mt-2 bg-[#E8F5F5] rounded-xl px-3 py-2">
-                    <p className="text-[#008080] text-[10px] font-bold uppercase mb-0.5">Respuesta de Capy</p>
+                    <p className="text-[#008080] text-[10px] font-bold uppercase mb-0.5">Respuesta de CAPY</p>
                     <p className="text-[#1A2A3A] text-sm">{t.response}</p>
                   </div>
                 )}
@@ -1278,8 +1278,8 @@ function InvitarTab({ staffName }) {
       message: `${staffName ? `${staffName} te invita a` : 'Unite a'} Camaut, la app para camareros 🍽️\n\nhttps://capyapp.co/camareroa`,
     },
     local: {
-      label: 'Capy',
-      message: `${staffName ? `${staffName} te recomienda` : 'Conocé'} Capy, el sistema de pedidos para restaurantes 🚀\n\nhttps://capyapp.co/admin/login`,
+      label: 'CAPY',
+      message: `${staffName ? `${staffName} te recomienda` : 'Conocé'} CAPY, el sistema de pedidos para restaurantes 🚀\n\nhttps://capyapp.co/admin/login`,
     },
   }
 

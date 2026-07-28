@@ -58,7 +58,7 @@ export default function HubPage() {
           <div className="flex items-center gap-2.5">
             <img
               src="https://ycgptakgpsvmstoftkdk.supabase.co/storage/v1/object/public/icons/icon-512.png"
-              alt="Capy"
+              alt="CAPY"
               className="w-8 h-8 rounded-lg"
             />
             <span className="font-display text-xl tracking-widest text-[#3C2A21]">CAPY</span>
@@ -91,7 +91,7 @@ export default function HubPage() {
           <span className="text-ember-500">Para el cliente.</span>
         </h1>
         <p className="text-sm md:text-lg text-smoke-400 mt-4 md:mt-6 leading-relaxed max-w-xs md:max-w-lg mx-auto">
-          Capy conecta las tres partes de tu local: el dueño gestiona todo desde el panel, el camarero/a recibe pedidos en tiempo real, y el cliente pide desde su celular sin descargar nada.
+          CAPY conecta las tres partes de tu local: el dueño gestiona todo desde el panel, el camarero/a recibe pedidos en tiempo real, y el cliente pide desde su celular sin descargar nada.
         </p>
 
         <div className="flex flex-wrap justify-center gap-2 mt-5 md:mt-6">
@@ -158,7 +158,7 @@ export default function HubPage() {
             </div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-ember-500 mb-2">Para camareros</p>
             <h2 className="font-display text-3xl md:text-4xl text-[#3C2A21] tracking-wide leading-tight mb-3">
-              Capy Camarero/a
+              CAPY Camarero/a
             </h2>
             <p className="text-sm text-smoke-400 leading-relaxed">
               Tu herramienta profesional como camarero. Gestioná pedidos, seguí mesas y recibí alertas — todo en tu celular, en tiempo real.
@@ -167,7 +167,7 @@ export default function HubPage() {
               {WAITER_FEATURES.map(f => <CheckItem key={f} label={f} />)}
             </ul>
             <div className="mt-7 flex items-center gap-1.5 text-ember-500 font-bold text-sm group-hover:gap-2.5 transition-all duration-200">
-              Conocer Capy Camarero/a <ArrowRight />
+              Conocer CAPY Camarero/a <ArrowRight />
             </div>
           </Link>
 
@@ -182,14 +182,14 @@ export default function HubPage() {
           <div className="flex items-center gap-2.5">
             <img
               src="https://ycgptakgpsvmstoftkdk.supabase.co/storage/v1/object/public/icons/icon-512.png"
-              alt="Capy"
+              alt="CAPY"
               className="w-8 h-8 rounded-lg"
             />
             <span className="font-display text-xl tracking-widest">CAPY</span>
           </div>
           <div className="flex items-center gap-4 md:gap-6 flex-wrap justify-center">
             <Link to="/admin/login" className="text-white/60 text-xs hover:text-white/90 transition-colors">Para locales</Link>
-            <Link to="/camareroa" className="text-white/60 text-xs hover:text-white/90 transition-colors">Capy Camarero/a</Link>
+            <Link to="/camareroa" className="text-white/60 text-xs hover:text-white/90 transition-colors">CAPY Camarero/a</Link>
             <Link to="/privacidad" className="text-white/60 text-xs hover:text-white/90 transition-colors">Privacidad</Link>
             <Link to="/terminos" className="text-white/60 text-xs hover:text-white/90 transition-colors">Términos</Link>
             <a href="mailto:capy@bravosm.com" className="text-white/60 text-xs hover:text-white/90 transition-colors">Contacto</a>

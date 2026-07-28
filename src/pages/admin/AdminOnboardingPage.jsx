@@ -103,7 +103,7 @@ export default function AdminOnboardingPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white shadow-md p-2">
-            <img src="/icon-512.png" alt="Capy" className="w-full h-full object-contain" />
+            <img src="/icon-512.png" alt="CAPY" className="w-full h-full object-contain" />
           </div>
           <h1 className="font-display text-3xl tracking-wide text-ember-500">CAPY</h1>
           <p className="text-smoke-400 text-sm mt-1">Configurá tu Local</p>

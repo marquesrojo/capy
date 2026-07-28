@@ -47,7 +47,7 @@ export default function CamautLoginPage() {
       <div className="text-center my-8">
         <img
           src="https://ycgptakgpsvmstoftkdk.supabase.co/storage/v1/object/public/icons/icon-512.png"
-          alt="Capy" className="w-16 h-16 mx-auto mb-3 rounded-xl"
+          alt="CAPY" className="w-16 h-16 mx-auto mb-3 rounded-xl"
         />
         <p className="font-display text-3xl text-ember-500 tracking-wide">CAPY</p>
         <p className="text-smoke-500 text-xs tracking-widest uppercase mt-1">Camarero/a</p>

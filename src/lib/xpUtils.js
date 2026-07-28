@@ -23,7 +23,7 @@ export const XP_ACTIONS = {
 // Badges
 export const BADGES = [
   { key: 'first_order', label: 'Primera comanda', icon: '🍽️', description: 'Enviaste tu primera comanda', xpBonus: 50 },
-  { key: 'streak_7', label: 'Racha de 7 días', icon: '🔥', description: '7 días consecutivos usando Capy', xpBonus: 200 },
+  { key: 'streak_7', label: 'Racha de 7 días', icon: '🔥', description: '7 días consecutivos usando CAPY', xpBonus: 200 },
   { key: 'orders_100', label: '100 comandas', icon: '💯', description: 'Acumulaste 100 comandas totales', xpBonus: 300 },
   { key: 'gold_star', label: 'Estrella de Oro', icon: '⭐', description: '10 calificaciones de 5 estrellas', xpBonus: 250 },
   { key: 'first_invite', label: 'El que invita', icon: '🤝', description: 'Invitaste a tu primer mozo', xpBonus: 200 },

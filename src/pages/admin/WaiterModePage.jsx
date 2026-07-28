@@ -51,7 +51,7 @@ const STAFF_TABS = [
   },
 ]
 
-// Tabs para camarero autónomo (4 tabs — Carrera y Ranking dentro de Mi Capy)
+// Tabs para camarero autónomo (4 tabs — Carrera y Ranking dentro de Mi CAPY)
 const CAMAUT_TABS = [
   {
     id: 'tomar', label: 'Comanda',
@@ -66,7 +66,7 @@ const CAMAUT_TABS = [
     icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
   },
   {
-    id: 'micapy', label: 'Mi Capy',
+    id: 'micapy', label: 'Mi CAPY',
     icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
   },
 ]
@@ -160,7 +160,7 @@ export default function WaiterModePage({ venueId, staffName, staffXP }) {
         {tab === 'carrera' && <MiCarrera venueId={venueId} />}
         {tab === 'ranking' && <RankingMozos />}
 
-        {/* Mi Capy — solo para autónomos */}
+        {/* Mi CAPY — solo para autónomos */}
         {tab === 'micapy' && (
           <MiCapyPage
             venueId={venueId}

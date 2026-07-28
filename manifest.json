@@ -1,6 +1,6 @@
 {
-  "name": "Capy",
-  "short_name": "Capy",
+  "name": "CAPY",
+  "short_name": "CAPY",
   "description": "Pedidos y pagos para restaurantes",
   "start_url": "/",
   "display": "standalone",

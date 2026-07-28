@@ -6,9 +6,9 @@ import { useAuth } from '../hooks/useAuth'
 // self-service, así que el cierre es la cuenta, no un lead.
 const WAITER_FLOWS = {
   welcome: {
-    bot: '¡Hola! Soy Capy 🦫\n\n¿Qué querés saber de la app para camareros?',
+    bot: '¡Hola! Soy CAPY 🦫\n\n¿Qué querés saber de la app para camareros?',
     options: [
-      { label: '¿Qué es Capy Camarero?',      next: 'que-es' },
+      { label: '¿Qué es CAPY Camarero?',      next: 'que-es' },
       { label: '¿Es gratis?',                 next: 'precio' },
       { label: '¿Cómo cobro las propinas?',   next: 'propinas' },
       { label: '¿Tengo que descargar algo?',  next: 'descarga' },
@@ -43,12 +43,12 @@ const WAITER_FLOWS = {
     bot: 'No hace falta descargar nada. Es una web app: la abrís en el navegador del celular y la guardás en tu pantalla de inicio, y te queda como una app más.\n\nNo ocupa espacio ni se baja de ninguna tienda.',
     cta: true,
     options: [
-      { label: '¿Qué es Capy Camarero?', next: 'que-es' },
+      { label: '¿Qué es CAPY Camarero?', next: 'que-es' },
       { label: '¿Es gratis?',            next: 'precio' },
     ],
   },
   'extras': {
-    bot: 'Sí, es justo para eso. No dependés de que el local tenga sistema: le sacás una foto al menú, la IA te arma la carta y arrancás a tomar pedidos.\n\nY si el restaurante ya usa Capy, te vinculás con un QR y tu app se conecta a su carta y a las mesas que te asignaron.',
+    bot: 'Sí, es justo para eso. No dependés de que el local tenga sistema: le sacás una foto al menú, la IA te arma la carta y arrancás a tomar pedidos.\n\nY si el restaurante ya usa CAPY, te vinculás con un QR y tu app se conecta a su carta y a las mesas que te asignaron.',
     cta: true,
     options: [
       { label: '¿Cómo cobro las propinas?', next: 'propinas' },
@@ -59,9 +59,9 @@ const WAITER_FLOWS = {
 
 const OWNER_FLOWS = {
   welcome: {
-    bot: '¡Hola! Soy el asistente de Capy. ¿En qué te puedo ayudar?',
+    bot: '¡Hola! Soy el asistente de CAPY. ¿En qué te puedo ayudar?',
     options: [
-      { label: '¿Qué es Capy?',               next: 'que-es' },
+      { label: '¿Qué es CAPY?',               next: 'que-es' },
       { label: '¿Cuánto cuesta?',              next: 'precio' },
       { label: '¿Cómo funciona el sistema?',   next: 'como-funciona' },
       { label: '¿Para qué tipo de local?',     next: 'tipo-local' },
@@ -69,7 +69,7 @@ const OWNER_FLOWS = {
     ],
   },
   'que-es': {
-    bot: 'Capy es una plataforma digital para locales gastronómicos.\n\nEl cliente escanea el QR de su mesa, ve el menú, hace el pedido y paga — todo desde el celular, sin descargar nada.\n\nEl dueño y el equipo gestionan todo en tiempo real desde el panel: pedidos, mesas, cocina y pagos.',
+    bot: 'CAPY es una plataforma digital para locales gastronómicos.\n\nEl cliente escanea el QR de su mesa, ve el menú, hace el pedido y paga — todo desde el celular, sin descargar nada.\n\nEl dueño y el equipo gestionan todo en tiempo real desde el panel: pedidos, mesas, cocina y pagos.',
     options: [
       { label: '¿Cuánto cuesta?',            next: 'precio' },
       { label: '¿Cómo funciona el sistema?', next: 'como-funciona' },
@@ -77,7 +77,7 @@ const OWNER_FLOWS = {
     ],
   },
   'precio': {
-    bot: 'Capy tiene un plan gratuito para empezar: cargás tu menú y empezás a recibir pedidos sin pagar nada.\n\nLos planes pagos desbloquean pagos integrados (MercadoPago), múltiples usuarios, alertas por WhatsApp, programa de fidelidad y más.\n\nPodemos cotizarte según el tamaño y las necesidades de tu local.',
+    bot: 'CAPY tiene un plan gratuito para empezar: cargás tu menú y empezás a recibir pedidos sin pagar nada.\n\nLos planes pagos desbloquean pagos integrados (MercadoPago), múltiples usuarios, alertas por WhatsApp, programa de fidelidad y más.\n\nPodemos cotizarte según el tamaño y las necesidades de tu local.',
     options: [
       { label: '¿Qué incluye cada plan?',    next: 'planes' },
       { label: '¿Cómo empiezo gratis?',      next: 'como-funciona' },
@@ -92,7 +92,7 @@ const OWNER_FLOWS = {
     ],
   },
   'como-funciona': {
-    bot: 'Es muy simple:\n\n1. Registrás tu local y cargás el menú con fotos y precios.\n2. Capy genera un QR único por mesa — lo imprimís y lo pegás.\n3. Los clientes escanean, eligen y piden. El pedido llega directo a cocina.\n4. El equipo ve todo en el panel: kanban, mapa del salón y alertas en tiempo real.\n\nSetup completo en menos de un día, sin conocimientos técnicos.',
+    bot: 'Es muy simple:\n\n1. Registrás tu local y cargás el menú con fotos y precios.\n2. CAPY genera un QR único por mesa — lo imprimís y lo pegás.\n3. Los clientes escanean, eligen y piden. El pedido llega directo a cocina.\n4. El equipo ve todo en el panel: kanban, mapa del salón y alertas en tiempo real.\n\nSetup completo en menos de un día, sin conocimientos técnicos.',
     options: [
       { label: '¿Cuánto cuesta?',          next: 'precio' },
       { label: '¿Para qué tipo de local?', next: 'tipo-local' },
@@ -100,7 +100,7 @@ const OWNER_FLOWS = {
     ],
   },
   'tipo-local': {
-    bot: 'Capy funciona para restaurantes, cafeterías, bares, pizzerías, hamburgueserías, cervecerías y cualquier local gastronómico con mesas.\n\nTambién tiene modo retiro para mostrador o take away.\n\nSi cobrás pedidos, Capy te sirve.',
+    bot: 'CAPY funciona para restaurantes, cafeterías, bares, pizzerías, hamburgueserías, cervecerías y cualquier local gastronómico con mesas.\n\nTambién tiene modo retiro para mostrador o take away.\n\nSi cobrás pedidos, CAPY te sirve.',
     options: [
       { label: '¿Cuánto cuesta?',        next: 'precio' },
       { label: '¿Cómo funciona?',        next: 'como-funciona' },
@@ -108,7 +108,7 @@ const OWNER_FLOWS = {
     ],
   },
   'asesor': {
-    bot: 'Genial. Dejanos tus datos y te contactamos a la brevedad para contarte todo y armar una demo de Capy para tu local.',
+    bot: 'Genial. Dejanos tus datos y te contactamos a la brevedad para contarte todo y armar una demo de CAPY para tu local.',
     form: true,
   },
 }
@@ -207,7 +207,7 @@ export default function LeadChat({ page = 'main' }) {
               <div className="flex items-center gap-2.5">
                 <span className="text-2xl leading-none">🦫</span>
                 <div>
-                  <p className="text-white font-bold text-sm leading-tight">Capy</p>
+                  <p className="text-white font-bold text-sm leading-tight">CAPY</p>
                   <p className="text-white/50 text-[10px]">{isWaiter ? 'Dudas frecuentes' : 'Asistente comercial'}</p>
                 </div>
               </div>

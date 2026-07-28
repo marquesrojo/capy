@@ -100,7 +100,7 @@ ${items.map(item => `<div class="card"><div class="type">${typeLabel[item.type] 
         <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
           <p className="text-smoke-200 font-semibold mb-1">Invitar Camareros</p>
           <p className="text-smoke-500 text-xs mb-4">
-            El camarero escanea este QR o ingresa el código en Capy Camarero para vincularse a este local
+            El camarero escanea este QR o ingresa el código en CAPY Camarero para vincularse a este local
           </p>
 
           {loading ? (
@@ -182,12 +182,12 @@ ${items.map(item => `<div class="card"><div class="type">${typeLabel[item.type] 
 function ShareInviteButton({ code }) {
   const [copied, setCopied] = useState(false)
   const url = `https://capyapp.co/camareroa/vincular?code=${code}`
-  const text = `Sumate al equipo con Capy Camarero 🤙\nInstalá la app y usá el código ${code}:`
+  const text = `Sumate al equipo con CAPY Camarero 🤙\nInstalá la app y usá el código ${code}:`
 
   async function handleShare() {
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Capy Camarero', text, url })
+        await navigator.share({ title: 'CAPY Camarero', text, url })
         return
       } catch {}
     }
@@ -316,7 +316,7 @@ function QRCard({ label, description, url, showTemplate, venueId, venueName }) {
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>QR — ${venueName || 'Capy'}</title>
+<title>QR — ${venueName || 'CAPY'}</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: sans-serif; background: white; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
@@ -331,7 +331,7 @@ img { width: 220px; height: 220px; display: block; margin: 0 auto 24px; }
 </head>
 <body>
 <div class="card">
-  <div class="logo">Capy</div>
+  <div class="logo">CAPY</div>
   <img src="${dataUrl}" alt="QR" />
   <div class="venue">${venueName || ''}</div>
   <div class="cta">Escaneá para ver la carta</div>

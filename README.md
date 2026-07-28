@@ -1,4 +1,4 @@
-# Capy — Sistema de Pedidos para Restaurante/Club (MVP)
+# CAPY — Sistema de Pedidos para Restaurante/Club (MVP)
 
 Sistema web para que clientes vean la carta, hagan su pedido sin necesidad
 de crear cuenta, indiquen su ubicación (mesa o sector general) y paguen

@@ -36,7 +36,7 @@ serve(async (req) => {
       )
     }
 
-    const venueName = venue?.name || 'Capy'
+    const venueName = venue?.name || 'CAPY'
 
     const preference = {
       items: [

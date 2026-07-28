@@ -1,4 +1,4 @@
-# Guía de puesta en marcha de Capy — paso a paso
+# Guía de puesta en marcha de CAPY — paso a paso
 
 Esta guía asume que no hiciste nada todavía salvo tener cuenta de GitHub.
 Orden: **Supabase → GitHub → Vercel**. Cada paso depende del anterior, así

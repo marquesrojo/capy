@@ -155,7 +155,7 @@ export default function WaiterCVPage() {
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                 <path d="M9 12l2 2 4-4"/>
               </svg>
-              <span className="text-white text-xs font-semibold tracking-wide">Perfil Certificado · Datos Auditados por Capy</span>
+              <span className="text-white text-xs font-semibold tracking-wide">Perfil Certificado · Datos Auditados por CAPY</span>
             </div>
             <span className="text-white/70 text-[10px]">capyapp.co</span>
           </div>
@@ -355,7 +355,7 @@ export default function WaiterCVPage() {
                 Escaneá el código QR para confirmar que este CV es auténtico y ver el perfil en tiempo real.
               </p>
               <p className="text-[#B0BEC5] text-[10px] mt-2">{profileUrl}</p>
-              <p className="text-[#B0BEC5] text-[10px] mt-3">Generado el {today} · Capy Platforms</p>
+              <p className="text-[#B0BEC5] text-[10px] mt-3">Generado el {today} · CAPY Platforms</p>
             </div>
             {qrDataUrl && (
               <div className="flex-shrink-0 text-center">

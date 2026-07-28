@@ -5,8 +5,8 @@ import { supabaseStaff, ACTIVE_VENUE_ID } from '../lib/supabase'
 const CHAT_ENDPOINT = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/capy-chat`
 const TICKET_ENDPOINT = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/support-ticket`
 
-const WELCOME_ADMIN = '¡Hola! Soy Capy 🦫\n\n¿En qué puedo ayudarte hoy? Puedo orientarte con la configuración de la app, tips de gestión de tu local o cualquier duda sobre Capy.'
-const WELCOME_WAITER = '¡Hola! Soy Capy 🦫\n\n¿En qué te doy una mano? Puedo ayudarte a tomar la comanda, cargar tu carta, cobrar las propinas o con las reglas del local donde estás trabajando.'
+const WELCOME_ADMIN = '¡Hola! Soy CAPY 🦫\n\n¿En qué puedo ayudarte hoy? Puedo orientarte con la configuración de la app, tips de gestión de tu local o cualquier duda sobre CAPY.'
+const WELCOME_WAITER = '¡Hola! Soy CAPY 🦫\n\n¿En qué te doy una mano? Puedo ayudarte a tomar la comanda, cargar tu carta, cobrar las propinas o con las reglas del local donde estás trabajando.'
 
 const CAPY_ICON_URL = 'https://ycgptakgpsvmstoftkdk.supabase.co/storage/v1/object/public/icons/icon-512.png'
 
@@ -14,7 +14,7 @@ function CapyIcon({ size = 48 }) {
   return (
     <img
       src={CAPY_ICON_URL}
-      alt="Capy"
+      alt="CAPY"
       width={size}
       height={size}
       style={{ width: size, height: size, borderRadius: '50%' }}
@@ -34,7 +34,7 @@ export default function CapyChat({ venueName = '' }) {
   const textareaRef = useRef(null)
   const location = useLocation()
 
-  // Camarero: la app de Capy Camarero y la pantalla de tomar pedido del admin
+  // Camarero: la app de CAPY Camarero y la pantalla de tomar pedido del admin
   const isWaiter = location.pathname === '/admin/tomar' || location.pathname.startsWith('/camareroa')
 
   // ── Draggable button ──────────────────────────────────────────
@@ -138,7 +138,7 @@ export default function CapyChat({ venueName = '' }) {
       const headers = await getAuthHeaders()
       const context = messages.slice(-10)
       const summaryMsg = context
-        .map(m => `${m.role === 'user' ? 'Usuario' : 'Capy'}: ${m.content}`)
+        .map(m => `${m.role === 'user' ? 'Usuario' : 'CAPY'}: ${m.content}`)
         .join('\n\n')
       await fetch(TICKET_ENDPOINT, {
         method: 'POST',
@@ -154,7 +154,7 @@ export default function CapyChat({ venueName = '' }) {
       setTicketSent(true)
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: '✓ Ticket enviado. El equipo de Capy va a revisar tu consulta pronto.',
+        content: '✓ Ticket enviado. El equipo de CAPY va a revisar tu consulta pronto.',
       }])
     } catch {
       // silently fail ticket creation
@@ -180,7 +180,7 @@ export default function CapyChat({ venueName = '' }) {
           onTouchStart={e => startDrag(e.touches[0].clientY)}
           onTouchMove={e => { e.preventDefault(); moveDrag(e.touches[0].clientY) }}
           onTouchEnd={endDrag}
-          aria-label="Abrir asistente Capy"
+          aria-label="Abrir asistente CAPY"
           className="fixed right-4 z-50 rounded-full select-none drop-shadow-xl touch-none"
           style={{ bottom: btnBottom }}
         >
@@ -206,8 +206,8 @@ export default function CapyChat({ venueName = '' }) {
               <div className="flex items-center gap-2.5">
                 <CapyIcon size={38} />
                 <div>
-                  <p className="text-white font-black text-sm leading-none">Capy</p>
-                  <p className="text-white/50 text-[10px] leading-none mt-0.5">Asistente de Capy App</p>
+                  <p className="text-white font-black text-sm leading-none">CAPY</p>
+                  <p className="text-white/50 text-[10px] leading-none mt-0.5">Asistente de CAPY App</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -253,7 +253,7 @@ export default function CapyChat({ venueName = '' }) {
               {loading && (
                 <div className="flex justify-start">
                   <div className="bg-[#F0F4F8] rounded-2xl px-4 py-2.5 text-sm text-[#9DAAB8]">
-                    Capy está escribiendo...
+                    CAPY está escribiendo...
                   </div>
                 </div>
               )}
@@ -267,7 +267,7 @@ export default function CapyChat({ venueName = '' }) {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Preguntale algo a Capy..."
+                placeholder="Preguntale algo a CAPY..."
                 className="flex-1 resize-none rounded-xl px-3 py-2.5 text-sm bg-[#F0F4F8] text-[#1A2332] outline-none border-none placeholder:text-[#9DAAB8]"
                 rows={1}
                 style={{ maxHeight: '80px' }}

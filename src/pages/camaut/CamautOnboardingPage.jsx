@@ -343,7 +343,7 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
               Vincularme a un restaurante primero
             </button>
             <p className="text-smoke-600 text-xs text-center">
-              También podés vincular un restaurante después desde <span className="text-ember-500">Mi Capy</span>.
+              También podés vincular un restaurante después desde <span className="text-ember-500">Mi CAPY</span>.
             </p>
           </div>
         </div>

@@ -1,6 +1,6 @@
 {
-  "name": "Capy Admin",
-  "short_name": "Capy Admin",
+  "name": "CAPY Admin",
+  "short_name": "CAPY Admin",
   "description": "Panel de administración del local",
   "start_url": "/admin",
   "scope": "/admin/",
