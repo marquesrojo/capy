@@ -106,7 +106,7 @@ export default function SplitCalculator({ total, assignedStaff, venueTipAlias })
                 <p className="text-smoke-400 text-xs mb-2">
                   {tipTarget ? `Transferile la propina a ${tipTarget}:` : 'Transferí la propina a:'}
                 </p>
-                <div className="flex items-center justify-between gap-3 bg-carbon-800 rounded-xl px-3 py-2.5 mb-2">
+                <div className="flex items-center justify-between gap-3 bg-carbon-800 rounded-xl px-3 py-2.5">
                   <span className="font-mono text-smoke-200 text-sm">{tipAlias}</span>
                   <button
                     type="button"
@@ -118,18 +118,6 @@ export default function SplitCalculator({ total, assignedStaff, venueTipAlias })
                     {copied ? '¡Copiado! ✓' : 'Copiar alias'}
                   </button>
                 </div>
-                <a
-                  href="https://852u.adj.st/home/?adj_t=mqo65e0&adj_label=nav_mp_login&adj_campaign=nav_mp_login&adj_fallback=https%3A%2F%2Fwww.mercadolibre.com%2Fjms%2Fmla%2Flgz%2Flogin%3Fplatform_id%3DMP%26go%3Dhttps%253A%252F%252Fwww.mercadopago.com.ar%252F%26loginType%3Dexplicit&adj_redirect_macos=https%3A%2F%2Fwww.mercadolibre.com%2Fjms%2Fmla%2Flgz%2Flogin%3Fplatform_id%3DMP%26go%3Dhttps%253A%252F%252Fwww.mercadopago.com.ar%252F%26loginType%3Dexplicit"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => navigator.clipboard.writeText(String(tipAmount))}
-                  className="flex items-center justify-center gap-2 w-full bg-[#009EE3] hover:bg-[#0088C7] text-white font-semibold py-3 rounded-xl text-sm"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-1.97 9.289c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L6.26 14.4l-2.97-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.566 2.186z"/>
-                  </svg>
-                  Pagar {formatPrice(tipAmount)} con Mercado Pago
-                </a>
               </div>
             )}
           </div>
