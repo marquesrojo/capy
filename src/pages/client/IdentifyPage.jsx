@@ -899,7 +899,7 @@ export default function IdentifyPage() {
           </button>
         )}
 
-        {/* ── ¿Ya tenés un pedido? ── */}
+        {/* ── ¿Ya te atendió un camarero/a? ── */}
         <div>
           <button
             onClick={() => setShowOrderLookup(v => !v)}
@@ -916,8 +916,8 @@ export default function IdentifyPage() {
               </svg>
             </div>
             <div className="flex-1 text-left">
-              <p className="font-black text-sm leading-tight text-[#1A2332]">¿Ya tenés un pedido?</p>
-              <p className="text-[#9DAAB8] text-xs mt-0.5">Consultá el estado con tu número</p>
+              <p className="font-black text-sm leading-tight text-[#1A2332]">¿Ya te atendió un camarero/a?</p>
+              <p className="text-[#9DAAB8] text-xs mt-0.5">Pedile el N° de pedido y hacé el seguimiento</p>
             </div>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9DAAB8" strokeWidth="2.5"
               className={`transition-transform duration-200 ${showOrderLookup ? 'rotate-180' : ''}`}>
