@@ -117,6 +117,15 @@ export default function CamautAppPage() {
 
       if (!session) { navigate('/camareroa/login'); return }
 
+      // Si venía de escanear el QR de un local sin tener cuenta, retomamos la
+      // vinculación ahora que ya está logueado (sirve para email y Google).
+      let pendingInvite = null
+      try { pendingInvite = localStorage.getItem('capy_pending_invite') } catch { /* storage no disponible */ }
+      if (pendingInvite) {
+        navigate(`/camareroa/vincular?code=${encodeURIComponent(pendingInvite)}`)
+        return
+      }
+
       // Use supabaseStaff for the profile query — it's guaranteed to have the
       // session explicitly set in both auth paths above, avoiding edge cases
       // where supabaseCamaut's internal session state lags behind.
