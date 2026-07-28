@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { formatPrice } from '../../lib/utils'
+import { formatPrice, venueDisplayName } from '../../lib/utils'
 import { supabaseCustomer } from '../../lib/supabase'
 import AccountInvite from '../../components/AccountInvite'
 import { SearchIcon, PinIcon, ChefHatIcon, UtensilsIcon } from '../../components/Icons'
@@ -127,25 +127,33 @@ export default function PublicAccountPage() {
   const tipAmount = Math.round(total * tipPercent / 100)
   const perPerson = Math.ceil(total / splitPeople)
   const tipAlias = staff?.alias_bancario || venue?.tip_alias
+  // Los locales del onboarding del camarero llevan slug camaut-…: no son un
+  // restaurante, son el contenedor de la carta propia del camarero
+  const isAutonomous = !!venue?.slug?.startsWith('camaut-')
 
   return (
     <div className="min-h-screen bg-carbon-950 px-5 py-8 pb-16">
-      {/* Encabezado */}
+      {/* Encabezado: el local si la carta es de un restaurante, el camarero si
+          trabaja por su cuenta (ahí el venue es solo su contenedor personal) */}
       <div className="text-center mb-6">
-        {venue?.logo_url ? (
-          <img src={venue.logo_url} alt={venue.name} className="w-16 h-16 mx-auto mb-2 rounded-xl object-cover border border-carbon-700" />
+        {isAutonomous && staff?.avatar_url ? (
+          <img src={staff.avatar_url} alt={staff.full_name} className="w-16 h-16 mx-auto mb-2 rounded-full object-cover border-2 border-carbon-700" />
+        ) : venue?.logo_url ? (
+          <img src={venue.logo_url} alt={venueDisplayName(venue.name)} className="w-16 h-16 mx-auto mb-2 rounded-xl object-cover border border-carbon-700" />
         ) : (
           <div className="w-16 h-16 mx-auto mb-2 rounded-xl bg-carbon-800 flex items-center justify-center">
             <UtensilsIcon size={26} className="text-smoke-400" />
           </div>
         )}
         <p className="font-display text-2xl text-ember-500 tracking-wide">
-          {venue?.name?.toUpperCase() || 'CAPY'}
+          {isAutonomous && staff?.full_name
+            ? staff.full_name.toUpperCase()
+            : (venueDisplayName(venue?.name).toUpperCase() || 'CAPY')}
         </p>
         <p className="text-smoke-500 text-xs mt-1 flex items-center justify-center gap-1">
           <PinIcon size={11} /> {mesa || 'Tu mesa'} · {orders.length} {orders.length === 1 ? 'pedido' : 'pedidos'}
         </p>
-        {staff?.full_name && (
+        {staff?.full_name && !isAutonomous && (
           <p className="text-smoke-400 text-xs mt-1.5 font-medium flex items-center justify-center gap-1">
             <ChefHatIcon size={13} /> Te atiende {staff.full_name}
           </p>

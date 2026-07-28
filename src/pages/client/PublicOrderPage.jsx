@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { formatPrice } from '../../lib/utils'
+import { formatPrice, venueDisplayName } from '../../lib/utils'
 import OrderFeedback from '../../components/OrderFeedback'
 import AccountInvite from '../../components/AccountInvite'
 import { supabaseCustomer } from '../../lib/supabase'
@@ -191,17 +191,20 @@ export default function PublicOrderPage() {
   const statusInfo = STATUS_INFO[order.status] || STATUS_INFO.recibido
   const tipAmount = Math.round(order.total * tipPercent / 100)
   const perPerson = Math.ceil(order.total / splitPeople)
-  // Staff-placed orders (camaut / admin) have no customer_id; customer-placed orders do.
-  const isStaffOrder = !order.customer_id
+  // Quién encabeza la página: el local, o el camarero cuando trabaja por su
+  // cuenta. No sirve mirar customer_id — un pedido que carga el camarero en un
+  // restaurante real tampoco lo tiene, y ahí el cliente espera ver el local.
+  // Los locales del onboarding del camarero llevan slug camaut-…
+  const isAutonomous = !!venue?.slug?.startsWith('camaut-')
 
   return (
     <div className="min-h-screen bg-carbon-950 px-5 py-8 pb-16">
       {/* Header — staff-placed orders show waiter photo, customer orders show venue logo */}
       <div className="text-center mb-6">
-        {isStaffOrder && staff?.avatar_url ? (
+        {isAutonomous && staff?.avatar_url ? (
           <img src={staff.avatar_url} alt={staff.full_name} className="w-16 h-16 mx-auto mb-2 rounded-full object-cover border-2 border-carbon-700" />
         ) : venue?.logo_url ? (
-          <img src={venue.logo_url} alt={venue.name} className="w-16 h-16 mx-auto mb-2 rounded-xl object-cover border border-carbon-700" />
+          <img src={venue.logo_url} alt={venueDisplayName(venue.name)} className="w-16 h-16 mx-auto mb-2 rounded-xl object-cover border border-carbon-700" />
         ) : (
           <div className="w-16 h-16 mx-auto mb-2 rounded-xl bg-carbon-800 flex items-center justify-center">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-smoke-400">
@@ -210,9 +213,9 @@ export default function PublicOrderPage() {
           </div>
         )}
         <p className="font-display text-2xl text-ember-500 tracking-wide">
-          {isStaffOrder && staff?.full_name ? staff.full_name.toUpperCase() : (venue?.name?.toUpperCase() || 'CAPY')}
+          {isAutonomous && staff?.full_name ? staff.full_name.toUpperCase() : (venueDisplayName(venue?.name).toUpperCase() || 'CAPY')}
         </p>
-        {isStaffOrder && staff?.bio && (
+        {isAutonomous && staff?.bio && (
           <p className="text-smoke-400 text-xs mt-1.5 italic px-4">{staff.bio}</p>
         )}
       </div>
@@ -224,7 +227,7 @@ export default function PublicOrderPage() {
         <p className="text-smoke-500 text-xs mt-1 flex items-center justify-center gap-1">
           Pedido #{order.daily_number} · <PinIcon size={11} /> {order.location_label}
         </p>
-        {staff?.full_name && !isStaffOrder && (
+        {staff?.full_name && !isAutonomous && (
           <p className="text-smoke-400 text-xs mt-1.5 font-medium flex items-center justify-center gap-1">
             <ChefHatIcon size={13} /> {staff.full_name}
           </p>
