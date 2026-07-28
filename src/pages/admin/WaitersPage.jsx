@@ -161,7 +161,7 @@ export default function WaitersPage() {
 
       <div className="flex gap-2 mb-6">
         {[
-          { id: 'camareros', label: 'Capy Camarero' },
+          { id: 'camareros', label: 'CAPY Camarero' },
           { id: 'admins', label: 'Administradores' },
           { id: 'comparativa', label: 'Comparativa' },
         ].map(t => (

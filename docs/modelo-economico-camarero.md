@@ -64,9 +64,9 @@ Ambas funciones con IA corren sobre **Gemini 2.5 Flash**:
   `CAPY_IMAGE_PACK_ARS`).
 - El pack **suma** al cupo del camarero (no vence). Se pueden comprar varios.
 
-Relación con el restaurante (growth loop): si el local usa Capy, su carta entra
+Relación con el restaurante (growth loop): si el local usa CAPY, su carta entra
 nativa y **no consume el cupo** del camarero. El cupo solo "pega" al que trabaja
-en locales que aún no adoptaron Capy → nudge para activar el restaurante en vez
+en locales que aún no adoptaron CAPY → nudge para activar el restaurante en vez
 de comprar el pack.
 
 ---

@@ -1325,7 +1325,7 @@ function ImportarConIA({ venueId, menuId, onImported }) {
               <p className="text-[#008080] font-bold text-base">${packPrice.toLocaleString('es-AR')}</p>
             </div>
             <p className="text-[#B0BEC5] text-[11px] mt-2">
-              ¿Tu restaurante usa Capy? Si lo activás, su carta entra sola y no gasta tus imágenes.
+              ¿Tu restaurante usa CAPY? Si lo activás, su carta entra sola y no gasta tus imágenes.
             </p>
             {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
             <div className="flex gap-2 mt-3">

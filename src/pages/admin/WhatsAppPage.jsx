@@ -167,7 +167,7 @@ export default function WhatsAppPage() {
                 <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
               </svg>
               <p className="text-amber-400 text-xs leading-relaxed">
-                Esta sección requiere conexión con <span className="font-semibold">WhatsApp Business API</span>. Los mensajes automáticos solo se envían si la integración está activa. Contactá a Capy para habilitarla.
+                Esta sección requiere conexión con <span className="font-semibold">WhatsApp Business API</span>. Los mensajes automáticos solo se envían si la integración está activa. Contactá a CAPY para habilitarla.
               </p>
             </div>
 

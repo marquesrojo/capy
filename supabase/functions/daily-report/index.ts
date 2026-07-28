@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
 
   const html = `
   <div style="font-family:sans-serif;max-width:540px;color:#3C2A21;background:#fff;padding:24px;border-radius:12px">
-    <h2 style="margin:0 0 4px;font-size:22px">🦫 Reporte diario Capy</h2>
+    <h2 style="margin:0 0 4px;font-size:22px">🦫 Reporte diario CAPY</h2>
     <p style="margin:0 0 20px;color:#888;font-size:14px">${dateLabel}</p>
 
     <table style="width:100%;border-collapse:collapse;margin-bottom:24px">
@@ -172,7 +172,7 @@ Deno.serve(async (req) => {
     </table>
 
     <p style="margin:20px 0 0;font-size:11px;color:#bbb">
-      Generado automáticamente por Capy · ${now.toISOString()}
+      Generado automáticamente por CAPY · ${now.toISOString()}
     </p>
   </div>`
 
@@ -188,9 +188,9 @@ Deno.serve(async (req) => {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'Capy <noreply@capyapp.co>',
+      from: 'CAPY <noreply@capyapp.co>',
       to: 'matias@bravosm.com',
-      subject: `Capy · Reporte del ${dateLabel}`,
+      subject: `CAPY · Reporte del ${dateLabel}`,
       html,
     }),
   })

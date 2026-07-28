@@ -287,7 +287,7 @@ export default function WaiterPublicPage() {
 
         <div className="text-center pt-2">
           <p className="text-[#B0BEC5] text-xs">
-            Powered by <span className="font-semibold text-[#008080]">Capy</span>
+            Powered by <span className="font-semibold text-[#008080]">CAPY</span>
           </p>
         </div>
       </div>

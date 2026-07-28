@@ -39,7 +39,7 @@ function InstallBanner() {
             </svg>
           </div>
           <div className="text-left">
-            <p className="text-smoke-200 font-semibold text-sm">Instalá Capy en tu iPhone</p>
+            <p className="text-smoke-200 font-semibold text-sm">Instalá CAPY en tu iPhone</p>
             <p className="text-smoke-500 text-xs">Para recibir notificaciones de pedidos</p>
           </div>
         </div>
@@ -74,7 +74,7 @@ function InstallBanner() {
         </svg>
       </div>
       <div className="flex-1">
-        <p className="text-smoke-200 font-semibold text-sm">Instalá Capy Camarero</p>
+        <p className="text-smoke-200 font-semibold text-sm">Instalá CAPY Camarero</p>
         <p className="text-smoke-500 text-xs">Acceso directo y notificaciones de pedidos</p>
       </div>
       <span className="text-ember-500 font-bold text-sm flex-shrink-0">Instalar →</span>

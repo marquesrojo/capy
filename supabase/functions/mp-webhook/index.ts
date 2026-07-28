@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 // Webhook de Mercado Pago. Recibe las notificaciones de la cuenta y las rutea:
 // - external_reference "staffId:image_pack" → acredita el pack de imágenes con
-//   IA del camarero (Capy Camarero).
+//   IA del camarero (CAPY Camarero).
 // - external_reference = orderId (UUID) → marca el pedido como pagado.
 // Verifica con MP_ACCESS_TOKEN (la cuenta recaudadora, la misma que las
 // imágenes IA del venue).
@@ -38,7 +38,7 @@ serve(async (req) => {
 
     const externalRef = payment.external_reference || ''
 
-    // ── Pack de imágenes con IA del camarero (Capy Camarero) ──
+    // ── Pack de imágenes con IA del camarero (CAPY Camarero) ──
     if (externalRef.includes(':image_pack')) {
       const staffId = externalRef.split(':')[0]
       const pid = String(paymentId)

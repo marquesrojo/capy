@@ -50,7 +50,7 @@ serve(async (req) => {
 
     const preference = {
       items: [{
-        title: `Pack de ${PACK_IMAGES} imágenes con IA (Capy Camarero)`,
+        title: `Pack de ${PACK_IMAGES} imágenes con IA (CAPY Camarero)`,
         description: `Sumá ${PACK_IMAGES} imágenes para subir cartas con inteligencia artificial`,
         quantity: 1,
         currency_id: 'ARS',

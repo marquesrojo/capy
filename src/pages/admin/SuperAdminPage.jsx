@@ -10,7 +10,7 @@ const TABS = [
   { id: 'camaut', label: 'Camarero/a' },
   { id: 'soporte', label: 'Soporte' },
   { id: 'pagos', label: 'Pagos' },
-  { id: 'docs', label: 'Docs Capy' },
+  { id: 'docs', label: 'Docs CAPY' },
 ]
 
 export default function SuperAdminPage() {
@@ -581,7 +581,7 @@ function PagosTab() {
           apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         },
-        body: JSON.stringify({ to: '5491122497772', message: '✅ Test de WA desde Capy SuperAdmin — configuración OK.' }),
+        body: JSON.stringify({ to: '5491122497772', message: '✅ Test de WA desde CAPY SuperAdmin — configuración OK.' }),
       })
       const data = await res.json()
       setWaTestResult({ ok: res.ok, status: res.status, data })
@@ -619,7 +619,7 @@ function PagosTab() {
     <div className="space-y-5">
       <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5 space-y-4">
         <div>
-          <p className="text-smoke-300 font-medium text-sm">Token de Mercado Pago — Capy</p>
+          <p className="text-smoke-300 font-medium text-sm">Token de Mercado Pago — CAPY</p>
           <p className="text-smoke-500 text-xs mt-0.5">
             Se usa para cobrar upgrades premium a los locales (importación con IA, créditos, etc.)
           </p>
@@ -791,7 +791,7 @@ function PagosTab() {
 
 const SEED_DOCS = [
   {
-    title: 'Mapa de secciones y navegación de Capy App',
+    title: 'Mapa de secciones y navegación de CAPY App',
     type: 'instruction',
     content: `SECCIONES DE CAPY APP — NOMBRES EXACTOS (usá siempre estos nombres, nunca inventes otros)
 
@@ -826,7 +826,7 @@ CAPY CAMARERO/A APP (/camareroa/app)
   },
   {
     title: 'Primeros pasos: orden de configuración inicial',
-    content: `Al empezar con Capy, el orden recomendado es:
+    content: `Al empezar con CAPY, el orden recomendado es:
 1. Configurar los datos del local: ir a Mi Local → Datos del local. Ahí se carga el nombre, WhatsApp de contacto y ajustes generales.
 2. Crear la carta: ir a Mi Local → Carta. Primero crear las categorías (Entradas, Platos principales, Bebidas, etc.) y luego agregar los productos dentro de cada una con nombre, descripción, precio y foto.
 3. Configurar las ubicaciones: ir a Mi Local → Ubicaciones. Crear las zonas (Salón, Terraza, Barra) y dentro de cada zona agregar las mesas con su nombre o número. También se puede activar la opción de Retiro en local.
@@ -837,17 +837,17 @@ CAPY CAMARERO/A APP (/camareroa/app)
   },
   {
     title: 'Configurar la carta: categorías y productos',
-    content: `Para armar la carta en Capy, ir a Mi Local → Carta.
+    content: `Para armar la carta en CAPY, ir a Mi Local → Carta.
 Primero crear las categorías: tocar el botón + Categoría, poner el nombre (ej: Entradas, Pizzas, Bebidas) y guardar. Las categorías se pueden reordenar arrastrándolas.
 Luego agregar productos dentro de cada categoría: tocar + Producto, completar nombre, descripción (opcional pero recomendada), precio y foto. La foto se puede subir manualmente o buscar con el botón IA que sugiere una imagen de Unsplash.
-Para importar una carta completa de golpe, usar el botón Importar con IA: pegar el texto del menú (foto, PDF escaneado, texto libre) y Capy genera todos los productos y categorías automáticamente con fotos incluidas.
+Para importar una carta completa de golpe, usar el botón Importar con IA: pegar el texto del menú (foto, PDF escaneado, texto libre) y CAPY genera todos los productos y categorías automáticamente con fotos incluidas.
 Los productos se pueden activar o desactivar sin borrarlos (útil para productos de temporada o agotados).
 Cada producto tiene un panel de ingredientes donde se puede cargar la materia prima para el reporte de consumo diario.`,
     tags: ['carta', 'productos', 'categorías', 'menú', 'importar'],
   },
   {
     title: 'Configurar ubicaciones: zonas, mesas y retiro',
-    content: `Las ubicaciones en Capy representan dónde está sentado el cliente cuando hace el pedido. Ir a Mi Local → Ubicaciones.
+    content: `Las ubicaciones en CAPY representan dónde está sentado el cliente cuando hace el pedido. Ir a Mi Local → Ubicaciones.
 Crear zonas primero: son agrupaciones de mesas (Salón, Terraza, Barra, Patio). Cada zona tiene un nombre.
 Dentro de cada zona, agregar las mesas con su nombre o número (Mesa 1, Mesa 2, Barra 1, etc.).
 También existe la opción Retiro en local: cuando está activa, el cliente puede pedir sin estar en una mesa y retirar el pedido en la barra o mostrador. Se activa desde el panel de ubicaciones.
@@ -857,7 +857,7 @@ Cada mesa genera su propio QR individual. Los QR se descargan desde Mi Local →
   {
     title: 'Códigos QR: tipos y cómo usarlos',
     content: `En Mi Local → Códigos QR hay dos tipos de QR:
-QR de mesa: el cliente lo escanea con la cámara del celular, entra a la carta de Capy, elige su nombre y ya puede pedir desde su mesa. Cada mesa tiene su QR único. Se deben imprimir y colocar en cada mesa.
+QR de mesa: el cliente lo escanea con la cámara del celular, entra a la carta de CAPY, elige su nombre y ya puede pedir desde su mesa. Cada mesa tiene su QR único. Se deben imprimir y colocar en cada mesa.
 QR de camarero: sirve para que el camarero tome pedidos en nombre de una mesa usando su celular. El camarero escanea el QR del cliente o usa el modo camarero desde /admin/tomar.
 Para imprimir los QR: descargar desde Mi Local → Códigos QR, se puede bajar cada uno individualmente o todos juntos en un ZIP. Se recomiendan en tamaño mínimo 5x5cm para que sean fáciles de escanear.`,
     tags: ['qr', 'códigos qr', 'mesas', 'imprimir'],
@@ -873,7 +873,7 @@ Los métodos activos se muestran al cliente en la pantalla de pago. Se pueden ac
   {
     title: 'Agregar camareros y usuarios',
     content: `En Mi Local → Usuarios se gestionan los camareros y administradores vinculados al local.
-Para agregar un camarero: ir a Usuarios y tocar + Agregar. El camarero recibe un link para crear su cuenta en Camaut (la plataforma de camareros de Capy). Una vez que acepta, queda vinculado al local.
+Para agregar un camarero: ir a Usuarios y tocar + Agregar. El camarero recibe un link para crear su cuenta en Camaut (la plataforma de camareros de CAPY). Una vez que acepta, queda vinculado al local.
 Roles disponibles: admin (acceso total al panel) y camarero (acceso solo al modo tomar pedidos y ver historial).
 El camarero puede tomar pedidos desde su celular usando /admin/tomar — ve las mesas disponibles, elige una y toma el pedido como si fuera el cliente.
 Los camareros también acumulan XP y suben de rango en el programa de fidelización de Camaut.`,
@@ -901,9 +901,9 @@ Son útiles para evitar que el cliente tenga que escribir siempre las mismas acl
   },
   {
     title: 'Qué es Camaut y para qué sirve',
-    content: `Camaut es la app de Capy para camareros. Permite al camarero tomar pedidos digitalmente, ver el estado de los pedidos en tiempo real, llevar un registro de su carrera y acumular XP por turno.
+    content: `Camaut es la app de CAPY para camareros. Permite al camarero tomar pedidos digitalmente, ver el estado de los pedidos en tiempo real, llevar un registro de su carrera y acumular XP por turno.
 Camaut tiene dos modos:
-1. Camarero vinculado a un local: trabaja en un restaurante o bar que usa Capy. El dueño lo agrega desde Mi Local → Usuarios. El camarero recibe un link para crear su cuenta y queda vinculado al local.
+1. Camarero vinculado a un local: trabaja en un restaurante o bar que usa CAPY. El dueño lo agrega desde Mi Local → Usuarios. El camarero recibe un link para crear su cuenta y queda vinculado al local.
 2. Camarero autónomo: trabaja freelance o en varios locales. Se registra en camaut.app y puede vincularse a múltiples locales.
 Los camareros acceden a su app en /camareroa/app o desde el panel de admin en /admin/tomar si están vinculados a un local.`,
     tags: ['camaut', 'camarero', 'app', 'registro'],
@@ -950,7 +950,7 @@ El alias se configura desde el perfil en la app de Camaut. También hay una vers
   },
   {
     title: 'Programa de rangos para clientes',
-    content: `Capy tiene un sistema de fidelización de clientes por rangos. Los clientes acumulan puntos por cada pedido y suben de nivel.
+    content: `CAPY tiene un sistema de fidelización de clientes por rangos. Los clientes acumulan puntos por cada pedido y suben de nivel.
 Se configura en Mi Local → Programa de rangos. Desde ahí se pueden definir:
 - Los nombres de los rangos (ej: Bronce, Plata, Oro) y los iconos que los representan.
 - Los puntos necesarios para alcanzar cada rango.
@@ -989,13 +989,13 @@ Es útil para controlar stock, detectar desperdicios y planificar compras del d�
     tags: ['consumo', 'materia prima', 'ingredientes', 'stock', 'reporte'],
   },
   {
-    title: 'Tips para organizar la carta en Capy',
-    content: `Algunos consejos para armar una carta efectiva en Capy:
+    title: 'Tips para organizar la carta en CAPY',
+    content: `Algunos consejos para armar una carta efectiva en CAPY:
 - Usar categorías claras y cortas: Entradas, Principales, Postres, Bebidas. Evitar subcategorías innecesarias.
 - Los productos con foto convierten más. Usar el botón IA en cada producto para buscar una imagen automáticamente con Unsplash.
 - Las descripciones cortas pero específicas ayudan al cliente a decidir más rápido.
 - Desactivar productos agotados en lugar de borrarlos: así se reactivan fácilmente cuando vuelven a estar disponibles.
-- Usar la importación con IA para cargar una carta completa de una sola vez: pegar el texto del menú y Capy crea todos los productos y categorías automáticamente.`,
+- Usar la importación con IA para cargar una carta completa de una sola vez: pegar el texto del menú y CAPY crea todos los productos y categorías automáticamente.`,
     tags: ['carta', 'tips', 'productos', 'fotos', 'organización'],
   },
   {
@@ -1131,7 +1131,7 @@ function DocsTab() {
             {[
               { id: 'all',    label: 'Ambos',    desc: 'Local y camarero' },
               { id: 'venue',  label: 'Local',    desc: 'Solo el panel de admin' },
-              { id: 'waiter', label: 'Camarero', desc: 'Solo Capy Camarero' },
+              { id: 'waiter', label: 'Camarero', desc: 'Solo CAPY Camarero' },
             ].map(opt => (
               <button
                 key={opt.id}
@@ -1158,8 +1158,8 @@ function DocsTab() {
           value={content}
           onChange={e => setContent(e.target.value)}
           placeholder={docType === 'instruction'
-            ? 'Instrucción para Capy (ej: "Cuando pregunten por feriados, respondé que el local cierra los feriados nacionales...")'
-            : 'Contenido del documento — escribí la información que Capy va a usar para responder...'}
+            ? 'Instrucción para CAPY (ej: "Cuando pregunten por feriados, respondé que el local cierra los feriados nacionales...")'
+            : 'Contenido del documento — escribí la información que CAPY va a usar para responder...'}
           rows={10}
           className="w-full bg-carbon-900 border border-carbon-700 rounded-xl px-3 py-2.5 text-sm text-smoke-200 focus:outline-none focus:border-ember-500 resize-none"
         />
@@ -1183,7 +1183,7 @@ function DocsTab() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-smoke-400 text-xs">{docs.length} documentos · usados por Capy Chat para responder</p>
+        <p className="text-smoke-400 text-xs">{docs.length} documentos · usados por CAPY Chat para responder</p>
         <div className="flex items-center gap-2">
           {docs.length < SEED_DOCS.length && (
             <button
@@ -1204,7 +1204,7 @@ function DocsTab() {
       ) : docs.length === 0 ? (
         <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-6 text-center">
           <p className="text-smoke-500 text-sm">No hay documentos todavía.</p>
-          <p className="text-smoke-600 text-xs mt-1">Creá el primero para que Capy tenga contexto específico.</p>
+          <p className="text-smoke-600 text-xs mt-1">Creá el primero para que CAPY tenga contexto específico.</p>
         </div>
       ) : (
         <div className="space-y-2">

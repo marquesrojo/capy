@@ -1,7 +1,7 @@
 import { supabaseStaff } from './supabase'
 
 // Camareros asignables de un venue: los staff_names propios del venue más
-// los camareros vinculados via Capy Camarero (venue_staff). Los vinculados
+// los camareros vinculados via CAPY Camarero (venue_staff). Los vinculados
 // tienen su staff_names en su venue personal y se resuelven por profile_id,
 // con fallback por nombre para registros viejos sin profile_id.
 export async function fetchVenueWaiters(venueId) {

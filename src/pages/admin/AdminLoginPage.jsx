@@ -128,7 +128,7 @@ const STEPS = [
   {
     num: '2',
     title: 'Imprimís los QR',
-    desc: 'Capy genera un QR único por mesa. Lo pegás y ya está funcionando.',
+    desc: 'CAPY genera un QR único por mesa. Lo pegás y ya está funcionando.',
   },
   {
     num: '3',
@@ -270,7 +270,7 @@ export default function AdminLoginPage() {
           <Link to="/" className="flex items-center gap-2.5">
             <img
               src="https://ycgptakgpsvmstoftkdk.supabase.co/storage/v1/object/public/icons/icon-512.png"
-              alt="Capy"
+              alt="CAPY"
               className="w-8 h-8 rounded-lg"
             />
             <span className="font-display text-xl tracking-widest text-[#3C2A21]">CAPY</span>
@@ -529,7 +529,7 @@ export default function AdminLoginPage() {
         <div className="max-w-6xl mx-auto px-5 md:px-8 mb-6">
           <p className="text-[10px] font-bold uppercase tracking-widest text-smoke-500 mb-2">Tu equipo desde el celular</p>
           <h2 className="font-display text-3xl md:text-4xl text-[#3C2A21] tracking-wide leading-tight mb-4">
-            Capy Camarero/a
+            CAPY Camarero/a
           </h2>
           <p className="text-sm text-smoke-400 leading-relaxed max-w-sm mb-3">
             Cada miembro de tu equipo tiene su propia app. Toman comandas, ven pedidos en tiempo real, cobran propinas y construyen su reputación profesional.
@@ -547,7 +547,7 @@ export default function AdminLoginPage() {
             ))}
           </ul>
           <Link to="/camareroa" className="inline-flex items-center gap-1.5 text-ember-500 font-bold text-sm hover:underline">
-            Ver Capy Camarero/a →
+            Ver CAPY Camarero/a →
           </Link>
         </div>
         <div className="overflow-x-auto overflow-y-hidden pb-2">
@@ -556,7 +556,7 @@ export default function AdminLoginPage() {
               { src: '/camaut-pedidos.png',        label: 'Pedidos' },
               { src: '/camaut-comanda.png',        label: 'Comanda' },
               { src: '/camaut-propinas.png',       label: 'Propinas' },
-              { src: '/camaut-mi-capy.png',        label: 'Mi Capy' },
+              { src: '/camaut-mi-capy.png',        label: 'Mi CAPY' },
               { src: '/camaut-indicadores.png',    label: 'Estadísticas' },
               { src: '/camaut-encuesta.png',       label: 'Encuesta' },
               { src: '/camaut-perfil-publico.png', label: 'Perfil público' },
@@ -584,7 +584,7 @@ export default function AdminLoginPage() {
               De cero a tu local digital<br className="hidden md:block" /> en un día
             </h2>
             <p className="text-xs md:text-sm text-smoke-400 mt-3 leading-relaxed max-w-xs md:max-w-lg mx-auto">
-              No necesitás saber de tecnología. Si sabés usar WhatsApp, sabés usar Capy.
+              No necesitás saber de tecnología. Si sabés usar WhatsApp, sabés usar CAPY.
             </p>
           </div>
 
@@ -611,7 +611,7 @@ export default function AdminLoginPage() {
           <div className="text-center mb-8 md:mb-10">
             <img
               src="https://ycgptakgpsvmstoftkdk.supabase.co/storage/v1/object/public/icons/icon-512.png"
-              alt="Capy"
+              alt="CAPY"
               className="w-14 h-14 md:w-16 md:h-16 rounded-2xl mx-auto mb-5 shadow-lg"
             />
             <h2 className="font-display text-4xl md:text-5xl tracking-wide leading-tight">

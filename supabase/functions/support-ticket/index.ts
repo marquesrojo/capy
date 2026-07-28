@@ -68,8 +68,8 @@ Deno.serve(async (req) => {
         from: 'soporte@capyapp.co',
         to: 'matias@bravosm.com',
         subject: isCliente
-          ? `[Sugerencia Capy] ${venue_name || 'Cliente'}`
-          : `[Soporte Capy] Mensaje de ${who}`,
+          ? `[Sugerencia CAPY] ${venue_name || 'Cliente'}`
+          : `[Soporte CAPY] Mensaje de ${who}`,
         html: `
           <h2>${isCliente ? 'Nueva sugerencia de un cliente' : 'Nuevo ticket de soporte'}</h2>
           <p><b>De:</b> ${escapeHtml(who)}</p>

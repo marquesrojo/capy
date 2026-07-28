@@ -466,7 +466,7 @@ export default function IdentifyPage() {
           <div className={`${fd ? 'w-28 h-28' : fc ? 'w-20 h-20' : 'w-20 h-20 lg:w-28 lg:h-28'} mx-auto mb-3 rounded-2xl bg-white/95 p-1.5 shadow-lg`}>
             <img
               src={venue?.logo_url || '/icon-512.png'}
-              alt={venue?.name || 'Capy'}
+              alt={venue?.name || 'CAPY'}
               className="w-full h-full object-contain rounded-xl"
             />
           </div>
@@ -549,7 +549,7 @@ export default function IdentifyPage() {
             )}
             <a href="https://capyapp.co" target="_blank" rel="noreferrer"
               className="text-[10px] text-white/25 hover:text-white/50 transition-colors mt-1">
-              Capy · capyapp.co
+              CAPY · capyapp.co
             </a>
           </div>
         </div>
@@ -1445,7 +1445,7 @@ export default function IdentifyPage() {
         </div>
       )}
 
-      {/* Sugerencias: llega al soporte de Capy, no al local */}
+      {/* Sugerencias: llega al soporte de CAPY, no al local */}
       <div className="flex justify-center pt-1">
         <button
           onClick={() => setShowSuggestion(true)}
@@ -1479,7 +1479,7 @@ export default function IdentifyPage() {
                   <div>
                     <p className="text-[#1A2332] text-lg font-bold">Tu sugerencia</p>
                     <p className="text-[#7A8A9A] text-xs mt-0.5">
-                      Contanos qué mejorarías de la app. Va al equipo de Capy.
+                      Contanos qué mejorarías de la app. Va al equipo de CAPY.
                     </p>
                   </div>
                   <button
@@ -1518,11 +1518,11 @@ export default function IdentifyPage() {
         </div>
       )}
 
-      {/* Crédito de Capy: siempre al final de todo */}
+      {/* Crédito de CAPY: siempre al final de todo */}
       <div className={`flex justify-center pt-3 ${fd ? 'hidden' : fc ? '' : 'lg:hidden'}`}>
         <a href="https://capyapp.co" target="_blank" rel="noreferrer"
           className="text-[10px] text-[#C0CBDA] hover:text-[#9DAAB8] transition-colors">
-          Desarrollado por Capy · capyapp.co
+          Desarrollado por CAPY · capyapp.co
         </a>
       </div>
 

@@ -88,7 +88,7 @@ export default function WeeklyWrapped({ staffId, staffAlias, staffName, staffAva
     if (!cachedBlob) return
     const file = new File([cachedBlob], 'capy-wrapped.png', { type: 'image/png' })
     try {
-      await navigator.share({ files: [file], title: 'Mi Wrapped de Capy', text: '¡Mirá mi Wrapped de Capy! 🔥' })
+      await navigator.share({ files: [file], title: 'Mi Wrapped de CAPY', text: '¡Mirá mi Wrapped de CAPY! 🔥' })
     } catch (e) {
       if (e?.name !== 'AbortError') {
         const url = URL.createObjectURL(cachedBlob)
@@ -136,7 +136,7 @@ export default function WeeklyWrapped({ staffId, staffAlias, staffName, staffAva
 
       {/* Header — debajo del safe-area para que el botón cerrar no quede bajo el notch */}
       <div className="absolute inset-x-0 flex items-center justify-between px-4 z-30" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)' }}>
-        <span className="text-white/80 text-xs font-bold tracking-widest uppercase">⚡ Capy</span>
+        <span className="text-white/80 text-xs font-bold tracking-widest uppercase">⚡ CAPY</span>
         <button
           onClick={(e) => { e.stopPropagation(); onClose() }}
           className="text-white/80 w-11 h-11 flex items-center justify-center text-2xl -mr-2"
@@ -186,7 +186,7 @@ function IntroCard({ data, staffName }) {
   const first = staffName?.split(' ')[0] || 'vos'
   return (
     <div className="space-y-8 wup">
-      <p className="text-white/50 text-xs font-semibold uppercase tracking-[0.2em]">Tu resumen en Capy</p>
+      <p className="text-white/50 text-xs font-semibold uppercase tracking-[0.2em]">Tu resumen en CAPY</p>
       <div>
         <p className="font-black leading-none" style={{ fontSize: 'clamp(3rem,14vw,5.5rem)' }}>
           El Resumen<br />de {first}

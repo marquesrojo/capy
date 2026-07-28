@@ -156,7 +156,7 @@ export default function PaymentMethodsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-smoke-300 font-medium text-sm">Mercado Pago</p>
-              <p className="text-smoke-500 text-xs mt-0.5">Los clientes pueden pagar directamente desde Capy</p>
+              <p className="text-smoke-500 text-xs mt-0.5">Los clientes pueden pagar directamente desde CAPY</p>
             </div>
             <button
               type="button"

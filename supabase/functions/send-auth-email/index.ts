@@ -53,7 +53,7 @@ serve(async (req) => {
           <span style="font-size:22px;font-weight:800;color:#E85D26;letter-spacing:2px">CAPY</span>
         </div>
         <h2 style="font-size:20px;font-weight:700;color:#1A2A3A;margin:0 0 12px">Confirmá tu cuenta</h2>
-        <p style="color:#4A5568;font-size:15px;margin:0 0 20px">Bienvenido a Capy. Ingresá este código en la app para activar tu cuenta:</p>
+        <p style="color:#4A5568;font-size:15px;margin:0 0 20px">Bienvenido a CAPY. Ingresá este código en la app para activar tu cuenta:</p>
         ${codeBlock}
         <p style="color:#8896A5;font-size:12px;margin:8px 0 0">Vence en 1 hora. Si no creaste una cuenta, ignorá este email.</p>
       </div>
@@ -65,7 +65,7 @@ serve(async (req) => {
         <div style="margin-bottom:24px">
           <span style="font-size:22px;font-weight:800;color:#E85D26;letter-spacing:2px">CAPY</span>
         </div>
-        <h2 style="font-size:20px;font-weight:700;color:#1A2A3A;margin:0 0 12px">Te invitaron a Capy</h2>
+        <h2 style="font-size:20px;font-weight:700;color:#1A2A3A;margin:0 0 12px">Te invitaron a CAPY</h2>
         <p style="color:#4A5568;font-size:15px;margin:0 0 24px">Hacé click para aceptar la invitación y crear tu cuenta.</p>
         <a href="${verifyUrl}" style="display:inline-block;background:#E85D26;color:#fff;font-weight:700;font-size:15px;padding:14px 28px;border-radius:12px;text-decoration:none">
           Aceptar invitación →

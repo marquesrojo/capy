@@ -31,7 +31,7 @@ const FEATURES = [
       </svg>
     ),
     title: 'Vinculado al local',
-    desc: 'Si el restaurante usa Capy, te asociás escaneando un QR. Tu app se conecta a la carta del local y a las mesas asignadas en segundos.',
+    desc: 'Si el restaurante usa CAPY, te asociás escaneando un QR. Tu app se conecta a la carta del local y a las mesas asignadas en segundos.',
   },
 ]
 
@@ -99,7 +99,7 @@ export default function CamautLandingPage() {
           <Link to="/" className="flex items-center gap-2.5">
             <img
               src="https://ycgptakgpsvmstoftkdk.supabase.co/storage/v1/object/public/icons/icon-512.png"
-              alt="Capy"
+              alt="CAPY"
               className="w-8 h-8 rounded-lg"
             />
             <span className="font-display text-xl tracking-widest text-[#3C2A21]">CAPY</span>
@@ -121,7 +121,7 @@ export default function CamautLandingPage() {
               </button>
               {showQR && (
                 <div className="absolute right-0 top-full mt-2 z-50 bg-white rounded-2xl shadow-2xl border border-carbon-800 p-4 flex flex-col items-center gap-2.5" style={{ width: 200 }}>
-                  <img src="/qr-camareroa.png" alt="QR Capy Camarero/a" className="w-40 h-40 block" />
+                  <img src="/qr-camareroa.png" alt="QR CAPY Camarero/a" className="w-40 h-40 block" />
                   <p className="text-[11px] text-smoke-400 font-medium text-center leading-snug">
                     Mostralo a tu equipo para que se registren
                   </p>
@@ -146,7 +146,7 @@ export default function CamautLandingPage() {
 
       {/* Hero */}
       <section className="relative max-w-5xl mx-auto px-5 md:px-8 pt-8 md:pt-14 lg:pt-16 pb-12 md:pb-16">
-        {/* Capy sube al hueco que deja el título (solo desktop) */}
+        {/* CAPY sube al hueco que deja el título (solo desktop) */}
         <img
           src="/capy-mozo.png"
           alt=""
@@ -165,11 +165,11 @@ export default function CamautLandingPage() {
             <span className="text-ember-500">Tus propinas.</span>
           </h1>
 
-          {/* En móvil Capy va al lado del subtítulo, para que el CTA quede más arriba */}
+          {/* En móvil CAPY va al lado del subtítulo, para que el CTA quede más arriba */}
           <div className="mt-5 md:mt-6 flex items-center gap-4 md:block">
             <img
               src="/capy-mozo.png"
-              alt="Capy, el mozo de Capy Camarero, con bandeja y comanda"
+              alt="CAPY, el mozo de CAPY Camarero, con bandeja y comanda"
               className="w-28 sm:w-32 h-auto flex-shrink-0 md:hidden"
             />
             <p className="text-sm md:text-lg text-smoke-400 leading-relaxed max-w-md">
@@ -236,7 +236,7 @@ export default function CamautLandingPage() {
               { src: '/camaut-mapa.png',           label: 'Mapa del salón' },
               { src: '/camaut-voz.png',            label: 'Pedido por voz IA' },
               { src: '/camaut-propinas.png',       label: 'Propinas' },
-              { src: '/camaut-mi-capy.png',        label: 'Mi Capy' },
+              { src: '/camaut-mi-capy.png',        label: 'Mi CAPY' },
               { src: '/camaut-indicadores.png',    label: 'Estadísticas' },
               { src: '/camaut-encuesta.png',       label: 'Encuesta' },
               { src: '/camaut-perfil-publico.png', label: 'Perfil público' },
@@ -272,14 +272,14 @@ export default function CamautLandingPage() {
         </div>
       </section>
 
-      {/* La IA de Capy */}
+      {/* La IA de CAPY */}
       <section className="max-w-6xl mx-auto px-5 md:px-8 pb-12 md:pb-16">
         <p className="text-[10px] font-bold uppercase tracking-widest text-smoke-500 mb-1">Inteligencia artificial</p>
         <h2 className="font-display text-3xl md:text-5xl text-[#3C2A21] tracking-wide mb-3 leading-tight">
           La IA que te hace<br />el laburo más fácil
         </h2>
         <p className="text-sm text-smoke-400 leading-relaxed max-w-lg mb-5 md:mb-6">
-          Capy usa inteligencia artificial en dos momentos clave del turno, para que cargues menos y atiendas más.
+          CAPY usa inteligencia artificial en dos momentos clave del turno, para que cargues menos y atiendas más.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -289,7 +289,7 @@ export default function CamautLandingPage() {
             <div className="p-4 md:p-5 flex items-center justify-center gap-3" style={{ background: '#BD6A35' }}>
               <img
                 src="/capy-mozo.png"
-                alt="Capy escaneando la carta"
+                alt="CAPY escaneando la carta"
                 loading="lazy"
                 className="w-20 sm:w-24 h-auto block flex-shrink-0"
               />
@@ -347,7 +347,7 @@ export default function CamautLandingPage() {
             <div className="p-4 md:p-5 flex items-center justify-center gap-3" style={{ background: '#BD6A35' }}>
               <img
                 src="/capy-mozo-sentado.png"
-                alt="Capy escuchando la comanda dictada"
+                alt="CAPY escuchando la comanda dictada"
                 loading="lazy"
                 className="w-24 sm:w-28 h-auto block flex-shrink-0"
               />
@@ -496,7 +496,7 @@ export default function CamautLandingPage() {
             </div>
             <p className="font-bold text-[#3C2A21] text-base md:text-xl mb-2">Sin ocupar espacio en tu celu</p>
             <p className="text-xs md:text-sm text-smoke-400 leading-relaxed">
-              Capy es una web app. No se descarga de ninguna tienda. Abrila en el navegador de tu celular y guardala como acceso directo en tu pantalla de inicio.
+              CAPY es una web app. No se descarga de ninguna tienda. Abrila en el navegador de tu celular y guardala como acceso directo en tu pantalla de inicio.
             </p>
           </div>
           <div className="md:flex-1 space-y-2">
@@ -541,7 +541,7 @@ export default function CamautLandingPage() {
         <div className="max-w-2xl mx-auto px-5 md:px-8 pt-12 pb-12 md:pt-16 md:pb-14 text-center">
           <img
             src="/capy-mozo-sentado.png"
-            alt="Capy descansando con la bandeja"
+            alt="CAPY descansando con la bandeja"
             loading="lazy"
             className="w-36 md:w-44 h-auto mx-auto mb-5"
           />
@@ -568,7 +568,7 @@ export default function CamautLandingPage() {
           </div>
 
           <p className="text-white/40 text-[11px] mt-6">
-            ¿Tu restaurante ya usa Capy?{' '}
+            ¿Tu restaurante ya usa CAPY?{' '}
             <Link to="/admin" className="text-ember-400 underline">Entrá por acá</Link>
           </p>
 

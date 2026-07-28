@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     .eq('slug', slug)
     .single()
 
-  const venueName = venue?.name || 'Capy'
+  const venueName = venue?.name || 'CAPY'
   const logoUrl = venue?.logo_url || `${appBase}/icon-512.png`
   const locationLabel = url.searchParams.get('location_label') || ''
 

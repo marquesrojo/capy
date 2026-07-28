@@ -108,7 +108,7 @@ function VenuePWAMeta() {
 
     return () => {
       if (appleIcon) appleIcon.href = 'https://ycgptakgpsvmstoftkdk.supabase.co/storage/v1/object/public/icons/apple-touch-icon.png'
-      if (appleTitle) appleTitle.content = 'Capy'
+      if (appleTitle) appleTitle.content = 'CAPY'
     }
   }, [venue])
   return null
@@ -124,9 +124,9 @@ function VenueLayout() {
 }
 
 const MANIFESTS = {
-  waiter: { href: '/manifest-waiter.json', title: 'Capy Camarero/a' },
-  admin:  { href: '/manifest-admin.json',  title: 'Capy Admin' },
-  client: { href: '/manifest.json',        title: 'Capy' },
+  waiter: { href: '/manifest-waiter.json', title: 'CAPY Camarero/a' },
+  admin:  { href: '/manifest-admin.json',  title: 'CAPY Admin' },
+  client: { href: '/manifest.json',        title: 'CAPY' },
 }
 
 function ManifestSwap() {

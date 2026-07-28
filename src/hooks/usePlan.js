@@ -4,7 +4,7 @@ import { supabaseStaff, ACTIVE_VENUE_ID } from '../lib/supabase'
 // Feature → minimum plan required
 const FEATURE_PLANS = {
   ai_import_rich: 'pro',   // AI import with photos + descriptions
-  capy_chat: 'free',       // Capy AI support chat
+  capy_chat: 'free',       // CAPY AI support chat
   // add more features here as the product evolves
 }
 

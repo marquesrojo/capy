@@ -6,7 +6,7 @@ const corsHeaders = {
 const PAGE_LABELS: Record<string, string> = {
   main:      'Inicio — capyapp.co',
   admin:     'Para locales — /admin/login',
-  camareroa: 'Capy Camarero/a — /camareroa',
+  camareroa: 'CAPY Camarero/a — /camareroa',
 }
 
 Deno.serve(async (req) => {
@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
 
   const html = `
     <div style="font-family:sans-serif;max-width:480px;color:#3C2A21">
-      <h2 style="margin:0 0 16px;font-size:20px">🦫 Nuevo lead desde Capy</h2>
+      <h2 style="margin:0 0 16px;font-size:20px">🦫 Nuevo lead desde CAPY</h2>
       <table style="border-collapse:collapse;font-size:15px;width:100%">
         <tr><td style="padding:8px 16px 8px 0;color:#888">Nombre</td><td><strong>${name}</strong></td></tr>
         <tr><td style="padding:8px 16px 8px 0;color:#888">Email</td><td><a href="mailto:${email}" style="color:#E8772A">${email}</a></td></tr>
@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'Capy <noreply@capyapp.co>',
+      from: 'CAPY <noreply@capyapp.co>',
       to: 'capy@bravosm.com',
       reply_to: email,
       subject: `Nuevo lead: ${name}`,
