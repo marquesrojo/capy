@@ -8,15 +8,20 @@ const FEATURE_PLANS = {
   // add more features here as the product evolves
 }
 
-export function usePlan() {
+// venueId opcional: pasarlo cuando ya se tiene el del perfil (useAuth), porque
+// ACTIVE_VENUE_ID puede todavía apuntar al local anterior mientras carga la sesión.
+export function usePlan(venueId) {
   const [plan, setPlan] = useState('free')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const id = venueId || ACTIVE_VENUE_ID
+    if (!id) return
+    setLoading(true)
     supabaseStaff
       .from('venues')
       .select('plan, plan_expires_at')
-      .eq('id', ACTIVE_VENUE_ID)
+      .eq('id', id)
       .single()
       .then(({ data }) => {
         if (data) {
@@ -25,7 +30,7 @@ export function usePlan() {
         }
         setLoading(false)
       })
-  }, [])
+  }, [venueId])
 
   const isPro = plan === 'pro'
 
