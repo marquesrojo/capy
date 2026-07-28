@@ -134,7 +134,8 @@ export default function BottomNav() {
           MI PEDIDO
         </button>
 
-        {/* Llamar Mozo */}
+        {/* Llamar Mozo — no existe en un local que solo trabaja para llevar */}
+        {!venue?.takeaway_only && (
         <button
           onClick={openWaiter}
           className="flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold tracking-wide transition-colors"
@@ -148,6 +149,7 @@ export default function BottomNav() {
           </svg>
           ATENCIÓN
         </button>
+        )}
 
         {/* Cuenta */}
         <button

@@ -137,6 +137,8 @@ export default function IdentifyPage() {
   const [showSchedule, setShowSchedule] = useState(false)
   const [retiroExternoEnabled, setRetiroExternoEnabled] = useState(false)
   const [deliveryEnabled, setDeliveryEnabled] = useState(false)
+  // Local sin salón: la home solo ofrece retiro y delivery
+  const [takeawayOnly, setTakeawayOnly] = useState(false)
   const [showExternalOptions, setShowExternalOptions] = useState(false)
   const [orderNumber, setOrderNumber] = useState('')
   const [finding, setFinding] = useState(false)
@@ -205,7 +207,7 @@ export default function IdentifyPage() {
 
     const venueQ = supabaseCustomer
       .from('venues')
-      .select('instagram_handle, retiro_externo_enabled, delivery_enabled, client_floor_map_enabled, location_display_mode, description, announcement, schedule, waiter_alert_whatsapp, whatsapp_number')
+      .select('instagram_handle, retiro_externo_enabled, delivery_enabled, takeaway_only, client_floor_map_enabled, location_display_mode, description, announcement, schedule, waiter_alert_whatsapp, whatsapp_number')
       .eq('id', venueId)
       .single()
 
@@ -225,6 +227,7 @@ export default function IdentifyPage() {
         if (venueData?.instagram_handle) setInstagramHandle(venueData.instagram_handle)
         if (venueData?.retiro_externo_enabled) setRetiroExternoEnabled(true)
         if (venueData?.delivery_enabled) setDeliveryEnabled(true)
+        if (venueData?.takeaway_only) { setTakeawayOnly(true); setShowExternalOptions(true) }
         if (venueData?.description) setDescription(venueData.description)
         if (venueData?.announcement) setAnnouncement(venueData.announcement)
         if (venueData?.schedule) setSchedule(venueData.schedule)
@@ -258,6 +261,7 @@ export default function IdentifyPage() {
         if (data?.instagram_handle) setInstagramHandle(data.instagram_handle)
         if (data?.retiro_externo_enabled) setRetiroExternoEnabled(true)
         if (data?.delivery_enabled) setDeliveryEnabled(true)
+        if (data?.takeaway_only) { setTakeawayOnly(true); setShowExternalOptions(true) }
         if (data?.description) setDescription(data.description)
         if (data?.announcement) setAnnouncement(data.announcement)
         if (data?.schedule) setSchedule(data.schedule)
@@ -631,7 +635,7 @@ export default function IdentifyPage() {
       <div className={`px-4 pt-4 pb-6 space-y-3 w-full md:max-w-xl md:mx-auto md:px-6 ${fd ? 'max-w-2xl px-8 pt-8 pb-12 mx-auto' : fc ? '' : 'lg:max-w-2xl lg:px-8 lg:pt-8 lg:pb-12'}`}>
 
         {/* ── ¿En qué mesa estás? — PRIMERO ── */}
-        {!prefillZoneId && zones.length > 0 && (
+        {!takeawayOnly && !prefillZoneId && zones.length > 0 && (
           <div>
           {/* Toggle row */}
           <button
@@ -854,6 +858,7 @@ export default function IdentifyPage() {
         </div>
       )}
 
+        {!takeawayOnly && (<>
         {/* ── Pedir sin esperar ── */}
         <button
           onClick={() => navigate(cartaPath)}
@@ -893,6 +898,7 @@ export default function IdentifyPage() {
             <polyline points="9 18 15 12 9 6"/>
           </svg>
         </button>
+        </>)}
 
         {/* ── Invitar a mi mesa ── */}
         {activeZoneId && activeLabel && (
@@ -932,6 +938,7 @@ export default function IdentifyPage() {
         )}
 
         {/* ── ¿Ya te atendió un camarero/a? ── */}
+        {!takeawayOnly && (
         <div>
           <button
             onClick={() => setShowOrderLookup(v => !v)}
@@ -982,15 +989,19 @@ export default function IdentifyPage() {
             </div>
           )}
         </div>
+        )}
 
         {/* ── Para llevar — separado ── */}
         {(retiroExternoEnabled || deliveryEnabled) && (
           <div className="pt-1">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="flex-1 h-px bg-black/[0.07]" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[#B0BBCA]">Para llevar</span>
-              <div className="flex-1 h-px bg-black/[0.07]" />
-            </div>
+            {/* Cuando es lo único que hay, el separador no separa de nada */}
+            {!takeawayOnly && (
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex-1 h-px bg-black/[0.07]" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[#B0BBCA]">Para llevar</span>
+                <div className="flex-1 h-px bg-black/[0.07]" />
+              </div>
+            )}
             {!showExternalOptions ? (
               <button
                 onClick={() => setShowExternalOptions(true)}
@@ -1013,7 +1024,10 @@ export default function IdentifyPage() {
               <div className="bg-white border border-black/[0.06] rounded-2xl shadow-sm overflow-hidden">
                 <div className="px-5 pt-4 pb-3 flex items-center justify-between">
                   <p className="text-[#1A2332] font-black text-sm">¿Cómo lo querés?</p>
-                  <button onClick={() => setShowExternalOptions(false)} aria-label="Cerrar" className="w-10 h-10 flex items-center justify-center text-[#9DAAB8] text-xs">✕</button>
+                  {/* Sin salón esto no se puede cerrar: es la única forma de pedir */}
+                  {!takeawayOnly && (
+                    <button onClick={() => setShowExternalOptions(false)} aria-label="Cerrar" className="w-10 h-10 flex items-center justify-center text-[#9DAAB8] text-xs">✕</button>
+                  )}
                 </div>
                 <div className={`grid gap-3 px-4 pb-4 ${retiroExternoEnabled && deliveryEnabled ? 'grid-cols-2' : 'grid-cols-1'}`}>
                   {retiroExternoEnabled && (
