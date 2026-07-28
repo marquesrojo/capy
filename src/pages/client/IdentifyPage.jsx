@@ -1390,7 +1390,13 @@ export default function IdentifyPage() {
 
       {/* Login accesible al pie: mismo flujo que la personita del hero */}
       {!isLoggedIn ? (
-        <div className="flex justify-center pb-2">
+        <div className="flex flex-col items-center gap-2 pb-2 px-6">
+          <div className="text-center">
+            <p className="text-[#3A4A5A] text-xs font-bold">¿Por qué iniciar sesión?</p>
+            <p className="text-black/50 text-[11px] leading-snug mt-0.5 max-w-[19rem]">
+              Tu historial, tus datos y tus beneficios quedan guardados, aunque cambies de celular.
+            </p>
+          </div>
           <button
             onClick={handleLoginClick}
             className="flex items-center gap-2 border border-black/15 text-[#3A4A5A] text-sm font-semibold px-5 py-2.5 rounded-full bg-white shadow-sm active:opacity-70"
