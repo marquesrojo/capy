@@ -100,6 +100,10 @@ export default function CamautVincularPage() {
 
   useEffect(() => {
     if (searchParams.get('code')) {
+      // Puede llegar sin cuenta: guardamos el código para retomar la
+      // vinculación después de registrarse o iniciar sesión (incluso si el
+      // login sale de la app, como el de Google).
+      try { localStorage.setItem('capy_pending_invite', searchParams.get('code')) } catch { /* storage no disponible */ }
       handleSearch(searchParams.get('code'))
     }
     return () => stopScan()
@@ -193,7 +197,12 @@ export default function CamautVincularPage() {
     setError('')
 
     const { data: { session } } = await supabaseCamaut.auth.getSession()
-    if (!session) { navigate('/camareroa/login'); return }
+    if (!session) {
+      // Sin cuenta todavía: se registra y al volver retomamos la vinculación
+      try { localStorage.setItem('capy_pending_invite', (code || '').trim().toUpperCase()) } catch { /* storage no disponible */ }
+      navigate('/camareroa/registro')
+      return
+    }
 
     // Sincronizar sesión con supabaseStaff
     await supabaseStaff.auth.setSession({
@@ -272,6 +281,8 @@ export default function CamautVincularPage() {
       }
     }
 
+    // Vinculación completa: ya no hay nada pendiente que retomar
+    try { localStorage.removeItem('capy_pending_invite') } catch { /* storage no disponible */ }
     setConfirming(false)
     navigate('/camareroa/app')
   }
