@@ -1438,6 +1438,17 @@ function MesaPanel({ mesa, orders, zones = [], venueSlug, venueName, onClose, on
 function MapaView({ orders, zones, venueId, venueSlug, venueName, onUpdateStatus, onConfirmPayment, fiscalEnabled, fiscalCondition, invoices, onInvoiceEmitted }) {
   const containerRef = useRef(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  // Cuántos sectores entran por fila depende del ancho real, no del zoom solo
+  const [maxCols, setMaxCols] = useState(() =>
+    window.innerWidth < 640 ? 1 : window.innerWidth < 1024 ? 2 : 3
+  )
+  useEffect(() => {
+    function onResize() {
+      setMaxCols(window.innerWidth < 640 ? 1 : window.innerWidth < 1024 ? 2 : 3)
+    }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
   const [cssFull, setCssFull] = useState(false)
   const [selectedMesa, setSelectedMesa] = useState(null)
   const [mapRefresh, setMapRefresh] = useState(0)
@@ -1491,7 +1502,8 @@ function MapaView({ orders, zones, venueId, venueSlug, venueName, onUpdateStatus
   return (
     <div
       ref={containerRef}
-      className={`${effectiveFullscreen ? 'fixed inset-0 z-50 bg-carbon-950 flex flex-col p-6 overflow-y-auto' : 'px-4 pt-4 pb-6'}`}
+      className={`${effectiveFullscreen ? 'fixed inset-0 z-50 bg-carbon-950 flex flex-col px-6 pb-6 overflow-y-auto' : 'px-4 pt-4 pb-6'}`}
+      style={effectiveFullscreen ? { paddingTop: 'max(1.5rem, env(safe-area-inset-top))' } : undefined}
     >
       {/* Stats strip + fullscreen button */}
       <div className="flex items-center justify-between mb-4">
@@ -1562,28 +1574,51 @@ function MapaView({ orders, zones, venueId, venueSlug, venueName, onUpdateStatus
           /* El zoom reduce las columnas (3 → 2 → 1): cada sector ocupa más
              ancho y las mesas crecen proporcionalmente; scroll vertical */
           (() => {
-            const baseCols = Math.min(relevantZonas.length, 3)
+            const baseCols = Math.min(relevantZonas.length, maxCols)
             const cols = zoom >= 1.75 ? 1 : zoom >= 1.25 ? Math.min(2, baseCols) : baseCols
             return (
-              <div
-                className="grid gap-4 content-start"
-                style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
-              >
-                {relevantZonas.map(zona => (
-                  <div key={zona.id} className="min-w-0">
-                    <p className="text-smoke-500 text-[10px] font-semibold uppercase tracking-widest mb-2">{zona.name}</p>
-                    <FloorPlanViewer
-                      zones={zones}
-                      venueId={venueId}
-                      supabaseClient={supabaseStaff}
-                      filterZoneId={zona.id}
-                      selectedZone={selectedMesa}
-                      onSelect={handleMesaSelect}
-                      refreshKey={mapRefresh}
-                    />
+              <>
+                {/* Una sola referencia para todos los sectores: repetida bajo
+                    cada plano no entraba a lo ancho y se pisaba a sí misma */}
+                <div className="flex items-center gap-4 mb-3 px-1">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded bg-carbon-700 border border-carbon-500" />
+                    <span className="text-smoke-500 text-[11px]">Libre</span>
                   </div>
-                ))}
-              </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded bg-red-950 border border-red-700/70" />
+                    <span className="text-smoke-500 text-[11px]">Ocupada</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded bg-[#008080]" />
+                    <span className="text-smoke-500 text-[11px]">Seleccionada</span>
+                  </div>
+                </div>
+                <div
+                  className="grid gap-4 content-start"
+                  style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+                >
+                  {relevantZonas.map(zona => (
+                    <div key={zona.id} className="min-w-0">
+                      {/* Una sola línea: con dos, los planos de una misma fila
+                          arrancaban a distinta altura */}
+                      <p className="text-smoke-500 text-[10px] font-semibold uppercase tracking-widest mb-2 truncate" title={zona.name}>
+                        {zona.name}
+                      </p>
+                      <FloorPlanViewer
+                        zones={zones}
+                        venueId={venueId}
+                        supabaseClient={supabaseStaff}
+                        filterZoneId={zona.id}
+                        selectedZone={selectedMesa}
+                        onSelect={handleMesaSelect}
+                        refreshKey={mapRefresh}
+                        showLegend={false}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </>
             )
           })()
         ) : (
