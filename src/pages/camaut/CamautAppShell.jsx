@@ -264,7 +264,12 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
     if (uid) alreadyOnboarded = localStorage.getItem(`camaut-onboarded-${uid}`) === '1'
   } catch { /* ignore */ }
 
-  if (!venueId && linkedVenues.length === 0 && !alreadyOnboarded) {
+  // Sin venue propio no hay ficha en staff_names, y sin ficha el camarero no
+  // tiene perfil que guardar, ni alias donde cobrar propinas, ni XP. Antes esto
+  // se salteaba si ya estaba vinculado a un restaurante, que es justo lo que
+  // pasa cuando se da de alta escaneando el QR del local: quedaba adentro de la
+  // app sin ficha y el botón de guardar el perfil no hacía nada.
+  if (!venueId && !alreadyOnboarded) {
     return (
       <CamautOnboardingPage
         staffName={staffName}

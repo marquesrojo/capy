@@ -161,7 +161,13 @@ function PerfilTab({ profile, overrideStaffId }) {
 
   async function handleSave(e) {
     e.preventDefault()
-    if (!staffData) return
+    // Sin ficha no hay nada que actualizar: antes el botón no hacía nada y no
+    // había forma de darse cuenta de por qué
+    if (!staffData) {
+      setSaveError('Todavía no tenés tu ficha de camarero. Cerrá sesión y volvé a entrar para completar el alta.')
+      return
+    }
+    setSaveError('')
     setSaving(true)
 
     // .select() para saber cuántas filas cambiaron: cuando la RLS filtra el
