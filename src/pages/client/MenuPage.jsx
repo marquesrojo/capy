@@ -417,8 +417,8 @@ export default function MenuPage() {
       {itemCount > 0 && (
         <button
           onClick={() => navigate(location ? `${base}/pago` : `${base}/ubicacion`)}
-          className="fixed bottom-20 left-4 right-4 rounded-2xl py-4 px-5 flex items-center justify-between shadow-lg font-semibold z-20 active:opacity-90"
-          style={{ backgroundColor: contentAccent, color: contentAccentText }}
+          className="fixed left-4 right-4 rounded-2xl py-4 px-5 flex items-center justify-between shadow-lg font-semibold z-20 active:opacity-90"
+          style={{ backgroundColor: contentAccent, color: contentAccentText, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 5.75rem)' }}
         >
           <span>{itemCount} {itemCount === 1 ? 'item' : 'items'}</span>
           <span>{formatPrice(subtotal)} · {location ? 'Confirmar →' : 'Continuar →'}</span>
@@ -430,8 +430,8 @@ export default function MenuPage() {
       {itemCount === 0 && !showRecommend && (
         <button
           onClick={() => setShowRecommend(true)}
-          className="fixed bottom-20 left-4 z-20 flex items-center gap-1.5 px-4 py-3 rounded-full shadow-lg font-semibold text-sm active:scale-95 transition-transform"
-          style={{ backgroundColor: contentAccent, color: contentAccentText }}
+          className="fixed left-4 z-20 flex items-center gap-1.5 px-4 py-3 rounded-full shadow-lg font-semibold text-sm active:scale-95 transition-transform"
+          style={{ backgroundColor: contentAccent, color: contentAccentText, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 5.75rem)' }}
         >
           <span>✨</span>
           <span>¿Qué como?</span>
