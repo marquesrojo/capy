@@ -98,11 +98,16 @@ export default function BottomNav() {
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-black/[0.07] flex z-30 h-16">
+      {/* Barra flotante: deja ver la carta por debajo y despega del borde
+          inferior, donde el gesto de home del teléfono se come los toques */}
+      <nav
+        className="fixed left-3 right-3 z-30 flex h-16 rounded-[1.75rem] bg-white/95 backdrop-blur-xl border border-black/[0.06] shadow-[0_8px_28px_rgba(26,35,50,0.16)]"
+        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
+      >
         {/* Carta */}
         <NavLink
           to={`${base}/carta`}
-          className="flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold tracking-wide transition-colors"
+          className="flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold tracking-wide transition-colors rounded-l-[1.75rem]"
           style={({ isActive }) => ({ color: isActive ? selfColor : '#9DAAB8' })}
         >
           <UtensilsIcon size={20} />
@@ -147,7 +152,7 @@ export default function BottomNav() {
         {/* Cuenta */}
         <button
           onClick={() => navigate(`${base}/cuenta`)}
-          className="flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold tracking-wide transition-colors"
+          className="flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold tracking-wide transition-colors rounded-r-[1.75rem]"
           style={{ color: isOnCuenta ? selfColor : '#9DAAB8' }}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
