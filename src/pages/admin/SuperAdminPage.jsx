@@ -395,18 +395,26 @@ function CamautTab() {
 
 function SoporteTab() {
   const [tickets, setTickets] = useState([])
+  const [venueNames, setVenueNames] = useState({})
   const [loading, setLoading] = useState(true)
+  // Las sugerencias de clientes son muchas y de otra urgencia que los tickets
+  // de camareros: se separan en solapas para que no se tapen entre sí.
+  const [tab, setTab] = useState('camaut')
 
   useEffect(() => {
     load()
   }, [])
 
   async function load() {
-    const { data } = await supabaseStaff
-      .from('support_tickets')
-      .select('*')
-      .order('created_at', { ascending: false })
+    const [{ data }, { data: venues }] = await Promise.all([
+      supabaseStaff
+        .from('support_tickets')
+        .select('*')
+        .order('created_at', { ascending: false }),
+      supabaseStaff.from('venues').select('id, name'),
+    ])
     setTickets(data || [])
+    setVenueNames(Object.fromEntries((venues || []).map(v => [v.id, v.name])))
     setLoading(false)
   }
 
@@ -419,19 +427,47 @@ function SoporteTab() {
 
   if (loading) return <p className="text-smoke-500 text-sm">Cargando...</p>
 
-  const open = tickets.filter(t => t.status === 'open')
-  const resolved = tickets.filter(t => t.status !== 'open')
+  const isCliente = t => t.source === 'cliente'
+  const visible = tickets.filter(t => tab === 'cliente' ? isCliente(t) : !isCliente(t))
+  const open = visible.filter(t => t.status === 'open')
+  const resolved = visible.filter(t => t.status !== 'open')
+
+  const openCamaut = tickets.filter(t => !isCliente(t) && t.status === 'open').length
+  const openCliente = tickets.filter(t => isCliente(t) && t.status === 'open').length
+
+  const TABS = [
+    { id: 'camaut', label: 'Camareros', count: openCamaut },
+    { id: 'cliente', label: 'Sugerencias', count: openCliente },
+  ]
 
   return (
     <div className="space-y-4">
+      <div className="flex gap-2">
+        {TABS.map(t => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
+              tab === t.id
+                ? 'border-ember-500 text-ember-500 bg-ember-500/10'
+                : 'border-carbon-700 text-smoke-500'
+            }`}
+          >
+            {t.label}{t.count > 0 ? ` · ${t.count}` : ''}
+          </button>
+        ))}
+      </div>
+
       {open.length === 0 && (
-        <p className="text-smoke-500 text-sm text-center py-4">No hay tickets abiertos.</p>
+        <p className="text-smoke-500 text-sm text-center py-4">
+          {tab === 'cliente' ? 'No hay sugerencias sin leer.' : 'No hay tickets abiertos.'}
+        </p>
       )}
       {open.length > 0 && (
         <div className="space-y-2">
           <p className="text-smoke-500 text-xs font-semibold uppercase tracking-wide">Abiertos · {open.length}</p>
           {open.map(t => (
-            <TicketCard key={t.id} ticket={t} onResolve={(response) => resolve(t.id, response)} />
+            <TicketCard key={t.id} ticket={t} venueName={venueNames[t.venue_id]} onResolve={(response) => resolve(t.id, response)} />
           ))}
         </div>
       )}
@@ -439,7 +475,7 @@ function SoporteTab() {
         <div className="space-y-2">
           <p className="text-smoke-500 text-xs font-semibold uppercase tracking-wide mt-4">Resueltos · {resolved.length}</p>
           {resolved.map(t => (
-            <TicketCard key={t.id} ticket={t} />
+            <TicketCard key={t.id} ticket={t} venueName={venueNames[t.venue_id]} />
           ))}
         </div>
       )}
@@ -1212,7 +1248,8 @@ function DocsTab() {
   )
 }
 
-function TicketCard({ ticket, onResolve }) {
+function TicketCard({ ticket, venueName, onResolve }) {
+  const isCliente = ticket.source === 'cliente'
   const [response, setResponse] = useState('')
   const [showReply, setShowReply] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -1241,6 +1278,9 @@ function TicketCard({ ticket, onResolve }) {
           {ticket.staff_email && (
             <p className="text-smoke-500 text-xs font-mono">{ticket.staff_email}</p>
           )}
+          {venueName && (
+            <p className="text-smoke-500 text-xs">{venueName}</p>
+          )}
         </div>
         <span className="text-smoke-500 text-xs">{timeLabel}</span>
       </div>
@@ -1258,10 +1298,11 @@ function TicketCard({ ticket, onResolve }) {
         <div className="mt-2">
           {!showReply ? (
             <button
-              onClick={() => setShowReply(true)}
+              onClick={() => isCliente ? onResolve('') : setShowReply(true)}
               className="text-[10px] px-2.5 py-1 rounded-full border border-emerald-500/40 text-emerald-500"
             >
-              Responder y resolver
+              {/* El cliente no tiene bandeja donde leer una respuesta */}
+              {isCliente ? 'Marcar como leída' : 'Responder y resolver'}
             </button>
           ) : (
             <div className="space-y-2 mt-1">

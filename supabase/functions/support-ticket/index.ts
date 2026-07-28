@@ -5,10 +5,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// El endpoint ahora también lo usan clientes del local (botón "Enviar una
+// sugerencia" en la home), así que el mensaje llega desde afuera y se escapa
+// antes de meterlo en el HTML del mail.
+function escapeHtml(s: string) {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
-  const { staff_id, staff_name, message } = await req.json()
+  const { staff_id, staff_name, message, source, venue_id, venue_name } = await req.json()
   if (!message?.trim()) {
     return new Response(JSON.stringify({ error: 'message required' }), { status: 400, headers: corsHeaders })
   }
@@ -27,15 +38,26 @@ Deno.serve(async (req) => {
     staffEmail = user?.email || null
   }
 
+  // 'camaut' (default) = camarero desde la app; 'cliente' = sugerencia desde
+  // la home del local. Se guardan separados para que el soporte de camareros
+  // no quede sepultado bajo las sugerencias.
+  const ticketSource = source === 'cliente' ? 'cliente' : 'camaut'
+  const isCliente = ticketSource === 'cliente'
+  const body = message.trim().slice(0, 2000)
+
   await supabase.from('support_tickets').insert({
-    staff_id: staff_id || null,
+    // staff_id referencia staff_names: en las sugerencias de clientes va null
+    staff_id: isCliente ? null : (staff_id || null),
     staff_name: staff_name || null,
     staff_email: staffEmail,
-    message: message.trim(),
+    message: body,
+    source: ticketSource,
+    venue_id: venue_id || null,
   })
 
   const resendKey = Deno.env.get('RESEND_API_KEY')
   if (resendKey) {
+    const who = staff_name || (isCliente ? 'Cliente' : 'Camarero')
     await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -45,13 +67,16 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: 'soporte@capyapp.co',
         to: 'matias@bravosm.com',
-        subject: `[Soporte Capy] Mensaje de ${staff_name || 'Camarero'}`,
+        subject: isCliente
+          ? `[Sugerencia Capy] ${venue_name || 'Cliente'}`
+          : `[Soporte Capy] Mensaje de ${who}`,
         html: `
-          <h2>Nuevo ticket de soporte</h2>
-          <p><b>De:</b> ${staff_name || 'Sin nombre'}</p>
-          ${staffEmail ? `<p><b>Email:</b> ${staffEmail}</p>` : ''}
+          <h2>${isCliente ? 'Nueva sugerencia de un cliente' : 'Nuevo ticket de soporte'}</h2>
+          <p><b>De:</b> ${escapeHtml(who)}</p>
+          ${staffEmail ? `<p><b>Email:</b> ${escapeHtml(staffEmail)}</p>` : ''}
+          ${venue_name ? `<p><b>Local:</b> ${escapeHtml(venue_name)}</p>` : ''}
           <p><b>Mensaje:</b></p>
-          <p>${message.trim().replace(/\n/g, '<br>')}</p>
+          <p>${escapeHtml(body).replace(/\n/g, '<br>')}</p>
         `,
       }),
     }).catch(() => {})

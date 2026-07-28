@@ -69,6 +69,9 @@ export default function IdentifyPage() {
   const accountInitial = (customer?.full_name || userEmail || '?').trim()[0]?.toUpperCase() || '?'
   const [googleError, setGoogleError] = useState('')
   const [showEmailLogin, setShowEmailLogin] = useState(false)
+  const [showSuggestion, setShowSuggestion] = useState(false)
+  const [suggestion, setSuggestion] = useState('')
+  const [suggestionState, setSuggestionState] = useState('idle') // idle | sending | sent | error
   // En la web app instalada el OAuth de Google no completa el flujo
   // (limitación de las PWA): se usa login por código de email
   const isStandaloneApp = window.matchMedia('(display-mode: standalone)').matches || !!window.navigator.standalone
@@ -82,6 +85,35 @@ export default function IdentifyPage() {
       alert(`Error de login: ${e?.message || e}`)
     }
   }
+  async function sendSuggestion() {
+    if (!suggestion.trim()) return
+    setSuggestionState('sending')
+    try {
+      const { data: { session } } = await supabaseCustomer.auth.getSession()
+      const token = session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/support-ticket`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          message: suggestion,
+          source: 'cliente',
+          venue_id: venueId,
+          venue_name: venue?.name || '',
+          staff_name: customer?.full_name || 'Cliente',
+        }),
+      })
+      if (!res.ok) throw new Error(await res.text())
+      setSuggestion('')
+      setSuggestionState('sent')
+    } catch {
+      setSuggestionState('error')
+    }
+  }
+
   const [forceDesktop, setForceDesktop] = useState(() => localStorage.getItem('capy-force-desktop') === '1')
   function toggleDesktop(v) {
     setForceDesktop(v)
@@ -1116,12 +1148,6 @@ export default function IdentifyPage() {
             </div>
           )}
         </div>
-        <div>
-          <a href="https://capyapp.co" target="_blank" rel="noreferrer"
-            className={`text-[10px] text-[#C0CBDA] hover:text-[#9DAAB8] transition-colors ${fd ? 'hidden' : fc ? '' : 'lg:hidden'}`}>
-            Desarrollado por Capy · capyapp.co
-          </a>
-        </div>
       </div>
 
       </div>{/* end right column */}
@@ -1418,6 +1444,87 @@ export default function IdentifyPage() {
           </button>
         </div>
       )}
+
+      {/* Sugerencias: llega al soporte de Capy, no al local */}
+      <div className="flex justify-center pt-1">
+        <button
+          onClick={() => setShowSuggestion(true)}
+          className="text-[#9DAAB8] text-[11px] underline underline-offset-2 active:opacity-70"
+        >
+          Enviar una sugerencia
+        </button>
+      </div>
+
+      {showSuggestion && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => { if (suggestionState !== 'sending') { setShowSuggestion(false); setSuggestionState('idle') } }}
+          />
+          <div className="relative bg-white rounded-t-3xl px-5 pt-5 pb-6">
+            {suggestionState === 'sent' ? (
+              <div className="text-center py-8">
+                <p className="text-[#1A2332] text-lg font-bold">¡Gracias!</p>
+                <p className="text-[#7A8A9A] text-sm mt-1">Leemos todas las sugerencias.</p>
+                <button
+                  onClick={() => { setShowSuggestion(false); setSuggestionState('idle') }}
+                  className="mt-5 text-sm font-semibold text-[#3A4A5A] underline underline-offset-2"
+                >
+                  Cerrar
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[#1A2332] text-lg font-bold">Tu sugerencia</p>
+                    <p className="text-[#7A8A9A] text-xs mt-0.5">
+                      Contanos qué mejorarías de la app. Va al equipo de Capy.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => { setShowSuggestion(false); setSuggestionState('idle') }}
+                    className="text-[#9DAAB8] p-1 -mr-1"
+                    aria-label="Cerrar"
+                  >
+                    <XIcon size={20} />
+                  </button>
+                </div>
+                <textarea
+                  value={suggestion}
+                  onChange={e => setSuggestion(e.target.value)}
+                  rows={4}
+                  maxLength={800}
+                  placeholder="Escribí acá tu idea o lo que no te funcionó..."
+                  className="w-full mt-4 border border-black/15 rounded-2xl px-4 py-3 text-sm text-[#1A2332] resize-none focus:outline-none focus:border-[#3A4A5A]"
+                />
+                {suggestionState === 'error' && (
+                  <p className="text-red-500 text-xs mt-2">No se pudo enviar. Probá de nuevo en un momento.</p>
+                )}
+                <button
+                  onClick={sendSuggestion}
+                  disabled={!suggestion.trim() || suggestionState === 'sending'}
+                  className="w-full mt-3 rounded-2xl py-3 text-white text-sm font-bold disabled:opacity-40"
+                  style={{ backgroundColor: accentOnWhite }}
+                >
+                  {suggestionState === 'sending' ? 'Enviando...' : 'Enviar'}
+                </button>
+                <p className="text-[#9DAAB8] text-[11px] text-center mt-2.5">
+                  ¿Necesitás algo del local? Tocá "Llamar al camarero/a".
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Crédito de Capy: siempre al final de todo */}
+      <div className={`flex justify-center pt-3 ${fd ? 'hidden' : fc ? '' : 'lg:hidden'}`}>
+        <a href="https://capyapp.co" target="_blank" rel="noreferrer"
+          className="text-[10px] text-[#C0CBDA] hover:text-[#9DAAB8] transition-colors">
+          Desarrollado por Capy · capyapp.co
+        </a>
+      </div>
 
       {/* Marca de build para diagnosticar PWAs con bundle viejo */}
       <p className="text-center text-[9px] text-black/25 py-1 select-none">
