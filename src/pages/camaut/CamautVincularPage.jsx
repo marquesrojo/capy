@@ -226,13 +226,13 @@ export default function CamautVincularPage() {
       .eq('staff_profile_id', session.user.id)
       .maybeSingle()
 
+    // Estar vinculado ya no es un error: se sigue de largo. Cortar acá dejaba
+    // sin hacer todo lo que viene abajo —el profile_id del staff_names y el
+    // borrado del código pendiente—, así que el camarero volvía a esta pantalla
+    // en cada arranque y su perfil no se dejaba guardar nunca.
     if (existing?.status === 'active') {
-      setError('Ya estás vinculado a este restaurante.')
-      setConfirming(false)
-      return
-    }
-
-    if (existing) {
+      // nada que dar de alta en venue_staff
+    } else if (existing) {
       await supabaseStaff
         .from('venue_staff')
         .update({ status: 'active', left_at: null })
@@ -289,7 +289,17 @@ export default function CamautVincularPage() {
 
   return (
     <div className="min-h-screen bg-carbon-950 px-5 py-10 flex flex-col">
-      <button onClick={() => navigate('/camareroa/app')} className="text-smoke-500 text-sm mb-8">← Volver</button>
+      {/* Salida de emergencia: soltar el código pendiente al volver, o el
+          arranque de la app manda de nuevo acá y no se puede salir */}
+      <button
+        onClick={() => {
+          try { localStorage.removeItem('capy_pending_invite') } catch { /* storage no disponible */ }
+          navigate('/camareroa/app')
+        }}
+        className="text-smoke-500 text-sm mb-8"
+      >
+        ← Volver
+      </button>
 
       <InstallBanner />
 
