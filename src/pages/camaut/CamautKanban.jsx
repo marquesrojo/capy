@@ -117,7 +117,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
       venueId
         ? supabaseStaff
             .from('orders')
-            .select('id, daily_number, location_label, total, status, created_at, notes, prep_started_at, prep_time_minutes, menu_id, waiter_called_at, order_items(product_name, quantity, unit_price, item_notes)')
+            .select('id, daily_number, location_label, total, status, created_at, notes, prep_started_at, prep_time_minutes, menu_id, waiter_called_at, session_id, order_items(product_name, quantity, unit_price, item_notes)')
             .eq('venue_id', venueId)
             .eq('status', 'entregado')
             .gte('created_at', todayStart.toISOString())
@@ -126,7 +126,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
       linkedVenues.length > 0
         ? supabaseStaff
             .from('orders')
-            .select('id, daily_number, location_label, total, status, created_at, notes, prep_started_at, prep_time_minutes, waiter_called_at, assigned_staff_id, menu_id, order_items(product_name, quantity, unit_price, item_notes), venue_id')
+            .select('id, daily_number, location_label, total, status, created_at, notes, prep_started_at, prep_time_minutes, waiter_called_at, assigned_staff_id, menu_id, session_id, order_items(product_name, quantity, unit_price, item_notes), venue_id')
             .in('venue_id', linkedVenues.map(v => v.id))
             .neq('status', 'cancelado')
             .gte('created_at', todayStart.toISOString())
@@ -331,32 +331,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
 
       {/* Modal QR */}
       {qrModal && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-6" onClick={() => setQrModal(null)}>
-          <div className="bg-white rounded-3xl p-6 w-full max-w-xs text-center" onClick={e => e.stopPropagation()}>
-            <p className="font-bold text-[#1A2A3A] text-base mb-4">QR del pedido</p>
-            <QRCanvas orderId={qrModal} />
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(`https://capyapp.co/ver-pedido/${qrModal}`)
-                  alert('Link copiado')
-                }}
-                className="flex-1 border border-[#008080] text-[#008080] font-semibold py-2.5 rounded-xl text-sm"
-              >
-                Copiar link
-              </button>
-              {navigator.share && (
-                <button
-                  onClick={() => navigator.share({ url: `https://capyapp.co/ver-pedido/${qrModal}` })}
-                  className="flex-1 bg-[#008080] text-white font-semibold py-2.5 rounded-xl text-sm"
-                >
-                  Compartir
-                </button>
-              )}
-            </div>
-            <button onClick={() => setQrModal(null)} className="text-[#8896A5] text-sm mt-3">Cerrar</button>
-          </div>
-        </div>
+        <ShareQRModal order={qrModal} onClose={() => setQrModal(null)} />
       )}
       {linkedVenues.length > 0 && (
         <div className="bg-white border-b border-black/8 px-4 py-3 flex items-center justify-between">
@@ -595,7 +570,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
                             </button>
                           )}
                           <button
-                            onClick={() => setQrModal(order.id)}
+                            onClick={() => setQrModal(order)}
                             className="border border-[#008080] bg-[#008080]/10 text-[#008080] text-[10px] px-2 py-1.5 rounded-lg font-semibold"
                           >
                             QR
@@ -712,7 +687,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
                                 </button>
                               )}
                               <button
-                                onClick={() => setQrModal(order.id)}
+                                onClick={() => setQrModal(order)}
                                 className="border border-[#008080] bg-[#008080]/10 text-[#008080] text-[10px] px-2 py-1.5 rounded-lg font-semibold"
                               >
                                 QR
@@ -730,7 +705,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
                           ) : (
                             <>
                               <button
-                                onClick={() => setQrModal(order.id)}
+                                onClick={() => setQrModal(order)}
                                 className="border border-[#008080] bg-[#008080]/10 text-[#008080] text-[10px] px-2 py-1.5 rounded-lg font-semibold"
                               >
                                 QR
@@ -763,17 +738,86 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
   )
 }
 
-function QRCanvas({ orderId }) {
+// Lo que el camarero le comparte al cliente. Dos vistas: el pedido suelto o
+// la cuenta completa de la mesa — esta última solo si el pedido está dentro
+// de una sesión de mesa (los de mostrador no tienen).
+function ShareQRModal({ order, onClose }) {
+  const [tab, setTab] = useState(order.session_id ? 'cuenta' : 'pedido')
+  const [copied, setCopied] = useState(false)
+
+  const url = tab === 'cuenta'
+    ? `https://capyapp.co/ver-cuenta/${order.session_id}`
+    : `https://capyapp.co/ver-pedido/${order.id}`
+
+  return (
+    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-6" onClick={onClose}>
+      <div className="bg-white rounded-3xl p-6 w-full max-w-xs text-center" onClick={e => e.stopPropagation()}>
+        {order.session_id ? (
+          <div className="flex gap-1 bg-black/5 rounded-full p-1 mb-4">
+            {[
+              { id: 'cuenta', label: 'Cuenta de la mesa' },
+              { id: 'pedido', label: 'Este pedido' },
+            ].map(t => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`flex-1 text-[11px] font-semibold py-2 rounded-full transition-colors ${
+                  tab === t.id ? 'bg-white text-[#1A2A3A] shadow-sm' : 'text-[#8896A5]'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="font-bold text-[#1A2A3A] text-base mb-4">QR del pedido</p>
+        )}
+
+        <QRCanvas url={url} />
+
+        <p className="text-[#8896A5] text-[11px] mt-3 leading-snug">
+          {tab === 'cuenta'
+            ? 'Que lo escanee y ve la cuenta completa, el estado y tu alias para la propina.'
+            : 'Que lo escanee y sigue este pedido en vivo desde su celular.'}
+        </p>
+
+        <div className="flex gap-2 mt-4">
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(url)
+              setCopied(true)
+              setTimeout(() => setCopied(false), 2000)
+            }}
+            className="flex-1 border border-[#008080] text-[#008080] font-semibold py-2.5 rounded-xl text-sm"
+          >
+            {copied ? '¡Copiado! ✓' : 'Copiar link'}
+          </button>
+          {navigator.share && (
+            <button
+              onClick={() => navigator.share({ url })}
+              className="flex-1 bg-[#008080] text-white font-semibold py-2.5 rounded-xl text-sm"
+            >
+              Compartir
+            </button>
+          )}
+        </div>
+        <button onClick={onClose} className="text-[#8896A5] text-sm mt-3">Cerrar</button>
+      </div>
+    </div>
+  )
+}
+
+function QRCanvas({ url }) {
   const canvasRef = useRef(null)
 
   useEffect(() => {
-    if (!canvasRef.current || !orderId) return
-    QRCode.toCanvas(canvasRef.current, `https://capyapp.co/ver-pedido/${orderId}`, {
+    if (!canvasRef.current || !url) return
+    QRCode.toCanvas(canvasRef.current, url, {
       width: 220,
       margin: 2,
       color: { dark: '#1A2A3A', light: '#FFFFFF' }
     })
-  }, [orderId])
+  }, [url])
 
   return (
     <div className="flex justify-center">

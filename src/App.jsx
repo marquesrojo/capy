@@ -39,6 +39,7 @@ import MercadoPagoReturnPage from './pages/client/MercadoPagoReturnPage'
 import CamautVincularPage from './pages/camaut/CamautVincularPage'
 import AuthCallbackPage from './pages/AuthCallbackPage'
 import PublicOrderPage from './pages/client/PublicOrderPage'
+import PublicAccountPage from './pages/client/PublicAccountPage'
 import DisplayPage from './pages/display/DisplayPage'
 import CamautLandingPage from './pages/camaut/CamautLandingPage'
 import CamautRegisterPage from './pages/camaut/CamautRegisterPage'
@@ -381,6 +382,7 @@ export default function App() {
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
               <Route path="/cliente/callback" element={<ClientAuthCallbackPage />} />
               <Route path="/ver-pedido/:id" element={<PublicOrderPage />} />
+              <Route path="/ver-cuenta/:sessionId" element={<PublicAccountPage />} />
               <Route path="/display/:venueId" element={<DisplayPage />} />
               <Route path="/camareroa" element={<CamautLandingPage />} />
               <Route path="/camareroa/registro" element={<CamautRegisterPage />} />

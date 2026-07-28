@@ -211,6 +211,8 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
           const newXP = await awardXP(staffId, 'send_order', activeVenueId)
           if (newXP !== null && onXPUpdate) onXPUpdate(newXP)
         }
+        // Sesión de mesa del pedido: la usa el QR de la cuenta completa
+        let orderSessionId = null
         if (result.order?.id) {
           const updates = {}
           if (activeVenueId === venueId && activeMenuId && activeMenuId !== 'all') {
@@ -231,6 +233,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
               .maybeSingle()
             if (existingSession) {
               updates.session_id = existingSession.id
+              orderSessionId = existingSession.id
             } else {
               const { data: newSession } = await supabaseStaff
                 .from('table_sessions')
@@ -242,7 +245,10 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
                 })
                 .select('id')
                 .single()
-              if (newSession?.id) updates.session_id = newSession.id
+              if (newSession?.id) {
+                updates.session_id = newSession.id
+                orderSessionId = newSession.id
+              }
             }
           }
           const { data: openShift } = await supabaseStaff
@@ -264,7 +270,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
             await supabaseStaff.from('orders').update(updates).eq('id', result.order.id)
           }
         }
-        setLastOrder({ order: result.order, items: cartItems, location: locationLabel, total })
+        setLastOrder({ order: result.order, items: cartItems, location: locationLabel, total, sessionId: orderSessionId })
         setCart({})
         setLocation('')
         setSelectedZone(null)
@@ -383,7 +389,11 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
   // Pantalla de confirmación exitosa
   if (lastOrder) {
     const orderId = lastOrder.order?.id
-    const orderUrl = `https://capyapp.co/ver-pedido/${orderId}`
+    // Con mesa se comparte la cuenta completa: sigue sirviendo cuando la mesa
+    // sume más pedidos. Sin mesa (mostrador) solo existe este pedido.
+    const orderUrl = lastOrder.sessionId
+      ? `https://capyapp.co/ver-cuenta/${lastOrder.sessionId}`
+      : `https://capyapp.co/ver-pedido/${orderId}`
     return (
       <div className="flex flex-col items-center px-6 pt-10 pb-10 text-center">
         <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-3">
@@ -433,9 +443,14 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
         {orderId && (
           <div className="w-full mb-5">
             <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">
-              Compartí el seguimiento con el cliente
+              {lastOrder.sessionId ? 'Mostrale este QR al cliente' : 'Compartí el seguimiento con el cliente'}
             </p>
-            <QRCanvas orderId={orderId} />
+            <QRCanvas url={orderUrl} />
+            <p className="text-[#8896A5] text-[11px] mt-2 leading-snug px-2">
+              {lastOrder.sessionId
+                ? 'Ve la cuenta de la mesa, el tiempo de preparación y tu alias para la propina.'
+                : 'Sigue el pedido en vivo desde su celular.'}
+            </p>
             <div className="flex gap-2 mt-3">
               <button
                 onClick={() => navigator.clipboard.writeText(orderUrl)}
@@ -1617,17 +1632,17 @@ function PrepTimerDisplay({ prepStartedAt, prepMins }) {
   )
 }
 
-function QRCanvas({ orderId }) {
+function QRCanvas({ url }) {
   const canvasRef = useRef(null)
 
   useEffect(() => {
-    if (!canvasRef.current || !orderId) return
-    QRCode.toCanvas(canvasRef.current, `https://capyapp.co/ver-pedido/${orderId}`, {
+    if (!canvasRef.current || !url) return
+    QRCode.toCanvas(canvasRef.current, url, {
       width: 200,
       margin: 2,
       color: { dark: '#1A2A3A', light: '#FFFFFF' }
     })
-  }, [orderId])
+  }, [url])
 
   return (
     <div className="flex justify-center">
