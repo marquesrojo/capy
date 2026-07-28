@@ -1,11 +1,18 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import { usePlan } from '../../hooks/usePlan'
 import { supabaseStaff } from '../../lib/supabase'
 
 const ICON_PROPS = { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round' }
 
+// El orden es el mismo para todos los planes: lo que un local free no tiene
+// queda al final y grisado, así el menú no se le mueve de lugar al pasar a Pro.
 const MI_LOCAL_ITEMS = [
+  {
+    to: '/admin/configuracion/local', label: 'Datos del local', desc: 'WhatsApp y ajustes',
+    icon: <svg {...ICON_PROPS}><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.86 9.86 0 0 0 12.04 2" fill="none"/></svg>
+  },
   {
     to: '/admin/historial', label: 'Historial', desc: 'Todos los pedidos del local',
     icon: <svg {...ICON_PROPS}><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
@@ -17,14 +24,6 @@ const MI_LOCAL_ITEMS = [
   {
     to: '/admin/ubicaciones', label: 'Ubicaciones', desc: 'Mesas, zonas y retiro',
     icon: <svg {...ICON_PROPS}><path d="M12 21s-7-7.5-7-12a7 7 0 0 1 14 0c0 4.5-7 12-7 12Z"/><circle cx="12" cy="9" r="2.5"/></svg>
-  },
-  {
-    to: '/admin/configuracion/medios-pago', label: 'Fiscal y medios de pago', desc: 'Facturación y métodos de cobro',
-    icon: <svg {...ICON_PROPS}><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
-  },
-  {
-    to: '/admin/configuracion/local', label: 'Datos del local', desc: 'WhatsApp y ajustes',
-    icon: <svg {...ICON_PROPS}><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.86 9.86 0 0 0 12.04 2" fill="none"/></svg>
   },
   {
     to: '/admin/usuarios', label: 'Usuarios', desc: 'Admins y camareros vinculados',
@@ -43,37 +42,43 @@ const MI_LOCAL_ITEMS = [
     icon: <svg {...ICON_PROPS}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h.01M18 14h.01M14 18h.01M18 18h.01M14 21h3M21 14v3M21 21h.01"/></svg>
   },
   {
-    to: '/admin/rangos', label: 'Programa de rangos', desc: 'Niveles y premios por fidelidad',
-    icon: <svg {...ICON_PROPS}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-  },
-  {
     to: '/admin/encuestas', label: 'Encuestas', desc: 'Calificaciones de clientes',
     icon: <svg {...ICON_PROPS}><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 16.9l-6.2 3.4 1.6-6.8L2.2 8.9l6.9-.6L12 2Z"/></svg>
-  },
-  {
-    to: '/admin/inventario', label: 'Inventario', desc: 'Stock de insumos y materias primas',
-    icon: <svg {...ICON_PROPS}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
   },
   {
     to: '/admin/reservas', label: 'Reservas', desc: 'Reservas de mesas para clientes',
     icon: <svg {...ICON_PROPS}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
   },
+  // ── Desde acá, solo Pro ──
   {
-    to: '/admin/whatsapp', label: 'WhatsApp', desc: 'Alertas automáticas y campañas',
+    to: '/admin/configuracion/medios-pago', label: 'Fiscal y medios de pago', pro: true, desc: 'Facturación y métodos de cobro',
+    icon: <svg {...ICON_PROPS}><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+  },
+  {
+    to: '/admin/rangos', label: 'Programa de rangos', pro: true, desc: 'Niveles y premios por fidelidad',
+    icon: <svg {...ICON_PROPS}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+  },
+  {
+    to: '/admin/inventario', label: 'Inventario', pro: true, desc: 'Stock de insumos y materias primas',
+    icon: <svg {...ICON_PROPS}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+  },
+  {
+    to: '/admin/whatsapp', label: 'WhatsApp', pro: true, desc: 'Alertas automáticas y campañas',
     icon: <svg {...ICON_PROPS}><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.86 9.86 0 0 0 12.04 2" fill="none"/></svg>
   },
   {
-    to: '/admin/kpis', label: 'KPIs', desc: 'Facturación y rendimiento', adminOnly: true,
+    to: '/admin/kpis', label: 'KPIs', pro: true, desc: 'Facturación y rendimiento', adminOnly: true,
     icon: <svg {...ICON_PROPS}><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
   },
   {
-    to: '/admin/consumo', label: 'Consumo', desc: 'Materia prima por día', adminOnly: true,
+    to: '/admin/consumo', label: 'Consumo', pro: true, desc: 'Materia prima por día', adminOnly: true,
     icon: <svg {...ICON_PROPS}><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
   },
 ]
 
 export default function ConfigPage() {
   const { profile, venueId } = useAuth()
+  const { isPro, loading: planLoading } = usePlan(venueId)
   const [hasProducts, setHasProducts] = useState(true)
   const [hasLocations, setHasLocations] = useState(true)
 
@@ -91,6 +96,13 @@ export default function ConfigPage() {
   }, [venueId])
 
   const items = MI_LOCAL_ITEMS.filter(item => !item.adminOnly || profile?.role === 'admin')
+  // En un local free las secciones Pro se muestran, pero apagadas: que se vea
+  // qué hay del otro lado sin dejar entrar
+  // Mientras carga el plan no se apaga nada: evita el parpadeo de ver las
+  // secciones grisadas y que vuelvan a encenderse un segundo después
+  const showLocked = !planLoading && !isPro
+  const freeItems = showLocked ? items.filter(i => !i.pro) : items
+  const lockedItems = showLocked ? items.filter(i => i.pro) : []
   const setupIncomplete = !hasProducts || !hasLocations
 
   return (
@@ -124,7 +136,7 @@ export default function ConfigPage() {
 
       <main className="px-4 mt-4 space-y-4">
         <div className="grid grid-cols-2 gap-3">
-          {items.map(item => (
+          {freeItems.map(item => (
             <Link
               key={item.to}
               to={item.to}
@@ -161,6 +173,33 @@ export default function ConfigPage() {
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
             </svg>
           </a>
+        )}
+
+        {lockedItems.length > 0 && (
+          <div className="pt-2">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex-1 h-px bg-carbon-700" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-smoke-600">Con CAPY Pro</span>
+              <div className="flex-1 h-px bg-carbon-700" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {lockedItems.map(item => (
+                <div
+                  key={item.to}
+                  aria-disabled="true"
+                  className="bg-carbon-900 border border-carbon-800 rounded-2xl p-4 flex flex-col gap-2 opacity-40 cursor-not-allowed select-none"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-carbon-800 flex items-center justify-center text-smoke-500 flex-shrink-0">
+                    {item.icon}
+                  </div>
+                  <div>
+                    <p className="text-smoke-300 font-bold text-sm leading-tight">{item.label}</p>
+                    <p className="text-smoke-500 text-[11px] mt-0.5 leading-tight">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </main>
     </div>

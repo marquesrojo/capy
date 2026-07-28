@@ -185,7 +185,7 @@ function VenuesTab() {
       const [venuesRes, todayRes] = await Promise.all([
         supabaseStaff
           .from('venues')
-          .select('id, name, slug, is_active, created_at, mp_enabled, extra_image_credits')
+          .select('id, name, slug, is_active, created_at, mp_enabled, extra_image_credits, plan')
           .not('slug', 'like', 'camaut-%')
           .order('created_at', { ascending: false }),
         supabaseStaff
@@ -205,6 +205,13 @@ function VenuesTab() {
     }
     load()
   }, [])
+
+  // El plan define qué secciones de Mi Local ve el local (ver ConfigPage)
+  async function setPlan(venueId, plan) {
+    const { error } = await supabaseStaff.from('venues').update({ plan }).eq('id', venueId)
+    if (error) { alert('Error al cambiar el plan: ' + error.message); return }
+    setVenues(prev => prev.map(v => v.id === venueId ? { ...v, plan } : v))
+  }
 
   async function addCredits(venueId, amount) {
     const venue = venues.find(v => v.id === venueId)
@@ -244,6 +251,24 @@ function VenuesTab() {
               }`}>
                 {v.is_active ? 'activo' : 'inactivo'}
               </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-smoke-500 text-[11px]">Plan:</span>
+            <div className="flex gap-1">
+              {['free', 'pro'].map(p => (
+                <button
+                  key={p}
+                  onClick={() => setPlan(v.id, p)}
+                  className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border transition-colors ${
+                    (v.plan || 'free') === p
+                      ? 'border-ember-500 text-ember-400 bg-ember-500/10'
+                      : 'border-carbon-700 text-smoke-600'
+                  }`}
+                >
+                  {p === 'free' ? 'Free' : 'Pro'}
+                </button>
+              ))}
             </div>
           </div>
           <div className="flex items-center gap-2">
