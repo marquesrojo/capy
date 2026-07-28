@@ -161,15 +161,20 @@ export default function PaymentPage() {
       const locationLabel = buildLocationLabel()
 
       let activeSessionId = sessionId
-      // Si la sesión que traemos (de la URL o de esta visita) ya fue cerrada
-      // por la caja, no la reutilizamos: el pedido quedaría invisible en el mapa
+      // La sesión que traemos (de la URL o de un pedido anterior de esta visita)
+      // se reutiliza solo si sigue abierta Y es de la ubicación desde la que se
+      // está pidiendo ahora. Si el cliente se cambió de mesa, arrastrarla dejaba
+      // el pedido con la zona nueva pero la sesión de la vieja: el mapa marca
+      // ocupada la mesa de la sesión y la nueva queda libre, porque los pedidos
+      // con sesión no entran en el fallback por zona.
       if (activeSessionId) {
         const { data: existing } = await supabaseCustomer
           .from('table_sessions')
-          .select('id, is_active')
+          .select('id, is_active, zone_id')
           .eq('id', activeSessionId)
           .maybeSingle()
-        if (!existing?.is_active) activeSessionId = null
+        const sameZone = (existing?.zone_id || null) === (location.zoneId || null)
+        if (!existing?.is_active || !sameZone) activeSessionId = null
       }
       // Si la mesa ya tiene una sesión activa (abierta por el camarero o por
       // otro pedido), nos sumamos a ella en vez de abrir una paralela
