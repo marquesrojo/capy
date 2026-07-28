@@ -73,7 +73,10 @@ serve(async (req) => {
       </div>
     `
   } else {
-    // magic link u otros
+    // Magic link u otros. A propósito va SOLO el código: el link de verify
+    // abre el navegador del sistema y no completa la sesión dentro del
+    // contenedor de la PWA, que es justo desde donde se pide este mail.
+    // Un botón "Acceder" acá no funciona y confunde — no volver a agregarlo.
     subject = 'Tu código de acceso a CAPY'
     html = `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#fff">
