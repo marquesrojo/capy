@@ -20,6 +20,7 @@ export default function LocationPage() {
   const [mapZone, setMapZone] = useState(null)
   const [retiroExternoEnabled, setRetiroExternoEnabled] = useState(false)
   const [deliveryEnabled, setDeliveryEnabled] = useState(false)
+  const [takeawayOnly, setTakeawayOnly] = useState(false)
   const [locationDisplayMode, setLocationDisplayMode] = useState('lista') // 'lista' | 'ambos' | 'mapa'
   const [viewMode, setViewMode] = useState(null) // 'mapa' | 'lista' | null (not yet decided)
   const { setLocation, itemCount } = useCart()
@@ -45,12 +46,15 @@ export default function LocationPage() {
           .order('name'),
         supabaseCustomer
           .from('venues')
-          .select('header_bg_color, retiro_externo_enabled, delivery_enabled, client_floor_map_enabled, location_display_mode')
+          .select('header_bg_color, retiro_externo_enabled, delivery_enabled, takeaway_only, client_floor_map_enabled, location_display_mode')
           .eq('id', venueId)
           .single()
       ])
       const zonesData = zonesRes.data || []
-      setZones(zonesData)
+      // Sin salón no hay dónde sentarse: solo quedan retiro y delivery
+      const soloParaLlevar = !!venueRes.data?.takeaway_only
+      setTakeawayOnly(soloParaLlevar)
+      setZones(soloParaLlevar ? [] : zonesData)
       if (venueRes.data?.header_bg_color) setVenueColor(venueRes.data.header_bg_color)
       if (venueRes.data?.retiro_externo_enabled) setRetiroExternoEnabled(true)
       if (venueRes.data?.delivery_enabled) setDeliveryEnabled(true)
@@ -94,8 +98,12 @@ export default function LocationPage() {
   return (
     <div className="min-h-screen bg-[#FAF9F6] pb-10">
       <header className="px-5 pt-6 pb-5" style={{ backgroundColor: venueColor }}>
-        <h1 className="font-display text-3xl text-white tracking-wide">¿DÓNDE ESTÁS?</h1>
-        <p className="text-white/70 text-sm mt-1">Así sabemos a dónde llevar tu pedido</p>
+        <h1 className="font-display text-3xl text-white tracking-wide">
+          {takeawayOnly ? '¿CÓMO LO QUERÉS?' : '¿DÓNDE ESTÁS?'}
+        </h1>
+        <p className="text-white/70 text-sm mt-1">
+          {takeawayOnly ? 'Elegí cómo recibís tu pedido' : 'Así sabemos a dónde llevar tu pedido'}
+        </p>
       </header>
 
       <div className="px-5 pt-5 space-y-6">

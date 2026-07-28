@@ -46,6 +46,7 @@ export default function VenueSettingsPage() {
   const [bannerPreview, setBannerPreview] = useState(null)
   const [retiroExternoEnabled, setRetiroExternoEnabled] = useState(false)
   const [deliveryEnabled, setDeliveryEnabled] = useState(false)
+  const [takeawayOnly, setTakeawayOnly] = useState(false)
   const [description, setDescription] = useState('')
   const [announcement, setAnnouncement] = useState('')
   const [schedule, setSchedule] = useState(DEFAULT_SCHEDULE)
@@ -80,7 +81,7 @@ export default function VenueSettingsPage() {
       try {
         const { data: opt } = await supabaseStaff
           .from('venues')
-          .select('landing_self_color, landing_waiter_color, instagram_handle, banner_url, retiro_externo_enabled, delivery_enabled, description, announcement, schedule')
+          .select('landing_self_color, landing_waiter_color, instagram_handle, banner_url, retiro_externo_enabled, delivery_enabled, takeaway_only, description, announcement, schedule')
           .eq('id', venueId)
           .single()
         if (opt?.landing_self_color) setLandingSelfColor(opt.landing_self_color)
@@ -89,6 +90,7 @@ export default function VenueSettingsPage() {
         if (opt?.banner_url) setBannerUrl(opt.banner_url)
         if (opt?.retiro_externo_enabled) setRetiroExternoEnabled(true)
         if (opt?.delivery_enabled) setDeliveryEnabled(true)
+        if (opt?.takeaway_only) setTakeawayOnly(true)
         if (opt?.description) setDescription(opt.description)
         if (opt?.announcement) setAnnouncement(opt.announcement)
         if (opt?.schedule) setSchedule(opt.schedule)
@@ -185,6 +187,8 @@ export default function VenueSettingsPage() {
             banner_url: finalBannerUrl || null,
             retiro_externo_enabled: retiroExternoEnabled,
             delivery_enabled: deliveryEnabled,
+            // Sin retiro ni delivery no habría forma de pedir
+            takeaway_only: takeawayOnly && (retiroExternoEnabled || deliveryEnabled),
             description: description.trim() || null,
             announcement: announcement.trim() || null,
             schedule,
@@ -494,6 +498,26 @@ export default function VenueSettingsPage() {
               </div>
               <div className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${deliveryEnabled ? 'bg-ember-500' : 'bg-carbon-600'}`}>
                 <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${deliveryEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              </div>
+            </button>
+
+            {/* Solo tiene sentido si hay al menos una vía para pedir desde afuera */}
+            <button
+              type="button"
+              disabled={!retiroExternoEnabled && !deliveryEnabled}
+              onClick={() => setTakeawayOnly(v => !v)}
+              className="w-full flex items-center justify-between bg-carbon-800 rounded-xl px-4 py-3 disabled:opacity-40"
+            >
+              <div className="text-left">
+                <p className="text-smoke-200 font-semibold text-sm">Solo para llevar</p>
+                <p className="text-smoke-500 text-xs mt-0.5">
+                  {retiroExternoEnabled || deliveryEnabled
+                    ? 'El local no atiende en mesa: la página del cliente oculta mesas, llamado al camarero y seguimiento por número'
+                    : 'Activá antes retiro en local o delivery'}
+                </p>
+              </div>
+              <div className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${takeawayOnly ? 'bg-ember-500' : 'bg-carbon-600'}`}>
+                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${takeawayOnly ? 'translate-x-5' : 'translate-x-0.5'}`} />
               </div>
             </button>
           </div>
