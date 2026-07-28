@@ -1,9 +1,10 @@
 import { useEffect, useState, useRef } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { formatPrice } from '../../lib/utils'
 import OrderFeedback from '../../components/OrderFeedback'
+import AccountInvite from '../../components/AccountInvite'
 import { supabaseCustomer } from '../../lib/supabase'
-import { SearchIcon, PinIcon, ChefHatIcon, FileTextIcon } from '../../components/Icons'
+import { SearchIcon, PinIcon, ChefHatIcon, FileTextIcon, UtensilsIcon } from '../../components/Icons'
 
 // supabaseCustomer is used for all requests — it holds the anonymous auth
 // session (auth.uid()), which the RLS policies require for order access.
@@ -48,6 +49,7 @@ export default function PublicOrderPage() {
   const [splitPeople, setSplitPeople] = useState(2)
   const [tipPercent, setTipPercent] = useState(10)
   const [prepProgress, setPrepProgress] = useState(null)
+  const [sessionOrderCount, setSessionOrderCount] = useState(1)
   const intervalRef = useRef(null)
 
   useEffect(() => {
@@ -56,13 +58,24 @@ export default function PublicOrderPage() {
   }, [id])
 
   async function loadOrder() {
+    try {
+      await loadOrderInner()
+    } catch {
+      // Sin red o sin sesión anónima: mostrar el cartel en vez de dejar el
+      // "Cargando pedido..." girando para siempre
+      setNotFound(true)
+      setLoading(false)
+    }
+  }
+
+  async function loadOrderInner() {
     // Ensure supabaseCustomer has an anon session so OrderFeedback can insert
     const { data: { session } } = await supabaseCustomer.auth.getSession()
     if (!session) await supabaseCustomer.auth.signInAnonymously()
 
     const { data: orderData } = await supabasePublic
       .from('orders')
-      .select('id, status, location_label, zone_id, total, daily_number, created_at, prep_time_minutes, prep_started_at, waiter_called_at, assigned_staff_id, payment_status, notes, venue_id, created_by_staff, cash_discount_amount')
+      .select('id, status, location_label, zone_id, total, daily_number, created_at, prep_time_minutes, prep_started_at, waiter_called_at, assigned_staff_id, payment_status, notes, venue_id, created_by_staff, cash_discount_amount, customer_id, session_id')
       .eq('id', id)
       .single()
 
@@ -82,11 +95,21 @@ export default function PublicOrderPage() {
         ? supabaseCustomer.from('staff_names').select('full_name, alias, alias_bancario, avatar_url, bio').eq('id', orderData.assigned_staff_id).single()
         : Promise.resolve({ data: null }),
       orderData.venue_id
-        ? supabaseCustomer.from('venues').select('name, logo_url').eq('id', orderData.venue_id).single()
+        ? supabaseCustomer.from('venues').select('name, slug, logo_url').eq('id', orderData.venue_id).single()
         : Promise.resolve({ data: null }),
     ])
     setStaff(staffRes.data)
     setVenue(venueRes.data)
+
+    // ¿La mesa tiene más pedidos? Entonces ofrecemos la cuenta completa
+    if (orderData.session_id) {
+      const { count } = await supabasePublic
+        .from('orders')
+        .select('id', { count: 'exact', head: true })
+        .eq('session_id', orderData.session_id)
+        .in('status', ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo', 'entregado'])
+      setSessionOrderCount(count || 1)
+    }
 
     setLoading(false)
     startPolling()
@@ -265,6 +288,22 @@ export default function PublicOrderPage() {
         </div>
       </div>
 
+      {/* La mesa pidió más de una vez: este pedido es solo una parte */}
+      {sessionOrderCount > 1 && order.session_id && (
+        <Link
+          to={`/ver-cuenta/${order.session_id}`}
+          className="flex items-center justify-between gap-3 bg-carbon-900 border border-ember-500/30 rounded-2xl px-4 py-3.5 mb-4"
+        >
+          <div>
+            <p className="text-smoke-300 text-sm font-semibold">Ver la cuenta completa</p>
+            <p className="text-smoke-500 text-xs mt-0.5">La mesa tiene {sessionOrderCount} pedidos</p>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-ember-500 flex-shrink-0">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </Link>
+      )}
+
       {/* Calculadora propina */}
       <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4 mb-4">
         <p className="text-smoke-400 text-xs font-semibold uppercase tracking-wide mb-3">¿Querés dejar propina?</p>
@@ -401,6 +440,20 @@ export default function PublicOrderPage() {
           </span>
         </button>
       )}
+
+      {/* Carta del local */}
+      {venue?.slug && (
+        <Link
+          to={`/r/${venue.slug}/carta`}
+          className="flex items-center justify-center gap-2 w-full bg-carbon-900 border border-carbon-700 text-smoke-300 text-sm font-semibold py-3.5 rounded-2xl mb-4"
+        >
+          <UtensilsIcon size={16} />
+          Ver la carta y seguir pidiendo
+        </Link>
+      )}
+
+      {/* Crear la cuenta: adopta el pedido que cargó el camarero */}
+      <AccountInvite sessionId={order.session_id} orderId={order.id} />
 
       {/* Encuesta */}
       <div className="mt-2">

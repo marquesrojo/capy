@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import QRCode from 'qrcode'
 import { formatPrice } from '../lib/utils'
 import { supabaseStaff } from '../lib/supabase'
 
@@ -9,6 +10,12 @@ export default function AccountSummary({ orders, venueName, locationLabel, onClo
   const [localPhone, setLocalPhone] = useState('')
   const [editingPhone, setEditingPhone] = useState(false)
   const [phoneInput, setPhoneInput] = useState('')
+  const [showQR, setShowQR] = useState(false)
+
+  // Todos los pedidos de la cuenta comparten la sesión de mesa: ese id es el
+  // que abre /ver-cuenta, la versión digital de esta misma pre-cuenta.
+  const sessionId = orders.map(o => o.session_id).find(Boolean) || null
+  const shareUrl = sessionId ? `https://capyapp.co/ver-cuenta/${sessionId}` : null
 
   // WhatsApp del cliente: perfil o cargado por el cajero en cualquiera de
   // los pedidos de la mesa
@@ -186,7 +193,30 @@ export default function AccountSummary({ orders, venueName, locationLabel, onClo
           )}
         </div>
 
+        {showQR && shareUrl && (
+          <div className="px-4 pb-2 text-center">
+            <AccountQR url={shareUrl} />
+            <p className="text-gray-500 text-[11px] mt-2 leading-snug">
+              Que lo escanee y ve esta cuenta en su celular, con la propina y la división.
+            </p>
+            <button
+              onClick={() => { navigator.clipboard.writeText(shareUrl) }}
+              className="text-emerald-700 text-xs font-semibold underline mt-1.5"
+            >
+              Copiar link
+            </button>
+          </div>
+        )}
+
         <div className="px-4 pb-3 pt-1.5 grid grid-cols-2 gap-2">
+          {shareUrl && (
+            <button
+              onClick={() => setShowQR(v => !v)}
+              className="col-span-2 bg-[#008080] text-white text-xs font-semibold py-2.5 rounded-xl"
+            >
+              {showQR ? 'Ocultar QR' : '📱 Mostrar QR al cliente'}
+            </button>
+          )}
           <button
             onClick={handlePrint}
             className="bg-gray-900 text-white text-xs font-semibold py-2.5 rounded-xl"
@@ -212,6 +242,27 @@ export default function AccountSummary({ orders, venueName, locationLabel, onClo
             Cerrar
           </button>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function AccountQR({ url }) {
+  const canvasRef = useRef(null)
+
+  useEffect(() => {
+    if (!canvasRef.current || !url) return
+    QRCode.toCanvas(canvasRef.current, url, {
+      width: 180,
+      margin: 2,
+      color: { dark: '#1A2A3A', light: '#FFFFFF' },
+    })
+  }, [url])
+
+  return (
+    <div className="flex justify-center">
+      <div className="bg-white p-2 rounded-2xl border border-gray-200">
+        <canvas ref={canvasRef} />
       </div>
     </div>
   )
