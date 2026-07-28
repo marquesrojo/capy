@@ -69,12 +69,13 @@ export default function FloorPlanViewer({
       .not('zone_id', 'is', null)
     const sessionZoneIds = new Set((sessions || []).map(s => s.zone_id))
 
-    // Fallback: orders without a session (e.g. created by staff without opening a session)
+    // Toda zona con un pedido vivo está ocupada, tenga sesión o no. Antes esto
+    // solo miraba los pedidos sin sesión, así que un pedido cuya zona no
+    // coincidía con la de su sesión dejaba la mesa pintada de libre.
     const { data: orders } = await supabaseClient
       .from('orders')
       .select('zone_id')
       .eq('venue_id', venueId)
-      .is('session_id', null)
       .in('status', ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo', 'entregado'])
       .not('zone_id', 'is', null)
     const orderZoneIds = new Set((orders || []).map(o => o.zone_id))

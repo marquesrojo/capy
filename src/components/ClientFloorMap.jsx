@@ -18,11 +18,11 @@ export default function ClientFloorMap({ zones, accent, onChoose, confirmStep = 
           .eq('venue_id', vid)
           .eq('is_active', true)
           .not('zone_id', 'is', null),
+        // Toda zona con un pedido vivo está ocupada, tenga sesión o no
         supabaseCustomer
           .from('orders')
           .select('zone_id')
           .eq('venue_id', vid)
-          .is('session_id', null)
           .in('status', ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo', 'entregado'])
           .not('zone_id', 'is', null),
       ])
@@ -35,6 +35,9 @@ export default function ClientFloorMap({ zones, accent, onChoose, confirmStep = 
     const channel = supabaseCustomer
       .channel(`client-floor-${vid}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'table_sessions', filter: `venue_id=eq.${vid}` }, loadOccupied)
+      // Los pedidos también definen ocupación, así que el mapa del cliente
+      // tiene que refrescarse cuando entra o se cierra uno
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `venue_id=eq.${vid}` }, loadOccupied)
       .subscribe()
     return () => supabaseCustomer.removeChannel(channel)
   }, [vid])
