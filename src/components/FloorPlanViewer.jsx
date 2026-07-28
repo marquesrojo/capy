@@ -11,6 +11,8 @@ export default function FloorPlanViewer({
   selectedZones,
   onSelectMultiple,
   refreshKey = 0,
+  // En la vista por sectores se dibuja una sola referencia arriba de todos
+  showLegend = true,
 }) {
   const [occupiedIds, setOccupiedIds] = useState(new Set())
   const [multiSelectedIds, setMultiSelectedIds] = useState(new Set(
@@ -294,6 +296,7 @@ export default function FloorPlanViewer({
         </div>
       </div>
 
+      {showLegend && (
       <div className="flex items-center gap-4 mt-3 px-1">
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded bg-carbon-700 border border-carbon-500" />
@@ -313,6 +316,7 @@ export default function FloorPlanViewer({
           </span>
         )}
       </div>
+      )}
     </div>
   )
 }
