@@ -74,6 +74,7 @@ function PerfilTab({ profile, overrideStaffId }) {
   const [uploadError, setUploadError] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [urlCopied, setUrlCopied] = useState(false)
 
   useEffect(() => {
@@ -92,23 +93,35 @@ function PerfilTab({ profile, overrideStaffId }) {
         userId = session?.user?.id
       }
       if (!userId) return
+      // Primero por profile_id: es la columna que mira la RLS de UPDATE. Buscar
+      // por venue_id podía traer una fila ajena, que cargaba bien en pantalla y
+      // después no se dejaba guardar.
+      const { data: own } = await supabaseStaff
+        .from('staff_names').select('*').eq('profile_id', userId).limit(1).maybeSingle()
+      if (own) {
+        applyStaff(own)
+        return
+      }
+      // Filas viejas, creadas antes de que existiera profile_id
       const { data: profileData } = await supabaseStaff
         .from('profiles').select('venue_id').eq('id', userId).single()
       if (!profileData?.venue_id) return
-      query = supabaseStaff.from('staff_names').select('*').eq('venue_id', profileData.venue_id).single()
+      query = supabaseStaff.from('staff_names').select('*').eq('venue_id', profileData.venue_id).limit(1).maybeSingle()
     }
     const { data } = await query
-    if (data) {
-      staffLoadedRef.current = true
-      setStaffData(data)
-      setFullName(data.full_name || '')
-      setAlias(sanitizeAlias(data.alias || ''))
-      setLinkedin(data.linkedin_url || '')
-      setDocNumber(data.document_number || '')
-      setAliasBancario(data.alias_bancario || '')
-      setAvatarUrl(data.avatar_url || '')
-      setWaPhone(data.whatsapp_number || '')
-    }
+    if (data) applyStaff(data)
+  }
+
+  function applyStaff(data) {
+    staffLoadedRef.current = true
+    setStaffData(data)
+    setFullName(data.full_name || '')
+    setAlias(sanitizeAlias(data.alias || ''))
+    setLinkedin(data.linkedin_url || '')
+    setDocNumber(data.document_number || '')
+    setAliasBancario(data.alias_bancario || '')
+    setAvatarUrl(data.avatar_url || '')
+    setWaPhone(data.whatsapp_number || '')
   }
 
   async function handleAvatarChange(e) {
@@ -151,7 +164,10 @@ function PerfilTab({ profile, overrideStaffId }) {
     if (!staffData) return
     setSaving(true)
 
-    const { error } = await supabaseCamaut
+    // .select() para saber cuántas filas cambiaron: cuando la RLS filtra el
+    // UPDATE no devuelve error, devuelve cero filas, y el formulario festejaba
+    // un guardado que nunca ocurrió
+    const { data: updated, error } = await supabaseCamaut
       .from('staff_names')
       .update({
         full_name: fullName.trim(),
@@ -163,12 +179,19 @@ function PerfilTab({ profile, overrideStaffId }) {
         whatsapp_number: waPhone.trim() || null
       })
       .eq('id', staffData.id)
+      .select('id')
 
-    if (error) {
+    if (error || !updated?.length) {
       console.error('Error guardando perfil:', error)
+      setSaveError(
+        error?.code === '23505'
+          ? 'Ese alias ya lo está usando otro camarero. Probá con otro.'
+          : 'No se pudo guardar. Cerrá sesión y volvé a entrar; si sigue, escribinos desde Soporte.'
+      )
       setSaving(false)
       return
     }
+    setSaveError('')
 
     const { data: { user } } = await supabaseCamaut.auth.getUser()
     if (user) {
@@ -274,6 +297,7 @@ function PerfilTab({ profile, overrideStaffId }) {
       </div>
 
       {saved && <p className="text-emerald-600 text-xs text-center">¡Guardado!</p>}
+      {saveError && <p className="text-red-600 text-xs text-center px-4">{saveError}</p>}
       <button type="submit" disabled={saving}
         className="w-full bg-[#008080] disabled:opacity-50 text-white font-bold py-3.5 rounded-2xl">
         {saving ? 'Guardando...' : 'Guardar cambios'}
