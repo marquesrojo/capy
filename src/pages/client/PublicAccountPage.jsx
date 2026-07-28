@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { formatPrice } from '../../lib/utils'
+import { formatPrice, venueDisplayName } from '../../lib/utils'
 import { supabaseCustomer } from '../../lib/supabase'
 import AccountInvite from '../../components/AccountInvite'
 import { SearchIcon, PinIcon, ChefHatIcon, UtensilsIcon } from '../../components/Icons'
@@ -133,14 +133,14 @@ export default function PublicAccountPage() {
       {/* Encabezado */}
       <div className="text-center mb-6">
         {venue?.logo_url ? (
-          <img src={venue.logo_url} alt={venue.name} className="w-16 h-16 mx-auto mb-2 rounded-xl object-cover border border-carbon-700" />
+          <img src={venue.logo_url} alt={venueDisplayName(venue.name)} className="w-16 h-16 mx-auto mb-2 rounded-xl object-cover border border-carbon-700" />
         ) : (
           <div className="w-16 h-16 mx-auto mb-2 rounded-xl bg-carbon-800 flex items-center justify-center">
             <UtensilsIcon size={26} className="text-smoke-400" />
           </div>
         )}
         <p className="font-display text-2xl text-ember-500 tracking-wide">
-          {venue?.name?.toUpperCase() || 'CAPY'}
+          {venueDisplayName(venue?.name).toUpperCase() || 'CAPY'}
         </p>
         <p className="text-smoke-500 text-xs mt-1 flex items-center justify-center gap-1">
           <PinIcon size={11} /> {mesa || 'Tu mesa'} · {orders.length} {orders.length === 1 ? 'pedido' : 'pedidos'}

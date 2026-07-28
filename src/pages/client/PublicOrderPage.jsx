@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { formatPrice } from '../../lib/utils'
+import { formatPrice, venueDisplayName } from '../../lib/utils'
 import OrderFeedback from '../../components/OrderFeedback'
 import AccountInvite from '../../components/AccountInvite'
 import { supabaseCustomer } from '../../lib/supabase'
@@ -201,7 +201,7 @@ export default function PublicOrderPage() {
         {isStaffOrder && staff?.avatar_url ? (
           <img src={staff.avatar_url} alt={staff.full_name} className="w-16 h-16 mx-auto mb-2 rounded-full object-cover border-2 border-carbon-700" />
         ) : venue?.logo_url ? (
-          <img src={venue.logo_url} alt={venue.name} className="w-16 h-16 mx-auto mb-2 rounded-xl object-cover border border-carbon-700" />
+          <img src={venue.logo_url} alt={venueDisplayName(venue.name)} className="w-16 h-16 mx-auto mb-2 rounded-xl object-cover border border-carbon-700" />
         ) : (
           <div className="w-16 h-16 mx-auto mb-2 rounded-xl bg-carbon-800 flex items-center justify-center">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-smoke-400">
@@ -210,7 +210,7 @@ export default function PublicOrderPage() {
           </div>
         )}
         <p className="font-display text-2xl text-ember-500 tracking-wide">
-          {isStaffOrder && staff?.full_name ? staff.full_name.toUpperCase() : (venue?.name?.toUpperCase() || 'CAPY')}
+          {isStaffOrder && staff?.full_name ? staff.full_name.toUpperCase() : (venueDisplayName(venue?.name).toUpperCase() || 'CAPY')}
         </p>
         {isStaffOrder && staff?.bio && (
           <p className="text-smoke-400 text-xs mt-1.5 italic px-4">{staff.bio}</p>

@@ -64,3 +64,10 @@ export const PAYMENT_STATUS_COLORS = {
   rechazado: 'bg-red-500/10 text-red-700 border-red-500/40',
   reembolsado: 'bg-smoke-500/10 text-smoke-500 border-smoke-500/30'
 }
+
+// Los locales que crea el onboarding del camarero se guardan con el sufijo
+// " — Capy" en venues.name (ver CamautOnboardingPage). Es un marcador interno:
+// nunca se le muestra al cliente.
+export function venueDisplayName(name) {
+  return (name || '').replace(' — Capy', '').replace(' - Capy', '')
+}
