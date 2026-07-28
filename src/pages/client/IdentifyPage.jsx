@@ -1164,8 +1164,6 @@ export default function IdentifyPage() {
         </div>
       </div>
 
-      </div>{/* end right column */}
-
       {/* ── Drawer: llamar al mozo ── */}
       {showWaiterCall && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end">
@@ -1544,6 +1542,8 @@ export default function IdentifyPage() {
       <p className="text-center text-[9px] text-black/25 py-1 select-none">
         capy {typeof __BUILD_TS__ !== 'undefined' ? __BUILD_TS__ : 'dev'}
       </p>
+
+      </div>{/* end right column */}
     </div>
   )
 }
