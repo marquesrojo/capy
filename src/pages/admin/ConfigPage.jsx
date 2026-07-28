@@ -77,20 +77,24 @@ const MI_LOCAL_ITEMS = [
 ]
 
 export default function ConfigPage() {
-  const { profile, venueId } = useAuth()
+  const { profile, venueId, user } = useAuth()
   const { isPro, loading: planLoading } = usePlan(venueId)
   const [hasProducts, setHasProducts] = useState(true)
   const [hasLocations, setHasLocations] = useState(true)
+  const [venueName, setVenueName] = useState('')
+  const [showProForm, setShowProForm] = useState(false)
 
   useEffect(() => {
     if (!venueId) return
     async function checkSetup() {
-      const [prodRes, zoneRes] = await Promise.all([
+      const [prodRes, zoneRes, venueRes] = await Promise.all([
         supabaseStaff.from('products').select('id', { count: 'exact', head: true }).eq('venue_id', venueId),
-        supabaseStaff.from('venue_zones').select('id', { count: 'exact', head: true }).eq('venue_id', venueId)
+        supabaseStaff.from('venue_zones').select('id', { count: 'exact', head: true }).eq('venue_id', venueId),
+        supabaseStaff.from('venues').select('name').eq('id', venueId).single()
       ])
       setHasProducts((prodRes.count || 0) > 0)
       setHasLocations((zoneRes.count || 0) > 0)
+      setVenueName(venueRes.data?.name || '')
     }
     checkSetup()
   }, [venueId])
@@ -199,9 +203,128 @@ export default function ConfigPage() {
                 </div>
               ))}
             </div>
+
+            <button
+              onClick={() => setShowProForm(true)}
+              className="w-full mt-3 bg-ember-500 hover:bg-ember-600 text-white text-sm font-bold py-3.5 rounded-2xl transition-colors"
+            >
+              Quiero CAPY Pro
+            </button>
+            <p className="text-smoke-600 text-[11px] text-center mt-2">
+              Dejanos tus datos y te contamos cómo activarlo.
+            </p>
           </div>
         )}
       </main>
+
+      {showProForm && (
+        <ProLeadForm
+          venueName={venueName}
+          defaultEmail={user?.email || ''}
+          defaultName={profile?.full_name || ''}
+          onClose={() => setShowProForm(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+// El lead va por send-lead-email, la misma edge del formulario de las landings:
+// ya escribe a capy@bravosm.com y responde al mail que dejó el interesado.
+function ProLeadForm({ venueName, defaultEmail, defaultName, onClose }) {
+  const [name, setName] = useState(defaultName)
+  const [email, setEmail] = useState(defaultEmail)
+  const [whatsapp, setWhatsapp] = useState('')
+  const [state, setState] = useState('idle') // idle | sending | sent | error
+
+  async function send() {
+    if (!name.trim() || !email.trim()) return
+    setState('sending')
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-lead-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          whatsapp: whatsapp.trim(),
+          // La edge imprime el valor tal cual cuando no lo conoce: así el mail
+          // llega diciendo de qué local salió sin tener que redeployarla
+          page: `Upgrade a Pro — ${venueName || 'local sin nombre'}`,
+        }),
+      })
+      if (!res.ok) throw new Error(await res.text())
+      setState('sent')
+    } catch {
+      setState('error')
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/70 flex items-end sm:items-center justify-center p-4" onClick={onClose}>
+      <div
+        className="bg-carbon-900 border border-carbon-700 rounded-3xl w-full max-w-sm p-5"
+        onClick={e => e.stopPropagation()}
+      >
+        {state === 'sent' ? (
+          <div className="text-center py-6">
+            <p className="text-smoke-100 font-bold text-lg">¡Gracias!</p>
+            <p className="text-smoke-500 text-sm mt-1">Te escribimos a la brevedad.</p>
+            <button onClick={onClose} className="mt-5 text-ember-400 text-sm font-semibold underline">
+              Cerrar
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-start justify-between gap-3 mb-1">
+              <p className="text-smoke-100 font-bold text-lg leading-tight">Quiero CAPY Pro</p>
+              <button onClick={onClose} aria-label="Cerrar" className="text-smoke-500 text-sm p-1 -mr-1">✕</button>
+            </div>
+            <p className="text-smoke-500 text-xs mb-4">
+              Dejanos tus datos y te contamos cómo activar las secciones Pro en {venueName || 'tu local'}.
+            </p>
+
+            <div className="space-y-2">
+              <input
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="Tu nombre"
+                className="w-full bg-carbon-800 border border-carbon-700 rounded-xl px-4 py-3 text-sm text-smoke-200 focus:outline-none focus:border-ember-500"
+              />
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="Email"
+                className="w-full bg-carbon-800 border border-carbon-700 rounded-xl px-4 py-3 text-sm text-smoke-200 focus:outline-none focus:border-ember-500"
+              />
+              <input
+                type="tel"
+                value={whatsapp}
+                onChange={e => setWhatsapp(e.target.value)}
+                placeholder="WhatsApp (opcional)"
+                className="w-full bg-carbon-800 border border-carbon-700 rounded-xl px-4 py-3 text-sm text-smoke-200 focus:outline-none focus:border-ember-500"
+              />
+            </div>
+
+            {state === 'error' && (
+              <p className="text-red-500 text-xs mt-2">No se pudo enviar. Probá de nuevo en un momento.</p>
+            )}
+
+            <button
+              onClick={send}
+              disabled={!name.trim() || !email.trim() || state === 'sending'}
+              className="w-full mt-3 bg-ember-500 hover:bg-ember-600 disabled:opacity-40 text-white text-sm font-bold py-3.5 rounded-2xl transition-colors"
+            >
+              {state === 'sending' ? 'Enviando...' : 'Enviar'}
+            </button>
+          </>
+        )}
+      </div>
     </div>
   )
 }
