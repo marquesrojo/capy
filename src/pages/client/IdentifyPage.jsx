@@ -4,7 +4,7 @@ import { supabaseCustomer, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useClientBase, useVenueOptional } from '../../hooks/useVenue'
 import { useCart } from '../../hooks/useCart'
 import { useCustomer } from '../../hooks/useCustomer'
-import { UtensilsIcon, XIcon } from '../../components/Icons'
+import { UtensilsIcon, XIcon, ClockIcon } from '../../components/Icons'
 import ClientFloorMap from '../../components/ClientFloorMap'
 import EmailLoginModal from '../../components/EmailLoginModal'
 
@@ -144,6 +144,7 @@ export default function IdentifyPage() {
   // Local sin salón: la home solo ofrece retiro y delivery
   const [takeawayOnly, setTakeawayOnly] = useState(false)
   const [ordersPaused, setOrdersPaused] = useState(false)
+  const [highDemand, setHighDemand] = useState(false)
   const [pauseMessage, setPauseMessage] = useState('')
   const [showExternalOptions, setShowExternalOptions] = useState(false)
   const [orderNumber, setOrderNumber] = useState('')
@@ -208,7 +209,7 @@ export default function IdentifyPage() {
 
     const venueQ = supabaseCustomer
       .from('venues')
-      .select('instagram_handle, retiro_externo_enabled, delivery_enabled, takeaway_only, client_floor_map_enabled, location_display_mode, description, announcement, schedule, waiter_alert_whatsapp, whatsapp_number, orders_paused, orders_paused_message')
+      .select('instagram_handle, retiro_externo_enabled, delivery_enabled, takeaway_only, client_floor_map_enabled, location_display_mode, description, announcement, schedule, waiter_alert_whatsapp, whatsapp_number, orders_paused, orders_paused_message, high_demand')
       .eq('id', venueId)
       .single()
 
@@ -230,6 +231,7 @@ export default function IdentifyPage() {
         if (venueData?.delivery_enabled) setDeliveryEnabled(true)
         if (venueData?.takeaway_only) { setTakeawayOnly(true); setShowExternalOptions(true) }
         setOrdersPaused(!!venueData?.orders_paused)
+        setHighDemand(!!venueData?.high_demand)
         setPauseMessage(venueData?.orders_paused_message || '')
         if (venueData?.description) setDescription(venueData.description)
         if (venueData?.announcement) setAnnouncement(venueData.announcement)
@@ -266,6 +268,7 @@ export default function IdentifyPage() {
         if (data?.delivery_enabled) setDeliveryEnabled(true)
         if (data?.takeaway_only) { setTakeawayOnly(true); setShowExternalOptions(true) }
         setOrdersPaused(!!data?.orders_paused)
+        setHighDemand(!!data?.high_demand)
         setPauseMessage(data?.orders_paused_message || '')
         if (data?.description) setDescription(data.description)
         if (data?.announcement) setAnnouncement(data.announcement)
@@ -604,6 +607,18 @@ export default function IdentifyPage() {
       {/* ── Pedidos pausados ──
            Va antes de los botones de pedir: enterarse recién en la carta, con
            el hambre ya puesta, es peor que enterarse al entrar. */}
+      {/* Con los pedidos pausados el aviso de demora sobra: no se puede pedir */}
+      {!ordersPaused && highDemand && (
+        <div className="px-4 pt-3">
+          <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3.5 text-center">
+            <p className="text-red-800 text-sm font-semibold flex items-center justify-center gap-1.5">
+              <ClockIcon size={15} /> Alta demanda — puede haber demora
+            </p>
+            <p className="text-red-700 text-xs mt-1">¡Gracias por tu paciencia!</p>
+          </div>
+        </div>
+      )}
+
       {ordersPaused && (
         <div className="px-4 pt-3">
           <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-4 text-center">
