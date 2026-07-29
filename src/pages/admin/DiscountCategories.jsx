@@ -25,10 +25,8 @@ export default function DiscountCategories({ venueId }) {
   async function load() {
     setLoading(true)
     const [clientsRes, catsRes, ordersRes] = await Promise.all([
-      supabaseStaff
-        .from('venue_customers')
-        .select('customer_id, first_seen_at, customers(id, full_name, whatsapp)')
-        .eq('venue_id', venueId),
+      // Por RPC y no leyendo la tabla: el email vive en auth.users
+      supabaseStaff.rpc('venue_customer_list', { p_venue_id: venueId }),
       supabaseStaff
         .from('discount_categories')
         .select('*')
@@ -65,14 +63,16 @@ export default function DiscountCategories({ venueId }) {
     setMembers(memberMap)
 
     const list = (clientsRes.data || [])
-      .filter(r => r.customers)
       .map(r => ({
         id: r.customer_id,
-        name: r.customers.full_name || 'Sin nombre',
-        whatsapp: r.customers.whatsapp || '',
-        // La compra rápida crea la ficha sin datos, solo para colgarle el
-        // pedido. A esa gente no hay forma de reconocerla ni de categorizarla.
-        identified: !!(r.customers.full_name || r.customers.whatsapp),
+        // Sin nombre pero con cuenta, la parte del email antes de la arroba
+        // alcanza para reconocer a la persona
+        name: r.full_name || (r.email ? r.email.split('@')[0] : 'Sin nombre'),
+        email: r.email || '',
+        whatsapp: r.whatsapp || '',
+        // La compra rápida crea la ficha sin ningún dato, solo para colgarle
+        // el pedido: a esa gente no hay forma de reconocerla ni categorizarla
+        identified: !!(r.email || r.full_name || r.whatsapp),
         orders: stats[r.customer_id]?.orders || 0,
         spent: stats[r.customer_id]?.spent || 0,
       }))
@@ -241,8 +241,11 @@ export default function DiscountCategories({ venueId }) {
                   <div key={r.id} className="flex items-center justify-between gap-3 bg-carbon-800 rounded-lg px-3 py-2">
                     <div className="min-w-0">
                       <p className="text-smoke-300 text-xs truncate">{r.name}</p>
-                      <p className="text-smoke-600 text-[10px] font-mono">
-                        {r.whatsapp || 'sin WhatsApp'} · {r.orders} {r.orders === 1 ? 'pedido' : 'pedidos'}
+                      <p className="text-smoke-600 text-[10px] font-mono truncate">
+                        {[r.email, r.whatsapp].filter(Boolean).join(' · ') || 'sin contacto'}
+                      </p>
+                      <p className="text-smoke-600 text-[10px]">
+                        {r.orders} {r.orders === 1 ? 'pedido' : 'pedidos'}
                         {r.spent > 0 ? ` · ${formatPrice(r.spent)}` : ''}
                       </p>
                     </div>
@@ -272,14 +275,17 @@ function MemberPicker({ candidates, onPick }) {
   const [q, setQ] = useState('')
   const term = q.trim().toLowerCase()
   const list = candidates
-    .filter(r => !term || r.name.toLowerCase().includes(term) || r.whatsapp.includes(term))
+    .filter(r => !term
+      || r.name.toLowerCase().includes(term)
+      || r.email.toLowerCase().includes(term)
+      || r.whatsapp.includes(term))
     .slice(0, 40)
 
   return (
     <div className="bg-carbon-800 rounded-xl p-3 space-y-2">
       <input
         className="input"
-        placeholder="Buscar por nombre o WhatsApp"
+        placeholder="Buscar por nombre, email o WhatsApp"
         value={q}
         onChange={e => setQ(e.target.value)}
       />
@@ -299,8 +305,11 @@ function MemberPicker({ candidates, onPick }) {
             >
               <div className="min-w-0">
                 <p className="text-smoke-300 text-xs truncate">{r.name}</p>
-                <p className="text-smoke-600 text-[10px] font-mono">
-                  {r.whatsapp || 'sin WhatsApp'} · {r.orders} {r.orders === 1 ? 'pedido' : 'pedidos'}
+                <p className="text-smoke-600 text-[10px] font-mono truncate">
+                  {[r.email, r.whatsapp].filter(Boolean).join(' · ') || 'sin contacto'}
+                </p>
+                <p className="text-smoke-600 text-[10px]">
+                  {r.orders} {r.orders === 1 ? 'pedido' : 'pedidos'}
                 </p>
               </div>
               <span className="text-ember-400 text-[11px] font-semibold flex-shrink-0">Agregar</span>
