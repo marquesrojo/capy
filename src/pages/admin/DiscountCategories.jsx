@@ -70,9 +70,10 @@ export default function DiscountCategories({ venueId }) {
         name: r.full_name || (r.email ? r.email.split('@')[0] : 'Sin nombre'),
         email: r.email || '',
         whatsapp: r.whatsapp || '',
-        // La compra rápida crea la ficha sin ningún dato, solo para colgarle
-        // el pedido: a esa gente no hay forma de reconocerla ni categorizarla
-        identified: !!(r.email || r.full_name || r.whatsapp),
+        // Cliente del local es el que tiene cuenta, y el email es lo único
+        // obligatorio para tenerla: nombre y WhatsApp son opcionales, y el
+        // checkout rápido deja escribir cualquier cosa en el nombre.
+        identified: !!r.email,
         orders: stats[r.customer_id]?.orders || 0,
         spent: stats[r.customer_id]?.spent || 0,
       }))
@@ -184,7 +185,7 @@ export default function DiscountCategories({ venueId }) {
       <div className="px-1 flex items-center justify-between gap-3 flex-wrap">
         <p className="text-smoke-600 text-xs">
           {visibleRows.length} {visibleRows.length === 1 ? 'cliente' : 'clientes'} en el local
-          {visibleRows.length === 0 && ' — aparecen acá cuando se identifican en tu página'}
+          {visibleRows.length === 0 && ' — aparecen acá cuando inician sesión en tu página'}
         </p>
         {anonCount > 0 && (
           <button
@@ -192,8 +193,8 @@ export default function DiscountCategories({ venueId }) {
             className="text-smoke-600 text-[11px] underline"
           >
             {showAnonymous
-              ? `Ocultar ${anonCount} sin identificar`
-              : `Ver ${anonCount} sin identificar`}
+              ? `Ocultar ${anonCount} sin cuenta`
+              : `Ver ${anonCount} sin cuenta`}
           </button>
         )}
       </div>
