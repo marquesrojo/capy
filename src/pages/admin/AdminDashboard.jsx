@@ -381,7 +381,25 @@ async function loadZones() {
       )
       .subscribe()
 
-    return () => supabaseStaff.removeChannel(channel)
+    // Respaldo por si el realtime no llega —tablas fuera de la publicación,
+    // socket caído, pestaña dormida—. Más espaciado que el del mapa porque
+    // load() trae el tablero entero.
+    const tick = setInterval(() => load({ silent: true }), 20000)
+    function onWake() {
+      if (document.visibilityState === 'visible') {
+        load({ silent: true })
+        loadWaiterCalls()
+      }
+    }
+    document.addEventListener('visibilitychange', onWake)
+    window.addEventListener('focus', onWake)
+
+    return () => {
+      supabaseStaff.removeChannel(channel)
+      clearInterval(tick)
+      document.removeEventListener('visibilitychange', onWake)
+      window.removeEventListener('focus', onWake)
+    }
   }, [venueId])
 
   // Generar URLs firmadas para mostrar los comprobantes (el bucket es privado)

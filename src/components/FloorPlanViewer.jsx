@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 
+// Cada cuánto se relee la ocupación cuando el realtime no avisa. Diez segundos
+// es lo que tarda un mozo en mirar el mapa después de que entró una comanda.
+const POLL_MS = 10000
+
 export default function FloorPlanViewer({
   zones,
   venueId,
@@ -58,7 +62,27 @@ export default function FloorPlanViewer({
       .on('postgres_changes', { event: '*', schema: 'public', table: 'table_sessions', filter: `venue_id=eq.${venueId}` }, loadActive)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `venue_id=eq.${venueId}` }, loadActive)
       .subscribe()
-    return () => supabaseClient.removeChannel(channel)
+
+    // Respaldo del realtime. El canal depende de que las tablas estén en la
+    // publicación de Supabase y de que el socket siga vivo; si algo de eso
+    // falla, el mapa se queda pintado como al abrirlo y nadie se entera.
+    // loadActive son dos selects de una columna, así que se puede repetir.
+    const tick = setInterval(loadActive, POLL_MS)
+
+    // Al volver a la pantalla, sin esperar el siguiente tick: el navegador
+    // frena los timers de las pestañas en segundo plano.
+    function onWake() {
+      if (document.visibilityState === 'visible') loadActive()
+    }
+    document.addEventListener('visibilitychange', onWake)
+    window.addEventListener('focus', onWake)
+
+    return () => {
+      supabaseClient.removeChannel(channel)
+      clearInterval(tick)
+      document.removeEventListener('visibilitychange', onWake)
+      window.removeEventListener('focus', onWake)
+    }
   }, [venueId, filterZoneId])
 
   async function loadActive() {
