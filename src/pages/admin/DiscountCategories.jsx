@@ -17,6 +17,7 @@ export default function DiscountCategories({ venueId }) {
   const [percent, setPercent] = useState('')
   const [openId, setOpenId] = useState(null)
   const [addingTo, setAddingTo] = useState(null)
+  const [formError, setFormError] = useState('')
 
   useEffect(() => { if (venueId) load() }, [venueId])
 
@@ -78,15 +79,24 @@ export default function DiscountCategories({ venueId }) {
   }
 
   async function createCategory() {
-    if (!name.trim()) return
+    setFormError('')
+    if (!name.trim()) { setFormError('Poné un nombre para la categoría.'); return }
     const p = percent ? parseFloat(percent) : null
-    if (p !== null && (isNaN(p) || p <= 0 || p > 100)) { alert('El porcentaje debe ser entre 1 y 100.'); return }
-    const { error } = await supabaseStaff.from('discount_categories').insert({
-      venue_id: venueId,
-      name: name.trim(),
-      discount_percent: p,
-    })
-    if (error) { alert('Error: ' + error.message); return }
+    if (p !== null && (isNaN(p) || p <= 0 || p > 100)) {
+      setFormError('El descuento tiene que ser un número entre 1 y 100.')
+      return
+    }
+    // .select() para distinguir "no se insertó" de "se insertó y no lo veo":
+    // si la RLS filtra la escritura, vuelve sin error y sin filas
+    const { data, error } = await supabaseStaff
+      .from('discount_categories')
+      .insert({ venue_id: venueId, name: name.trim(), discount_percent: p })
+      .select('id')
+    if (error) { setFormError(error.message); return }
+    if (!data?.length) {
+      setFormError('No se pudo crear. Tu usuario no tiene permiso sobre este local.')
+      return
+    }
     setName('')
     setPercent('')
     load()
@@ -139,21 +149,24 @@ export default function DiscountCategories({ venueId }) {
           />
         </div>
         <div>
-          <label className="text-smoke-500 text-xs block mb-1">Descuento (%)</label>
+          <label className="text-smoke-500 text-xs block mb-1">
+            Descuento (%) <span className="text-smoke-600">— opcional</span>
+          </label>
           <input
             className="input"
             type="number"
             min="1"
             max="100"
-            placeholder="Ej: 15 — dejalo vacío para agrupar sin descuento"
+            placeholder="Ej: 15"
             value={percent}
             onChange={e => setPercent(e.target.value)}
           />
         </div>
+        {formError && <p className="text-red-500 text-xs">{formError}</p>}
+        {/* Sin disabled: un botón que no responde no dice qué falta */}
         <button
           onClick={createCategory}
-          disabled={!name.trim()}
-          className="w-full bg-ember-500 disabled:opacity-40 text-white font-semibold py-2.5 rounded-xl text-sm"
+          className="w-full bg-ember-500 text-white font-semibold py-2.5 rounded-xl text-sm"
         >
           Crear categoría
         </button>
