@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabaseCustomer, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useClientBase, useVenueOptional } from '../../hooks/useVenue'
+import { useOpenOrder } from '../../hooks/useOpenOrder'
 import { useCart } from '../../hooks/useCart'
 import { useCustomer } from '../../hooks/useCustomer'
 import { UtensilsIcon, XIcon } from '../../components/Icons'
@@ -143,8 +144,11 @@ export default function IdentifyPage() {
   const [deliveryEnabled, setDeliveryEnabled] = useState(false)
   // Local sin salón: la home solo ofrece retiro y delivery
   const [takeawayOnly, setTakeawayOnly] = useState(false)
-  const [ordersPaused, setOrdersPaused] = useState(false)
+  const [venuePaused, setVenuePaused] = useState(false)
   const [pauseMessage, setPauseMessage] = useState('')
+  // Al que ya está comiendo no se le corta: la pausa frena mesas nuevas
+  const { hasOpenOrder, checked } = useOpenOrder(venueId, customer?.id)
+  const ordersPaused = venuePaused && checked && !hasOpenOrder
   const [showExternalOptions, setShowExternalOptions] = useState(false)
   const [orderNumber, setOrderNumber] = useState('')
   const [finding, setFinding] = useState(false)
@@ -229,7 +233,7 @@ export default function IdentifyPage() {
         if (venueData?.retiro_externo_enabled) setRetiroExternoEnabled(true)
         if (venueData?.delivery_enabled) setDeliveryEnabled(true)
         if (venueData?.takeaway_only) { setTakeawayOnly(true); setShowExternalOptions(true) }
-        setOrdersPaused(!!venueData?.orders_paused)
+        setVenuePaused(!!venueData?.orders_paused)
         setPauseMessage(venueData?.orders_paused_message || '')
         if (venueData?.description) setDescription(venueData.description)
         if (venueData?.announcement) setAnnouncement(venueData.announcement)
@@ -265,7 +269,7 @@ export default function IdentifyPage() {
         if (data?.retiro_externo_enabled) setRetiroExternoEnabled(true)
         if (data?.delivery_enabled) setDeliveryEnabled(true)
         if (data?.takeaway_only) { setTakeawayOnly(true); setShowExternalOptions(true) }
-        setOrdersPaused(!!data?.orders_paused)
+        setVenuePaused(!!data?.orders_paused)
         setPauseMessage(data?.orders_paused_message || '')
         if (data?.description) setDescription(data.description)
         if (data?.announcement) setAnnouncement(data.announcement)
