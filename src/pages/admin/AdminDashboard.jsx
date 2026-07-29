@@ -64,6 +64,9 @@ function AdminDashboardInner() {
   const [waiters, setWaiters] = useState([])
   const [categories, setCategories] = useState([])
   const [highDemand, setHighDemand] = useState(false)
+  const [ordersPaused, setOrdersPaused] = useState(false)
+  const [pauseMessage, setPauseMessage] = useState('')
+  const [pauseMsgSaved, setPauseMsgSaved] = useState(false)
   const [venueSlug, setVenueSlug] = useState('')
   const [venueName, setVenueName] = useState('')
   const [fiscalEnabled, setFiscalEnabled] = useState(false)
@@ -160,11 +163,13 @@ async function loadZones() {
   async function loadVenue() {
     const { data } = await supabaseStaff
       .from('venues')
-      .select('high_demand, slug, name, fiscal_enabled, fiscal_condition')
+      .select('high_demand, orders_paused, orders_paused_message, slug, name, fiscal_enabled, fiscal_condition')
       .eq('id', venueId)
       .single()
     if (data) {
       setHighDemand(data.high_demand)
+      setOrdersPaused(!!data.orders_paused)
+      setPauseMessage(data.orders_paused_message || '')
       if (data.slug) setVenueSlug(data.slug)
       setVenueName(data.name || '')
       setFiscalEnabled(!!data.fiscal_enabled)
@@ -179,6 +184,31 @@ async function loadZones() {
       .from('venues')
       .update({ high_demand: newVal })
       .eq('id', venueId)
+  }
+
+  // Pausar los pedidos del cliente. La carta se sigue viendo y el camarero
+  // sigue cargando: lo único que se corta es que la gente mande pedidos sola.
+  async function toggleOrdersPaused() {
+    const newVal = !ordersPaused
+    setOrdersPaused(newVal)
+    const { error } = await supabaseStaff
+      .from('venues')
+      .update({ orders_paused: newVal })
+      .eq('id', venueId)
+      .select('id')
+    if (error) {
+      setOrdersPaused(!newVal)
+      alert('No se pudo cambiar: ' + error.message)
+    }
+  }
+
+  async function savePauseMessage() {
+    await supabaseStaff
+      .from('venues')
+      .update({ orders_paused_message: pauseMessage.trim() || null })
+      .eq('id', venueId)
+    setPauseMsgSaved(true)
+    setTimeout(() => setPauseMsgSaved(false), 1500)
   }
 
   async function loadCategories() {
@@ -526,18 +556,63 @@ async function loadZones() {
         </div>
       </header>
 
-      <div className="px-5 py-2 flex items-center justify-between border-b border-carbon-700">
-        <span className="text-smoke-400 text-xs">Alta demanda</span>
-        <button
-          onClick={toggleHighDemand}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-            highDemand ? 'bg-red-500' : 'bg-carbon-700'
-          }`}
-        >
-          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-            highDemand ? 'translate-x-6' : 'translate-x-1'
-          }`} />
-        </button>
+      <div className="px-5 py-2 border-b border-carbon-700 space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-smoke-400 text-xs">Alta demanda</span>
+          <button
+            onClick={toggleHighDemand}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              highDemand ? 'bg-red-500' : 'bg-carbon-700'
+            }`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              highDemand ? 'translate-x-6' : 'translate-x-1'
+            }`} />
+          </button>
+        </div>
+
+        {/* Encendido es lo normal: apagarlo corta los pedidos del cliente */}
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="text-smoke-400 text-xs">Pedidos de clientes</span>
+            <span className={`ml-2 text-[10px] font-semibold ${ordersPaused ? 'text-red-400' : 'text-emerald-500'}`}>
+              {ordersPaused ? 'PAUSADOS' : 'ACTIVOS'}
+            </span>
+          </div>
+          <button
+            onClick={toggleOrdersPaused}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              ordersPaused ? 'bg-carbon-700' : 'bg-emerald-600'
+            }`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              ordersPaused ? 'translate-x-1' : 'translate-x-6'
+            }`} />
+          </button>
+        </div>
+
+        {ordersPaused && (
+          <div className="pb-1">
+            <p className="text-smoke-500 text-[11px] mb-1.5">
+              La carta se sigue viendo. Los camareros siguen cargando pedidos.
+            </p>
+            <div className="flex gap-2">
+              <input
+                value={pauseMessage}
+                onChange={e => setPauseMessage(e.target.value)}
+                placeholder="Motivo para el cliente (opcional)"
+                maxLength={120}
+                className="flex-1 bg-carbon-900 border border-carbon-700 rounded-lg px-3 py-1.5 text-xs text-smoke-300"
+              />
+              <button
+                onClick={savePauseMessage}
+                className="text-ember-400 text-xs font-semibold px-2 flex-shrink-0"
+              >
+                {pauseMsgSaved ? 'Guardado' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="px-4 pt-3 flex gap-2">

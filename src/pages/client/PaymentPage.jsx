@@ -20,6 +20,9 @@ export default function PaymentPage() {
   const venueCtx = useVenueOptional()
   const venueId = venueCtx?.venue?.id || ACTIVE_VENUE_ID
   const [submitting, setSubmitting] = useState(false)
+  // El carrito pudo armarse antes de la pausa: hay que frenarlo también acá
+  const [ordersPaused, setOrdersPaused] = useState(false)
+  const [pauseMessage, setPauseMessage] = useState('')
   const [error, setError] = useState('')
   const [notes, setNotes] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('')
@@ -59,7 +62,7 @@ export default function PaymentPage() {
           .order('sort_order'),
         supabaseCustomer
           .from('venues')
-          .select('header_bg_color, mp_enabled, cash_discount_enabled, cash_discount_percent, stack_discounts')
+          .select('header_bg_color, mp_enabled, cash_discount_enabled, cash_discount_percent, stack_discounts, orders_paused, orders_paused_message')
           .eq('id', venueId)
           .single()
       ])
@@ -74,6 +77,8 @@ export default function PaymentPage() {
       if (venueRes.data?.header_bg_color) setVenueColor(venueRes.data.header_bg_color)
       if (venueRes.data) {
         setStackDiscounts(!!venueRes.data.stack_discounts)
+        setOrdersPaused(!!venueRes.data.orders_paused)
+        setPauseMessage(venueRes.data.orders_paused_message || '')
         setCashDiscount({
           enabled: venueRes.data.cash_discount_enabled || false,
           percent: venueRes.data.cash_discount_percent || 0,
@@ -324,7 +329,13 @@ export default function PaymentPage() {
       navigate(`${base}/pedido-enviado/${order.id}`)
     } catch (err) {
       console.error(err)
-      setError(`Error: ${err?.message || JSON.stringify(err)}`)
+      // El local pausó los pedidos entre que abrió el checkout y confirmó
+      if (String(err?.message || '').includes('PEDIDOS_PAUSADOS')) {
+        setOrdersPaused(true)
+        setError('El local acaba de dejar de tomar pedidos por la app. Pedile a un camarero/a que te lo cargue.')
+      } else {
+        setError(`Error: ${err?.message || JSON.stringify(err)}`)
+      }
       setSubmitting(false)
     }
   }
@@ -573,18 +584,29 @@ export default function PaymentPage() {
           <span className="font-medium">Total</span>
           <span className="font-mono font-bold text-lg" style={{ color: accent }}>{formatPrice(total)}</span>
         </div>
-        <button
-          onClick={handleConfirm}
-          disabled={submitting}
-          className="w-full disabled:opacity-50 text-white font-semibold py-4 rounded-xl"
-          style={{ backgroundColor: accent }}
-        >
-          {submitting
-            ? 'Procesando...'
-            : cashDiscountAmt > 0
-              ? `Confirmar — ${cashDiscount.percent}% off en efectivo →`
-              : 'Confirmar pedido →'}
-        </button>
+        {ordersPaused ? (
+          <div className="bg-amber-50 border border-amber-300 rounded-xl px-4 py-3.5">
+            <p className="text-amber-900 text-sm font-bold leading-snug">
+              El local dejó de tomar pedidos por la app
+            </p>
+            <p className="text-amber-800 text-sm mt-1 leading-snug">
+              {pauseMessage || 'Mostrale esta pantalla a un camarero/a y te lo cargan ellos.'}
+            </p>
+          </div>
+        ) : (
+          <button
+            onClick={handleConfirm}
+            disabled={submitting}
+            className="w-full disabled:opacity-50 text-white font-semibold py-4 rounded-xl"
+            style={{ backgroundColor: accent }}
+          >
+            {submitting
+              ? 'Procesando...'
+              : cashDiscountAmt > 0
+                ? `Confirmar — ${cashDiscount.percent}% off en efectivo →`
+                : 'Confirmar pedido →'}
+          </button>
+        )}
         <button
           onClick={() => { clearCart(); navigate(base || '/') }}
           disabled={submitting}
