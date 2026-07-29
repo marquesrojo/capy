@@ -34,17 +34,32 @@ export async function fetchVenueWaiters(venueId) {
       .map(l => l.profile?.full_name)
       .filter(Boolean)
     if (missingNames.length) {
+      // Sin profile_id no queda más que el nombre. Es un match débil —dos
+      // "Federico" en la plataforma son indistinguibles— así que se limita a
+      // los que además tienen profile_id nulo: los registros viejos que este
+      // fallback vino a cubrir. Si no, arrastraba homónimos de otros locales.
       const { data: byName } = await supabaseStaff
         .from('staff_names')
         .select('*')
         .in('full_name', missingNames)
+        .is('profile_id', null)
       linkedStaff = [...linkedStaff, ...(byName || [])]
     }
   }
 
+  // De dónde salió cada uno, porque se quitan de manera distinta: la ficha
+  // local es del venue y se desactiva; la del vinculado vive en su venue
+  // personal y lo que hay que cortar es la vinculación, no su ficha.
+  const localList = (local || []).map(w => ({ ...w, _linked: false }))
+  const linkedList = linkedStaff
+    // Los vinculados no filtraban por is_active: una ficha dada de baja seguía
+    // apareciendo en el selector del local
+    .filter(w => w.is_active !== false)
+    .map(w => ({ ...w, _linked: true }))
+
   const seenIds = new Set()
   const seenNames = new Set()
-  return [...(local || []), ...linkedStaff]
+  return [...localList, ...linkedList]
     .filter(w => {
       if (seenIds.has(w.id)) return false
       seenIds.add(w.id)
