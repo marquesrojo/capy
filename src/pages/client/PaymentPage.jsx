@@ -80,6 +80,31 @@ export default function PaymentPage() {
     loadData()
   }, [])
 
+  // Descuento por categoría: no se tipea ningún código, lo trae la pertenencia
+  // al grupo. Si el cliente además carga un código, gana el más alto.
+  useEffect(() => {
+    if (!venueId || !customer?.id) return
+    let cancelled = false
+    supabaseCustomer
+      .from('discount_category_members')
+      .select('discount_categories(id, name, discount_percent, venue_id)')
+      .eq('customer_id', customer.id)
+      .then(({ data }) => {
+        if (cancelled) return
+        const best = (data || [])
+          .map(m => m.discount_categories)
+          .filter(c => c && c.venue_id === venueId && c.discount_percent > 0)
+          .sort((a, b) => b.discount_percent - a.discount_percent)[0]
+        if (!best) return
+        setAppliedDiscount(prev =>
+          prev && prev.percent >= best.discount_percent
+            ? prev
+            : { code: null, percent: best.discount_percent, label: best.name, fromCategory: true }
+        )
+      })
+    return () => { cancelled = true }
+  }, [venueId, customer?.id])
+
   if (!location || itemCount === 0) return null
 
   const accent = accentColor(venueColor)
@@ -233,7 +258,7 @@ export default function PaymentPage() {
           notes,
           subtotal,
           discount_amount: discountAmount || null,
-          discount_code: appliedDiscount?.code || null,
+          discount_code: appliedDiscount?.code || (appliedDiscount?.fromCategory ? appliedDiscount.label : null),
           cash_discount_amount: cashDiscountAmt || null,
           total,
           payment_method: paymentOptions.find(o => o.id === paymentMethod)?.name || paymentMethod,
@@ -421,14 +446,21 @@ export default function PaymentPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[#1A2332] text-sm font-medium">Descuento aplicado</p>
-                <p className="text-emerald-600 text-xs font-semibold mt-0.5">{appliedDiscount.code} — {appliedDiscount.percent}% off{appliedDiscount.label ? ` · ${appliedDiscount.label}` : ''}</p>
+                <p className="text-emerald-600 text-xs font-semibold mt-0.5">
+                  {appliedDiscount.fromCategory
+                    ? `${appliedDiscount.label} — ${appliedDiscount.percent}% off`
+                    : `${appliedDiscount.code} — ${appliedDiscount.percent}% off${appliedDiscount.label ? ` · ${appliedDiscount.label}` : ''}`}
+                </p>
               </div>
-              <button
-                onClick={() => { setAppliedDiscount(null); setDiscountCode('') }}
-                className="text-smoke-500 text-xs underline"
-              >
-                Quitar
-              </button>
+              {/* El de categoría no se quita: no lo cargó el cliente */}
+              {!appliedDiscount.fromCategory && (
+                <button
+                  onClick={() => { setAppliedDiscount(null); setDiscountCode('') }}
+                  className="text-smoke-500 text-xs underline"
+                >
+                  Quitar
+                </button>
+              )}
             </div>
           ) : (
             <>
@@ -494,7 +526,9 @@ export default function PaymentPage() {
         )}
         {discountAmount > 0 && (
           <div className="flex items-center justify-between text-emerald-600">
-            <span className="text-sm font-medium">Descuento {appliedDiscount.percent}%</span>
+            <span className="text-sm font-medium">
+              {appliedDiscount.fromCategory ? appliedDiscount.label : 'Descuento'} {appliedDiscount.percent}%
+            </span>
             <span className="font-mono text-sm font-semibold">−{formatPrice(discountAmount)}</span>
           </div>
         )}

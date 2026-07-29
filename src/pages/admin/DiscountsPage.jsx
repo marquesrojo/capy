@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
+import DiscountCategories from './DiscountCategories'
 
 export default function DiscountsPage() {
   const { venueId } = useAuth()
@@ -13,6 +14,7 @@ export default function DiscountsPage() {
   const [percent, setPercent] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [tab, setTab] = useState('codigos')
 
   async function load() {
     const { data } = await supabaseStaff
@@ -59,11 +61,34 @@ export default function DiscountsPage() {
 
   return (
     <div className="min-h-screen bg-carbon-950 pb-10">
-      <header className="px-5 pt-5 pb-4 border-b border-carbon-700 flex items-center justify-between">
-        <h1 className="font-display text-3xl text-ember-500 tracking-wide">DESCUENTOS</h1>
-        <Link to="/admin/configuracion" className="text-smoke-400 text-xs underline">← Volver</Link>
+      <header className="px-5 pt-5 pb-4 border-b border-carbon-700">
+        <div className="flex items-center justify-between">
+          <h1 className="font-display text-3xl text-ember-500 tracking-wide">DESCUENTOS</h1>
+          <Link to="/admin/configuracion" className="text-smoke-400 text-xs underline">← Volver</Link>
+        </div>
+        <div className="flex gap-2 mt-3">
+          {[
+            { id: 'codigos', label: 'Códigos' },
+            { id: 'categorias', label: 'Categorías' },
+          ].map(x => (
+            <button
+              key={x.id}
+              onClick={() => setTab(x.id)}
+              className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
+                tab === x.id ? 'border-ember-500 text-ember-500 bg-ember-500/10' : 'border-carbon-700 text-smoke-500'
+              }`}
+            >
+              {x.label}
+            </button>
+          ))}
+        </div>
       </header>
 
+      {tab === 'categorias' ? (
+        <div className="px-5 mt-5">
+          <DiscountCategories venueId={venueId} />
+        </div>
+      ) : (
       <div className="px-5 mt-5 space-y-4">
         <button
           onClick={() => setShowForm(v => !v)}
@@ -171,6 +196,7 @@ export default function DiscountsPage() {
           </div>
         )}
       </div>
+      )}
     </div>
   )
 }
