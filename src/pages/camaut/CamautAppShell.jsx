@@ -15,6 +15,7 @@ import CamautConfigPage from './CamautConfigPage'
 import PerfilProPage from './PerfilProPage'
 import CamautKanban from './CamautKanban'
 import CamautOnboardingPage from './CamautOnboardingPage'
+import { ensureWaiterRecord } from '../../lib/camautSetup'
 import WeeklyWrapped from './WeeklyWrapped'
 
 const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent.toLowerCase())
@@ -92,9 +93,6 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
   const [installBannerDismissed, setInstallBannerDismissed] = useState(
     () => localStorage.getItem('camaut-install-dismissed') === '1'
   )
-  const [installWallSkipped, setInstallWallSkipped] = useState(
-    () => localStorage.getItem('camaut-install-skipped') === '1'
-  )
 
   useEffect(() => {
     const onPrompt = e => { e.preventDefault(); window._pwaInstallPrompt = e; setInstallPrompt(e) }
@@ -112,6 +110,8 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
     setInstallBannerDismissed(true)
   }
 
+  // Aviso de instalación. Era una pantalla completa que frenaba al camarero
+  // antes de poder trabajar; va como franja arriba del contenido.
   const showInstallBanner = !isStandalone && !appInstalled && !installBannerDismissed
 
   const [gsState, setGsState] = useState(() => {
@@ -257,6 +257,31 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
     navigate('/camareroa/login')
   }
 
+  // El camarero que llega vinculado a un local ya dio su nombre al registrarse.
+  // El alta manual no le pregunta nada nuevo —y su paso 2 le recomienda
+  // vincularse a un restaurante, que es lo que acaba de hacer—, así que se le
+  // crea la ficha en silencio y entra directo a tomar comandas.
+  const autoSetupRef = useRef(false)
+  const [autoSetupFailed, setAutoSetupFailed] = useState(false)
+
+  useEffect(() => {
+    if (venueId || !linkedVenues?.length || !staffName || autoSetupRef.current) return
+    autoSetupRef.current = true
+    ;(async () => {
+      try {
+        const { data: { session } } = await supabaseStaff.auth.getSession()
+        if (!session) return
+        await ensureWaiterRecord(session.user.id, staffName)
+        // La marca evita que un fallo posterior lo devuelva al alta en loop
+        localStorage.setItem(`camaut-onboarded-${session.user.id}`, '1')
+        window.location.reload()
+      } catch (err) {
+        console.error('Alta automática del camarero:', err)
+        setAutoSetupFailed(true)
+      }
+    })()
+  }, [venueId, linkedVenues, staffName])
+
   let alreadyOnboarded = false
   try {
     const raw = localStorage.getItem('sb-camaut-auth') || localStorage.getItem('sb-staff-auth')
@@ -270,6 +295,14 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
   // pasa cuando se da de alta escaneando el QR del local: quedaba adentro de la
   // app sin ficha y el botón de guardar el perfil no hacía nada.
   if (!venueId && !alreadyOnboarded) {
+    // Alta automática en curso: no tiene sentido mostrarle el formulario
+    if (linkedVenues?.length && staffName && !autoSetupFailed) {
+      return (
+        <div className="min-h-screen bg-[#F0F4F8] flex items-center justify-center">
+          <p className="text-[#8896A5] text-sm">Preparando tu cuenta...</p>
+        </div>
+      )
+    }
     return (
       <CamautOnboardingPage
         staffName={staffName}
@@ -279,68 +312,15 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
     )
   }
 
-  const showInstallWall = !isStandalone && !appInstalled && !installWallSkipped
-
-  if (showInstallWall) {
-    const firstName = staffName?.split(' ')[0] || 'Camarero/a'
-    return (
-      <div className="min-h-screen bg-[#0F1923] flex flex-col items-center justify-center px-8 text-center" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <img src="/icon-512.png" alt="CAPY" className="w-24 h-24 rounded-3xl shadow-2xl mb-6" />
-        <h1 className="text-white font-bold text-2xl mb-2">Hola, {firstName}</h1>
-        <p className="text-[#6B8A8A] text-sm leading-relaxed mb-8">
-          Agregá CAPY a tu pantalla de inicio para recibir notificaciones de pedidos y acceder más rápido.
-        </p>
-
-        {isIOS ? (
-          <div className="w-full bg-[#1A2A2A] rounded-2xl p-5 mb-6 text-left space-y-4">
-            {[
-              { n: '1', text: 'Tocá el botón Compartir en Safari', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00BFBF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> },
-              { n: '2', text: 'Deslizá y tocá "Agregar a pantalla de inicio"', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00BFBF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> },
-              { n: '3', text: 'Confirmá tocando "Agregar"', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00BFBF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> },
-            ].map(step => (
-              <div key={step.n} className="flex items-center gap-4">
-                <div className="w-8 h-8 rounded-full bg-[#008080]/20 flex items-center justify-center flex-shrink-0 text-[#00BFBF] font-bold text-sm">{step.n}</div>
-                <div className="flex-1 flex items-center justify-between gap-3">
-                  <p className="text-[#C0D8D8] text-sm">{step.text}</p>
-                  <div className="flex-shrink-0">{step.icon}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : installPrompt ? (
-          <button
-            onClick={async () => {
-              installPrompt.prompt()
-              const { outcome } = await installPrompt.userChoice
-              if (outcome === 'accepted') {
-                setAppInstalled(true)
-                window._pwaInstallPrompt = null
-                setInstallPrompt(null)
-              }
-            }}
-            className="w-full bg-[#008080] text-white font-bold py-4 rounded-2xl text-base mb-4"
-          >
-            Agregar al escritorio →
-          </button>
-        ) : (
-          <div className="w-full bg-[#1A2A2A] rounded-2xl p-4 mb-6 text-left">
-            <p className="text-[#C0D8D8] text-sm">
-              Abrí esta página desde <span className="text-white font-semibold">Chrome</span> para poder agregarla al escritorio.
-            </p>
-          </div>
-        )}
-
-        <button
-          onClick={() => {
-            localStorage.setItem('camaut-install-skipped', '1')
-            setInstallWallSkipped(true)
-          }}
-          className="text-[#3A5A5A] text-xs underline mt-2"
-        >
-          Continuar en el navegador
-        </button>
-      </div>
-    )
+  async function triggerInstall() {
+    if (!installPrompt) return
+    installPrompt.prompt()
+    const { outcome } = await installPrompt.userChoice
+    if (outcome === 'accepted') {
+      setAppInstalled(true)
+      window._pwaInstallPrompt = null
+      setInstallPrompt(null)
+    }
   }
 
   return (
@@ -401,6 +381,35 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
       </div>
 
       <div className="flex-1 overflow-y-auto flex flex-col">
+      {/* Instalar en la pantalla de inicio */}
+      {showInstallBanner && (
+        <div className="bg-[#0F1923] text-white px-4 py-2.5 flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold leading-tight">Agregala a tu pantalla de inicio</p>
+            <p className="text-[#6B8A8A] text-[11px] leading-tight mt-0.5">
+              {isIOS
+                ? 'Compartir → "Agregar a pantalla de inicio"'
+                : 'Para recibir avisos de pedidos y entrar más rápido'}
+            </p>
+          </div>
+          {!isIOS && installPrompt && (
+            <button
+              onClick={triggerInstall}
+              className="flex-shrink-0 bg-[#008080] text-white text-[11px] font-bold px-3 py-1.5 rounded-full"
+            >
+              Agregar
+            </button>
+          )}
+          <button
+            onClick={dismissInstallBanner}
+            aria-label="Descartar"
+            className="flex-shrink-0 text-[#6B8A8A] text-sm px-1"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Wrapped notification banner */}
       {wrappedReady && !wrappedSeen && !showWrapped && (
         <button
