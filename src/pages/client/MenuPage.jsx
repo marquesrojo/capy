@@ -6,7 +6,6 @@ import { useCustomer } from '../../hooks/useCustomer'
 import { formatPrice } from '../../lib/utils'
 import BottomNav from '../../components/BottomNav'
 import { useClientBase, useVenueOptional } from '../../hooks/useVenue'
-import { useOpenOrder } from '../../hooks/useOpenOrder'
 import { PinIcon, SunIcon, ShoppingBagIcon, ClockIcon, XIcon, DIETARY_TAGS } from '../../components/Icons'
 import RecommendModal from '../../components/RecommendModal'
 import EmailLoginModal from '../../components/EmailLoginModal'
@@ -20,7 +19,7 @@ export default function MenuPage() {
   const [showRecommend, setShowRecommend] = useState(false)
   const [search, setSearch] = useState('')
   const [highDemand, setHighDemand] = useState(false)
-  const [venuePaused, setVenuePaused] = useState(false)
+  const [ordersPaused, setOrdersPaused] = useState(false)
   const [pauseMessage, setPauseMessage] = useState('')
   const [venueName, setVenueName] = useState('')
   const [venueLogo, setVenueLogo] = useState('')
@@ -103,7 +102,7 @@ export default function MenuPage() {
       if (cats.length) setActiveCategory(cats[0].id)
       if (venueRes.data) {
         setHighDemand(venueRes.data.high_demand)
-        setVenuePaused(!!venueRes.data.orders_paused)
+        setOrdersPaused(!!venueRes.data.orders_paused)
         setPauseMessage(venueRes.data.orders_paused_message || '')
         setVenueName(venueRes.data.name)
         setVenueLogo(venueRes.data.logo_url)
@@ -114,10 +113,6 @@ export default function MenuPage() {
     }
     load()
   }, [])
-
-  // Con un pedido abierto se sigue pudiendo sumar aunque el local haya pausado
-  const { hasOpenOrder, checked } = useOpenOrder(venueId, customer?.id)
-  const ordersPaused = venuePaused && checked && !hasOpenOrder
 
   function handleRemoveFromMenu(product) {
     const index = items.findIndex(i => i.product.id === product.id)

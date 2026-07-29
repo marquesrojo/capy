@@ -5,7 +5,6 @@ import { useCart } from '../../hooks/useCart'
 import { useCustomer } from '../../hooks/useCustomer'
 import { formatPrice, accentColor } from '../../lib/utils'
 import { useClientBase, useVenueOptional } from '../../hooks/useVenue'
-import { useOpenOrder } from '../../hooks/useOpenOrder'
 import { PinIcon } from '../../components/Icons'
 
 // Payment method chosen here is a PREFERENCE declared by the customer.
@@ -22,7 +21,7 @@ export default function PaymentPage() {
   const venueId = venueCtx?.venue?.id || ACTIVE_VENUE_ID
   const [submitting, setSubmitting] = useState(false)
   // El carrito pudo armarse antes de la pausa: hay que frenarlo también acá
-  const [venuePaused, setVenuePaused] = useState(false)
+  const [ordersPaused, setOrdersPaused] = useState(false)
   const [pauseMessage, setPauseMessage] = useState('')
   const [error, setError] = useState('')
   const [notes, setNotes] = useState('')
@@ -40,10 +39,6 @@ export default function PaymentPage() {
   const [discountLoading, setDiscountLoading] = useState(false)
   const [cashDiscount, setCashDiscount] = useState({ enabled: false, percent: 0 })
   const [stackDiscounts, setStackDiscounts] = useState(false)
-
-  // Sumar al pedido abierto sigue habilitado aunque el local haya pausado
-  const { hasOpenOrder, checked } = useOpenOrder(venueId, customer?.id)
-  const ordersPaused = venuePaused && checked && !hasOpenOrder
 
   useEffect(() => {
     if (itemCount === 0) navigate(`${base}/carta`)
@@ -82,7 +77,7 @@ export default function PaymentPage() {
       if (venueRes.data?.header_bg_color) setVenueColor(venueRes.data.header_bg_color)
       if (venueRes.data) {
         setStackDiscounts(!!venueRes.data.stack_discounts)
-        setVenuePaused(!!venueRes.data.orders_paused)
+        setOrdersPaused(!!venueRes.data.orders_paused)
         setPauseMessage(venueRes.data.orders_paused_message || '')
         setCashDiscount({
           enabled: venueRes.data.cash_discount_enabled || false,
@@ -336,7 +331,7 @@ export default function PaymentPage() {
       console.error(err)
       // El local pausó los pedidos entre que abrió el checkout y confirmó
       if (String(err?.message || '').includes('PEDIDOS_PAUSADOS')) {
-        setVenuePaused(true)
+        setOrdersPaused(true)
         setError('El local acaba de dejar de tomar pedidos por la app. Pedile a un camarero/a que te lo cargue.')
       } else {
         setError(`Error: ${err?.message || JSON.stringify(err)}`)
