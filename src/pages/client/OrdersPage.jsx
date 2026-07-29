@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabaseCustomer } from '../../lib/supabase'
+import { supabaseCustomer, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useCustomer } from '../../hooks/useCustomer'
+import { useVenueOptional } from '../../hooks/useVenue'
 import { formatPrice, STATUS_LABELS, STATUS_COLORS } from '../../lib/utils'
 import BottomNav from '../../components/BottomNav'
 import { PinIcon } from '../../components/Icons'
@@ -14,21 +15,29 @@ export default function OrdersPage() {
   const navigate = useNavigate()
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
+  // La misma cuenta pide en varios locales: acá van los pedidos de este, no los
+  // de todos. Bajo /r/:slug manda el venue de la URL; en las rutas planas, que
+  // no tienen VenueProvider, vale el venue activo.
+  const venueCtx = useVenueOptional()
+  const venueId = venueCtx ? venueCtx.venue?.id : ACTIVE_VENUE_ID
 
   useEffect(() => {
     if (customerLoading) return
+    // El slug todavía se está resolviendo: sin venue no hay qué filtrar
+    if (venueCtx && !venueId) return
     async function load() {
       const { data } = await supabaseCustomer
         .from('orders')
         .select('*')
         .eq('customer_id', customer.id)
+        .eq('venue_id', venueId)
         .order('created_at', { ascending: false })
       setOrders(data || [])
       setLoading(false)
     }
     if (customer) load()
     else setLoading(false)
-  }, [customer, customerLoading])
+  }, [customer, customerLoading, venueId])
 
   // Group orders by session_id; orders without one are standalone
   function groupBySession(orderList) {
