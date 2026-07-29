@@ -178,6 +178,8 @@ export default function PaymentPage() {
         return
       }
       activeCustomer = data
+      // Primer pedido: acá es donde muchos completan sus datos por primera vez
+      supabaseCustomer.rpc('link_customer_to_venue', { p_venue_id: venueId }).catch(() => {})
     }
 
     setSubmitting(true)

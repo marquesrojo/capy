@@ -2,17 +2,12 @@ import { useEffect, useState } from 'react'
 import { supabaseStaff } from '../../lib/supabase'
 import { formatPrice } from '../../lib/utils'
 
-function randomCode() {
-  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
-  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
-}
-
 // Categorías de descuento: un grupo de clientes del local con un porcentaje
 // asociado. A diferencia de un código, no se comparte ni se tipea — lo tiene
-// quien pertenece, incluidos los que se sumen después.
+// quien pertenece, incluidos los que se agreguen después.
 //
-// Los clientes salen de los pedidos del local; no hay un alta aparte. Se suman
-// los miembros que entraron por el link sin haber pedido todavía.
+// Los clientes del local son los de venue_customers: los que se identificaron
+// en su página, hayan pedido o no.
 export default function DiscountCategories({ venueId }) {
   const [categories, setCategories] = useState([])
   const [rows, setRows] = useState([])
@@ -22,63 +17,63 @@ export default function DiscountCategories({ venueId }) {
   const [percent, setPercent] = useState('')
   const [openId, setOpenId] = useState(null)
   const [addingTo, setAddingTo] = useState(null)
-  const [copied, setCopied] = useState('')
 
   useEffect(() => { if (venueId) load() }, [venueId])
 
   async function load() {
     setLoading(true)
-    const [ordersRes, catsRes] = await Promise.all([
+    const [clientsRes, catsRes, ordersRes] = await Promise.all([
       supabaseStaff
-        .from('orders')
-        .select('customer_id, total, customers(id, full_name, whatsapp)')
-        .eq('venue_id', venueId)
-        .not('customer_id', 'is', null)
-        .neq('status', 'cancelado'),
+        .from('venue_customers')
+        .select('customer_id, first_seen_at, customers(id, full_name, whatsapp)')
+        .eq('venue_id', venueId),
       supabaseStaff
         .from('discount_categories')
         .select('*')
         .eq('venue_id', venueId)
         .order('created_at'),
+      supabaseStaff
+        .from('orders')
+        .select('customer_id, total')
+        .eq('venue_id', venueId)
+        .not('customer_id', 'is', null)
+        .neq('status', 'cancelado'),
     ])
 
     const cats = catsRes.data || []
     setCategories(cats)
 
-    const orders = ordersRes.data || []
-    const memberMap = {}
+    const stats = {}
+    for (const o of ordersRes.data || []) {
+      const s = (stats[o.customer_id] ||= { orders: 0, spent: 0 })
+      s.orders += 1
+      s.spent += Number(o.total) || 0
+    }
 
+    const memberMap = {}
     if (cats.length) {
       const { data: mem } = await supabaseStaff
         .from('discount_category_members')
-        .select('category_id, customer_id, customers(id, full_name, whatsapp)')
+        .select('category_id, customer_id')
         .in('category_id', cats.map(c => c.id))
       for (const m of mem || []) {
         ;(memberMap[m.customer_id] ||= []).push(m.category_id)
-        // Se sumó por el link y todavía no pidió: igual es cliente del local
-        if (m.customers && !orders.some(o => o.customer_id === m.customer_id)) {
-          orders.push({ customer_id: m.customer_id, total: 0, customers: m.customers, _noOrders: true })
-        }
       }
     }
     setMembers(memberMap)
 
-    const byCustomer = {}
-    for (const o of orders) {
-      if (!o.customers) continue
-      const c = (byCustomer[o.customer_id] ||= {
-        id: o.customer_id,
-        name: o.customers.full_name || 'Sin nombre',
-        whatsapp: o.customers.whatsapp || '',
-        orders: 0,
-        spent: 0,
-      })
-      if (!o._noOrders) {
-        c.orders += 1
-        c.spent += Number(o.total) || 0
-      }
-    }
-    setRows(Object.values(byCustomer).sort((a, b) => b.orders - a.orders))
+    const list = (clientsRes.data || [])
+      .filter(r => r.customers)
+      .map(r => ({
+        id: r.customer_id,
+        name: r.customers.full_name || 'Sin nombre',
+        whatsapp: r.customers.whatsapp || '',
+        orders: stats[r.customer_id]?.orders || 0,
+        spent: stats[r.customer_id]?.spent || 0,
+      }))
+      .sort((a, b) => b.orders - a.orders || a.name.localeCompare(b.name))
+
+    setRows(list)
     setLoading(false)
   }
 
@@ -89,18 +84,12 @@ export default function DiscountCategories({ venueId }) {
     const { error } = await supabaseStaff.from('discount_categories').insert({
       venue_id: venueId,
       name: name.trim(),
-      join_code: randomCode(),
       discount_percent: p,
     })
     if (error) { alert('Error: ' + error.message); return }
     setName('')
     setPercent('')
     load()
-  }
-
-  async function updateCategory(id, patch) {
-    await supabaseStaff.from('discount_categories').update(patch).eq('id', id)
-    setCategories(prev => prev.map(c => c.id === id ? { ...c, ...patch } : c))
   }
 
   async function deleteCategory(id) {
@@ -126,10 +115,6 @@ export default function DiscountCategories({ venueId }) {
     load()
   }
 
-  function joinUrl(code) {
-    return `${window.location.origin}/sumarme/${code}`
-  }
-
   if (loading) return <p className="text-smoke-500 text-sm text-center py-8">Cargando...</p>
 
   return (
@@ -139,7 +124,7 @@ export default function DiscountCategories({ venueId }) {
           <p className="text-smoke-300 text-sm font-medium">Nueva categoría de descuento</p>
           <p className="text-smoke-500 text-xs mt-1">
             Un grupo de clientes con su propio descuento — por ejemplo "Veteranos". No hay código que
-            tipear: lo tiene quien pertenece, también los que se sumen después.
+            tipear: lo tiene quien pertenece, y se aplica solo al confirmar el pedido.
           </p>
         </div>
         <div className="flex gap-2">
@@ -168,6 +153,11 @@ export default function DiscountCategories({ venueId }) {
         </button>
       </div>
 
+      <p className="text-smoke-600 text-xs px-1">
+        {rows.length} {rows.length === 1 ? 'cliente' : 'clientes'} en el local
+        {rows.length === 0 && ' — aparecen acá cuando se identifican en tu página'}
+      </p>
+
       {categories.length === 0 ? (
         <p className="text-smoke-500 text-sm text-center py-6">Todavía no hay categorías.</p>
       ) : categories.map(c => {
@@ -188,60 +178,20 @@ export default function DiscountCategories({ venueId }) {
               </button>
             </div>
 
-            <div className="bg-carbon-800 rounded-xl p-3">
-              <p className="text-smoke-500 text-[10px] font-semibold uppercase tracking-wide mb-1.5">
-                Link para sumarse
-              </p>
-              <p className="text-smoke-300 text-xs font-mono break-all mb-2.5">{joinUrl(c.join_code)}</p>
-              <div className="flex items-center gap-2 flex-wrap">
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(joinUrl(c.join_code))
-                    setCopied(c.id)
-                    setTimeout(() => setCopied(''), 2000)
-                  }}
-                  className="bg-ember-500 text-white text-[11px] font-semibold px-3 py-1.5 rounded-full"
-                >
-                  {copied === c.id ? '¡Copiado! ✓' : 'Copiar link'}
-                </button>
-                <a
-                  href={`https://wa.me/?text=${encodeURIComponent(`Sumate a ${c.name}: ${joinUrl(c.join_code)}`)}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="border border-emerald-500/40 text-emerald-500 text-[11px] font-semibold px-3 py-1.5 rounded-full"
-                >
-                  Enviar por WhatsApp
-                </a>
-                <button
-                  onClick={() => updateCategory(c.id, { join_open: !c.join_open })}
-                  className={`text-[11px] font-semibold px-3 py-1.5 rounded-full border ${
-                    c.join_open ? 'border-carbon-600 text-smoke-500' : 'border-amber-500/40 text-amber-500'
-                  }`}
-                >
-                  {c.join_open ? 'Cerrar altas' : 'Reabrir altas'}
-                </button>
-              </div>
-              {!c.join_open && (
-                <p className="text-smoke-600 text-[11px] mt-2">
-                  El link ya no suma gente nueva. Los que están conservan el descuento.
-                </p>
-              )}
-            </div>
-
             <div className="flex gap-3 flex-wrap">
               {memberRows.length > 0 && (
                 <button
                   onClick={() => { setOpenId(openId === c.id ? null : c.id); setAddingTo(null) }}
                   className="text-smoke-400 text-xs font-semibold underline"
                 >
-                  {openId === c.id ? 'Ocultar clientes' : `Ver los ${memberRows.length}`}
+                  {openId === c.id ? 'Ocultar' : `Ver los ${memberRows.length}`}
                 </button>
               )}
               <button
                 onClick={() => { setAddingTo(addingTo === c.id ? null : c.id); setOpenId(null) }}
                 className="text-ember-400 text-xs font-semibold underline"
               >
-                {addingTo === c.id ? 'Cancelar' : '+ Agregar a mano'}
+                {addingTo === c.id ? 'Cancelar' : '+ Agregar clientes'}
               </button>
             </div>
 
@@ -277,13 +227,13 @@ export default function DiscountCategories({ venueId }) {
   )
 }
 
-// Los que ya pidieron en el local y todavía no están en la categoría
+// Clientes del local que todavía no están en la categoría
 function MemberPicker({ candidates, onPick }) {
   const [q, setQ] = useState('')
   const term = q.trim().toLowerCase()
   const list = candidates
     .filter(r => !term || r.name.toLowerCase().includes(term) || r.whatsapp.includes(term))
-    .slice(0, 30)
+    .slice(0, 40)
 
   return (
     <div className="bg-carbon-800 rounded-xl p-3 space-y-2">
@@ -295,7 +245,7 @@ function MemberPicker({ candidates, onPick }) {
       />
       {candidates.length === 0 ? (
         <p className="text-smoke-600 text-xs text-center py-2">
-          Todavía no hay clientes con pedidos en el local.
+          No hay clientes para agregar.
         </p>
       ) : list.length === 0 ? (
         <p className="text-smoke-600 text-xs text-center py-2">Nadie coincide con la búsqueda.</p>

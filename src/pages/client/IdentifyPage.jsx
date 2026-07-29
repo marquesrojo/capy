@@ -78,6 +78,17 @@ export default function IdentifyPage() {
       alert(`Error de login: ${e?.message || e}`)
     }
   }
+  // Cliente del local: queda asociado al local donde se identifica, sin
+  // necesidad de pedir. Si otro día se identifica en otro, queda en los dos.
+  useEffect(() => {
+    if (!venueId || !customer?.id) return
+    const key = `capy-venue-linked-${venueId}`
+    try { if (localStorage.getItem(key) === '1') return } catch { /* storage no disponible */ }
+    supabaseCustomer.rpc('link_customer_to_venue', { p_venue_id: venueId }).then(({ error }) => {
+      if (!error) { try { localStorage.setItem(key, '1') } catch { /* ignore */ } }
+    })
+  }, [venueId, customer?.id])
+
   async function sendSuggestion() {
     if (!suggestion.trim()) return
     setSuggestionState('sending')
