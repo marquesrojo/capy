@@ -15,15 +15,30 @@ export default function DiscountsPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [tab, setTab] = useState('codigos')
+  const [stack, setStack] = useState(false)
 
   async function load() {
-    const { data } = await supabaseStaff
-      .from('venue_discounts')
-      .select('*')
-      .eq('venue_id', venueId)
-      .order('created_at', { ascending: false })
+    const [{ data }, venueRes] = await Promise.all([
+      supabaseStaff
+        .from('venue_discounts')
+        .select('*')
+        .eq('venue_id', venueId)
+        .order('created_at', { ascending: false }),
+      supabaseStaff.from('venues').select('stack_discounts').eq('id', venueId).single(),
+    ])
     setDiscounts(data || [])
+    setStack(!!venueRes.data?.stack_discounts)
     setLoading(false)
+  }
+
+  async function toggleStack() {
+    const next = !stack
+    setStack(next)
+    const { error } = await supabaseStaff
+      .from('venues')
+      .update({ stack_discounts: next })
+      .eq('id', venueId)
+    if (error) { alert('Error: ' + error.message); setStack(!next) }
   }
 
   useEffect(() => { if (venueId) load() }, [venueId])
@@ -83,6 +98,26 @@ export default function DiscountsPage() {
           ))}
         </div>
       </header>
+
+      <div className="px-5 mt-4">
+        <button
+          type="button"
+          onClick={toggleStack}
+          className="w-full flex items-center justify-between gap-3 bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-3 text-left"
+        >
+          <div>
+            <p className="text-smoke-200 font-semibold text-sm">Acumular descuentos</p>
+            <p className="text-smoke-500 text-xs mt-0.5">
+              {stack
+                ? 'Se suman: categoría, código y el de efectivo en el mismo pedido'
+                : 'Se aplica uno solo: primero la categoría del cliente, si no el código o el de efectivo'}
+            </p>
+          </div>
+          <div className={`relative w-10 h-5 rounded-full transition-colors flex-shrink-0 ${stack ? 'bg-ember-500' : 'bg-carbon-600'}`}>
+            <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${stack ? 'translate-x-5' : 'translate-x-0.5'}`} />
+          </div>
+        </button>
+      </div>
 
       {tab === 'categorias' ? (
         <div className="px-5 mt-5">

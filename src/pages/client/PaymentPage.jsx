@@ -35,6 +35,7 @@ export default function PaymentPage() {
   const [discountError, setDiscountError] = useState('')
   const [discountLoading, setDiscountLoading] = useState(false)
   const [cashDiscount, setCashDiscount] = useState({ enabled: false, percent: 0 })
+  const [stackDiscounts, setStackDiscounts] = useState(false)
 
   useEffect(() => {
     if (itemCount === 0) navigate(`${base}/carta`)
@@ -58,7 +59,7 @@ export default function PaymentPage() {
           .order('sort_order'),
         supabaseCustomer
           .from('venues')
-          .select('header_bg_color, mp_enabled, cash_discount_enabled, cash_discount_percent')
+          .select('header_bg_color, mp_enabled, cash_discount_enabled, cash_discount_percent, stack_discounts')
           .eq('id', venueId)
           .single()
       ])
@@ -72,6 +73,7 @@ export default function PaymentPage() {
       setQuickNotes(notesRes.data || [])
       if (venueRes.data?.header_bg_color) setVenueColor(venueRes.data.header_bg_color)
       if (venueRes.data) {
+        setStackDiscounts(!!venueRes.data.stack_discounts)
         setCashDiscount({
           enabled: venueRes.data.cash_discount_enabled || false,
           percent: venueRes.data.cash_discount_percent || 0,
@@ -116,21 +118,30 @@ export default function PaymentPage() {
     ? Number(cashDiscount.percent)
     : 0
 
-  // Los descuentos no se suman: se aplica uno solo. Primero la categoría del
-  // cliente —es una condición suya, no una promoción—; después el código o el
-  // de efectivo, y entre esos dos el más alto.
-  const effectiveDiscount = categoryDiscount
-    ? { percent: categoryDiscount.percent, label: categoryDiscount.label, kind: 'categoria' }
-    : appliedDiscount && appliedDiscount.percent >= cashPercent
-      ? { percent: Number(appliedDiscount.percent), label: appliedDiscount.label || appliedDiscount.code, kind: 'codigo' }
-      : cashPercent > 0
-        ? { percent: cashPercent, label: 'Efectivo', kind: 'efectivo' }
-        : null
+  const candidates = [
+    categoryDiscount && { percent: categoryDiscount.percent, label: categoryDiscount.label, kind: 'categoria' },
+    appliedDiscount && { percent: Number(appliedDiscount.percent), label: appliedDiscount.label || appliedDiscount.code, kind: 'codigo' },
+    cashPercent > 0 && { percent: cashPercent, label: 'Efectivo', kind: 'efectivo' },
+  ].filter(Boolean)
 
-  const discountAmount = effectiveDiscount ? Math.round(subtotal * effectiveDiscount.percent / 100) : 0
-  // Se sigue guardando en su columna para no romper los reportes de efectivo
-  const cashDiscountAmt = effectiveDiscount?.kind === 'efectivo' ? discountAmount : 0
-  const otherDiscountAmt = effectiveDiscount && effectiveDiscount.kind !== 'efectivo' ? discountAmount : 0
+  // Con acumulación apagada —lo habitual— se aplica uno solo: primero la
+  // categoría del cliente, que es una condición suya y no una promoción, y si
+  // no tiene, el más alto entre el código y el de efectivo.
+  const singleDiscount = candidates.find(d => d.kind === 'categoria')
+    || [...candidates].sort((a, b) => b.percent - a.percent)[0]
+    || null
+  const applied = stackDiscounts ? candidates : (singleDiscount ? [singleDiscount] : [])
+
+  // Nunca por debajo de cero, aunque la suma pase el 100%
+  const rawDiscount = applied.reduce((s, d) => s + Math.round(subtotal * d.percent / 100), 0)
+  const discountAmount = Math.min(rawDiscount, subtotal)
+  const cashDiscountAmt = applied
+    .filter(d => d.kind === 'efectivo')
+    .reduce((s, d) => s + Math.round(subtotal * d.percent / 100), 0)
+  const otherDiscountAmt = Math.max(0, discountAmount - cashDiscountAmt)
+  // Con acumulación puede haber más de uno, así que el pedido guarda todas
+  // las etiquetas que no sean la de efectivo, que va en su propia columna
+  const discountLabels = applied.filter(d => d.kind !== 'efectivo').map(d => d.label)
   const total = subtotal - discountAmount
 
   async function applyDiscount() {
@@ -271,9 +282,7 @@ export default function PaymentPage() {
           notes,
           subtotal,
           discount_amount: otherDiscountAmt || null,
-          discount_code: effectiveDiscount && effectiveDiscount.kind !== 'efectivo'
-            ? (appliedDiscount?.code || effectiveDiscount.label)
-            : null,
+          discount_code: discountLabels.length ? discountLabels.join(' + ') : null,
           cash_discount_amount: cashDiscountAmt || null,
           total,
           payment_method: paymentOptions.find(o => o.id === paymentMethod)?.name || paymentMethod,
@@ -457,7 +466,7 @@ export default function PaymentPage() {
         </label>
 
         <div className="bg-white border border-black/[0.06] rounded-2xl p-4 shadow-sm space-y-2">
-          {categoryDiscount ? (
+          {categoryDiscount && !stackDiscounts ? (
             <div>
               <p className="text-[#1A2332] text-sm font-medium">Descuento aplicado</p>
               <p className="text-emerald-600 text-xs font-semibold mt-0.5">
@@ -504,6 +513,11 @@ export default function PaymentPage() {
                 </button>
               </div>
               {discountError && <p className="text-red-500 text-xs">{discountError}</p>}
+              {categoryDiscount && stackDiscounts && (
+                <p className="text-emerald-600 text-[11px]">
+                  Ya tenés {categoryDiscount.percent}% por {categoryDiscount.label}. Un código se suma a eso.
+                </p>
+              )}
             </>
           )}
         </div>
@@ -515,9 +529,9 @@ export default function PaymentPage() {
               {paymentOptions.map(opt => {
                 const active = paymentMethod === opt.id
                 const isCashOpt = opt.name.toLowerCase().includes('efectivo')
-                // Con un descuento de mayor prioridad, el de efectivo no suma
-                const cashWouldApply = !categoryDiscount
-                  && !(appliedDiscount && appliedDiscount.percent >= cashDiscount.percent)
+                // Sin acumulación, un descuento de mayor prioridad lo anula
+                const cashWouldApply = stackDiscounts || (!categoryDiscount
+                  && !(appliedDiscount && appliedDiscount.percent >= cashDiscount.percent))
                 const showCashBadge = isCashOpt && cashDiscount.enabled && cashDiscount.percent > 0 && cashWouldApply
                 return (
                   <button
@@ -547,14 +561,14 @@ export default function PaymentPage() {
             <span className="font-mono text-sm text-smoke-500">{formatPrice(subtotal)}</span>
           </div>
         )}
-        {discountAmount > 0 && (
-          <div className="flex items-center justify-between text-emerald-600">
-            <span className="text-sm font-medium">
-              {effectiveDiscount.label} {effectiveDiscount.percent}%
+        {applied.map(d => (
+          <div key={d.kind} className="flex items-center justify-between text-emerald-600">
+            <span className="text-sm font-medium">{d.label} {d.percent}%</span>
+            <span className="font-mono text-sm font-semibold">
+              −{formatPrice(Math.round(subtotal * d.percent / 100))}
             </span>
-            <span className="font-mono text-sm font-semibold">−{formatPrice(discountAmount)}</span>
           </div>
-        )}
+        ))}
         <div className="flex items-center justify-between text-[#1A2332]">
           <span className="font-medium">Total</span>
           <span className="font-mono font-bold text-lg" style={{ color: accent }}>{formatPrice(total)}</span>
