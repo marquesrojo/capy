@@ -4,16 +4,9 @@ import { supabaseCustomer, ACTIVE_VENUE_ID } from '../../lib/supabase'
 import { useClientBase, useVenueOptional } from '../../hooks/useVenue'
 import { useCart } from '../../hooks/useCart'
 import { useCustomer } from '../../hooks/useCustomer'
-import { ClipboardIcon, HelpCircleIcon, FileTextIcon, MessageIcon, PinIcon, UtensilsIcon, XIcon } from '../../components/Icons'
+import { UtensilsIcon, XIcon } from '../../components/Icons'
 import ClientFloorMap from '../../components/ClientFloorMap'
 import EmailLoginModal from '../../components/EmailLoginModal'
-
-const WAITER_REASONS = [
-  { id: 'tomar_pedido', label: 'Tomar mi pedido', Icon: ClipboardIcon },
-  { id: 'consulta_carta', label: 'Consulta sobre la carta', Icon: HelpCircleIcon },
-  { id: 'traer_cuenta', label: 'Traer la cuenta', Icon: FileTextIcon },
-  { id: 'otra_consulta', label: 'Otra consulta', Icon: MessageIcon },
-]
 
 // Extrae el número de un nombre como "Mesa 4" → "4", o devuelve las primeras 2 letras
 function zoneShort(name) {
@@ -150,18 +143,13 @@ export default function IdentifyPage() {
   const [pickedSector, setPickedSector] = useState(null)
   const [pickedZone, setPickedZone] = useState(null)
   const [showZonePicker, setShowZonePicker] = useState(false)
+  const [showRetiroPicker, setShowRetiroPicker] = useState(false)
   const [zonePickerView, setZonePickerView] = useState('lista') // 'lista' | 'mapa'
   const [locationDisplayMode, setLocationDisplayMode] = useState('lista') // 'lista' | 'ambos' | 'mapa'
   const [mapZone, setMapZone] = useState(null)
   const [waiterMapZone, setWaiterMapZone] = useState(null)
 
   const [showOrderLookup, setShowOrderLookup] = useState(false)
-  const [showWaiterCall, setShowWaiterCall] = useState(false)
-  const [selectedReason, setSelectedReason] = useState(null)
-  const [waiterSector, setWaiterSector] = useState(null)
-  const [callLoading, setCallLoading] = useState(false)
-  const [callSent, setCallSent] = useState(false)
-  const [waiterCallView, setWaiterCallView] = useState('lista') // 'lista' | 'mapa'
   const [waiterAlertWa, setWaiterAlertWa] = useState(null) // venue fallback WA for waiter calls
   const [callWaiterWa, setCallWaiterWa] = useState(null) // resolved WA shown after call is sent
   const [linkCopied, setLinkCopied] = useState(false)
@@ -318,44 +306,9 @@ export default function IdentifyPage() {
     setPickedZone(mesa)
     setLocation({ type: mesa.type, zoneId: mesa.id, label: mesa.name })
     setShowZonePicker(false)
-  }
-
-  async function openWaiterCall() {
-    setWaiterCallView(zonePickerView) // inherit venue's configured view mode
-    setShowWaiterCall(true)
-    setCallSent(false)
-    setSelectedReason(null)
-    setWaiterSector(null)
-  }
-
-  async function submitCall(zoneId, zoneName) {
-    setCallLoading(true)
-    const reason = WAITER_REASONS.find(r => r.id === selectedReason)
-    const safeZone = zoneName || 'Sin especificar'
-    const locationLabel = reason ? `${safeZone} — ${reason.label}` : safeZone
-    await supabaseCustomer.from('waiter_calls').insert({
-      venue_id: venueId,
-      zone_id: zoneId,
-      location_label: locationLabel,
-    })
-    fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-staff`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', apikey: import.meta.env.VITE_SUPABASE_ANON_KEY },
-      body: JSON.stringify({
-        venue_id: venueId,
-        title: '🔔 Solicitud de atención',
-        body: locationLabel,
-      }),
-    }).catch(() => {})
-    fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-waiter-call`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', apikey: import.meta.env.VITE_SUPABASE_ANON_KEY, Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` },
-      body: JSON.stringify({ zone_id: zoneId, venue_id: venueId, location_label: locationLabel }),
-    }).catch(() => {})
-    const foundZone = zones.find(z => z.id === zoneId)
-    setCallWaiterWa(foundZone?.current_waiter?.whatsapp_number || waiterAlertWa || null)
-    setCallLoading(false)
-    setCallSent(true)
+    setShowRetiroPicker(false)
+    // El botón promete pedir: elegida la ubicación, va derecho a la carta
+    navigate(cartaPath)
   }
 
   async function handleFindOrder(e) {
@@ -634,28 +587,27 @@ export default function IdentifyPage() {
       {/* ── Contenido principal ── */}
       <div className={`px-4 pt-4 pb-6 space-y-3 w-full md:max-w-xl md:mx-auto md:px-6 ${fd ? 'max-w-2xl px-8 pt-8 pb-12 mx-auto' : fc ? '' : 'lg:max-w-2xl lg:px-8 lg:pt-8 lg:pb-12'}`}>
 
-        {/* ── ¿En qué mesa estás? — PRIMERO ── */}
+        {/* ── Pido desde la mesa: abre las ubicaciones acá mismo ── */}
         {!takeawayOnly && !prefillZoneId && zones.length > 0 && (
           <div>
-          {/* Toggle row */}
           <button
-            onClick={() => setShowZonePicker(v => !v)}
-            className="w-full flex items-center justify-between bg-white rounded-2xl px-4 py-3 border border-black/[0.06] shadow-sm active:opacity-80"
+            onClick={() => { setShowRetiroPicker(false); setShowZonePicker(v => !v) }}
+            className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl shadow-lg active:scale-[0.98] transition-transform"
+            style={{ backgroundColor: selfColor }}
           >
-            <div className="flex items-center gap-2">
-              <PinIcon size={16} className="text-[#6B7A8D] flex-shrink-0" />
-              {pickedZone ? (
-                <span className="text-sm font-bold text-[#1A2332]">{pickedZone.name}</span>
-              ) : (
-                <span className="text-sm font-semibold text-[#6B7A8D]">¿En qué mesa o sector estás?</span>
-              )}
-              <span className="text-[10px] text-[#C0CBDA] font-medium ml-1">opcional</span>
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: selfTextColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.08)' }}>
+              <UtensilsIcon size={22} style={{ color: selfTextColor }} />
             </div>
-            <svg
-              width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9DAAB8" strokeWidth="2.5"
-              className={`transition-transform duration-200 ${showZonePicker ? 'rotate-180' : ''}`}
-            >
-              <polyline points="6 9 12 15 18 9"/>
+            <div className="flex-1 text-left">
+              <p className="font-black text-sm leading-tight" style={{ color: selfTextColor }}>Pido desde la mesa</p>
+              <p className="text-xs mt-0.5" style={{ color: selfTextColor, opacity: 0.7 }}>
+                {pickedZone ? pickedZone.name : 'Elegí dónde estás y mirá la carta'}
+              </p>
+            </div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={selfTextColor} strokeWidth="2.5" strokeOpacity="0.6"
+              className={`transition-transform duration-200 ${showZonePicker ? 'rotate-90' : ''}`}>
+              <polyline points="9 18 15 12 9 6"/>
             </svg>
           </button>
 
@@ -819,31 +771,6 @@ export default function IdentifyPage() {
                 </>
               )}
 
-              {/* Retiro */}
-              {retiro.length > 0 && (
-                <>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Retiro</p>
-                  <div className="grid grid-cols-3 gap-2 mb-4">
-                    {retiro.map(zone => {
-                      const active = pickedZone?.id === zone.id
-                      return (
-                        <button
-                          key={zone.id}
-                          onClick={() => { setPickedZone(zone); setLocation({ type: zone.type, zoneId: zone.id, label: zone.name }); setShowZonePicker(false) }}
-                          className="rounded-xl py-2.5 text-xs font-bold text-center border-2 transition-all"
-                          style={active
-                            ? { backgroundColor: selfColor, borderColor: selfColor, color: selfTextColor }
-                            : { backgroundColor: '#F0F4F8', borderColor: accentOnWhite, color: accentOnWhite }
-                          }
-                        >
-                          {zone.name}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </>
-              )}
-
               {pickedZone && (
                 <button
                   onClick={() => { setPickedSector(null); setPickedZone(null); setLocation(null) }}
@@ -859,45 +786,50 @@ export default function IdentifyPage() {
       )}
 
         {!takeawayOnly && (<>
-        {/* ── Pedir sin esperar ── */}
-        <button
-          onClick={() => navigate(cartaPath)}
-          className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl shadow-lg active:scale-[0.98] transition-transform"
-          style={{ backgroundColor: selfColor }}
-        >
-          <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${selfTextColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.08)'}` }}>
-            <UtensilsIcon size={22} style={{ color: selfTextColor }} />
-          </div>
-          <div className="flex-1 text-left">
-            <p className="font-black text-sm leading-tight" style={{ color: selfTextColor }}>Pedir sin esperar</p>
-            <p className="text-xs mt-0.5" style={{ color: selfTextColor, opacity: 0.7 }}>Ver la carta y hacer tu pedido</p>
-          </div>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={selfTextColor} strokeWidth="2.5" strokeOpacity="0.6">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
-        </button>
+        {/* ── Voy a un punto de retiro ── */}
+        {retiro.length > 0 && !prefillZoneId && (
+          <div>
+            <button
+              onClick={() => { setShowZonePicker(false); setShowRetiroPicker(v => !v) }}
+              className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl shadow-md border active:scale-[0.98] transition-transform bg-white"
+              style={{ borderColor: `${accentOnWhite}30` }}
+            >
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: `${accentOnWhite}15` }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={accentOnWhite} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
+                </svg>
+              </div>
+              <div className="flex-1 text-left">
+                <p className="font-black text-sm leading-tight" style={{ color: accentOnWhite }}>Voy a un punto de retiro</p>
+                <p className="text-[#9DAAB8] text-xs mt-0.5">Pedís y lo retirás vos</p>
+              </div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={accentOnWhite} strokeWidth="2.5" strokeOpacity="0.5"
+                className={`transition-transform duration-200 ${showRetiroPicker ? 'rotate-90' : ''}`}>
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </button>
 
-        {/* ── Llamar al mozo ── */}
-        <button
-          onClick={openWaiterCall}
-          className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl shadow-md border active:scale-[0.98] transition-transform bg-white"
-          style={{ borderColor: `${accentOnWhite}30` }}
-        >
-          <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: `${accentOnWhite}15` }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={accentOnWhite} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
+            {showRetiroPicker && (
+              <div className="mt-2 bg-white rounded-2xl border border-black/[0.06] p-4 shadow-sm">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">¿Dónde lo retirás?</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {retiro.map(zone => (
+                    <button
+                      key={zone.id}
+                      onClick={() => pickMesa(zone)}
+                      className="rounded-xl py-3 text-xs font-bold text-center border-2 transition-all"
+                      style={{ backgroundColor: '#F0F4F8', borderColor: accentOnWhite, color: accentOnWhite }}
+                    >
+                      {zone.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-          <div className="flex-1 text-left">
-            <p className="font-black text-sm leading-tight" style={{ color: accentOnWhite }}>Llamar a un camarero/a</p>
-            <p className="text-[#9DAAB8] text-xs mt-0.5">Un camarero viene a tu mesa</p>
-          </div>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={accentOnWhite} strokeWidth="2.5" strokeOpacity="0.5">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
-        </button>
+        )}
+
         </>)}
 
         {/* ── Invitar a mi mesa ── */}
@@ -1163,268 +1095,6 @@ export default function IdentifyPage() {
           )}
         </div>
       </div>
-
-      {/* ── Drawer: llamar al mozo ── */}
-      {showWaiterCall && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end">
-          <div className="absolute inset-0 bg-black/40" onClick={() => !callLoading && setShowWaiterCall(false)} />
-          <div className="relative bg-white rounded-t-3xl px-5 pt-5 pb-6 max-h-[85vh] overflow-y-auto">
-            {callSent ? (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center"
-                  style={{ background: `${waiterColor}18`, color: waiterColor }}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                  </svg>
-                </div>
-                <p className="text-[#1A2332] font-black text-xl mb-1 uppercase">¡Camarero/a en camino!</p>
-                <p className="text-[#9DAAB8] text-sm mb-4">Ya saben dónde estás.</p>
-                {callWaiterWa && (() => {
-                  const reason = WAITER_REASONS.find(r => r.id === selectedReason)
-                  const safeZone = activeLabel || 'Sin especificar'
-                  const msg = `Hola! Hay una solicitud de atención en ${safeZone}${reason ? ` — ${reason.label}` : ''}. Pasá cuando puedas.`
-                  return (
-                    <a
-                      href={`https://wa.me/${callWaiterWa.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 w-full bg-emerald-600 text-white font-bold py-3 rounded-2xl text-sm mb-3"
-                    >
-                      <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.35 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91C21.95 6.45 17.5 2 12.04 2zm4.96 14.43c-.21.59-1.21 1.13-1.67 1.17-.46.04-.47.36-2.96-.61-2.48-.97-3.97-3.48-4.09-3.64-.12-.16-.98-1.3-.98-2.48s.62-1.76.84-2 .46-.27.61-.27c.15 0 .3.01.43.02.14 0 .33-.05.51.4.18.44.62 1.52.67 1.63.05.11.09.24.01.38s-.12.23-.24.35c-.12.12-.25.27-.35.36-.12.11-.24.22-.1.44.14.21.61.99 1.32 1.6.9.8 1.67 1.05 1.9 1.17.24.12.37.1.51-.06.14-.16.59-.69.75-.93.16-.24.32-.2.54-.12.22.08 1.39.65 1.63.77.24.12.4.18.46.28.06.1.06.57-.15 1.12z"/>
-                      </svg>
-                      Escribir al camarero por WhatsApp
-                    </a>
-                  )
-                })()}
-                <button onClick={() => setShowWaiterCall(false)}
-                  style={{ backgroundColor: waiterColor }}
-                  className="text-white font-bold py-3 px-8 rounded-2xl text-sm">
-                  Cerrar
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center justify-between mb-5">
-                  <div>
-                    <h2 className="text-[#1A2332] font-black text-xl uppercase">Solicitar atención</h2>
-                    <p className="text-[#9DAAB8] text-sm">¿En qué te podemos ayudar?</p>
-                  </div>
-                  <button onClick={() => !callLoading && setShowWaiterCall(false)}
-                    aria-label="Cerrar"
-                    className="w-10 h-10 flex items-center justify-center rounded-full bg-[#F0F4F8] text-[#6B7A8D]"><XIcon size={16} /></button>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 mb-5">
-                  {WAITER_REASONS.map(r => (
-                    <button
-                      key={r.id}
-                      onClick={() => setSelectedReason(r.id === selectedReason ? null : r.id)}
-                      className="p-3.5 rounded-2xl border-2 text-left transition-all"
-                      style={selectedReason === r.id
-                        ? { borderColor: waiterColor, backgroundColor: waiterColor }
-                        : { borderColor: '#E8EEF4', backgroundColor: '#F8FAFB' }
-                      }
-                    >
-                      <span className="block mb-1.5" style={{ color: selectedReason === r.id ? 'white' : '#6B7A8D' }}>
-                        <r.Icon size={22} />
-                      </span>
-                      <span className="text-xs font-bold leading-tight block"
-                        style={{ color: selectedReason === r.id ? 'white' : '#1A2332' }}>
-                        {r.label}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-
-                {activeZoneId ? (
-                  <div className="sticky bottom-0 -mx-5 px-5 pt-3 pb-6 bg-white border-t border-black/[0.05]">
-                    <div className="flex items-center gap-2 bg-[#F0F4F8] rounded-xl px-4 py-3 mb-3">
-                      <PinIcon size={16} className="text-[#6B7A8D] flex-shrink-0" />
-                      <span className="text-[#1A2332] font-bold text-sm">{activeLabel}</span>
-                    </div>
-                    <button onClick={async () => { await submitCall(activeZoneId, activeLabel) }}
-                      disabled={callLoading}
-                      style={{ backgroundColor: waiterColor }}
-                      className="w-full disabled:opacity-50 text-white font-black py-4 rounded-2xl text-base uppercase tracking-wide">
-                      {callLoading ? 'Enviando...' : 'Solicitar atención'}
-                    </button>
-                  </div>
-                ) : (
-                  <div>
-                    <p className="text-[#9DAAB8] text-xs font-bold uppercase tracking-wider mb-3">¿Dónde estás?</p>
-                    {zones.length === 0 ? (
-                      <button onClick={() => submitCall(null, 'Sin especificar')}
-                        disabled={callLoading}
-                        style={{ backgroundColor: waiterColor }}
-                        className="w-full disabled:opacity-50 text-white font-black py-4 rounded-2xl text-base uppercase">
-                        {callLoading ? 'Enviando...' : 'Solicitar atención'}
-                      </button>
-                    ) : (
-                      <>
-                        {/* Map / Lista toggle — only in 'ambos' mode */}
-                        {locationDisplayMode === 'ambos' && hasMap && (
-                          <div className="flex gap-1 bg-[#F0F4F8] rounded-xl p-1 mb-4">
-                            {['mapa', 'lista'].map(mode => (
-                              <button
-                                key={mode}
-                                onClick={() => { setWaiterCallView(mode); setWaiterMapZone(null) }}
-                                className="flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize"
-                                style={waiterCallView === mode
-                                  ? { backgroundColor: waiterColor, color: 'white' }
-                                  : { color: waiterColor }
-                                }
-                              >
-                                {mode === 'mapa' ? (
-                                  <span className="flex items-center justify-center gap-1">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                      <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
-                                      <line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/>
-                                    </svg>
-                                    Mapa
-                                  </span>
-                                ) : (
-                                  <span className="flex items-center justify-center gap-1">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                      <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
-                                      <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
-                                    </svg>
-                                    Lista
-                                  </span>
-                                )}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Map view */}
-                        {waiterCallView === 'mapa' && hasMap && locationDisplayMode !== 'lista' && (
-                          !waiterMapZone ? (
-                            <div>
-                              <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-3">Elegí una zona</p>
-                              <div className="grid grid-cols-2 gap-3">
-                                {zonesWithMap.map(zona => (
-                                  <button
-                                    key={zona.id}
-                                    onClick={() => setWaiterMapZone(zona)}
-                                    className="rounded-2xl py-5 px-3 text-sm font-bold text-center border-2 transition-all active:scale-95 leading-tight"
-                                    style={{ backgroundColor: '#F8FAFB', borderColor: waiterColor, color: waiterColor }}
-                                  >
-                                    {zona.name}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          ) : (
-                            <div>
-                              <button
-                                onClick={() => setWaiterMapZone(null)}
-                                className="flex items-center gap-1 text-xs font-semibold mb-4"
-                                style={{ color: waiterColor }}
-                              >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M19 12H5M12 5l-7 7 7 7"/>
-                                </svg>
-                                Zonas
-                              </button>
-                              <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">{waiterMapZone.name}</p>
-                              <ClientFloorMap
-                                zones={zones.filter(z => z.id === waiterMapZone.id || z.parent_zone_id === waiterMapZone.id)}
-                                accent={waiterColor}
-                                confirmStep={false}
-                                venueId={venueId}
-                                onChoose={zone => submitCall(zone.id, zone.name)}
-                              />
-                            </div>
-                          )
-                        )}
-
-                        {/* List view */}
-                        {(waiterCallView === 'lista' || !hasMap || locationDisplayMode === 'lista') && (
-                          <>
-                            {/* Sector selector */}
-                            {sectores.length > 0 && (
-                              <>
-                                <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Sector</p>
-                                <div className="grid grid-cols-3 gap-2 mb-4">
-                                  {sectores.map(sector => {
-                                    const hasMesas = allMesas.some(m => m.parent_zone_id === sector.id)
-                                    const active = waiterSector?.id === sector.id
-                                    return (
-                                      <button
-                                        key={sector.id}
-                                        disabled={callLoading}
-                                        onClick={() => {
-                                          if (!hasMesas) {
-                                            submitCall(sector.id, sector.name)
-                                          } else {
-                                            setWaiterSector(active ? null : sector)
-                                          }
-                                        }}
-                                        className="rounded-xl py-2.5 px-1 text-xs font-bold text-center border-2 disabled:opacity-50 transition-all leading-tight"
-                                        style={active
-                                          ? { backgroundColor: waiterColor, borderColor: waiterColor, color: 'white' }
-                                          : { backgroundColor: '#F8FAFB', borderColor: waiterColor, color: waiterColor }
-                                        }
-                                      >
-                                        {sector.name}
-                                      </button>
-                                    )
-                                  })}
-                                </div>
-                              </>
-                            )}
-
-                            {/* Mesa selector inside chosen sector */}
-                            {waiterSector && allMesas.filter(m => m.parent_zone_id === waiterSector.id).length > 0 && (
-                              <>
-                                <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">
-                                  Mesa — {waiterSector.name}
-                                </p>
-                                <div className="grid grid-cols-5 gap-2 mb-4">
-                                  {allMesas.filter(m => m.parent_zone_id === waiterSector.id).map(mesa => (
-                                    <button
-                                      key={mesa.id}
-                                      onClick={() => submitCall(mesa.id, mesa.name)}
-                                      disabled={callLoading}
-                                      className="aspect-square rounded-full flex items-center justify-center text-sm font-black border-2 disabled:opacity-50 transition-all"
-                                      style={{ backgroundColor: '#F8FAFB', borderColor: waiterColor, color: waiterColor }}
-                                    >
-                                      {zoneShort(mesa.name)}
-                                    </button>
-                                  ))}
-                                </div>
-                              </>
-                            )}
-
-                            {/* Orphan mesas (no sector) */}
-                            {orphanMesas.length > 0 && (
-                              <>
-                                <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Mesas</p>
-                                <div className="grid grid-cols-5 gap-2 mb-4">
-                                  {orphanMesas.map(mesa => (
-                                    <button key={mesa.id} onClick={() => submitCall(mesa.id, mesa.name)}
-                                      disabled={callLoading}
-                                      className="aspect-square rounded-full flex items-center justify-center text-sm font-black border-2 disabled:opacity-50 bg-white transition-all"
-                                      style={{ borderColor: waiterColor, color: waiterColor }}>
-                                      {zoneShort(mesa.name)}
-                                    </button>
-                                  ))}
-                                </div>
-                              </>
-                            )}
-                          </>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Login accesible al pie: mismo flujo que la personita del hero */}
       {!isLoggedIn ? (
