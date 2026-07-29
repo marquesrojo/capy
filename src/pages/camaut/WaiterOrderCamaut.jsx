@@ -6,7 +6,7 @@ import { formatPrice } from '../../lib/utils'
 import { awardXP } from '../../lib/xpUtils'
 import FloorPlanViewer from '../../components/FloorPlanViewer'
 
-export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId: waiterStaffId = null, prefillLocation = null, onPrefillUsed, onXPUpdate }) {
+export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId: waiterStaffId = null, prefillLocation = null, onPrefillUsed, onXPUpdate, hasOwnMenu = true }) {
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
   const [zones, setZones] = useState([])
@@ -47,6 +47,15 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
     if (linkedVenues.length === 0) return true
     return !!localStorage.getItem(`capy_ctx_${venueId}`)
   })
+
+  // Sin carta propia queda un solo local: preguntarle cuál es no tiene sentido.
+  // Cubre también haber quedado apuntando al local propio de antes.
+  useEffect(() => {
+    if (hasOwnMenu !== false || linkedVenues.length !== 1) return
+    if (contextReady && activeVenueId !== venueId) return
+    updateActiveVenue(linkedVenues[0].id)
+    setContextReady(true)
+  }, [contextReady, activeVenueId, hasOwnMenu, linkedVenues])
 
   const [voiceState, setVoiceState] = useState('idle') // 'idle' | 'recording' | 'processing' | 'result' | 'error'
   const [voiceTranscript, setVoiceTranscript] = useState('')
@@ -512,6 +521,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
       <div className="px-4 pt-5 pb-8 bg-[#F0F4F8] min-h-screen">
         <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-4 px-1">¿Desde qué carta trabajás hoy?</p>
         <div className="space-y-3">
+          {hasOwnMenu !== false && (
           <button
             onClick={() => { updateActiveVenue(venueId); setContextReady(true) }}
             className="w-full bg-white rounded-2xl p-4 border border-black/5 shadow-sm text-left flex items-center gap-4 active:scale-95 transition-transform"
@@ -524,6 +534,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
               <p className="text-[#8896A5] text-sm">Tus menúes personales</p>
             </div>
           </button>
+          )}
           {linkedVenues.map(v => (
             <button
               key={v.id}
@@ -791,12 +802,14 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
                 </button>
               )
             })()}
-            <button
-              onClick={() => { setContextReady(false); setCart({}); setSelectedZone(null); setShowMap(false); localStorage.removeItem(`capy_ctx_${venueId}`) }}
-              className="text-[#008080] text-xs font-semibold border border-[#008080]/30 px-3 py-1.5 rounded-xl"
-            >
-              Cambiar
-            </button>
+            {(hasOwnMenu !== false || linkedVenues.length > 1) && (
+              <button
+                onClick={() => { setContextReady(false); setCart({}); setSelectedZone(null); setShowMap(false); localStorage.removeItem(`capy_ctx_${venueId}`) }}
+                className="text-[#008080] text-xs font-semibold border border-[#008080]/30 px-3 py-1.5 rounded-xl"
+              >
+                Cambiar
+              </button>
+            )}
           </div>
         </div>
       )}
