@@ -606,13 +606,19 @@ export default function IdentifyPage() {
            el hambre ya puesta, es peor que enterarse al entrar. */}
       {ordersPaused && (
         <div className="px-4 pt-3">
-          <div className="bg-amber-50 border border-amber-300 rounded-2xl px-4 py-3.5">
-            <p className="text-amber-900 text-sm font-bold leading-snug">
+          <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-4 text-center">
+            <p className="text-red-800 text-sm font-bold leading-snug">
               Por ahora no se pueden hacer pedidos desde la app
             </p>
-            <p className="text-amber-800 text-sm mt-1 leading-snug">
+            <p className="text-red-700 text-sm mt-1 leading-snug">
               {pauseMessage || 'Podés mirar la carta y hacer tu pedido con un camarero/a.'}
             </p>
+            <button
+              onClick={() => navigate(cartaPath)}
+              className="mt-3 bg-red-600 text-white text-sm font-bold px-6 py-2.5 rounded-xl active:scale-95 transition-transform"
+            >
+              Ver carta
+            </button>
           </div>
         </div>
       )}
@@ -644,8 +650,27 @@ export default function IdentifyPage() {
             </svg>
           </button>
 
+          {/* Pausado: abrir el selector y elegir una mesa termina en un
+              checkout que no se puede confirmar, así que se corta acá */}
+          {showZonePicker && ordersPaused && (
+            <div className="mt-2 bg-red-50 border border-red-200 rounded-2xl p-4 text-center">
+              <p className="text-red-800 text-sm font-bold leading-snug">
+                No se pueden hacer pedidos en este momento
+              </p>
+              <p className="text-red-700 text-sm mt-1 leading-snug">
+                {pauseMessage || 'Podés mirar la carta y hacer tu pedido con un camarero/a.'}
+              </p>
+              <button
+                onClick={() => navigate(cartaPath)}
+                className="mt-3 bg-red-600 text-white text-sm font-bold px-6 py-2.5 rounded-xl active:scale-95 transition-transform"
+              >
+                Ver carta
+              </button>
+            </div>
+          )}
+
           {/* Expandable content */}
-          {showZonePicker && (
+          {showZonePicker && !ordersPaused && (
             <div className="mt-2 bg-white rounded-2xl border border-black/[0.06] p-4 shadow-sm">
 
               {/* Map / List toggle — only shown in 'ambos' mode */}
@@ -843,7 +868,24 @@ export default function IdentifyPage() {
               </svg>
             </button>
 
-            {showRetiroPicker && (
+            {showRetiroPicker && ordersPaused && (
+            <div className="mt-2 bg-red-50 border border-red-200 rounded-2xl p-4 text-center">
+              <p className="text-red-800 text-sm font-bold leading-snug">
+                No se pueden hacer pedidos en este momento
+              </p>
+              <p className="text-red-700 text-sm mt-1 leading-snug">
+                {pauseMessage || 'Podés mirar la carta y hacer tu pedido con un camarero/a.'}
+              </p>
+              <button
+                onClick={() => navigate(cartaPath)}
+                className="mt-3 bg-red-600 text-white text-sm font-bold px-6 py-2.5 rounded-xl active:scale-95 transition-transform"
+              >
+                Ver carta
+              </button>
+            </div>
+            )}
+
+            {showRetiroPicker && !ordersPaused && (
               <div className="mt-2 bg-white rounded-2xl border border-black/[0.06] p-4 shadow-sm">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">¿Dónde lo retirás?</p>
                 <div className="grid grid-cols-2 gap-2">
@@ -977,6 +1019,21 @@ export default function IdentifyPage() {
                   <polyline points="9 18 15 12 9 6"/>
                 </svg>
               </button>
+            ) : ordersPaused ? (
+            <div className="mt-2 bg-red-50 border border-red-200 rounded-2xl p-4 text-center">
+              <p className="text-red-800 text-sm font-bold leading-snug">
+                No se pueden hacer pedidos en este momento
+              </p>
+              <p className="text-red-700 text-sm mt-1 leading-snug">
+                {pauseMessage || 'Podés mirar la carta y hacer tu pedido con un camarero/a.'}
+              </p>
+              <button
+                onClick={() => navigate(cartaPath)}
+                className="mt-3 bg-red-600 text-white text-sm font-bold px-6 py-2.5 rounded-xl active:scale-95 transition-transform"
+              >
+                Ver carta
+              </button>
+            </div>
             ) : (
               <div className="bg-white border border-black/[0.06] rounded-2xl shadow-sm overflow-hidden">
                 <div className="px-5 pt-4 pb-3 flex items-center justify-between">
