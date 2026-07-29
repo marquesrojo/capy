@@ -111,7 +111,9 @@ export default function DiscountCategories({ venueId }) {
   async function addMember(categoryId, customerId) {
     const { error } = await supabaseStaff
       .from('discount_category_members')
-      .upsert({ category_id: categoryId, customer_id: customerId }, { onConflict: 'category_id,customer_id' })
+      // venue_id va en la fila: es lo que mira su policy, sin consultar la
+      // tabla de categorías (ver 0086, recursión entre policies)
+      .upsert({ category_id: categoryId, customer_id: customerId, venue_id: venueId }, { onConflict: 'category_id,customer_id' })
     if (error) { alert('Error: ' + error.message); return }
     load()
   }
