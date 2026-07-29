@@ -18,6 +18,7 @@ export default function DiscountCategories({ venueId }) {
   const [openId, setOpenId] = useState(null)
   const [addingTo, setAddingTo] = useState(null)
   const [formError, setFormError] = useState('')
+  const [showAnonymous, setShowAnonymous] = useState(false)
 
   useEffect(() => { if (venueId) load() }, [venueId])
 
@@ -69,6 +70,9 @@ export default function DiscountCategories({ venueId }) {
         id: r.customer_id,
         name: r.customers.full_name || 'Sin nombre',
         whatsapp: r.customers.whatsapp || '',
+        // La compra rápida crea la ficha sin datos, solo para colgarle el
+        // pedido. A esa gente no hay forma de reconocerla ni de categorizarla.
+        identified: !!(r.customers.full_name || r.customers.whatsapp),
         orders: stats[r.customer_id]?.orders || 0,
         spent: stats[r.customer_id]?.spent || 0,
       }))
@@ -129,6 +133,9 @@ export default function DiscountCategories({ venueId }) {
 
   if (loading) return <p className="text-smoke-500 text-sm text-center py-8">Cargando...</p>
 
+  const anonCount = rows.filter(r => !r.identified).length
+  const visibleRows = showAnonymous ? rows : rows.filter(r => r.identified)
+
   return (
     <div className="space-y-4">
       <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5 space-y-3">
@@ -174,16 +181,28 @@ export default function DiscountCategories({ venueId }) {
         </button>
       </div>
 
-      <p className="text-smoke-600 text-xs px-1">
-        {rows.length} {rows.length === 1 ? 'cliente' : 'clientes'} en el local
-        {rows.length === 0 && ' — aparecen acá cuando se identifican en tu página'}
-      </p>
+      <div className="px-1 flex items-center justify-between gap-3 flex-wrap">
+        <p className="text-smoke-600 text-xs">
+          {visibleRows.length} {visibleRows.length === 1 ? 'cliente' : 'clientes'} en el local
+          {visibleRows.length === 0 && ' — aparecen acá cuando se identifican en tu página'}
+        </p>
+        {anonCount > 0 && (
+          <button
+            onClick={() => setShowAnonymous(v => !v)}
+            className="text-smoke-600 text-[11px] underline"
+          >
+            {showAnonymous
+              ? `Ocultar ${anonCount} sin identificar`
+              : `Ver ${anonCount} sin identificar`}
+          </button>
+        )}
+      </div>
 
       {categories.length === 0 ? (
         <p className="text-smoke-500 text-sm text-center py-6">Todavía no hay categorías.</p>
       ) : categories.map(c => {
         const memberRows = rows.filter(r => (members[r.id] || []).includes(c.id))
-        const candidates = rows.filter(r => !(members[r.id] || []).includes(c.id))
+        const candidates = visibleRows.filter(r => !(members[r.id] || []).includes(c.id))
         return (
           <div key={c.id} className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5 space-y-3">
             <div className="flex items-start justify-between gap-3">
