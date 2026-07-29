@@ -70,9 +70,10 @@ export default function DiscountCategories({ venueId }) {
         name: r.full_name || (r.email ? r.email.split('@')[0] : 'Sin nombre'),
         email: r.email || '',
         whatsapp: r.whatsapp || '',
-        // La compra rápida crea la ficha sin ningún dato, solo para colgarle
-        // el pedido: a esa gente no hay forma de reconocerla ni categorizarla
-        identified: !!(r.email || r.full_name || r.whatsapp),
+        // Hace falta cuenta o WhatsApp. Un nombre suelto no alcanza: el
+        // checkout rápido deja escribir cualquier cosa y no queda forma de
+        // reconocer a esa persona ni de avisarle que tiene un descuento.
+        identified: !!(r.email || r.whatsapp),
         orders: stats[r.customer_id]?.orders || 0,
         spent: stats[r.customer_id]?.spent || 0,
       }))
@@ -192,8 +193,8 @@ export default function DiscountCategories({ venueId }) {
             className="text-smoke-600 text-[11px] underline"
           >
             {showAnonymous
-              ? `Ocultar ${anonCount} sin identificar`
-              : `Ver ${anonCount} sin identificar`}
+              ? `Ocultar ${anonCount} sin cuenta ni contacto`
+              : `Ver ${anonCount} sin cuenta ni contacto`}
           </button>
         )}
       </div>
