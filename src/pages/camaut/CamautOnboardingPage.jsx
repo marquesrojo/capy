@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabaseCamaut, supabaseStaff } from '../../lib/supabase'
+import { ensureWaiterRecord } from '../../lib/camautSetup'
 
 const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent.toLowerCase())
 const isStandalone = window.matchMedia('(display-mode: standalone)').matches || !!window.navigator.standalone
@@ -191,46 +192,8 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
     try {
       const session = await getSession()
       if (session && !venueId) {
-        const userId = session.user.id
         const name = fullName.trim() || session.user.user_metadata?.full_name || 'Camarero/a'
-        const slug = `camaut-${userId.replace(/-/g, '').slice(0, 12)}`
-
-        let { data: venue, error: venueError } = await supabaseStaff
-          .from('venues')
-          .insert({ name: `${name} — Capy`, slug, owner_id: userId, is_active: true })
-          .select('id')
-          .single()
-
-        if (venueError) {
-          if (venueError.code === '23505') {
-            const res = await supabaseStaff.from('venues').select('id').eq('slug', slug).maybeSingle()
-            venue = res.data
-          } else {
-            alert('Error: ' + venueError.message)
-            setSaving(false)
-            return
-          }
-        }
-
-        if (!venue?.id) {
-          alert('Error: No se pudo crear tu cuenta')
-          setSaving(false)
-          return
-        }
-
-        const { error: profileError } = await supabaseStaff
-          .from('profiles')
-          .upsert({ id: userId, venue_id: venue.id, role: 'camarero', full_name: name, is_autonomous: true }, { onConflict: 'id' })
-
-        if (profileError) {
-          alert('Error: ' + profileError.message)
-          setSaving(false)
-          return
-        }
-
-        await supabaseStaff
-          .from('staff_names')
-          .upsert({ venue_id: venue.id, full_name: name, profile_id: userId, xp: 0 }, { onConflict: 'venue_id,profile_id' })
+        await ensureWaiterRecord(session.user.id, name)
       }
       localStorage.setItem(`camaut-onboarded-${session.user.id}`, '1')
       onComplete()
