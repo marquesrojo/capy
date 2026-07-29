@@ -42,6 +42,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
   const [paymentMethods, setPaymentMethods] = useState([])
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null)
   const [cashDiscount, setCashDiscount] = useState({ enabled: false, percent: 0 })
+  const [stackDiscounts, setStackDiscounts] = useState(false)
   const [venueWhatsapp, setVenueWhatsapp] = useState(null)
   const [contextReady, setContextReady] = useState(() => {
     if (linkedVenues.length === 0) return true
@@ -107,7 +108,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
       waiterStaffId
         ? supabaseStaff.from('staff_discounts').select('*').eq('staff_id', waiterStaffId).eq('is_active', true).order('created_at')
         : Promise.resolve({ data: [] }),
-      supabaseStaff.from('venues').select('whatsapp_number').eq('id', vId).single(),
+      supabaseStaff.from('venues').select('whatsapp_number, stack_discounts').eq('id', vId).single(),
     ]
     const [catRes, prodRes, staffRes, zoneRes, notesRes, menuRes, discountsRes, payMethodsRes, staffDiscountsRes, venueRes] = await Promise.all(queries)
     setCategories(catRes.data || [])
@@ -123,6 +124,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
     setCashDiscount({ enabled: !!cashEntry, percent: cashEntry?.percent || 0 })
     setPaymentMethods(payMethodsRes.data || [])
     setVenueWhatsapp(venueRes.data?.whatsapp_number || null)
+    setStackDiscounts(!!venueRes.data?.stack_discounts)
     if (resetCategory && catRes.data?.length) setActiveCategory(catRes.data[0].id)
   }
 
@@ -170,11 +172,18 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
 
   const cartItems = Object.values(cart).filter(i => i.product && i.qty > 0)
   const subtotal = cartItems.reduce((sum, i) => sum + i.product.price * i.qty, 0)
-  const discountAmount = selectedDiscount ? Math.round(subtotal * selectedDiscount.percent / 100) : 0
   const selectedPaymentName = selectedPaymentMethod?.name || ''
   const isEfectivo = selectedPaymentName.toLowerCase().includes('efectivo')
-  const cashDiscountAmt = (isEfectivo && cashDiscount.enabled && cashDiscount.percent > 0)
-    ? Math.round(subtotal * cashDiscount.percent / 100) : 0
+  // Un pedido lleva un solo descuento, salvo que el local active la acumulación:
+  // la misma regla que el checkout del cliente, para que no salga distinto según
+  // quién lo cargue. Sin acumular gana el más alto de los dos.
+  const codePercent = selectedDiscount ? Number(selectedDiscount.percent) || 0 : 0
+  const cashPercent = (isEfectivo && cashDiscount.enabled && cashDiscount.percent > 0)
+    ? Number(cashDiscount.percent) : 0
+  const applyCash = cashPercent > 0 && (stackDiscounts || cashPercent >= codePercent)
+  const applyCode = codePercent > 0 && (stackDiscounts || codePercent > cashPercent)
+  const discountAmount = applyCode ? Math.round(subtotal * codePercent / 100) : 0
+  const cashDiscountAmt = applyCash ? Math.round(subtotal * cashPercent / 100) : 0
   const total = subtotal - discountAmount - cashDiscountAmt
   const locationLabel = (selectedZone && selectedZone.id !== 'otra') ? selectedZone.name : location.trim()
 
@@ -264,9 +273,13 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
             .from('shifts').select('id')
             .eq('venue_id', currentVenueId).eq('status', 'open').maybeSingle()
           if (openShift?.id) updates.shift_id = openShift.id
-          if (selectedDiscount) {
+          // Solo si se aplicó: guardar el código con importe 0 hace figurar en
+          // los reportes un descuento que el cliente nunca recibió
+          if (applyCode) {
             updates.discount_amount = discountAmount
             updates.discount_code = selectedDiscount.code
+            updates.subtotal = subtotal
+          } else if (applyCash) {
             updates.subtotal = subtotal
           }
           if (selectedPaymentMethod) {
@@ -661,6 +674,11 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
             ) : (
               <p className="text-[#8896A5] text-xs italic">No hay descuentos configurados</p>
             )}
+            {codePercent > 0 && !applyCode && (
+              <p className="text-[#8896A5] text-xs mt-1.5">
+                No se aplica: el descuento por efectivo es mayor.
+              </p>
+            )}
           </div>
 
           {/* Medio de pago */}
@@ -677,9 +695,16 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
                   <option key={m.id} value={m.id}>{m.name}</option>
                 ))}
               </select>
-              {isEfectivo && cashDiscount.enabled && cashDiscount.percent > 0 && (
+              {applyCash && (
                 <p className="text-emerald-600 text-xs mt-1.5 font-medium">
-                  Se aplica {cashDiscount.percent}% de descuento por pago en efectivo
+                  Se aplica {cashPercent}% de descuento por pago en efectivo
+                </p>
+              )}
+              {/* El de efectivo existe pero pierde: decirlo evita que el camarero
+                  lo prometa y después no aparezca en el total */}
+              {cashPercent > 0 && !applyCash && (
+                <p className="text-[#8896A5] text-xs mt-1.5">
+                  El {cashPercent}% por efectivo no se suma: ya hay un descuento mayor.
                 </p>
               )}
             </div>

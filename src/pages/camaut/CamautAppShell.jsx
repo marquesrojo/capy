@@ -263,6 +263,8 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
   // crea la ficha en silencio y entra directo a tomar comandas.
   // ¿Tiene carta propia? Un camarero que solo trabaja en locales vinculados no
   // debería ver "Mis Cartas" como opción: no tiene nada adentro.
+  // Se recalcula al cambiar de pestaña: quien recién carga su primera carta
+  // tiene que recuperar la opción sin reiniciar la app.
   const [hasOwnMenu, setHasOwnMenu] = useState(null)
   useEffect(() => {
     if (!venueId) { setHasOwnMenu(false); return }
@@ -270,8 +272,10 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
       .from('products')
       .select('id', { count: 'exact', head: true })
       .eq('venue_id', venueId)
-      .then(({ count }) => setHasOwnMenu((count || 0) > 0))
-  }, [venueId])
+      // Ante un error asumimos que sí: esconder la carta propia de alguien que
+      // la tiene es mucho peor que ofrecérsela a quien no
+      .then(({ count, error }) => setHasOwnMenu(error ? true : (count || 0) > 0))
+  }, [venueId, tab])
 
   const autoSetupRef = useRef(false)
   const [autoSetupFailed, setAutoSetupFailed] = useState(false)

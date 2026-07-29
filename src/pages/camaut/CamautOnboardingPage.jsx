@@ -191,10 +191,13 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
     setSaving(true)
     try {
       const session = await getSession()
-      if (session && !venueId) {
-        const name = fullName.trim() || session.user.user_metadata?.full_name || 'Camarero/a'
-        await ensureWaiterRecord(session.user.id, name)
-      }
+      if (!session) { alert('Se cerró la sesión. Volvé a entrar.'); setSaving(false); return }
+      // Siempre, no solo sin venue: a este paso se llega por no tener FICHA, y
+      // un venue de un intento anterior no la reemplaza. Salir de acá sin ficha
+      // deja al camarero adentro de la app sin perfil que guardar, sin alias
+      // para las propinas y sin XP. ensureWaiterRecord reusa lo que ya exista.
+      const name = fullName.trim() || session.user.user_metadata?.full_name || 'Camarero/a'
+      await ensureWaiterRecord(session.user.id, name)
       localStorage.setItem(`camaut-onboarded-${session.user.id}`, '1')
       onComplete()
     } catch (err) {
