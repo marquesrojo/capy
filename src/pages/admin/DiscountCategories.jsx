@@ -70,10 +70,10 @@ export default function DiscountCategories({ venueId }) {
         name: r.full_name || (r.email ? r.email.split('@')[0] : 'Sin nombre'),
         email: r.email || '',
         whatsapp: r.whatsapp || '',
-        // Hace falta cuenta o WhatsApp. Un nombre suelto no alcanza: el
-        // checkout rápido deja escribir cualquier cosa y no queda forma de
-        // reconocer a esa persona ni de avisarle que tiene un descuento.
-        identified: !!(r.email || r.whatsapp),
+        // Cliente del local es el que tiene cuenta, y el email es lo único
+        // obligatorio para tenerla: nombre y WhatsApp son opcionales, y el
+        // checkout rápido deja escribir cualquier cosa en el nombre.
+        identified: !!r.email,
         orders: stats[r.customer_id]?.orders || 0,
         spent: stats[r.customer_id]?.spent || 0,
       }))
@@ -185,7 +185,7 @@ export default function DiscountCategories({ venueId }) {
       <div className="px-1 flex items-center justify-between gap-3 flex-wrap">
         <p className="text-smoke-600 text-xs">
           {visibleRows.length} {visibleRows.length === 1 ? 'cliente' : 'clientes'} en el local
-          {visibleRows.length === 0 && ' — aparecen acá cuando se identifican en tu página'}
+          {visibleRows.length === 0 && ' — aparecen acá cuando inician sesión en tu página'}
         </p>
         {anonCount > 0 && (
           <button
@@ -193,8 +193,8 @@ export default function DiscountCategories({ venueId }) {
             className="text-smoke-600 text-[11px] underline"
           >
             {showAnonymous
-              ? `Ocultar ${anonCount} sin cuenta ni contacto`
-              : `Ver ${anonCount} sin cuenta ni contacto`}
+              ? `Ocultar ${anonCount} sin cuenta`
+              : `Ver ${anonCount} sin cuenta`}
           </button>
         )}
       </div>
