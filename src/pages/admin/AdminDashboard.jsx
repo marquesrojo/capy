@@ -236,9 +236,49 @@ async function loadZones() {
     }
   }
 
-  async function removeWaiter(id) {
-    await supabaseStaff.from('staff_names').update({ is_active: false }).eq('id', id)
-    setWaiters(prev => prev.filter(w => w.id !== id))
+  // Quitar un camarero del local. Los vinculados por CAPY Camarero tienen su
+  // ficha en su propio venue: desactivarla no los saca de acá —vuelven en la
+  // próxima carga porque siguen en venue_staff— y encima les rompe su cuenta.
+  // Lo que hay que cortar en ese caso es la vinculación.
+  async function removeWaiter(waiter) {
+    const id = typeof waiter === 'string' ? waiter : waiter?.id
+    const w = typeof waiter === 'string' ? waiters.find(x => x.id === id) : waiter
+    if (!id) return
+
+    if (w?._linked && w.profile_id) {
+      const { data, error } = await supabaseStaff
+        .from('venue_staff')
+        .update({ status: 'inactive', left_at: new Date().toISOString() })
+        .eq('venue_id', venueId)
+        .eq('staff_profile_id', w.profile_id)
+        .select('venue_id')
+      if (error || !data?.length) {
+        // Si el status tiene valores acotados o el update queda filtrado, se
+        // borra la vinculación: el efecto buscado es el mismo
+        const del = await supabaseStaff
+          .from('venue_staff')
+          .delete()
+          .eq('venue_id', venueId)
+          .eq('staff_profile_id', w.profile_id)
+          .select('venue_id')
+        if (del.error || !del.data?.length) {
+          alert('No se pudo desvincular a ' + (w.full_name || 'el camarero') +
+            '. Tu usuario no tiene permiso sobre la vinculación.')
+          return
+        }
+      }
+    } else {
+      const { data, error } = await supabaseStaff
+        .from('staff_names')
+        .update({ is_active: false })
+        .eq('id', id)
+        .select('id')
+      if (error || !data?.length) {
+        alert('No se pudo quitar. Puede ser una ficha de otro local.')
+        return
+      }
+    }
+    setWaiters(prev => prev.filter(x => x.id !== id))
   }
 
   const [debugError, setDebugError] = useState(null)
@@ -381,7 +421,25 @@ async function loadZones() {
       )
       .subscribe()
 
-    return () => supabaseStaff.removeChannel(channel)
+    // Respaldo por si el realtime no llega —tablas fuera de la publicación,
+    // socket caído, pestaña dormida—. Más espaciado que el del mapa porque
+    // load() trae el tablero entero.
+    const tick = setInterval(() => load({ silent: true }), 20000)
+    function onWake() {
+      if (document.visibilityState === 'visible') {
+        load({ silent: true })
+        loadWaiterCalls()
+      }
+    }
+    document.addEventListener('visibilitychange', onWake)
+    window.addEventListener('focus', onWake)
+
+    return () => {
+      supabaseStaff.removeChannel(channel)
+      clearInterval(tick)
+      document.removeEventListener('visibilitychange', onWake)
+      window.removeEventListener('focus', onWake)
+    }
   }, [venueId])
 
   // Generar URLs firmadas para mostrar los comprobantes (el bucket es privado)
@@ -1840,12 +1898,24 @@ function WaiterManager({ waiters, onAdd, onRemove }) {
                   key={w.id}
                   className="flex items-center justify-between bg-carbon-800 rounded-lg px-3 py-1.5"
                 >
-                  <span className="text-smoke-300 text-sm">{w.full_name}</span>
+                  <span className="text-smoke-300 text-sm flex items-center gap-2 min-w-0">
+                    <span className="truncate">{w.full_name}</span>
+                    {/* Saber de dónde salió cada uno explica por qué aparece
+                        gente que el local no dio de alta a mano */}
+                    {w._linked && (
+                      <span className="text-[10px] text-smoke-500 border border-carbon-700 rounded-full px-1.5 py-0.5 flex-shrink-0">
+                        vinculado
+                      </span>
+                    )}
+                  </span>
                   <button
-                    onClick={() => onRemove(w.id)}
-                    className="text-red-700 text-xs underline"
+                    onClick={() => {
+                      if (w._linked && !confirm(`¿Desvincular a ${w.full_name} de tu local? Su cuenta de CAPY Camarero no se toca.`)) return
+                      onRemove(w)
+                    }}
+                    className="text-red-700 text-xs underline flex-shrink-0 ml-2"
                   >
-                    Quitar
+                    {w._linked ? 'Desvincular' : 'Quitar'}
                   </button>
                 </li>
               ))}

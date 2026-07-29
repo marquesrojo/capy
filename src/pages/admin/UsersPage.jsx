@@ -245,11 +245,18 @@ export default function UsersPage() {
   }
 
   async function desvincular(id) {
-    if (!confirm('¿Desvincular este camarero?')) return
-    await supabaseStaff
+    if (!confirm('¿Desvincular este camarero? Su cuenta de CAPY Camarero no se toca.')) return
+    // Con .select() para no sacarlo de la lista si la RLS filtró la escritura:
+    // sin esto la fila volvía en la próxima carga sin explicación
+    const { data, error } = await supabaseStaff
       .from('venue_staff')
       .update({ status: 'inactive', left_at: new Date().toISOString() })
       .eq('id', id)
+      .select('id')
+    if (error || !data?.length) {
+      alert('No se pudo desvincular. Tu usuario no tiene permiso sobre esta vinculación.')
+      return
+    }
     setVinculados(prev => prev.filter(v => v.id !== id))
   }
 
