@@ -149,13 +149,15 @@ export default function DiscountCategories({ venueId }) {
           />
         </div>
         <div>
-          <label className="text-smoke-500 text-xs block mb-1">Descuento (%)</label>
+          <label className="text-smoke-500 text-xs block mb-1">
+            Descuento (%) <span className="text-smoke-600">— opcional</span>
+          </label>
           <input
             className="input"
             type="number"
             min="1"
             max="100"
-            placeholder="Ej: 15 — dejalo vacío para agrupar sin descuento"
+            placeholder="Ej: 15"
             value={percent}
             onChange={e => setPercent(e.target.value)}
           />
