@@ -19,6 +19,8 @@ export default function MenuPage() {
   const [showRecommend, setShowRecommend] = useState(false)
   const [search, setSearch] = useState('')
   const [highDemand, setHighDemand] = useState(false)
+  const [ordersPaused, setOrdersPaused] = useState(false)
+  const [pauseMessage, setPauseMessage] = useState('')
   const [venueName, setVenueName] = useState('')
   const [venueLogo, setVenueLogo] = useState('')
   const [headerBgColor, setHeaderBgColor] = useState('')
@@ -80,7 +82,7 @@ export default function MenuPage() {
       const [catRes, prodRes, venueRes] = await Promise.all([
         supabaseCustomer.from('categories').select('*').eq('venue_id', venueId).eq('is_active', true).order('sort_order'),
         supabaseCustomer.from('products').select('*').eq('venue_id', venueId).order('sort_order'),
-        supabaseCustomer.from('venues').select('high_demand, name, logo_url, header_bg_color, header_text_color').eq('id', venueId).single(),
+        supabaseCustomer.from('venues').select('high_demand, orders_paused, orders_paused_message, name, logo_url, header_bg_color, header_text_color').eq('id', venueId).single(),
       ])
       // ?menu=<id>: el QR compartió una carta específica (camarero autónomo) —
       // se muestran solo sus categorías. Si el id no matchea nada, carta completa.
@@ -100,6 +102,8 @@ export default function MenuPage() {
       if (cats.length) setActiveCategory(cats[0].id)
       if (venueRes.data) {
         setHighDemand(venueRes.data.high_demand)
+        setOrdersPaused(!!venueRes.data.orders_paused)
+        setPauseMessage(venueRes.data.orders_paused_message || '')
         setVenueName(venueRes.data.name)
         setVenueLogo(venueRes.data.logo_url)
         if (venueRes.data.header_bg_color) setHeaderBgColor(venueRes.data.header_bg_color)
@@ -172,7 +176,17 @@ export default function MenuPage() {
 
   return (
     <div className="h-screen flex flex-col bg-[#F0F4F8] overflow-hidden">
-      {highDemand && (
+      {/* Con los pedidos pausados el aviso de demora sobra: no se puede pedir */}
+      {ordersPaused ? (
+        <div className="flex-shrink-0 bg-amber-500/15 border-b border-amber-500/40 px-5 py-2.5 text-center">
+          <p className="text-amber-800 text-sm font-semibold">
+            Por ahora no se pueden hacer pedidos desde la app
+          </p>
+          <p className="text-amber-700/90 text-xs mt-0.5">
+            {pauseMessage || 'Podés ver la carta y pedirle a un camarero/a.'}
+          </p>
+        </div>
+      ) : highDemand && (
         <div className="flex-shrink-0 bg-red-500/15 border-b border-red-500/30 px-5 py-2 text-center">
           <p className="text-red-700 text-sm font-medium flex items-center justify-center gap-1.5"><ClockIcon size={14} /> Alta demanda — puede haber demora. ¡Gracias por tu paciencia!</p>
         </div>
@@ -300,7 +314,7 @@ export default function MenuPage() {
           {searchResults.length === 0 ? (
             <p className="text-smoke-500 text-sm text-center py-10">No encontramos "{search}" en la carta.</p>
           ) : searchResults.map(product => (
-            <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu}
+            <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu} canOrder={!ordersPaused}
               qty={items.find(i => i.product.id === product.id)?.quantity || 0}
               accentBg={contentAccent} accentText={contentAccentText}
               customerPrefs={customerDietaryPrefs} />
@@ -315,7 +329,7 @@ export default function MenuPage() {
                 <span className="text-[11px] font-black uppercase tracking-wider flex items-center gap-1" style={{ color: contentAccent }}><SunIcon size={13} /> Plato del día</span>
               </div>
               {dailySpecials.map(product => (
-                <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu}
+                <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu} canOrder={!ordersPaused}
                   qty={items.find(i => i.product.id === product.id)?.quantity || 0}
                   accentBg={contentAccent} accentText={contentAccentText} isDaily
                   customerPrefs={customerDietaryPrefs} />
@@ -331,7 +345,7 @@ export default function MenuPage() {
                 </span>
               </div>
               {paraVos.map(product => (
-                <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu}
+                <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu} canOrder={!ordersPaused}
                   qty={items.find(i => i.product.id === product.id)?.quantity || 0}
                   accentBg={contentAccent} accentText={contentAccentText}
                   customerPrefs={customerDietaryPrefs} />
@@ -340,7 +354,7 @@ export default function MenuPage() {
             </div>
           )}
           {visibleProducts.map(product => (
-            <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu}
+            <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu} canOrder={!ordersPaused}
               qty={items.find(i => i.product.id === product.id)?.quantity || 0}
               accentBg={contentAccent} accentText={contentAccentText}
               customerPrefs={customerDietaryPrefs} />
@@ -414,7 +428,7 @@ export default function MenuPage() {
         </div>
       )}
 
-      {itemCount > 0 && (
+      {itemCount > 0 && !ordersPaused && (
         <button
           onClick={() => navigate(location ? `${base}/pago` : `${base}/ubicacion`)}
           className="fixed left-4 right-4 rounded-2xl py-4 px-5 flex items-center justify-between shadow-lg font-semibold z-20 active:opacity-90"
@@ -427,7 +441,8 @@ export default function MenuPage() {
 
       <BottomNav />
 
-      {itemCount === 0 && !showRecommend && (
+      {/* Recomendar un plato que no se puede pedir solo genera frustración */}
+      {itemCount === 0 && !showRecommend && !ordersPaused && (
         <button
           onClick={() => setShowRecommend(true)}
           className="fixed left-4 z-20 flex items-center gap-1.5 px-4 py-3 rounded-full shadow-lg font-semibold text-sm active:scale-95 transition-transform"
@@ -453,7 +468,7 @@ export default function MenuPage() {
   )
 }
 
-function ProductCard({ product, onAdd, onRemove, qty, accentBg = '#1A3A6B', accentText = '#FFFFFF', isDaily = false, customerPrefs = [] }) {
+function ProductCard({ product, onAdd, onRemove, qty, accentBg = '#1A3A6B', accentText = '#FFFFFF', isDaily = false, customerPrefs = [], canOrder = true }) {
   const tags = (product.dietary_tags || []).map(id => DIETARY_TAGS.find(t => t.id === id)).filter(Boolean)
   const matchesPrefs = customerPrefs.length > 0 && tags.some(t => customerPrefs.includes(t.id))
   return (
@@ -496,10 +511,11 @@ function ProductCard({ product, onAdd, onRemove, qty, accentBg = '#1A3A6B', acce
             ))}
           </div>
         )}
-        <div className="mt-2.5">
+        {/* Pausado: la carta se lee igual, pero sin los controles para sumar */}
+        <div className={canOrder ? 'mt-2.5' : ''}>
           {!product.is_available ? (
-            <span className="text-red-700 text-xs font-medium">Agotado</span>
-          ) : (
+            <span className="text-red-700 text-xs font-medium mt-2.5 block">Agotado</span>
+          ) : !canOrder ? null : (
             <div className="flex items-center gap-2">
               <button
                 onClick={() => onRemove(product)}

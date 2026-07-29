@@ -143,6 +143,8 @@ export default function IdentifyPage() {
   const [deliveryEnabled, setDeliveryEnabled] = useState(false)
   // Local sin salón: la home solo ofrece retiro y delivery
   const [takeawayOnly, setTakeawayOnly] = useState(false)
+  const [ordersPaused, setOrdersPaused] = useState(false)
+  const [pauseMessage, setPauseMessage] = useState('')
   const [showExternalOptions, setShowExternalOptions] = useState(false)
   const [orderNumber, setOrderNumber] = useState('')
   const [finding, setFinding] = useState(false)
@@ -206,7 +208,7 @@ export default function IdentifyPage() {
 
     const venueQ = supabaseCustomer
       .from('venues')
-      .select('instagram_handle, retiro_externo_enabled, delivery_enabled, takeaway_only, client_floor_map_enabled, location_display_mode, description, announcement, schedule, waiter_alert_whatsapp, whatsapp_number')
+      .select('instagram_handle, retiro_externo_enabled, delivery_enabled, takeaway_only, client_floor_map_enabled, location_display_mode, description, announcement, schedule, waiter_alert_whatsapp, whatsapp_number, orders_paused, orders_paused_message')
       .eq('id', venueId)
       .single()
 
@@ -227,6 +229,8 @@ export default function IdentifyPage() {
         if (venueData?.retiro_externo_enabled) setRetiroExternoEnabled(true)
         if (venueData?.delivery_enabled) setDeliveryEnabled(true)
         if (venueData?.takeaway_only) { setTakeawayOnly(true); setShowExternalOptions(true) }
+        setOrdersPaused(!!venueData?.orders_paused)
+        setPauseMessage(venueData?.orders_paused_message || '')
         if (venueData?.description) setDescription(venueData.description)
         if (venueData?.announcement) setAnnouncement(venueData.announcement)
         if (venueData?.schedule) setSchedule(venueData.schedule)
@@ -261,6 +265,8 @@ export default function IdentifyPage() {
         if (data?.retiro_externo_enabled) setRetiroExternoEnabled(true)
         if (data?.delivery_enabled) setDeliveryEnabled(true)
         if (data?.takeaway_only) { setTakeawayOnly(true); setShowExternalOptions(true) }
+        setOrdersPaused(!!data?.orders_paused)
+        setPauseMessage(data?.orders_paused_message || '')
         if (data?.description) setDescription(data.description)
         if (data?.announcement) setAnnouncement(data.announcement)
         if (data?.schedule) setSchedule(data.schedule)
@@ -591,6 +597,22 @@ export default function IdentifyPage() {
               <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
             </svg>
             <p className="text-amber-800 text-sm font-medium leading-snug">{announcement}</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Pedidos pausados ──
+           Va antes de los botones de pedir: enterarse recién en la carta, con
+           el hambre ya puesta, es peor que enterarse al entrar. */}
+      {ordersPaused && (
+        <div className="px-4 pt-3">
+          <div className="bg-amber-50 border border-amber-300 rounded-2xl px-4 py-3.5">
+            <p className="text-amber-900 text-sm font-bold leading-snug">
+              Por ahora no se pueden hacer pedidos desde la app
+            </p>
+            <p className="text-amber-800 text-sm mt-1 leading-snug">
+              {pauseMessage || 'Podés mirar la carta y hacer tu pedido con un camarero/a.'}
+            </p>
           </div>
         </div>
       )}
