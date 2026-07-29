@@ -43,6 +43,7 @@ export default function MenuEditorPage() {
   const [showProductForm, setShowProductForm] = useState(false)
   const [showCategoryForm, setShowCategoryForm] = useState(false)
   const [activeTab, setActiveTab] = useState('carta') // 'carta' | 'insumos'
+  const [search, setSearch] = useState('')
 
   async function loadAll() {
     const [catRes, prodRes, venueRes, settingsRes] = await Promise.all([
@@ -109,6 +110,18 @@ export default function MenuEditorPage() {
       supabaseStaff.from('categories').update({ sort_order: orderA }).eq('id', updated[idx].id)
     ])
   }
+
+  // Buscador de la carta. Filtra por nombre y descripción, y deja de pie solo
+  // las categorías con resultados, para no dejar títulos vacíos en el medio.
+  const term = search.trim().toLowerCase()
+  const inCarta = p => !p.is_ingredient_only
+  const matchesTerm = p => !term
+    || p.name.toLowerCase().includes(term)
+    || (p.description || '').toLowerCase().includes(term)
+  const matchingProducts = term ? products.filter(p => inCarta(p) && matchesTerm(p)) : []
+  const visibleCategories = term
+    ? categories.filter(cat => matchingProducts.some(p => p.category_id === cat.id))
+    : categories
 
   if (loading) {
     return (
@@ -197,20 +210,56 @@ export default function MenuEditorPage() {
               />
             )}
 
-            {categories.map((cat, catIdx) => (
+            {/* Buscar en la carta: con cien productos repartidos en veinte
+                categorías, encontrar uno para editarlo era puro scroll */}
+            <div className="mb-5 relative">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                strokeLinecap="round" strokeLinejoin="round"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-smoke-500 pointer-events-none">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+              </svg>
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Buscar un producto..."
+                className="w-full bg-carbon-900 border border-carbon-700 rounded-xl pl-10 pr-24 py-2.5 text-sm text-smoke-300 placeholder:text-smoke-600 focus:outline-none focus:border-ember-500/60"
+              />
+              {search && (
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                  <span className="text-smoke-600 text-[11px] tabular-nums">
+                    {matchingProducts.length}
+                  </span>
+                  <button
+                    onClick={() => setSearch('')}
+                    className="text-smoke-500 text-xs px-2 py-1"
+                    aria-label="Limpiar búsqueda"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {search && matchingProducts.length === 0 && (
+              <p className="text-smoke-500 text-sm text-center py-8">
+                Ningún producto coincide con "{search.trim()}".
+              </p>
+            )}
+
+            {visibleCategories.map(cat => (
               <div key={cat.id} className="mb-6">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <div className="flex flex-col gap-0.5">
                       <button
                         onClick={() => moveCategory(cat.id, -1)}
-                        disabled={catIdx === 0}
+                        disabled={categories.indexOf(cat) === 0}
                         className="text-smoke-600 disabled:opacity-20 leading-none text-xs px-0.5"
                         title="Subir"
                       >▲</button>
                       <button
                         onClick={() => moveCategory(cat.id, 1)}
-                        disabled={catIdx === categories.length - 1}
+                        disabled={categories.indexOf(cat) === categories.length - 1}
                         className="text-smoke-600 disabled:opacity-20 leading-none text-xs px-0.5"
                         title="Bajar"
                       >▼</button>
@@ -248,7 +297,7 @@ export default function MenuEditorPage() {
                 </div>
                 <div className="space-y-2">
                   {products
-                    .filter(p => p.category_id === cat.id && !p.is_ingredient_only)
+                    .filter(p => p.category_id === cat.id && inCarta(p) && matchesTerm(p))
                     .map(product => (
                       <ProductRow
                         key={product.id}
