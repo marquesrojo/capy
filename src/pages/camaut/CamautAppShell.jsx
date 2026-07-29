@@ -261,6 +261,18 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
   // El alta manual no le pregunta nada nuevo —y su paso 2 le recomienda
   // vincularse a un restaurante, que es lo que acaba de hacer—, así que se le
   // crea la ficha en silencio y entra directo a tomar comandas.
+  // ¿Tiene carta propia? Un camarero que solo trabaja en locales vinculados no
+  // debería ver "Mis Cartas" como opción: no tiene nada adentro.
+  const [hasOwnMenu, setHasOwnMenu] = useState(null)
+  useEffect(() => {
+    if (!venueId) { setHasOwnMenu(false); return }
+    supabaseStaff
+      .from('products')
+      .select('id', { count: 'exact', head: true })
+      .eq('venue_id', venueId)
+      .then(({ count }) => setHasOwnMenu((count || 0) > 0))
+  }, [venueId])
+
   const autoSetupRef = useRef(false)
   const [autoSetupFailed, setAutoSetupFailed] = useState(false)
 
@@ -483,8 +495,8 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
       )}
 
       {/* Contenido */}
-      {tab === 'tomar' && <WaiterOrderCamaut venueId={venueId} linkedVenues={linkedVenues} staffId={staffId} prefillLocation={prefillLocation} onPrefillUsed={() => setPrefillLocation(null)} onXPUpdate={xp => setStaffXP(xp)} />}
-      {tab === 'pedidos' && <CamautKanban venueId={venueId} linkedVenues={linkedVenues} staffId={staffId} onNewOrderForTable={handleNewOrderForTable} />}
+      {tab === 'tomar' && <WaiterOrderCamaut venueId={venueId} linkedVenues={linkedVenues} hasOwnMenu={hasOwnMenu} staffId={staffId} prefillLocation={prefillLocation} onPrefillUsed={() => setPrefillLocation(null)} onXPUpdate={xp => setStaffXP(xp)} />}
+      {tab === 'pedidos' && <CamautKanban venueId={venueId} linkedVenues={linkedVenues} hasOwnMenu={hasOwnMenu} staffId={staffId} onNewOrderForTable={handleNewOrderForTable} />}
       {tab === 'turno' && <ShiftSummaryPage embedded venueId={venueId} staffId={staffId} />}
 
       {showWrapped && (

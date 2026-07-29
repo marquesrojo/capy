@@ -60,7 +60,12 @@ function PrepTimer({ order }) {
   )
 }
 
-export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNewOrderForTable }) {
+// La carta elegida se guarda en la misma clave que Comanda (capy_ctx_<venueId>),
+// así el camarero la elige una vez y Pedidos la hereda. Ahí el local propio se
+// guarda con su propio id; acá se lo maneja con el rótulo 'propio'.
+function ctxKey(venueId) { return `capy_ctx_${venueId}` }
+
+export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNewOrderForTable, hasOwnMenu = true }) {
   const [ownOrders, setOwnOrders] = useState([])
   const [linkedOrders, setLinkedOrders] = useState([])
   const [waiterCalls, setWaiterCalls] = useState([])
@@ -69,7 +74,9 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState(() => {
     if (linkedVenues.length === 0) return 'propio'
-    return localStorage.getItem(`capy_kanban_${venueId}`) || null
+    const stored = localStorage.getItem(ctxKey(venueId))
+    if (!stored) return null
+    return stored === venueId ? 'propio' : stored
   })
   const [timerModal, setTimerModal] = useState(null) // { orderId }
   const [timerMins, setTimerMins] = useState('15')
@@ -85,11 +92,19 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
   function selectTab(id) {
     setActiveTab(id)
     if (id === null) {
-      localStorage.removeItem(`capy_kanban_${venueId}`)
+      localStorage.removeItem(ctxKey(venueId))
     } else {
-      localStorage.setItem(`capy_kanban_${venueId}`, id)
+      localStorage.setItem(ctxKey(venueId), id === 'propio' ? venueId : id)
     }
   }
+
+  // Sin carta propia y con un solo local vinculado no hay nada que elegir.
+  // Cubre también quedar en 'propio' de antes: sin carta propia, ahí no hay nada.
+  useEffect(() => {
+    if (hasOwnMenu !== false || linkedVenues.length !== 1) return
+    if (activeTab !== null && activeTab !== 'propio') return
+    selectTab(linkedVenues[0].id)
+  }, [activeTab, hasOwnMenu, linkedVenues])
 
   useEffect(() => {
     if (venueId) loadOrders()
@@ -236,18 +251,21 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
       <div className="px-4 pt-5 pb-8 bg-[#F0F4F8] min-h-screen">
         <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-4 px-1">¿Qué pedidos querés ver?</p>
         <div className="space-y-3">
-          <button
-            onClick={() => selectTab('propio')}
-            className="w-full bg-white rounded-2xl p-4 border border-black/5 shadow-sm text-left flex items-center gap-4 active:scale-95 transition-transform"
-          >
-            <div className="w-12 h-12 rounded-xl bg-[#E8F5F5] flex items-center justify-center text-[#008080] flex-shrink-0">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-            </div>
-            <div>
-              <p className="font-bold text-[#1A2A3A] text-base">Mis Cartas</p>
-              <p className="text-[#8896A5] text-sm">{ownOrders.filter(o => o.status !== 'entregado').length} pedidos activos</p>
-            </div>
-          </button>
+          {/* Sin productos propios no hay carta que mostrar */}
+          {hasOwnMenu !== false && (
+            <button
+              onClick={() => selectTab('propio')}
+              className="w-full bg-white rounded-2xl p-4 border border-black/5 shadow-sm text-left flex items-center gap-4 active:scale-95 transition-transform"
+            >
+              <div className="w-12 h-12 rounded-xl bg-[#E8F5F5] flex items-center justify-center text-[#008080] flex-shrink-0">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              </div>
+              <div>
+                <p className="font-bold text-[#1A2A3A] text-base">Mis Cartas</p>
+                <p className="text-[#8896A5] text-sm">{ownOrders.filter(o => o.status !== 'entregado').length} pedidos activos</p>
+              </div>
+            </button>
+          )}
           {linkedVenues.map(v => {
             const count = linkedOrders.filter(o => o.venue_id === v.id && o.status !== 'entregado').length
             return (
@@ -359,12 +377,15 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
                 </button>
               )
             })()}
-            <button
-              onClick={() => selectTab(null)}
-              className="text-[#008080] text-xs font-semibold border border-[#008080]/30 px-3 py-1.5 rounded-xl"
-            >
-              Cambiar
-            </button>
+            {/* Con una sola carta posible el botón no lleva a ningún lado */}
+            {(hasOwnMenu !== false || linkedVenues.length > 1) && (
+              <button
+                onClick={() => selectTab(null)}
+                className="text-[#008080] text-xs font-semibold border border-[#008080]/30 px-3 py-1.5 rounded-xl"
+              >
+                Cambiar
+              </button>
+            )}
           </div>
         </div>
       )}
