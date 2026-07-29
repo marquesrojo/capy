@@ -10,19 +10,31 @@ export async function ensureWaiterRecord(userId, fullName) {
   const name = (fullName || '').trim() || 'Camarero/a'
   const slug = `camaut-${userId.replace(/-/g, '').slice(0, 12)}`
 
-  let { data: venue, error } = await supabaseStaff
-    .from('venues')
-    .insert({ name: `${name} — Capy`, slug, owner_id: userId, is_active: true })
-    .select('id')
-    .single()
+  // Si un intento anterior ya le dejó venue, se reutiliza: crear otro le
+  // partiría la carta y el historial entre dos locales personales
+  const { data: existingProfile } = await supabaseStaff
+    .from('profiles')
+    .select('venue_id')
+    .eq('id', userId)
+    .maybeSingle()
 
-  if (error) {
-    // 23505: el venue ya existía de un intento anterior
-    if (error.code === '23505') {
-      const res = await supabaseStaff.from('venues').select('id').eq('slug', slug).maybeSingle()
-      venue = res.data
-    } else {
-      throw new Error(error.message)
+  let venue = existingProfile?.venue_id ? { id: existingProfile.venue_id } : null
+
+  if (!venue) {
+    const { data: created, error } = await supabaseStaff
+      .from('venues')
+      .insert({ name: `${name} — Capy`, slug, owner_id: userId, is_active: true })
+      .select('id')
+      .single()
+    venue = created
+    if (error) {
+      // 23505: el venue ya existía pero el perfil no lo tenía apuntado
+      if (error.code === '23505') {
+        const res = await supabaseStaff.from('venues').select('id').eq('slug', slug).maybeSingle()
+        venue = res.data
+      } else {
+        throw new Error(error.message)
+      }
     }
   }
   if (!venue?.id) throw new Error('No se pudo crear la cuenta del camarero')
@@ -35,12 +47,25 @@ export async function ensureWaiterRecord(userId, fullName) {
     )
   if (profileError) throw new Error(profileError.message)
 
-  await supabaseStaff
+  // Sin upsert: el onConflict de (venue_id, profile_id) depende de una
+  // restricción única que no existe, y falla entera antes de crear nada
+  const { data: existingStaff } = await supabaseStaff
     .from('staff_names')
-    .upsert(
-      { venue_id: venue.id, full_name: name, profile_id: userId, xp: 0 },
-      { onConflict: 'venue_id,profile_id' }
-    )
+    .select('id')
+    .eq('profile_id', userId)
+    .maybeSingle()
+
+  if (existingStaff) {
+    await supabaseStaff
+      .from('staff_names')
+      .update({ full_name: name })
+      .eq('id', existingStaff.id)
+  } else {
+    const { error: staffError } = await supabaseStaff
+      .from('staff_names')
+      .insert({ venue_id: venue.id, full_name: name, profile_id: userId, xp: 0 })
+    if (staffError) throw new Error(staffError.message)
+  }
 
   return venue.id
 }

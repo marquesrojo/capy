@@ -265,22 +265,28 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
   const [autoSetupFailed, setAutoSetupFailed] = useState(false)
 
   useEffect(() => {
-    if (venueId || !linkedVenues?.length || !staffName || autoSetupRef.current) return
+    // Lo que falta es la FICHA, no el venue: un camarero puede tener venue
+    // personal de un intento anterior y seguir sin fila en staff_names, que es
+    // lo que le deja el perfil vacío y sin alias para las propinas.
+    if (staffId || !linkedVenues?.length || !staffName || autoSetupRef.current) return
     autoSetupRef.current = true
     ;(async () => {
       try {
         const { data: { session } } = await supabaseStaff.auth.getSession()
         if (!session) return
+        // Un solo reintento por usuario: si al recargar sigue sin ficha, se
+        // muestra el alta manual en vez de recargar para siempre
+        const tryKey = `camaut-autosetup-${session.user.id}`
+        if (localStorage.getItem(tryKey) === '1') { setAutoSetupFailed(true); return }
         await ensureWaiterRecord(session.user.id, staffName)
-        // La marca evita que un fallo posterior lo devuelva al alta en loop
-        localStorage.setItem(`camaut-onboarded-${session.user.id}`, '1')
+        localStorage.setItem(tryKey, '1')
         window.location.reload()
       } catch (err) {
         console.error('Alta automática del camarero:', err)
         setAutoSetupFailed(true)
       }
     })()
-  }, [venueId, linkedVenues, staffName])
+  }, [staffId, linkedVenues, staffName])
 
   let alreadyOnboarded = false
   try {
@@ -294,7 +300,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
   // se salteaba si ya estaba vinculado a un restaurante, que es justo lo que
   // pasa cuando se da de alta escaneando el QR del local: quedaba adentro de la
   // app sin ficha y el botón de guardar el perfil no hacía nada.
-  if (!venueId && !alreadyOnboarded) {
+  if (!staffId && !alreadyOnboarded) {
     // Alta automática en curso: no tiene sentido mostrarle el formulario
     if (linkedVenues?.length && staffName && !autoSetupFailed) {
       return (
