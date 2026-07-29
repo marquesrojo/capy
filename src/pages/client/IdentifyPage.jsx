@@ -926,14 +926,6 @@ export default function IdentifyPage() {
         {/* ── Para llevar — separado ── */}
         {(retiroExternoEnabled || deliveryEnabled) && (
           <div className="pt-1">
-            {/* Cuando es lo único que hay, el separador no separa de nada */}
-            {!takeawayOnly && (
-              <div className="flex items-center gap-3 mb-3">
-                <div className="flex-1 h-px bg-black/[0.07]" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[#B0BBCA]">Para llevar</span>
-                <div className="flex-1 h-px bg-black/[0.07]" />
-              </div>
-            )}
             {!showExternalOptions ? (
               <button
                 onClick={() => setShowExternalOptions(true)}
@@ -945,8 +937,8 @@ export default function IdentifyPage() {
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <p className="font-black text-sm leading-tight text-[#1A2332]">Pido desde afuera de {venue?.name || 'acá'}</p>
-                  <p className="text-[#9DAAB8] text-xs mt-0.5">Retiro o delivery</p>
+                  <p className="font-black text-sm leading-tight text-[#1A2332]">Pido desde mi casa</p>
+                  <p className="text-[#9DAAB8] text-xs mt-0.5">Retiro en el local o delivery</p>
                 </div>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9DAAB8" strokeWidth="2.5">
                   <polyline points="9 18 15 12 9 6"/>
