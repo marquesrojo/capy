@@ -178,11 +178,11 @@ export default function MenuPage() {
     <div className="h-screen flex flex-col bg-[#F0F4F8] overflow-hidden">
       {/* Con los pedidos pausados el aviso de demora sobra: no se puede pedir */}
       {ordersPaused ? (
-        <div className="flex-shrink-0 bg-amber-500/15 border-b border-amber-500/40 px-5 py-2.5 text-center">
-          <p className="text-amber-800 text-sm font-semibold">
+        <div className="flex-shrink-0 bg-red-500/12 border-b border-red-500/30 px-5 py-2.5 text-center">
+          <p className="text-red-800 text-sm font-semibold">
             Por ahora no se pueden hacer pedidos desde la app
           </p>
-          <p className="text-amber-700/90 text-xs mt-0.5">
+          <p className="text-red-700/90 text-xs mt-0.5">
             {pauseMessage || 'Podés ver la carta y pedirle a un camarero/a.'}
           </p>
         </div>

@@ -585,11 +585,11 @@ export default function PaymentPage() {
           <span className="font-mono font-bold text-lg" style={{ color: accent }}>{formatPrice(total)}</span>
         </div>
         {ordersPaused ? (
-          <div className="bg-amber-50 border border-amber-300 rounded-xl px-4 py-3.5">
-            <p className="text-amber-900 text-sm font-bold leading-snug">
+          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-4 text-center">
+            <p className="text-red-800 text-sm font-bold leading-snug">
               El local dejó de tomar pedidos por la app
             </p>
-            <p className="text-amber-800 text-sm mt-1 leading-snug">
+            <p className="text-red-700 text-sm mt-1 leading-snug">
               {pauseMessage || 'Mostrale esta pantalla a un camarero/a y te lo cargan ellos.'}
             </p>
           </div>
