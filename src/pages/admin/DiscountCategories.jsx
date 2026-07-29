@@ -127,19 +127,25 @@ export default function DiscountCategories({ venueId }) {
             tipear: lo tiene quien pertenece, y se aplica solo al confirmar el pedido.
           </p>
         </div>
-        <div className="flex gap-2">
+        {/* Cada campo en su renglón: .input fuerza width 100% y le gana a las
+            clases de ancho, así que en una fila el nombre quedaba aplastado */}
+        <div>
+          <label className="text-smoke-500 text-xs block mb-1">Nombre</label>
           <input
-            className="input flex-1"
-            placeholder="Nombre de la categoría"
+            className="input"
+            placeholder="Ej: Veteranos"
             value={name}
             onChange={e => setName(e.target.value)}
           />
+        </div>
+        <div>
+          <label className="text-smoke-500 text-xs block mb-1">Descuento (%)</label>
           <input
-            className="input w-20 text-center"
+            className="input"
             type="number"
             min="1"
             max="100"
-            placeholder="%"
+            placeholder="Ej: 15 — dejalo vacío para agrupar sin descuento"
             value={percent}
             onChange={e => setPercent(e.target.value)}
           />
