@@ -701,12 +701,17 @@ function ProductRow({ product, venueId, categories, allProducts = [], onToggle, 
   if (editing) {
     const displayImg = removeImage ? null : (imagePreview || product.image_url)
     return (
-      <div className="bg-carbon-900 border border-ember-500/40 rounded-xl p-3 space-y-2" onClick={() => setShowIngredients(false)}>
+      <div className="bg-carbon-900 border border-ember-500/40 rounded-xl p-3" onClick={() => setShowIngredients(false)}>
+        {/* En pantalla ancha la foto va al costado: estirada de punta a punta se
+            recortaba en una banda panorámica y no dejaba ver el plato, y cada
+            campo medía todo el ancho para escribir cuatro dígitos */}
+        <div className="md:flex md:gap-4 md:items-start">
+        <div className="md:w-64 md:flex-shrink-0 space-y-2">
         {/* Image upload */}
         <div className="relative">
           <div
             onClick={() => imgInputRef.current?.click()}
-            className="w-full h-28 rounded-xl border border-dashed border-carbon-600 overflow-hidden cursor-pointer flex items-center justify-center bg-carbon-800"
+            className="w-full h-28 md:h-auto md:aspect-[4/3] rounded-xl border border-dashed border-carbon-600 overflow-hidden cursor-pointer flex items-center justify-center bg-carbon-800"
           >
             {displayImg ? (
               <img src={displayImg} alt="" className="w-full h-full object-cover" />
@@ -737,13 +742,22 @@ function ProductRow({ product, venueId, categories, allProducts = [], onToggle, 
           </p>
         )}
         <input ref={imgInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+        </div>
 
+        <div className="flex-1 min-w-0 space-y-2 mt-2 md:mt-0">
+        {/* El nombre necesita lugar; el precio y la categoría, no */}
         <input className="input" value={name} onChange={e => setName(e.target.value)} placeholder="Nombre" />
         <input className="input" value={description} onChange={e => setDescription(e.target.value)} placeholder="Descripción (opcional)" />
-        <input className="input" type="number" value={price} onChange={e => setPrice(e.target.value)} placeholder="Precio" />
-        <select className="input" value={categoryId} onChange={e => setCategoryId(e.target.value)}>
-          {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
+        <div className="flex gap-2">
+          <div className="flex-1 min-w-0">
+            <input className="input" type="number" value={price} onChange={e => setPrice(e.target.value)} placeholder="Precio" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <select className="input" value={categoryId} onChange={e => setCategoryId(e.target.value)}>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+        </div>
         <div>
           <p className="text-smoke-500 text-[10px] uppercase tracking-wide mb-1.5">Apto para</p>
           <div className="flex flex-wrap gap-2">
@@ -812,8 +826,11 @@ function ProductRow({ product, venueId, categories, allProducts = [], onToggle, 
           )}
         </div>
 
-        <div className="flex gap-2">
-          <button onClick={() => { setEditing(false); setImageFile(null); setImagePreview(null); setDietaryTags(product.dietary_tags || []); setStockMode(product.stock_mode || null); setUnitStock(product.unit_stock != null ? String(product.unit_stock) : ''); setMinStockAlert(product.min_stock_alert != null ? String(product.min_stock_alert) : ''); setRecipe(null) }}
+        </div>
+        </div>
+
+        <div className="flex gap-2 mt-3">
+          <button onClick={() => { setEditing(false); setImageFile(null); setImagePreview(null); setRemoveImage(false); setDietaryTags(product.dietary_tags || []); setStockMode(product.stock_mode || null); setUnitStock(product.unit_stock != null ? String(product.unit_stock) : ''); setMinStockAlert(product.min_stock_alert != null ? String(product.min_stock_alert) : ''); setRecipe(null) }}
             className="flex-1 border border-carbon-700 text-smoke-400 py-2 rounded-xl text-xs">
             Cancelar
           </button>
