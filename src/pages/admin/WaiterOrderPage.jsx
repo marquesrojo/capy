@@ -84,37 +84,12 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
         const existing = (staffData || []).find(s =>
           s.full_name.toLowerCase().trim() === profileName.toLowerCase()
         )
-        if (existing) {
-          setSelectedStaff(existing)
-        } else {
-          // Sin .maybeSingle(): con dos fichas del mismo nombre devuelve error y
-          // data null, así que este bloque creaba una tercera, y a la visita
-          // siguiente una cuarta. De ahí las once fichas "MATIAS CAPY" de un
-          // local con un solo Matías. Con un orden fijo siempre cae en la misma.
-          const { data: dbRows } = await supabaseStaff
-            .from('staff_names')
-            .select('*')
-            .eq('venue_id', activeVenueId)
-            .ilike('full_name', profileName)
-            .order('id')
-            .limit(1)
-          const dbCheck = dbRows?.[0]
-          if (dbCheck) {
-            setSelectedStaff(dbCheck)
-          } else {
-            // Con profile_id: es lo que ata la ficha a la cuenta, y sin eso no
-            // hay forma de saber después de quién era
-            const { data: created } = await supabaseStaff
-              .from('staff_names')
-              .insert({
-                venue_id: activeVenueId,
-                full_name: profileName || 'Camarero',
-                profile_id: profile?.id || null,
-              })
-              .select().single()
-            if (created) setSelectedStaff(created)
-          }
-        }
+        // Los camareros son los de la app: acá ya no se crean fichas. Esto
+        // creaba una por cada visita cuando había nombres repetidos —once para
+        // un solo Matías— y de paso inventaba camareros que nadie dio de alta.
+        // Sin ficha el pedido queda sin asignar y se asigna desde el tablero,
+        // que es lo que corresponde para un pedido de mostrador.
+        if (existing) setSelectedStaff(existing)
         setStep('menu')
       }
     }
