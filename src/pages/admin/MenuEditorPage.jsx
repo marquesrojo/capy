@@ -7,6 +7,17 @@ import { CameraIcon, StarIcon, DIETARY_TAGS } from '../../components/Icons'
 import { geminiGenerate } from '../../lib/gemini'
 
 const KIND_LABELS = { bebida: 'Bebida', comida: 'Comida', otro: 'Otro' }
+// Ruta dentro del bucket a partir de la URL pública. Devuelve null para las
+// fotos que no son nuestras (las de Unsplash), que no hay que borrar.
+const ASSETS_BUCKET = 'venue-assets'
+function storagePathFromUrl(url) {
+  if (!url) return null
+  const marker = `/${ASSETS_BUCKET}/`
+  const i = url.indexOf(marker)
+  if (i === -1) return null
+  return url.slice(i + marker.length).split('?')[0]
+}
+
 const KIND_COLORS = {
   bebida: 'border-blue-500/40 text-blue-700',
   comida: 'border-emerald-500/40 text-emerald-700',
@@ -596,6 +607,7 @@ function ProductRow({ product, venueId, categories, allProducts = [], onToggle, 
   const [recipe, setRecipe] = useState(null)
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
+  const [removeImage, setRemoveImage] = useState(false)
   const [saving, setSaving] = useState(false)
   const imgInputRef = useRef(null)
 
@@ -604,11 +616,31 @@ function ProductRow({ product, venueId, categories, allProducts = [], onToggle, 
     if (!file) return
     setImageFile(file)
     setImagePreview(URL.createObjectURL(file))
+    setRemoveImage(false)
+  }
+
+  // Sacar la foto y que el plato quede sin ninguna. Se marca acá y se aplica al
+  // guardar, así se puede arrepentir cancelando la edición.
+  function handleImageRemove(e) {
+    e.stopPropagation()
+    setImageFile(null)
+    setImagePreview(null)
+    setRemoveImage(true)
   }
 
   async function handleSave() {
     setSaving(true)
-    let imageUrl = product.image_url || null
+    let imageUrl = removeImage ? null : (product.image_url || null)
+
+    // Al quitarla, borrar también el archivo: sin esto la foto desaparece de la
+    // carta pero sigue ocupando lugar en el bucket para siempre. Solo las
+    // nuestras — las de "Foto IA" son links a Unsplash, no hay nada que borrar.
+    if (removeImage && product.image_url) {
+      const path = storagePathFromUrl(product.image_url)
+      if (path) {
+        await supabaseStaff.storage.from('venue-assets').remove([path])
+      }
+    }
 
     if (imageFile) {
       const ext = imageFile.name.split('.').pop()
@@ -651,6 +683,7 @@ function ProductRow({ product, venueId, categories, allProducts = [], onToggle, 
     setEditing(false)
     setImageFile(null)
     setImagePreview(null)
+    setRemoveImage(false)
   }
 
   async function toggleFeatured() {
@@ -666,20 +699,43 @@ function ProductRow({ product, venueId, categories, allProducts = [], onToggle, 
   }
 
   if (editing) {
-    const displayImg = imagePreview || product.image_url
+    const displayImg = removeImage ? null : (imagePreview || product.image_url)
     return (
       <div className="bg-carbon-900 border border-ember-500/40 rounded-xl p-3 space-y-2" onClick={() => setShowIngredients(false)}>
         {/* Image upload */}
-        <div
-          onClick={() => imgInputRef.current?.click()}
-          className="w-full h-28 rounded-xl border border-dashed border-carbon-600 overflow-hidden cursor-pointer flex items-center justify-center bg-carbon-800"
-        >
-          {displayImg ? (
-            <img src={displayImg} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <span className="text-smoke-500 text-xs flex items-center gap-1.5"><CameraIcon size={14} /> Agregar foto</span>
+        <div className="relative">
+          <div
+            onClick={() => imgInputRef.current?.click()}
+            className="w-full h-28 rounded-xl border border-dashed border-carbon-600 overflow-hidden cursor-pointer flex items-center justify-center bg-carbon-800"
+          >
+            {displayImg ? (
+              <img src={displayImg} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-smoke-500 text-xs flex items-center gap-1.5"><CameraIcon size={14} /> Agregar foto</span>
+            )}
+          </div>
+          {/* Sobre la foto y no al lado: el recuadro entero abre el selector de
+              archivos, así que un botón adentro tiene que frenar ese clic */}
+          {displayImg && (
+            <button
+              type="button"
+              onClick={handleImageRemove}
+              title="Quitar la foto"
+              aria-label="Quitar la foto"
+              className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/65 text-white text-sm flex items-center justify-center backdrop-blur-sm hover:bg-black/80"
+            >
+              ✕
+            </button>
           )}
         </div>
+        {removeImage && (
+          <p className="text-smoke-500 text-[10px]">
+            Queda sin foto al guardar.{' '}
+            <button type="button" onClick={() => setRemoveImage(false)} className="text-ember-500 underline">
+              Deshacer
+            </button>
+          </p>
+        )}
         <input ref={imgInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
 
         <input className="input" value={name} onChange={e => setName(e.target.value)} placeholder="Nombre" />
