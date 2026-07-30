@@ -57,9 +57,28 @@ export async function fetchVenueWaiters(venueId) {
     .filter(w => w.is_active !== false)
     .map(w => ({ ...w, _linked: true }))
 
+  // Dar de baja al usuario desde Usuarios deshabilita su cuenta, no su ficha de
+  // staff_names, que es la que alimenta este selector. Por eso un camarero dado
+  // de baja seguía apareciendo para asignarle pedidos: acá se cruzan las dos
+  // cosas, así la baja del usuario vale también para el selector.
+  const profileIds = [...new Set(
+    [...localList, ...linkedList].map(w => w.profile_id).filter(Boolean)
+  )]
+  let disabledProfiles = new Set()
+  if (profileIds.length) {
+    const { data: profs } = await supabaseStaff
+      .from('profiles')
+      .select('id, is_active')
+      .in('id', profileIds)
+    disabledProfiles = new Set(
+      (profs || []).filter(p => p.is_active === false).map(p => p.id)
+    )
+  }
+
   const seenIds = new Set()
   const seenNames = new Set()
   return [...localList, ...linkedList]
+    .filter(w => !(w.profile_id && disabledProfiles.has(w.profile_id)))
     .filter(w => {
       if (seenIds.has(w.id)) return false
       seenIds.add(w.id)
