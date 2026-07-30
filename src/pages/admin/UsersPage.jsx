@@ -43,6 +43,8 @@ export default function UsersPage() {
   // Tab: vinculados
   const [vinculados, setVinculados] = useState([])
   const [loadingVinculados, setLoadingVinculados] = useState(false)
+  const [fichas, setFichas] = useState([])
+  const [loadingFichas, setLoadingFichas] = useState(false)
 
   // Tab: comparativa
   const [comparativa, setComparativa] = useState([])
@@ -73,6 +75,36 @@ export default function UsersPage() {
     setVinculados(data || [])
     setLoadingVinculados(false)
   }, [venueId])
+
+  // Fichas propias del local: las que se cargan a mano para asignarle un pedido
+  // a alguien que no usa la app. Las de los camareros vinculados no entran acá
+  // porque viven en su venue personal, con otro venue_id.
+  const loadFichas = useCallback(async () => {
+    if (!venueId) return
+    setLoadingFichas(true)
+    const { data } = await supabaseStaff
+      .from('staff_names')
+      .select('id, full_name, xp, total_orders, profile_id')
+      .eq('venue_id', venueId)
+      .eq('is_active', true)
+      .order('full_name')
+    setFichas(data || [])
+    setLoadingFichas(false)
+  }, [venueId])
+
+  async function bajaFicha(ficha) {
+    if (!confirm(`¿Dar de baja a ${ficha.full_name}? Deja de aparecer para asignar pedidos. Los pedidos ya cargados no se tocan.`)) return
+    const { data, error } = await supabaseStaff
+      .from('staff_names')
+      .update({ is_active: false })
+      .eq('id', ficha.id)
+      .select('id')
+    if (error || !data?.length) {
+      alert('No se pudo dar de baja. Tu usuario no tiene permiso sobre esta ficha.')
+      return
+    }
+    setFichas(prev => prev.filter(f => f.id !== ficha.id))
+  }
 
   const loadComparativa = useCallback(async () => {
     if (!venueId) return
@@ -140,9 +172,9 @@ export default function UsersPage() {
   useEffect(() => { if (venueId) loadUsers() }, [venueId, loadUsers])
 
   useEffect(() => {
-    if (tab === 'vinculados') loadVinculados()
+    if (tab === 'vinculados') { loadVinculados(); loadFichas() }
     if (tab === 'comparativa') loadComparativa()
-  }, [tab, loadVinculados, loadComparativa])
+  }, [tab, loadVinculados, loadFichas, loadComparativa])
 
   async function handleCreate() {
     if (!email.trim() || !fullName.trim() || !password.trim()) {
@@ -390,23 +422,64 @@ export default function UsersPage() {
         {/* ── TAB: APP CAMARERO ── */}
         {tab === 'vinculados' && (
           <div className="space-y-3">
-            <p className="text-smoke-500 text-xs mb-4">
-              Camareros vinculados via código de invitación desde{' '}
+            <p className="text-smoke-500 text-xs mb-1">
+              Los dos grupos de acá abajo son los que aparecen para asignar un pedido
+              en el tablero.
+            </p>
+
+            <p className="text-smoke-400 text-xs font-semibold uppercase tracking-wide pt-3">
+              Con app propia
+            </p>
+            <p className="text-smoke-600 text-[11px] -mt-1">
+              Vinculados con el código de invitación de{' '}
               <Link to="/admin/qr" className="text-ember-500 underline">Config → Códigos QR</Link>.
+              Al desvincularlos no se toca su cuenta de CAPY Camarero.
             </p>
             {loadingVinculados ? (
-              <p className="text-smoke-500 text-sm text-center py-8">Cargando...</p>
+              <p className="text-smoke-500 text-sm text-center py-6">Cargando...</p>
             ) : vinculados.length === 0 ? (
-              <p className="text-smoke-600 text-sm text-center py-8">No hay camareros vinculados todavía.</p>
+              <p className="text-smoke-600 text-sm text-center py-6">No hay camareros vinculados todavía.</p>
             ) : (
               vinculados.map(v => (
-                <div key={v.id} className="bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-3 flex items-center justify-between">
-                  <div>
-                    <p className="text-smoke-200 font-semibold text-sm">{v.profile?.full_name || 'Sin nombre'}</p>
+                <div key={v.id} className="bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-smoke-200 font-semibold text-sm truncate">{v.profile?.full_name || 'Sin nombre'}</p>
                     <p className="text-smoke-500 text-xs">Desde {new Date(v.joined_at).toLocaleDateString('es-AR')}</p>
                   </div>
-                  <button onClick={() => desvincular(v.id)} className="text-red-400 text-xs underline">
+                  <button onClick={() => desvincular(v.id)} className="text-red-400 text-xs underline flex-shrink-0">
                     Desvincular
+                  </button>
+                </div>
+              ))
+            )}
+
+            {/* Fichas cargadas a mano en el local. Alimentaban el selector del
+                tablero sin que hubiera ninguna pantalla para verlas ni darlas
+                de baja, así que los nombres de prueba quedaban para siempre. */}
+            <p className="text-smoke-400 text-xs font-semibold uppercase tracking-wide pt-5">
+              Solo nombre, sin app
+            </p>
+            <p className="text-smoke-600 text-[11px] -mt-1">
+              Fichas del local para asignar pedidos y propinas a alguien que no usa
+              la app de camarero.
+            </p>
+            {loadingFichas ? (
+              <p className="text-smoke-500 text-sm text-center py-6">Cargando...</p>
+            ) : fichas.length === 0 ? (
+              <p className="text-smoke-600 text-sm text-center py-6">No hay fichas cargadas a mano.</p>
+            ) : (
+              fichas.map(f => (
+                <div key={f.id} className="bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-smoke-200 font-semibold text-sm truncate">{f.full_name || 'Sin nombre'}</p>
+                    <p className="text-smoke-500 text-xs">
+                      {f.total_orders ? `${f.total_orders} pedidos` : 'Sin pedidos'}
+                      {f.xp ? ` · ${f.xp} XP` : ''}
+                      {f.profile_id ? ' · tiene cuenta' : ''}
+                    </p>
+                  </div>
+                  <button onClick={() => bajaFicha(f)} className="text-red-400 text-xs underline flex-shrink-0">
+                    Dar de baja
                   </button>
                 </div>
               ))
