@@ -144,14 +144,16 @@ export default function MenuEditorPage() {
 
   return (
     <div className="min-h-screen bg-carbon-950 pb-10">
-      <header className="px-5 pt-5 pb-4 border-b border-carbon-700 flex items-center justify-between">
-        <h1 className="font-display text-3xl text-ember-500 tracking-wide">CARTA</h1>
-        <Link to="/admin" className="text-smoke-400 text-xs underline">
-          ← Volver
-        </Link>
+      <header className="px-5 pt-5 pb-4 border-b border-carbon-700">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <h1 className="font-display text-3xl text-ember-500 tracking-wide">CARTA</h1>
+          <Link to="/admin" className="text-smoke-400 text-xs underline">
+            ← Volver
+          </Link>
+        </div>
       </header>
 
-      <div className="px-5 mt-4">
+      <div className="px-5 mt-4 max-w-5xl mx-auto">
         {/* Tabs */}
         <div className="flex gap-1 mb-4 bg-carbon-900 p-1 rounded-xl">
           <button
