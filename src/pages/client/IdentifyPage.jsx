@@ -453,8 +453,15 @@ export default function IdentifyPage() {
           >
             {venue?.name || 'Bienvenido'}
           </h1>
+          {/* Al 60% de opacidad y sin sombra se perdía contra la foto del
+              header: parecía que el local no la había cargado */}
           {description && (
-            <p className="text-white/60 text-sm mt-1 max-w-xs mx-auto leading-snug">{description}</p>
+            <p
+              className="text-white text-sm mt-1.5 max-w-xs mx-auto leading-snug"
+              style={{ textShadow: '0 1px 8px rgba(0,0,0,0.75)' }}
+            >
+              {description}
+            </p>
           )}
           {scheduleStatus && (
             <button
@@ -536,36 +543,6 @@ export default function IdentifyPage() {
       <div className="flex-1 flex flex-col">
 
       {googleError && <p className="text-red-500 text-xs text-center px-4 pt-2">{googleError}</p>}
-
-      {/* ── Toggle vista escritorio / compacta ── */}
-      {/* "Ver compacta": visible cuando el layout es desktop (forzado o auto ≥lg) */}
-      {!fc && (
-        <div className={`${fd ? 'flex' : 'hidden lg:flex'} justify-end px-4 pt-3`}>
-          <button
-            onClick={() => fd ? toggleDesktop(false) : toggleCompact(true)}
-            className="flex items-center gap-1.5 text-[10px] font-semibold text-[#9DAAB8] hover:text-[#6B7A8D] border border-[#E0E7EF] bg-white rounded-full px-3 py-1.5 shadow-sm transition-colors"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="5" y="2" width="14" height="20" rx="2"/>
-            </svg>
-            Ver versión compacta
-          </button>
-        </div>
-      )}
-      {/* "Ver escritorio": visible cuando el layout es compacto (forzado o auto md-lg) */}
-      {!fd && (
-        <div className={`${fc ? 'hidden md:flex' : 'hidden md:flex lg:hidden'} justify-end px-4 pt-3`}>
-          <button
-            onClick={() => fc ? toggleCompact(false) : toggleDesktop(true)}
-            className="flex items-center gap-1.5 text-[10px] font-semibold text-[#9DAAB8] hover:text-[#6B7A8D] border border-[#E0E7EF] bg-white rounded-full px-3 py-1.5 shadow-sm transition-colors"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
-            </svg>
-            Ver versión escritorio
-          </button>
-        </div>
-      )}
 
       {/* ── Horario expandible (mobile only — desktop shows in sidebar) ── */}
       {showSchedule && schedule && !fd && (
@@ -1294,6 +1271,36 @@ export default function IdentifyPage() {
               </>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ── Toggle vista escritorio / compacta ── */}
+      {/* "Ver compacta": visible cuando el layout es desktop (forzado o auto ≥lg) */}
+      {!fc && (
+        <div className={`${fd ? 'flex' : 'hidden lg:flex'} justify-center px-4 pt-6`}>
+          <button
+            onClick={() => fd ? toggleDesktop(false) : toggleCompact(true)}
+            className="flex items-center gap-1.5 text-[10px] font-semibold text-[#9DAAB8] hover:text-[#6B7A8D] border border-[#E0E7EF] bg-white rounded-full px-3 py-1.5 shadow-sm transition-colors"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="5" y="2" width="14" height="20" rx="2"/>
+            </svg>
+            Ver versión compacta
+          </button>
+        </div>
+      )}
+      {/* "Ver escritorio": visible cuando el layout es compacto (forzado o auto md-lg) */}
+      {!fd && (
+        <div className={`${fc ? 'hidden md:flex' : 'hidden md:flex lg:hidden'} justify-center px-4 pt-6`}>
+          <button
+            onClick={() => fc ? toggleCompact(false) : toggleDesktop(true)}
+            className="flex items-center gap-1.5 text-[10px] font-semibold text-[#9DAAB8] hover:text-[#6B7A8D] border border-[#E0E7EF] bg-white rounded-full px-3 py-1.5 shadow-sm transition-colors"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+            </svg>
+            Ver versión escritorio
+          </button>
         </div>
       )}
 
