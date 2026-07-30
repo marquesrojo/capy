@@ -87,19 +87,30 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
         if (existing) {
           setSelectedStaff(existing)
         } else {
-          // Double-check DB before creating to avoid duplicates on concurrent logins
-          const { data: dbCheck } = await supabaseStaff
+          // Sin .maybeSingle(): con dos fichas del mismo nombre devuelve error y
+          // data null, así que este bloque creaba una tercera, y a la visita
+          // siguiente una cuarta. De ahí las once fichas "MATIAS CAPY" de un
+          // local con un solo Matías. Con un orden fijo siempre cae en la misma.
+          const { data: dbRows } = await supabaseStaff
             .from('staff_names')
             .select('*')
             .eq('venue_id', activeVenueId)
             .ilike('full_name', profileName)
-            .maybeSingle()
+            .order('id')
+            .limit(1)
+          const dbCheck = dbRows?.[0]
           if (dbCheck) {
             setSelectedStaff(dbCheck)
           } else {
+            // Con profile_id: es lo que ata la ficha a la cuenta, y sin eso no
+            // hay forma de saber después de quién era
             const { data: created } = await supabaseStaff
               .from('staff_names')
-              .insert({ venue_id: activeVenueId, full_name: profileName || 'Camarero' })
+              .insert({
+                venue_id: activeVenueId,
+                full_name: profileName || 'Camarero',
+                profile_id: profile?.id || null,
+              })
               .select().single()
             if (created) setSelectedStaff(created)
           }
