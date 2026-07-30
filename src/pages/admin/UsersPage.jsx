@@ -88,7 +88,19 @@ export default function UsersPage() {
       .eq('venue_id', venueId)
       .eq('is_active', true)
       .order('full_name')
-    setFichas(data || [])
+    const rows = data || []
+    // Las fichas de usuarios ya dados de baja no van: el selector tampoco las
+    // ofrece, y mostrarlas acá haría pensar que falta darlas de baja de nuevo
+    const withProfile = rows.map(r => r.profile_id).filter(Boolean)
+    let disabled = new Set()
+    if (withProfile.length) {
+      const { data: profs } = await supabaseStaff
+        .from('profiles')
+        .select('id, is_active')
+        .in('id', withProfile)
+      disabled = new Set((profs || []).filter(p => p.is_active === false).map(p => p.id))
+    }
+    setFichas(rows.filter(r => !(r.profile_id && disabled.has(r.profile_id))))
     setLoadingFichas(false)
   }, [venueId])
 
