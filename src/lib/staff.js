@@ -1,23 +1,15 @@
 import { supabaseStaff } from './supabase'
 
-// Camareros asignables de un venue: los staff_names propios del venue más
-// los camareros vinculados via CAPY Camarero (venue_staff). Los vinculados
-// tienen su staff_names en su venue personal y se resuelven por profile_id,
-// con fallback por nombre para registros viejos sin profile_id.
+// Camareros asignables de un venue: los que usan CAPY Camarero y se vincularon
+// con el código del local (venue_staff). Su staff_names vive en su venue
+// personal y se resuelve por profile_id, con fallback por nombre para las
+// vinculaciones viejas que quedaron sin él.
 export async function fetchVenueWaiters(venueId) {
-  const [{ data: local }, { data: linked }] = await Promise.all([
-    supabaseStaff
-      .from('staff_names')
-      .select('*')
-      .eq('venue_id', venueId)
-      .eq('is_active', true)
-      .order('full_name'),
-    supabaseStaff
-      .from('venue_staff')
-      .select('staff_profile_id, profile:profiles(full_name)')
-      .eq('venue_id', venueId)
-      .eq('status', 'active'),
-  ])
+  const { data: linked } = await supabaseStaff
+    .from('venue_staff')
+    .select('staff_profile_id, profile:profiles(full_name)')
+    .eq('venue_id', venueId)
+    .eq('status', 'active')
 
   const linkedIds = (linked || []).map(l => l.staff_profile_id).filter(Boolean)
   let linkedStaff = []
@@ -47,22 +39,17 @@ export async function fetchVenueWaiters(venueId) {
     }
   }
 
-  // De dónde salió cada uno, porque se quitan de manera distinta: la ficha
-  // local es del venue y se desactiva; la del vinculado vive en su venue
-  // personal y lo que hay que cortar es la vinculación, no su ficha.
-  const localList = (local || []).map(w => ({ ...w, _linked: false }))
+  // La ficha del vinculado vive en su venue personal, así que una dada de baja
+  // ahí no debe seguir ofreciéndose acá
   const linkedList = linkedStaff
-    // Los vinculados no filtraban por is_active: una ficha dada de baja seguía
-    // apareciendo en el selector del local
     .filter(w => w.is_active !== false)
     .map(w => ({ ...w, _linked: true }))
 
-  // Dar de baja al usuario desde Usuarios deshabilita su cuenta, no su ficha de
-  // staff_names, que es la que alimenta este selector. Por eso un camarero dado
-  // de baja seguía apareciendo para asignarle pedidos: acá se cruzan las dos
-  // cosas, así la baja del usuario vale también para el selector.
+  // Dar de baja al usuario deshabilita su cuenta, no su ficha de staff_names,
+  // que es la que alimenta este selector: acá se cruzan las dos cosas, así la
+  // baja vale también para asignar pedidos.
   const profileIds = [...new Set(
-    [...localList, ...linkedList].map(w => w.profile_id).filter(Boolean)
+    linkedList.map(w => w.profile_id).filter(Boolean)
   )]
   let disabledProfiles = new Set()
   if (profileIds.length) {
@@ -75,9 +62,13 @@ export async function fetchVenueWaiters(venueId) {
     )
   }
 
+  // Los camareros de un local son los que usan CAPY Camarero y se vincularon
+  // con el código del local. Las fichas sueltas de staff_names no se ofrecen:
+  // eran nombres cargados a mano, de prueba o de gente que ya no está, y en un
+  // local llegaron a ser 38 filas para cinco personas.
   const seenIds = new Set()
   const seenNames = new Set()
-  return [...localList, ...linkedList]
+  return linkedList
     .filter(w => !(w.profile_id && disabledProfiles.has(w.profile_id)))
     .filter(w => {
       if (seenIds.has(w.id)) return false

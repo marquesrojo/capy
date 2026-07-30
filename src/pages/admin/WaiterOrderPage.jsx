@@ -84,26 +84,12 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
         const existing = (staffData || []).find(s =>
           s.full_name.toLowerCase().trim() === profileName.toLowerCase()
         )
-        if (existing) {
-          setSelectedStaff(existing)
-        } else {
-          // Double-check DB before creating to avoid duplicates on concurrent logins
-          const { data: dbCheck } = await supabaseStaff
-            .from('staff_names')
-            .select('*')
-            .eq('venue_id', activeVenueId)
-            .ilike('full_name', profileName)
-            .maybeSingle()
-          if (dbCheck) {
-            setSelectedStaff(dbCheck)
-          } else {
-            const { data: created } = await supabaseStaff
-              .from('staff_names')
-              .insert({ venue_id: activeVenueId, full_name: profileName || 'Camarero' })
-              .select().single()
-            if (created) setSelectedStaff(created)
-          }
-        }
+        // Los camareros son los de la app: acá ya no se crean fichas. Esto
+        // creaba una por cada visita cuando había nombres repetidos —once para
+        // un solo Matías— y de paso inventaba camareros que nadie dio de alta.
+        // Sin ficha el pedido queda sin asignar y se asigna desde el tablero,
+        // que es lo que corresponde para un pedido de mostrador.
+        if (existing) setSelectedStaff(existing)
         setStep('menu')
       }
     }
