@@ -75,9 +75,18 @@ export async function fetchVenueWaiters(venueId) {
     )
   }
 
+  // Un local cuyos camareros usan la app no tiene nada que hacer con las fichas
+  // sueltas: son nombres de prueba o de gente que ya no está, y ensucian el
+  // selector del tablero. Habiendo vinculados activos, el selector son ellos.
+  //
+  // El fallback importa: el local que todavía no usa la app de camarero asigna
+  // sus pedidos con estas fichas, y quedarse sin ninguna opción lo dejaría sin
+  // poder asignar nada.
+  const base = linkedList.length > 0 ? linkedList : localList
+
   const seenIds = new Set()
   const seenNames = new Set()
-  return [...localList, ...linkedList]
+  return base
     .filter(w => !(w.profile_id && disabledProfiles.has(w.profile_id)))
     .filter(w => {
       if (seenIds.has(w.id)) return false
