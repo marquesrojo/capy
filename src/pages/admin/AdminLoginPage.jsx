@@ -200,6 +200,9 @@ export default function AdminLoginPage() {
   const [regError, setRegError] = useState('')
   const [regLoading, setRegLoading] = useState(false)
   const [regSent, setRegSent] = useState(false)
+  const [regCode, setRegCode] = useState('')
+  const [regVerifying, setRegVerifying] = useState(false)
+  const [regResent, setRegResent] = useState(false)
 
   async function handleRecovery(e) {
     e.preventDefault()
@@ -259,6 +262,37 @@ export default function AdminLoginPage() {
     } else {
       setRegSent(true)
     }
+  }
+
+  // El mail de alta manda un código, no un link: el link de verify abre el
+  // navegador del sistema y no completa la sesión donde se pidió. Así que la
+  // confirmación se termina acá mismo.
+  async function handleConfirmCode(e) {
+    e.preventDefault()
+    setRegError('')
+    setRegVerifying(true)
+    const { error } = await supabaseStaff.auth.verifyOtp({
+      email: regEmail.trim().toLowerCase(),
+      token: regCode.replace(/\D/g, ''),
+      type: 'signup',
+    })
+    setRegVerifying(false)
+    if (error) {
+      setRegError('El código no es correcto o ya venció. Pedí uno nuevo.')
+      return
+    }
+    navigate('/admin/onboarding')
+  }
+
+  async function handleResendCode() {
+    setRegError('')
+    setRegResent(false)
+    const { error } = await supabaseStaff.auth.resend({
+      type: 'signup',
+      email: regEmail.trim().toLowerCase(),
+    })
+    if (error) { setRegError(error.message); return }
+    setRegResent(true)
   }
 
   return (
@@ -650,10 +684,40 @@ export default function AdminLoginPage() {
             <div className="p-5 space-y-3">
               {tab === 'register' ? (
                 regSent ? (
-                  <div className="bg-ember-500/10 border border-ember-500/30 rounded-xl p-4 text-center">
-                    <p className="text-white text-sm font-medium mb-1">Revisá tu email</p>
-                    <p className="text-white/60 text-xs">Te mandamos un link para confirmar tu cuenta y continuar.</p>
-                  </div>
+                  <form onSubmit={handleConfirmCode} className="bg-ember-500/10 border border-ember-500/30 rounded-xl p-4 space-y-3">
+                    <div className="text-center">
+                      <p className="text-white text-sm font-medium mb-1">Revisá tu email</p>
+                      <p className="text-white/60 text-xs">
+                        Te mandamos un código a {regEmail.trim() || 'tu email'}. Ingresalo acá para
+                        activar tu cuenta.
+                      </p>
+                    </div>
+                    <input
+                      autoFocus
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      placeholder="Código del email"
+                      value={regCode}
+                      onChange={e => { setRegCode(e.target.value); setRegError(''); setRegResent(false) }}
+                      className="input-dark w-full bg-white/8 border border-white/15 rounded-xl px-3 py-2.5 text-white text-center text-lg font-mono tracking-[0.3em] placeholder-white/30 placeholder:tracking-normal placeholder:text-sm placeholder:font-sans focus:outline-none focus:border-ember-500/60 transition-colors"
+                    />
+                    {regError && <p className="text-red-400 text-xs text-center">{regError}</p>}
+                    {regResent && <p className="text-white/60 text-xs text-center">Te mandamos un código nuevo.</p>}
+                    <button
+                      type="submit"
+                      disabled={regVerifying || !regCode.trim()}
+                      className="w-full bg-ember-500 hover:bg-ember-600 disabled:opacity-40 text-white font-bold py-2.5 rounded-xl text-sm transition-colors"
+                    >
+                      {regVerifying ? 'Confirmando...' : 'Confirmar cuenta'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleResendCode}
+                      className="w-full text-white/50 hover:text-white/70 text-xs underline transition-colors"
+                    >
+                      No me llegó, mandámelo de nuevo
+                    </button>
+                  </form>
                 ) : (
                   <>
                     <GoogleBtn dark />
