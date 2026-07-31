@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
-import { supabaseCustomer, ACTIVE_VENUE_ID } from '../lib/supabase'
+import { supabaseCustomer } from '../lib/supabase'
 
 export default function ClientFloorMap({ zones, accent, onChoose, confirmStep = true, venueId }) {
   const [selected, setSelected] = useState(null)
   const [occupiedIds, setOccupiedIds] = useState(new Set())
-  const vid = venueId || ACTIVE_VENUE_ID
+  // El local lo pasa quien renderiza el mapa. Sin él no se busca uno de reserva:
+  // marcar como ocupadas las mesas de otro local es peor que no marcar nada.
+  const vid = venueId
 
   useEffect(() => {
     if (!vid) return
