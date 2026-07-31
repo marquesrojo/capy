@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice, STATUS_LABELS, STATUS_COLORS } from '../../lib/utils'
@@ -76,6 +76,9 @@ function AdminDashboardInner() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [view, setView] = useState('mapa')
+  // ?order=<id> viene del WhatsApp que manda el cliente al confirmar
+  const [searchParams] = useSearchParams()
+  const focusOrderId = searchParams.get('order')
   const [zones, setZones] = useState([])
   const [waiterCalls, setWaiterCalls] = useState([])
   const [lowStockCount, setLowStockCount] = useState(0)
@@ -218,6 +221,20 @@ async function loadZones() {
       .eq('venue_id', venueId)
     setCategories(data || [])
   }
+
+  // Llevar a la vista de pedidos y marcar el que avisaron por WhatsApp. Se
+  // espera a que carguen: apenas entra, la tarjeta todavía no existe.
+  useEffect(() => {
+    if (!focusOrderId || loading) return
+    setView('pedidos')
+    const el = document.getElementById(`order-${focusOrderId}`)
+    if (!el) return
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    el.style.transition = 'box-shadow .3s'
+    el.style.boxShadow = '0 0 0 3px rgba(232,119,42,.9)'
+    const t = setTimeout(() => { el.style.boxShadow = '' }, 4000)
+    return () => clearTimeout(t)
+  }, [focusOrderId, loading])
 
   async function loadWaiters() {
     setWaiters(await fetchVenueWaiters(venueId))
@@ -2288,7 +2305,7 @@ function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCal
           : 'border-carbon-700'
 
   return (
-    <div className={`bg-carbon-900 p-4 ${inGroup ? '' : `border rounded-2xl ${borderColor}`}`}>
+    <div id={`order-${order.id}`} className={`bg-carbon-900 p-4 ${inGroup ? '' : `border rounded-2xl ${borderColor}`}`}>
       {order.is_addition && !inGroup && (
         <div className="flex items-center gap-1.5 mb-2 bg-violet-500/10 border border-violet-500/30 rounded-lg px-2.5 py-1.5">
           <span className="text-violet-400 text-xs font-semibold">+ ADICIÓN · misma mesa</span>
