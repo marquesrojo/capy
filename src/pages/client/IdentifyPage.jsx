@@ -5,6 +5,7 @@ import { useClientBase, useVenueOptional } from '../../hooks/useVenue'
 import { useCart } from '../../hooks/useCart'
 import { useCustomer } from '../../hooks/useCustomer'
 import { UtensilsIcon, XIcon, ClockIcon } from '../../components/Icons'
+import VoiceOrderPanel from '../../components/VoiceOrderPanel'
 import ClientFloorMap from '../../components/ClientFloorMap'
 import EmailLoginModal from '../../components/EmailLoginModal'
 
@@ -144,6 +145,7 @@ export default function IdentifyPage() {
   // Local sin salón: la home solo ofrece retiro y delivery
   const [takeawayOnly, setTakeawayOnly] = useState(false)
   const [ordersPaused, setOrdersPaused] = useState(false)
+  const [showVoice, setShowVoice] = useState(false)
   const [highDemand, setHighDemand] = useState(false)
   const [pauseMessage, setPauseMessage] = useState('')
   const [showExternalOptions, setShowExternalOptions] = useState(false)
@@ -617,6 +619,34 @@ export default function IdentifyPage() {
 
       {/* ── Contenido principal ── */}
       <div className={`px-4 pt-4 pb-6 space-y-3 w-full md:max-w-xl md:mx-auto md:px-6 ${fd ? 'max-w-2xl px-8 pt-8 pb-12 mx-auto' : fc ? '' : 'lg:max-w-2xl lg:px-8 lg:pt-8 lg:pb-12'}`}>
+
+        {/* ── Pedido rápido por voz ──
+             Arriba de los cuatro y con otro tratamiento: es el atajo, no una
+             quinta opción más de la lista. Solo para retiro, así no depende de
+             que el cliente sepa en qué mesa está —que es justo lo que no sabe
+             cuando entra por el QR general— y un pedido mal ubicado es comida
+             que sale de la cocina y no llega a nadie. */}
+        {!ordersPaused && retiro.length > 0 && (
+          <button
+            onClick={() => setShowVoice(true)}
+            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 border-dashed active:scale-[0.98] transition-transform mb-1"
+            style={{ borderColor: selfColor, backgroundColor: `${selfColor}0D` }}
+          >
+            <span
+              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: selfColor, color: 'white' }}
+            >
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="9" y="2" width="6" height="11" rx="3" />
+                <path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4M8 22h8" />
+              </svg>
+            </span>
+            <div className="flex-1 text-left">
+              <p className="font-black text-sm leading-tight" style={{ color: selfColor }}>Pedido rápido para retirar</p>
+              <p className="text-[#6B7A8D] text-xs mt-0.5">Decí qué querés y lo tenés listo</p>
+            </div>
+          </button>
+        )}
 
         {/* ── Pido desde la mesa: abre las ubicaciones acá mismo ── */}
         {!takeawayOnly && !prefillZoneId && zones.length > 0 && (
@@ -1302,6 +1332,33 @@ export default function IdentifyPage() {
             Ver versión escritorio
           </button>
         </div>
+      )}
+
+      {showVoice && (
+        <VoiceOrderPanel
+          venueId={venueId}
+          accent={selfColor}
+          accentText="#FFFFFF"
+          title="Pedido rápido"
+          confirmLabel="Ir a pagar"
+          pickupZones={retiro}
+          onAddItems={(voiceItems, pickupZone) => {
+            if (!pickupZone) return
+            setLocation({ type: 'retiro', zoneId: pickupZone.id, label: pickupZone.name })
+            for (const it of voiceItems) {
+              addItem(
+                { id: it.product_id, name: it.product_name, price: it.product_price },
+                it.quantity,
+                it.note || ''
+              )
+            }
+            // Derecho al checkout: ya dijo qué quiere y dónde lo retira, mandarlo
+            // a la carta sería hacerlo desandar
+            navigate(`${base}/pago`)
+          }}
+          onRecommend={() => { setShowVoice(false); navigate(cartaPath) }}
+          onClose={() => setShowVoice(false)}
+        />
       )}
 
       {/* Crédito de CAPY: siempre al final de todo */}

@@ -8,11 +8,25 @@ import { XIcon } from './Icons'
 // Nunca agrega nada solo: el cliente no conoce los nombres exactos de la carta
 // —dice "napo" y en el menú figura "MILANESA NAPOLITANA CON PAPAS"—, así que la
 // pantalla de confirmación es la función, no un trámite.
-export default function VoiceOrderPanel({ venueId, accent = '#1A3A6B', accentText = '#FFFFFF', onAddItems, onRecommend, onWaiter, onClose }) {
+export default function VoiceOrderPanel({
+  venueId,
+  accent = '#1A3A6B',
+  accentText = '#FFFFFF',
+  onAddItems,
+  onRecommend,
+  onWaiter,
+  onClose,
+  // Modo retiro: se dicta desde la home, sin mesa de por medio, y termina en el
+  // checkout. Si el local tiene un solo punto queda elegido de entrada.
+  pickupZones = null,
+  title = 'Pedí hablando',
+  confirmLabel = 'Agregar al pedido',
+}) {
   const [state, setState] = useState('idle') // idle | recording | processing | result | error
   const [transcript, setTranscript] = useState('')
   const [items, setItems] = useState([])
   const [errorMsg, setErrorMsg] = useState('')
+  const [pickup, setPickup] = useState(() => (pickupZones?.length === 1 ? pickupZones[0] : null))
   const recognitionRef = useRef(null)
 
   // Cortar el micrófono si el panel se cierra en medio del dictado
@@ -84,9 +98,13 @@ export default function VoiceOrderPanel({ venueId, accent = '#1A3A6B', accentTex
   }
 
   function confirm() {
-    onAddItems(items)
+    onAddItems(items, pickup)
     onClose()
   }
+
+  // Sin punto de retiro elegido el pedido no se puede entregar, así que no se
+  // puede confirmar: es lo único que no se corrige después
+  const missingPickup = !!pickupZones && !pickup
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
@@ -94,7 +112,7 @@ export default function VoiceOrderPanel({ venueId, accent = '#1A3A6B', accentTex
 
       <div className="relative bg-white rounded-t-3xl w-full max-h-[85vh] overflow-y-auto pb-8">
         <div className="sticky top-0 bg-white px-5 pt-4 pb-3 flex items-center justify-between border-b border-black/[0.06]">
-          <p className="font-black text-[#1A2332] text-base">Pedí hablando</p>
+          <p className="font-black text-[#1A2332] text-base">{title}</p>
           <button onClick={onClose} aria-label="Cerrar" className="text-[#9DAAB8] p-1">
             <XIcon size={20} />
           </button>
@@ -189,6 +207,31 @@ export default function VoiceOrderPanel({ venueId, accent = '#1A3A6B', accentTex
                 </div>
               )}
 
+              {pickupZones?.length > 0 && items.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-[#9DAAB8] text-[10px] font-semibold uppercase tracking-wide mb-1.5">
+                    ¿Dónde lo retirás?
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {pickupZones.map(z => {
+                      const active = pickup?.id === z.id
+                      return (
+                        <button
+                          key={z.id}
+                          onClick={() => setPickup(z)}
+                          className="text-xs px-3 py-2 rounded-full border font-semibold transition-colors"
+                          style={active
+                            ? { backgroundColor: accent, color: accentText, borderColor: accent }
+                            : { borderColor: '#D1D9E0', color: '#4A5568' }}
+                        >
+                          {z.name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
               {items.length === 0 ? (
                 <div className="py-6 text-center">
                   <p className="text-[#1A2332] font-semibold text-sm">No encontramos eso en la carta</p>
@@ -268,10 +311,11 @@ export default function VoiceOrderPanel({ venueId, accent = '#1A3A6B', accentTex
                 {items.length > 0 && (
                   <button
                     onClick={confirm}
-                    className="flex-1 font-bold py-3 rounded-xl text-sm"
+                    disabled={missingPickup}
+                    className="flex-1 font-bold py-3 rounded-xl text-sm disabled:opacity-40"
                     style={{ backgroundColor: accent, color: accentText }}
                   >
-                    Agregar al pedido
+                    {missingPickup ? 'Elegí dónde retirar' : confirmLabel}
                   </button>
                 )}
               </div>
