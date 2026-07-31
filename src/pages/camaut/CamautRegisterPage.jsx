@@ -40,6 +40,8 @@ export default function CamautRegisterPage() {
 
   const [resending, setResending] = useState(false)
   const [resendDone, setResendDone] = useState(false)
+  const [code, setCode] = useState('')
+  const [verifying, setVerifying] = useState(false)
 
   async function handleRegister(e) {
     e.preventDefault()
@@ -88,6 +90,26 @@ export default function CamautRegisterPage() {
     setResending(false)
   }
 
+  // El mail de alta manda un código, no un link: el link de verify abre el
+  // navegador del sistema y no completa la sesión donde se pidió. Así que la
+  // confirmación se termina acá mismo.
+  async function handleConfirmCode(e) {
+    e.preventDefault()
+    setVerifying(true)
+    setError('')
+    const { error: err } = await supabaseStaff.auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token: code.replace(/\D/g, ''),
+      type: 'signup',
+    })
+    setVerifying(false)
+    if (err) {
+      setError('El código no es correcto o ya venció. Pedí uno nuevo.')
+      return
+    }
+    navigate('/camareroa/app')
+  }
+
   // Si el registro fue exitoso, mostrar mensaje de confirmación
   if (step === 3) {
     return (
@@ -100,11 +122,30 @@ export default function CamautRegisterPage() {
         </div>
         <h1 className="font-bold text-smoke-200 text-2xl mb-2">Revisá tu email</h1>
         <p className="text-smoke-500 text-sm mb-1 max-w-xs">
-          Te enviamos un link de confirmación a <strong>{email}</strong>.
+          Te enviamos un código a <strong>{email}</strong>. Ingresalo acá para activar tu cuenta.
         </p>
-        <p className="text-smoke-600 text-xs mb-6 max-w-xs">
+        <p className="text-smoke-600 text-xs mb-5 max-w-xs">
           Si no lo ves, revisá la carpeta de spam o correo no deseado.
         </p>
+        <form onSubmit={handleConfirmCode} className="w-full max-w-xs space-y-3 mb-4">
+          <input
+            autoFocus
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            placeholder="Código del email"
+            value={code}
+            onChange={e => { setCode(e.target.value); setError('') }}
+            className="input w-full text-center text-lg font-mono tracking-[0.3em]"
+          />
+          {error && <p className="text-red-500 text-xs">{error}</p>}
+          <button
+            type="submit"
+            disabled={verifying || !code.trim()}
+            className="w-full bg-ember-500 text-white font-bold py-3 rounded-xl text-sm disabled:opacity-40"
+          >
+            {verifying ? 'Confirmando...' : 'Confirmar cuenta'}
+          </button>
+        </form>
         <button
           onClick={handleResend}
           disabled={resending || resendDone}
@@ -113,7 +154,7 @@ export default function CamautRegisterPage() {
           {resending ? 'Reenviando...' : resendDone ? '¡Reenviado! Revisá tu casilla.' : 'No llegó el email → Reenviar'}
         </button>
         <Link to="/camareroa/login" className="text-smoke-500 text-xs underline">
-          Ya confirmé mi email → Entrar
+          Ya confirmé mi cuenta → Entrar
         </Link>
       </div>
     )
