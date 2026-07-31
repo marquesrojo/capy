@@ -21,7 +21,10 @@ export function useTableSession(sessionId) {
     setLoading(false)
   }
 
-  const total_spent = orders.reduce((sum, o) => sum + (o.total || 0), 0)
+  // Lo anulado no se cobra: sumarlo inflaba la cuenta de la mesa
+  const total_spent = orders
+    .filter(o => o.status !== 'cancelado')
+    .reduce((sum, o) => sum + (o.total || 0), 0)
 
   // Ítems de comandas ya entregadas (consumiendo)
   const consumedItems = orders

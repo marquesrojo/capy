@@ -101,10 +101,14 @@ function RequestBillForm({ order, onUpdated, mpEnabled, paymentMethods, venueCol
     ? paymentMethods
     : [{ id: 'efectivo', name: 'Efectivo' }, { id: 'posnet', name: 'Posnet / Tarjeta' }]
 
+  // El pedido puede venir del checkout con el descuento de efectivo ya aplicado.
+  // Calcular sobre order.total en ese caso descontaba una segunda vez, así que
+  // primero se vuelve al total sin descuento y sobre ese se recalcula.
+  const baseTotal = order.total + (order.cash_discount_amount || 0)
   const cashDiscountAmt = (cashDiscount.enabled && cashDiscount.percent > 0)
-    ? Math.round(order.total * cashDiscount.percent / 100)
+    ? Math.round(baseTotal * cashDiscount.percent / 100)
     : 0
-  const discountedTotal = order.total - cashDiscountAmt
+  const discountedTotal = baseTotal - cashDiscountAmt
 
   async function handleRequestBill(method) {
     setSubmitting(true)
@@ -119,6 +123,11 @@ function RequestBillForm({ order, onUpdated, mpEnabled, paymentMethods, venueCol
       if (isCash && cashDiscountAmt > 0) {
         updates.cash_discount_amount = cashDiscountAmt
         updates.total = discountedTotal
+      } else if (order.cash_discount_amount) {
+        // Pagando con otra cosa el descuento de efectivo no corresponde: sin
+        // esto quedaba aplicado de antes y el cliente pagaba de menos
+        updates.cash_discount_amount = null
+        updates.total = baseTotal
       }
       if (isCash && cashAmount) {
         updates.cash_amount = Number(cashAmount)
@@ -160,7 +169,8 @@ function RequestBillForm({ order, onUpdated, mpEnabled, paymentMethods, venueCol
         },
         body: JSON.stringify({
           orderId: order.id,
-          total: order.total,
+          // Sin descuento de efectivo: no está pagando en efectivo
+          total: baseTotal,
           orderNumber: order.daily_number,
           venueId: ACTIVE_VENUE_ID
         })

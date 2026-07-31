@@ -68,6 +68,7 @@ export default function OrderStatusPage() {
   const [discountLoading, setDiscountLoading] = useState(false)
   const [discountError, setDiscountError] = useState('')
   const [appliedDiscount, setAppliedDiscount] = useState(null)
+  const [hasCodes, setHasCodes] = useState(false)
   const [fiscalTicket, setFiscalTicket] = useState(null)
   const prevStatusRef = useState(null)
 
@@ -92,6 +93,15 @@ export default function OrderStatusPage() {
         if (data?.header_bg_color) setVenueColor(accentColor(data.header_bg_color))
         setVenueTipAlias(data?.tip_alias || null)
       })
+    // Pedir un código cuando el local no creó ninguno es mandar al cliente a
+    // buscar algo que no existe
+    supabaseCustomer
+      .from('venue_discounts')
+      .select('id', { count: 'exact', head: true })
+      .eq('venue_id', vid)
+      .eq('is_active', true)
+      .not('is_cash_discount', 'is', true)
+      .then(({ count }) => setHasCodes((count || 0) > 0))
   }, [order?.venue_id])
 
   async function applyDiscount() {
@@ -475,7 +485,7 @@ export default function OrderStatusPage() {
         </button>
       )}
 
-      {!isCancelado && order.payment_status !== 'aprobado' && !order.discount_code && !appliedDiscount && (
+      {hasCodes && !isCancelado && order.payment_status !== 'aprobado' && !order.discount_code && !appliedDiscount && (
         <div className="mt-4 bg-carbon-900 border border-carbon-700 rounded-2xl p-4">
           <p className="text-smoke-400 text-xs font-semibold uppercase tracking-wide mb-3">¿Tenés un código de descuento?</p>
           <div className="flex gap-2">

@@ -39,6 +39,7 @@ export default function PaymentPage() {
   const [discountLoading, setDiscountLoading] = useState(false)
   const [cashDiscount, setCashDiscount] = useState({ enabled: false, percent: 0 })
   const [stackDiscounts, setStackDiscounts] = useState(false)
+  const [hasCodes, setHasCodes] = useState(false)
 
   useEffect(() => {
     if (itemCount === 0) navigate(`${base}/carta`)
@@ -47,7 +48,7 @@ export default function PaymentPage() {
 
   useEffect(() => {
     async function loadData() {
-      const [methodsRes, notesRes, venueRes] = await Promise.all([
+      const [methodsRes, notesRes, venueRes, codesRes] = await Promise.all([
         supabaseCustomer
           .from('payment_methods')
           .select('id, name')
@@ -64,15 +65,24 @@ export default function PaymentPage() {
           .from('venues')
           .select('header_bg_color, mp_enabled, cash_discount_enabled, cash_discount_percent, stack_discounts, orders_paused, orders_paused_message')
           .eq('id', venueId)
-          .single()
+          .single(),
+        // Pedirle un código a alguien cuando el local no creó ninguno es
+        // mandarlo a buscar algo que no existe
+        supabaseCustomer
+          .from('venue_discounts')
+          .select('id', { count: 'exact', head: true })
+          .eq('venue_id', venueId)
+          .eq('is_active', true)
+          .not('is_cash_discount', 'is', true)
       ])
+      setHasCodes((codesRes.count || 0) > 0)
       const dbMethods = methodsRes.data || []
       const mpEntry = venueRes.data?.mp_enabled ? [{ id: 'mercadopago', name: 'Mercado Pago' }] : []
       const allMethods = [...mpEntry, ...dbMethods]
-      if (allMethods.length) {
-        setPaymentOptions(allMethods)
-        setPaymentMethod(allMethods[0].id)
-      }
+      // Sin preseleccionar: si el primero de la lista era Efectivo, el cliente
+      // veía el descuento aplicado antes de elegir nada y el pedido se guardaba
+      // con un medio de pago que nunca eligió.
+      if (allMethods.length) setPaymentOptions(allMethods)
       setQuickNotes(notesRes.data || [])
       if (venueRes.data?.header_bg_color) setVenueColor(venueRes.data.header_bg_color)
       if (venueRes.data) {
@@ -476,8 +486,9 @@ export default function PaymentPage() {
           )}
         </label>
 
+        {(hasCodes || categoryDiscount || appliedDiscount) && (
         <div className="bg-white border border-black/[0.06] rounded-2xl p-4 shadow-sm space-y-2">
-          {categoryDiscount && !stackDiscounts ? (
+          {categoryDiscount && (!stackDiscounts || !hasCodes) ? (
             <div>
               <p className="text-[#1A2332] text-sm font-medium">Descuento aplicado</p>
               <p className="text-emerald-600 text-xs font-semibold mt-0.5">
@@ -532,6 +543,7 @@ export default function PaymentPage() {
             </>
           )}
         </div>
+        )}
 
         {paymentOptions.length > 0 && (
           <div>
