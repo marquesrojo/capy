@@ -52,7 +52,9 @@ export default function WaiterOrderPage({ venueId: propVenueId }) {
         fetchVenueWaiters(activeVenueId),
         supabaseStaff.from('venue_zones').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order', { ascending: true, nullsFirst: true }).order('name'),
         supabaseStaff.from('categories').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order'),
-        supabaseStaff.from('products').select('*').eq('venue_id', activeVenueId).eq('is_available', true).order('sort_order'),
+        // in_main_menu false = plato que solo existe dentro de una carta y no
+        // tiene precio propio: suelto en la comanda saldría en $0
+        supabaseStaff.from('products').select('*').eq('venue_id', activeVenueId).eq('is_available', true).neq('in_main_menu', false).order('sort_order'),
         supabaseStaff.from('venues').select('whatsapp_number').eq('id', activeVenueId).single(),
         supabaseStaff.from('quick_notes').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('sort_order'),
         supabaseStaff.from('venue_discounts').select('*').eq('venue_id', activeVenueId).eq('is_active', true).order('created_at')
