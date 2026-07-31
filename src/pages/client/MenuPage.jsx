@@ -7,8 +7,6 @@ import { formatPrice } from '../../lib/utils'
 import BottomNav from '../../components/BottomNav'
 import { useClientBase, useVenueOptional } from '../../hooks/useVenue'
 import { PinIcon, SunIcon, ShoppingBagIcon, ClockIcon, XIcon, DIETARY_TAGS } from '../../components/Icons'
-import RecommendModal from '../../components/RecommendModal'
-import VoiceOrderPanel from '../../components/VoiceOrderPanel'
 import EmailLoginModal from '../../components/EmailLoginModal'
 
 export default function MenuPage() {
@@ -17,8 +15,6 @@ export default function MenuPage() {
   const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState(null)
   const [showCategorySheet, setShowCategorySheet] = useState(false)
-  const [showRecommend, setShowRecommend] = useState(false)
-  const [showVoice, setShowVoice] = useState(false)
   const [search, setSearch] = useState('')
   const [highDemand, setHighDemand] = useState(false)
   const [ordersPaused, setOrdersPaused] = useState(false)
@@ -163,11 +159,6 @@ export default function MenuPage() {
       )
     : []
 
-  function handleRecommendAdd(name) {
-    const product = products.find(p => p.name === name && p.is_available)
-    if (product) addItem(product, 1)
-  }
-
   if (loading) {
     return (
       <div className="h-screen bg-[#F0F4F8] flex items-center justify-center">
@@ -240,20 +231,7 @@ export default function MenuPage() {
               )}
             </div>
           </div>
-          {customer?.full_name || (!isAnonymous && userEmail) ? (
-            <div className="text-right shrink-0">
-              <p className="text-[11px] font-semibold leading-none mb-0.5" style={{ color: accentText }}>
-                {customer?.full_name || userEmail}
-              </p>
-              <button
-                onClick={async () => { await forgetCustomer(); navigate(base || '/identificacion') }}
-                className="text-[10px] opacity-50 leading-none"
-                style={{ color: accentText }}
-              >
-                No soy yo
-              </button>
-            </div>
-          ) : isAnonymous ? (
+          {isAnonymous ? (
             <button
               onClick={() => { if (isStandaloneApp) { setShowEmailLogin(true); return } loginWithGoogle(`${base}/carta`) }}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[11px] font-semibold shrink-0"
@@ -443,61 +421,6 @@ export default function MenuPage() {
 
       <BottomNav />
 
-      {/* Un solo asistente: dictar el pedido y pedir una recomendación son la
-          misma pregunta —qué pido— y con dos botones flotantes la decisión
-          quedaba partida en dos esquinas. Con pedidos pausados no va: no hay
-          nada que agregar al carrito. */}
-      {!ordersPaused && !showVoice && !showRecommend && (
-        <button
-          onClick={() => setShowVoice(true)}
-          aria-label="Pedir hablando"
-          className="fixed left-4 z-20 flex items-center gap-2 pl-3 pr-4 py-3 rounded-full shadow-lg font-semibold text-sm active:scale-95 transition-transform"
-          style={{
-            backgroundColor: contentAccent,
-            color: contentAccentText,
-            // Con el carrito cargado, la barra de confirmar ocupa esa franja
-            bottom: itemCount > 0
-              ? 'calc(env(safe-area-inset-bottom, 0px) + 10.25rem)'
-              : 'calc(env(safe-area-inset-bottom, 0px) + 5.75rem)',
-          }}
-        >
-          <img src="/icon-512.png" alt="" className="w-6 h-6 rounded-full" />
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="9" y="2" width="6" height="11" rx="3" />
-            <path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4M8 22h8" />
-          </svg>
-          <span>Pedí hablando</span>
-        </button>
-      )}
-
-      {showVoice && (
-        <VoiceOrderPanel
-          venueId={venueId}
-          accent={contentAccent}
-          accentText={contentAccentText}
-          onAddItems={voiceItems => {
-            for (const it of voiceItems) {
-              const product = products.find(p => p.id === it.product_id)
-              if (product) addItem(product, it.quantity, it.note || '')
-            }
-          }}
-          onRecommend={() => { setShowVoice(false); setShowRecommend(true) }}
-          onClose={() => setShowVoice(false)}
-        />
-      )}
-
-      {showRecommend && (
-        <RecommendModal
-          venueId={venueId}
-          accentColor={contentAccent}
-          onAddToCart={(name) => {
-            const product = products.find(p => p.name === name)
-            if (product) addItem(product)
-          }}
-          onClose={() => setShowRecommend(false)}
-        />
-      )}
     </div>
   )
 }
