@@ -965,6 +965,11 @@ function CocinaView({ orders, categories, onUpdateStatus, onRefresh }) {
                   <li key={item.id} className="text-smoke-200 text-sm">
                     <span className="font-mono text-ember-400 font-bold">{item.quantity}×</span>{' '}
                     {item.product_name}
+                    {(item.selected_options || []).map((s, i) => (
+                      <span key={i} className="block text-smoke-400 text-xs ml-4">
+                        <span className="text-smoke-600">{s.step}:</span> {s.name}
+                      </span>
+                    ))}
                     {item.item_notes && (
                       <span className="block text-amber-600 text-xs italic ml-4">↳ {item.item_notes}</span>
                     )}
@@ -2388,6 +2393,9 @@ function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCal
         {order.order_items.map(item => (
           <li key={item.id} className="text-smoke-400 text-xs">
             {item.quantity}× {item.product_name}
+            {(item.selected_options || []).length > 0 && (
+              <span className="text-smoke-500"> — {item.selected_options.map(s => s.name).join(', ')}</span>
+            )}
             {item.item_notes && <span className="text-smoke-500"> ({item.item_notes})</span>}
           </li>
         ))}

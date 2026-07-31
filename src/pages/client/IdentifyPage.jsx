@@ -212,6 +212,8 @@ export default function IdentifyPage() {
       .select('id, name, price')
       .eq('venue_id', venueId)
       .or('is_available.is.null,is_available.eq.true')
+      // Un plato que solo existe dentro de una carta no se pide suelto
+      .neq('in_main_menu', false)
       .then(({ data }) => setAllProducts(data || []))
   }, [showRecommend, venueId])
 
@@ -223,6 +225,7 @@ export default function IdentifyPage() {
       .eq('venue_id', venueId)
       .eq('is_available', true)
       .eq('is_featured', true)
+      .neq('in_main_menu', false)
       .order('sort_order')
       .limit(10)
       .then(({ data }) => setTopProducts(data || []))

@@ -3,20 +3,30 @@ import { createContext, useContext, useMemo, useState } from 'react'
 const CartContext = createContext(null)
 
 export function CartProvider({ children }) {
-  const [items, setItems] = useState([]) // { product, quantity, notes }
+  // { product, quantity, notes, menuId?, selections? }
+  // Un ítem de carta de precio fijo no es un producto: es el menú entero, con
+  // lo que la persona eligió en cada paso. Dos menús ejecutivos con platos
+  // distintos son dos líneas, aunque valgan lo mismo y se llamen igual.
+  const [items, setItems] = useState([])
   const [location, setLocation] = useState(null) // { type, zoneId, mapX, mapY, label }
   const [sessionId, setSessionId] = useState(null)
   const [assignedStaffId, setAssignedStaffId] = useState(null)
 
-  function addItem(product, quantity = 1, notes = '') {
+  function addItem(product, quantity = 1, notes = '', extras = null) {
+    const selections = extras?.selections || null
+    const key = selections ? selections.map(s => s.product_id).join('|') : ''
     setItems(prev => {
-      const existing = prev.find(i => i.product.id === product.id && i.notes === notes)
+      const existing = prev.find(i =>
+        i.product.id === product.id &&
+        i.notes === notes &&
+        (i.selections ? i.selections.map(s => s.product_id).join('|') : '') === key
+      )
       if (existing) {
         return prev.map(i =>
           i === existing ? { ...i, quantity: i.quantity + quantity } : i
         )
       }
-      return [...prev, { product, quantity, notes }]
+      return [...prev, { product, quantity, notes, menuId: extras?.menuId || null, selections }]
     })
   }
 

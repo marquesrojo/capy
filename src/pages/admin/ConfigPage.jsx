@@ -22,6 +22,10 @@ const MI_LOCAL_ITEMS = [
     icon: <svg {...ICON_PROPS}><path d="M3 3v18M3 3h12a3 3 0 0 1 0 6H3M21 3v18" /></svg>
   },
   {
+    to: '/admin/cartas', label: 'Cartas', desc: 'Menú ejecutivo, de jugadores y otras cartas',
+    icon: <svg {...ICON_PROPS}><path d="M4 4h7v16H4z"/><path d="M13 4h7v16h-7z"/><path d="M6.5 8h2M6.5 11h2M15.5 8h2M15.5 11h2"/></svg>
+  },
+  {
     to: '/admin/ubicaciones', label: 'Ubicaciones', desc: 'Mesas, zonas y retiro',
     icon: <svg {...ICON_PROPS}><path d="M12 21s-7-7.5-7-12a7 7 0 0 1 14 0c0 4.5-7 12-7 12Z"/><circle cx="12" cy="9" r="2.5"/></svg>
   },

@@ -358,12 +358,16 @@ export default function PaymentPage() {
 
       const orderItems = items.map(i => ({
         order_id: order.id,
-        product_id: i.product.id,
+        // Un menú de precio fijo no es un producto de la carta: no hay id que
+        // referenciar, y lo que se pidió vive en selected_options
+        product_id: i.product.is_menu ? null : i.product.id,
         product_name: i.product.name,
         unit_price: i.product.price,
         quantity: i.quantity,
         item_notes: i.notes || null,
-        line_total: i.product.price * i.quantity
+        line_total: i.product.price * i.quantity,
+        venue_menu_id: i.menuId || null,
+        selected_options: i.selections?.length ? i.selections : null,
       }))
 
       const { error: itemsError } = await supabaseCustomer.from('order_items').insert(orderItems)
@@ -411,6 +415,15 @@ export default function PaymentPage() {
             <div className="flex items-center justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <p className="text-[#1A2332] font-medium text-sm">{item.product.name}</p>
+                {item.selections?.length > 0 && (
+                  <ul className="mt-1 space-y-0.5">
+                    {item.selections.map((s, i) => (
+                      <li key={i} className="text-[#6B7A8D] text-xs leading-snug">
+                        <span className="text-[#9DAAB8]">{s.step}:</span> {s.name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 <p className="font-mono text-smoke-500 text-xs mt-0.5">
                   {formatPrice(item.product.price)} c/u
                 </p>

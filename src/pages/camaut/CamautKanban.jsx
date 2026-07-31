@@ -132,7 +132,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
       venueId
         ? supabaseStaff
             .from('orders')
-            .select('id, daily_number, location_label, total, status, created_at, notes, prep_started_at, prep_time_minutes, menu_id, waiter_called_at, session_id, order_items(product_name, quantity, unit_price, item_notes)')
+            .select('id, daily_number, location_label, total, status, created_at, notes, prep_started_at, prep_time_minutes, menu_id, waiter_called_at, session_id, order_items(product_name, quantity, unit_price, item_notes, selected_options)')
             .eq('venue_id', venueId)
             .eq('status', 'entregado')
             .gte('created_at', todayStart.toISOString())
@@ -141,7 +141,7 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
       linkedVenues.length > 0
         ? supabaseStaff
             .from('orders')
-            .select('id, daily_number, location_label, total, status, created_at, notes, prep_started_at, prep_time_minutes, waiter_called_at, assigned_staff_id, menu_id, session_id, order_items(product_name, quantity, unit_price, item_notes), venue_id')
+            .select('id, daily_number, location_label, total, status, created_at, notes, prep_started_at, prep_time_minutes, waiter_called_at, assigned_staff_id, menu_id, session_id, order_items(product_name, quantity, unit_price, item_notes, selected_options), venue_id')
             .in('venue_id', linkedVenues.map(v => v.id))
             .neq('status', 'cancelado')
             .gte('created_at', todayStart.toISOString())
@@ -547,6 +547,11 @@ export default function CamautKanban({ venueId, linkedVenues = [], staffId, onNe
                               {(order.order_items || []).map((item, i) => (
                                 <div key={i}>
                                   <p className="text-[#3A4A5A]">{item.quantity}× {item.product_name}</p>
+                                  {(item.selected_options || []).map((s, k) => (
+                                    <p key={k} className="text-[#6B7A8D] ml-3">
+                                      <span className="text-[#A8B4C0]">{s.step}:</span> {s.name}
+                                    </p>
+                                  ))}
                                   {item.item_notes && (
                                     <p className="text-amber-600 italic ml-3">↳ {item.item_notes}</p>
                                   )}
