@@ -8,7 +8,7 @@ import { XIcon } from './Icons'
 // Nunca agrega nada solo: el cliente no conoce los nombres exactos de la carta
 // —dice "napo" y en el menú figura "MILANESA NAPOLITANA CON PAPAS"—, así que la
 // pantalla de confirmación es la función, no un trámite.
-export default function VoiceOrderPanel({ venueId, accent = '#1A3A6B', accentText = '#FFFFFF', onAddItems, onRecommend, onClose }) {
+export default function VoiceOrderPanel({ venueId, accent = '#1A3A6B', accentText = '#FFFFFF', onAddItems, onRecommend, onWaiter, onClose }) {
   const [state, setState] = useState('idle') // idle | recording | processing | result | error
   const [transcript, setTranscript] = useState('')
   const [items, setItems] = useState([])
@@ -124,6 +124,15 @@ export default function VoiceOrderPanel({ venueId, accent = '#1A3A6B', accentTex
               >
                 <span>✨</span> No sé qué pedir, recomendame
               </button>
+
+              {onWaiter && (
+                <button
+                  onClick={onWaiter}
+                  className="w-full mt-3 py-3.5 rounded-2xl font-semibold text-sm border-2 border-[#E8EEF4] text-[#4A5568] active:scale-[0.98] transition-transform"
+                >
+                  Prefiero llamar a un camarero/a
+                </button>
+              )}
             </>
           )}
 

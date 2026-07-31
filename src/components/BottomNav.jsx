@@ -3,6 +3,8 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useClientBase, useVenueOptional } from '../hooks/useVenue'
 import { useCart } from '../hooks/useCart'
 import { supabaseCustomer, ACTIVE_VENUE_ID } from '../lib/supabase'
+import VoiceOrderPanel from './VoiceOrderPanel'
+import RecommendModal from './RecommendModal'
 import {
   UtensilsIcon,
   ReceiptIcon,
@@ -32,19 +34,41 @@ export default function BottomNav() {
   const base = useClientBase()
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const { itemCount, location: cartLocation } = useCart()
+  const { itemCount, location: cartLocation, addItem } = useCart()
   const venueCtx = useVenueOptional()
   const venue = venueCtx?.venue
   const venueId = venue?.id || ACTIVE_VENUE_ID
   const selfColor = venue?.landing_self_color || '#1A3A6B'
   const waiterColor = venue?.landing_waiter_color || '#B22222'
 
+  const [ordersPaused, setOrdersPaused] = useState(false)
   const [showWaiter, setShowWaiter] = useState(false)
+  const [showVoice, setShowVoice] = useState(false)
+  const [showRecommend, setShowRecommend] = useState(false)
+  // Los productos se traen recién al abrir el asistente: hacen falta para
+  // convertir lo dictado en ítems del carrito, y no en cada pantalla
+  const [products, setProducts] = useState([])
   const [zones, setZones] = useState([])
   const [waiterSector, setWaiterSector] = useState(null)
   const [selectedReason, setSelectedReason] = useState(null)
   const [callLoading, setCallLoading] = useState(false)
   const [callSent, setCallSent] = useState(false)
+
+  useEffect(() => {
+    if (!venueId) return
+    supabaseCustomer.from('venues').select('orders_paused').eq('id', venueId).single()
+      .then(({ data }) => setOrdersPaused(!!data?.orders_paused))
+  }, [venueId])
+
+  useEffect(() => {
+    if ((!showVoice && !showRecommend) || products.length > 0 || !venueId) return
+    supabaseCustomer
+      .from('products')
+      .select('id, name, price')
+      .eq('venue_id', venueId)
+      .or('is_available.is.null,is_available.eq.true')
+      .then(({ data }) => setProducts(data || []))
+  }, [showVoice, showRecommend, venueId])
 
   useEffect(() => {
     if (!showWaiter || zones.length > 0 || !venueId) return
@@ -134,20 +158,40 @@ export default function BottomNav() {
           MI PEDIDO
         </button>
 
-        {/* Llamar Mozo — no existe en un local que solo trabaja para llevar */}
-        {!venue?.takeaway_only && (
+        {/* Pedí hablando — destacado, es lo nuevo y hay que encontrarlo.
+            Con los pedidos pausados vuelve el botón de atención: no hay nada
+            que dictar, pero sí a quién llamar. */}
+        {ordersPaused ? (
+          !venue?.takeaway_only && (
+            <button
+              onClick={openWaiter}
+              className="flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold tracking-wide"
+              style={{ color: waiterColor }}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="4.5" r="1" fill="currentColor" stroke="none"/>
+                <path d="M6 16Q6 8.5 12 5.5Q18 8.5 18 16"/>
+                <path d="M4 16h16"/>
+                <path d="M9.5 19.5h5"/>
+              </svg>
+              ATENCIÓN
+            </button>
+          )
+        ) : (
         <button
-          onClick={openWaiter}
-          className="flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold tracking-wide transition-colors"
-          style={{ color: waiterColor }}
+          onClick={() => setShowVoice(true)}
+          className="flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold tracking-wide"
         >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="4.5" r="1" fill="currentColor" stroke="none"/>
-            <path d="M6 16Q6 8.5 12 5.5Q18 8.5 18 16"/>
-            <path d="M4 16h16"/>
-            <path d="M9.5 19.5h5"/>
-          </svg>
-          ATENCIÓN
+          <span
+            className="w-11 h-11 rounded-full flex items-center justify-center -mt-4 shadow-lg"
+            style={{ backgroundColor: selfColor, color: '#FFFFFF' }}
+          >
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="9" y="2" width="6" height="11" rx="3" />
+              <path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4M8 22h8" />
+            </svg>
+          </span>
+          <span className="-mt-1" style={{ color: selfColor }}>HABLAR</span>
         </button>
         )}
 
@@ -164,6 +208,36 @@ export default function BottomNav() {
           CUENTA
         </button>
       </nav>
+
+      {showVoice && (
+        <VoiceOrderPanel
+          venueId={venueId}
+          accent={selfColor}
+          accentText="#FFFFFF"
+          onAddItems={voiceItems => {
+            for (const it of voiceItems) {
+              const product = products.find(p => p.id === it.product_id)
+              if (product) addItem(product, it.quantity, it.note || '')
+            }
+            navigate(`${base}/pago`)
+          }}
+          onRecommend={() => { setShowVoice(false); setShowRecommend(true) }}
+          onWaiter={venue?.takeaway_only ? null : () => { setShowVoice(false); openWaiter() }}
+          onClose={() => setShowVoice(false)}
+        />
+      )}
+
+      {showRecommend && (
+        <RecommendModal
+          venueId={venueId}
+          accentColor={selfColor}
+          onAddToCart={name => {
+            const product = products.find(p => p.name === name)
+            if (product) addItem(product)
+          }}
+          onClose={() => setShowRecommend(false)}
+        />
+      )}
 
       {/* Waiter call sheet */}
       {showWaiter && (
