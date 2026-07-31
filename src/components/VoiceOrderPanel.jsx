@@ -119,8 +119,8 @@ export default function VoiceOrderPanel({ venueId, accent = '#1A3A6B', accentTex
               </div>
               <button
                 onClick={onRecommend}
-                className="w-full border rounded-2xl py-4 flex items-center justify-center gap-2 font-semibold text-sm active:scale-[0.98] transition-transform"
-                style={{ borderColor: `${accent}40`, color: accent }}
+                className="w-full bg-[#F0F4F8] border-2 rounded-2xl py-4 flex items-center justify-center gap-2 font-bold text-sm active:scale-[0.98] transition-transform"
+                style={{ borderColor: accent, color: accent }}
               >
                 <span>✨</span> No sé qué pedir, recomendame
               </button>
@@ -208,10 +208,16 @@ export default function VoiceOrderPanel({ venueId, accent = '#1A3A6B', accentTex
                 </div>
               )}
 
-              <div className="flex gap-2 mt-5">
+              {items.length > 0 && (
+                <p className="text-[#8896A5] text-xs text-center mt-4 leading-snug">
+                  Podés seguir cambiando cantidades o sacar cosas en tu pedido antes de confirmar.
+                </p>
+              )}
+
+              <div className="flex gap-2 mt-4">
                 <button
                   onClick={startRecording}
-                  className="flex-1 border border-black/10 text-[#8896A5] font-semibold py-3 rounded-xl text-sm"
+                  className="flex-1 border-2 border-[#D1D9E0] text-[#4A5568] font-semibold py-3 rounded-xl text-sm"
                 >
                   Repetir
                 </button>
