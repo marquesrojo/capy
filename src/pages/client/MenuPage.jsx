@@ -172,7 +172,9 @@ export default function MenuPage() {
         const ids = new Set((activeCarta.venue_menu_products || []).map(p => p.product_id))
         return allProducts.filter(p => ids.has(p.id))
       })()
-    : allProducts
+    // Los platos que solo existen dentro de una carta no tienen precio propio:
+    // sueltos aparecerían en $0
+    : allProducts.filter(p => p.in_main_menu !== false)
 
   // En una carta recortada, una categoría sin productos es una pestaña vacía
   const shownCategories = activeCarta?.kind === 'libre'

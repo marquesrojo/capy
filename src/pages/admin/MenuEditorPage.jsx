@@ -700,6 +700,14 @@ function ProductRow({ product, venueId, categories, allProducts = [], onToggle, 
     onSave({ ...product, is_daily_special: next })
   }
 
+  // Hay platos que solo existen dentro de una carta —el budín de pan del menú
+  // ejecutivo— y no tienen precio propio: sueltos aparecerían en $0
+  async function toggleMainMenu() {
+    const next = product.in_main_menu === false
+    await supabaseStaff.from('products').update({ in_main_menu: next }).eq('id', product.id)
+    onSave({ ...product, in_main_menu: next })
+  }
+
   if (editing) {
     const displayImg = removeImage ? null : (imagePreview || product.image_url)
     return (
@@ -930,6 +938,19 @@ Respondé ÚNICAMENTE con el término de búsqueda, sin texto extra.`
             className={`leading-none transition-opacity ${product.is_featured ? 'text-amber-400 opacity-100' : 'text-smoke-500 opacity-25 hover:opacity-60'}`}
           >
             <StarIcon size={18} />
+          </button>
+          <button
+            onClick={toggleMainMenu}
+            title={product.in_main_menu === false
+              ? 'Solo dentro de una carta: no se ve en la carta general'
+              : 'Se ve en la carta general. Tocá para que exista solo dentro de una carta'}
+            className={`text-[10px] font-semibold px-2 py-1 rounded-full border ${
+              product.in_main_menu === false
+                ? 'border-violet-500/50 text-violet-400'
+                : 'border-carbon-600 text-smoke-600 opacity-40 hover:opacity-80'
+            }`}
+          >
+            {product.in_main_menu === false ? 'Solo carta' : 'General'}
           </button>
           <button
             onClick={onToggle}

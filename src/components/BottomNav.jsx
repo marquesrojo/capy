@@ -70,6 +70,9 @@ export default function BottomNav() {
       .select('id, name, price')
       .eq('venue_id', venueId)
       .or('is_available.is.null,is_available.eq.true')
+      // El pedido por voz y el recomendador arman pedidos sueltos: un plato que
+      // solo existe dentro de una carta no se puede pedir así
+      .neq('in_main_menu', false)
       .then(({ data }) => setProducts(data || []))
   }, [showVoice, showRecommend, venueId])
 

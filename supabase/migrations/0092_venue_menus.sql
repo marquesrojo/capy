@@ -78,6 +78,12 @@ CREATE TABLE IF NOT EXISTS venue_menu_step_options (
 
 CREATE INDEX IF NOT EXISTS idx_venue_menu_step_options_product ON venue_menu_step_options(product_id);
 
+-- Hay platos que solo existen dentro de una carta: el budín de pan del menú
+-- ejecutivo no se vende suelto y no tiene precio propio. Si igual apareciera en
+-- la carta general, aparecería en $0. Nacen con esto en false y no se muestran
+-- afuera de la carta que los contiene.
+ALTER TABLE products ADD COLUMN IF NOT EXISTS in_main_menu boolean NOT NULL DEFAULT true;
+
 -- Qué eligió el cliente en cada paso. Como dato y no como nota suelta: la
 -- cocina tiene que poder leer "Principal: Bife" sin interpretar texto libre.
 -- Forma: [{"step":"Plato principal","product_id":"...","name":"Bife de Chorizo"}]

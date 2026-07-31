@@ -42,7 +42,7 @@ export default function CartasPage() {
         .order('created_at'),
       supabaseStaff
         .from('products')
-        .select('id, name, price, category_id, is_available')
+        .select('id, name, price, category_id, is_available, in_main_menu')
         .eq('venue_id', venueId)
         .order('sort_order'),
     ])
@@ -437,6 +437,7 @@ function ProductPicker({ products, onPick }) {
               <span className="text-smoke-300 text-xs truncate">
                 {p.name}
                 {p.is_available === false && <span className="text-smoke-600"> · agotado</span>}
+                {p.in_main_menu === false && <span className="text-violet-400"> · solo carta</span>}
               </span>
               <span className="text-smoke-600 text-[11px] flex-shrink-0">{formatPrice(p.price)}</span>
             </button>
