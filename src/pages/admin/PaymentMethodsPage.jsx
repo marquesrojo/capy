@@ -73,7 +73,7 @@ export default function PaymentMethodsPage() {
     <div className="min-h-screen bg-carbon-950 pb-10">
       <header className="px-5 pt-5 pb-4 border-b border-carbon-700">
         <div className="flex items-center justify-between">
-          <h1 className="font-display text-3xl text-ember-500 tracking-wide">FACTURACIÓN</h1>
+          <h1 className="font-display text-3xl text-ember-500 tracking-wide">FACTURACIÓN Y MP</h1>
           <Link to="/admin/configuracion" className="text-smoke-400 text-xs underline">← Volver</Link>
         </div>
       </header>
