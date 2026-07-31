@@ -1222,6 +1222,9 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
   const [imageCount, setImageCount] = useState(1)
   const [detected, setDetected] = useState([])
   const [error, setError] = useState('')
+  // Un menú de precio fijo se escanea igual, pero sus platos no valen lo que
+  // dice la foto: vale el menú entero. Entran sin precio y solo para cartas.
+  const [paraCarta, setParaCarta] = useState(false)
   const fileRef = useRef(null)
 
   function pickMode(selectedMode) {
@@ -1353,7 +1356,11 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
       toImport.map(i => ({
         venue_id: venueId,
         name: i.name.trim(),
-        price: parseFloat(i.price) || 0,
+        // Una foto de menú ejecutivo no trae precios por plato, así que la IA
+        // repite el precio del menú en los quince. Sin precio propio es más
+        // fiel que un precio inventado.
+        price: paraCarta ? 0 : (parseFloat(i.price) || 0),
+        in_main_menu: !paraCarta,
         category_id: catMap[i.category || 'General'],
         description: i.description?.trim() || null,
         image_url: i.image_url || null,
@@ -1362,7 +1369,7 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
     )
     onImported()
     setStep('idle')
-    setDetected([])
+    setDetected([]); setParaCarta(false)
     setPreview(null)
   }
 
@@ -1391,6 +1398,29 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
             {detected.filter(i => i.selected).length} productos detectados
           </p>
           <p className="text-smoke-500 text-xs mb-3">Revisá y editá antes de importar</p>
+
+          {/* Menú ejecutivo, de jugadores: la foto tiene un solo precio para
+              todo, así que la IA lo repite en cada plato */}
+          <label className={`flex items-start gap-2.5 rounded-xl border p-3 mb-3 cursor-pointer transition-colors ${
+            paraCarta ? 'border-violet-500/50 bg-violet-500/10' : 'border-carbon-700 bg-carbon-800'
+          }`}>
+            <input
+              type="checkbox"
+              checked={paraCarta}
+              onChange={e => setParaCarta(e.target.checked)}
+              className="mt-0.5 accent-violet-500 flex-shrink-0"
+            />
+            <span className="min-w-0">
+              <span className="block text-smoke-300 text-xs font-semibold">
+                Es un menú de precio fijo
+              </span>
+              <span className="block text-smoke-500 text-[11px] leading-snug mt-0.5">
+                Entran sin precio y marcados <span className="text-violet-400">Solo carta</span>: el
+                precio lo pone la carta, no el plato. Después los agregás a los pasos en Cartas.
+              </span>
+            </span>
+          </label>
+
           <div className="space-y-2 max-h-72 overflow-y-auto">
             {detected.map((item, i) => (
               <div key={i} className={`rounded-xl border p-2 ${item.selected ? 'border-ember-500/30 bg-ember-500/5' : 'border-carbon-700 opacity-50'}`}>
@@ -1422,19 +1452,25 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
                       />
                     )}
                   </div>
-                  <input
-                    type="number"
-                    value={item.price}
-                    onChange={e => updateItem(i, 'price', e.target.value)}
-                    className="w-20 text-xs text-ember-400 font-semibold bg-transparent border border-carbon-600 rounded-lg px-2 py-1 text-right flex-shrink-0"
-                  />
+                  {paraCarta ? (
+                    <span className="w-20 text-[10px] text-smoke-600 text-right flex-shrink-0 leading-tight">
+                      sin precio
+                    </span>
+                  ) : (
+                    <input
+                      type="number"
+                      value={item.price}
+                      onChange={e => updateItem(i, 'price', e.target.value)}
+                      className="w-20 text-xs text-ember-400 font-semibold bg-transparent border border-carbon-600 rounded-lg px-2 py-1 text-right flex-shrink-0"
+                    />
+                  )}
                 </div>
               </div>
             ))}
           </div>
           <div className="flex gap-2 mt-4">
             <button
-              onClick={() => { setStep('idle'); setDetected([]); setPreview(null) }}
+              onClick={() => { setStep('idle'); setDetected([]); setPreview(null); setParaCarta(false) }}
               className="flex-1 border border-carbon-700 text-smoke-400 text-sm py-2.5 rounded-xl"
             >
               Cancelar

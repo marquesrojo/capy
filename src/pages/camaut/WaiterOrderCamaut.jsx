@@ -5,6 +5,7 @@ import { PinIcon } from '../../components/Icons'
 import { formatPrice } from '../../lib/utils'
 import { awardXP } from '../../lib/xpUtils'
 import FloorPlanViewer from '../../components/FloorPlanViewer'
+import FixedMenuBuilder from '../../components/FixedMenuBuilder'
 
 export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId: waiterStaffId = null, prefillLocation = null, onPrefillUsed, onXPUpdate, hasOwnMenu = true }) {
   const [categories, setCategories] = useState([])
@@ -14,7 +15,11 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
   const [menus, setMenus] = useState([])
   const [activeMenuId, setActiveMenuId] = useState('all') // 'all' o menu_id
   const [activeCategory, setActiveCategory] = useState(null)
-  const [cart, setCart] = useState({}) // { productId: { product, qty, notes } }
+  // Cartas del local (venue_menus), distintas de las propias del camarero
+  const [venueMenus, setVenueMenus] = useState([])
+  const [activeVenueMenuId, setActiveVenueMenuId] = useState(null)
+  // { clave: { product, qty, notes, menuId?, selections? } } — ver changeQty
+  const [cart, setCart] = useState({})
   const [selectedZone, setSelectedZone] = useState(null)
   const [location, setLocation] = useState('')
   const [generalNotes, setGeneralNotes] = useState('')
@@ -98,7 +103,10 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
     const queries = [
       supabaseStaff.from('categories').select('id, name, menu_id').eq('venue_id', vId).order('sort_order'),
       // is_ingredient_only may be NULL in older rows — treat NULL as false
-      supabaseStaff.from('products').select('id, name, price, category_id, is_daily_special').eq('venue_id', vId).or('is_available.is.null,is_available.eq.true').or('is_ingredient_only.is.null,is_ingredient_only.eq.false'),
+      // Vienen todos, incluidos los de solo carta: el armador del menú fijo los
+      // necesita para resolver sus opciones. El recorte para la grilla y el
+      // buscador se hace después, sobre orderableProducts.
+      supabaseStaff.from('products').select('id, name, price, category_id, is_daily_special, in_main_menu').eq('venue_id', vId).or('is_available.is.null,is_available.eq.true').or('is_ingredient_only.is.null,is_ingredient_only.eq.false'),
       supabaseStaff.from('staff_names').select('id').eq('venue_id', venueId).limit(1).maybeSingle(),
       supabaseStaff.from('venue_zones').select('*').eq('venue_id', vId).eq('is_active', true).order('sort_order', { ascending: true, nullsFirst: true }).order('name'),
       supabaseStaff.from('quick_notes').select('*').eq('venue_id', vId).eq('is_active', true).order('sort_order'),
@@ -109,8 +117,18 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
         ? supabaseStaff.from('staff_discounts').select('*').eq('staff_id', waiterStaffId).eq('is_active', true).order('created_at')
         : Promise.resolve({ data: [] }),
       supabaseStaff.from('venues').select('whatsapp_number, stack_discounts').eq('id', vId).single(),
+      // Las cartas del local: el menú ejecutivo, el de jugadores. El camarero
+      // las ve todas las activas — es él quien sabe quién está en la mesa
+      supabaseStaff
+        .from('venue_menus')
+        .select('*, venue_menu_steps(*, venue_menu_step_options(*)), venue_menu_products(product_id)')
+        .eq('venue_id', vId)
+        .eq('is_active', true)
+        .order('sort_order'),
     ]
-    const [catRes, prodRes, staffRes, zoneRes, notesRes, menuRes, discountsRes, payMethodsRes, staffDiscountsRes, venueRes] = await Promise.all(queries)
+    const [catRes, prodRes, staffRes, zoneRes, notesRes, menuRes, discountsRes, payMethodsRes, staffDiscountsRes, venueRes, cartasRes] = await Promise.all(queries)
+    setVenueMenus(cartasRes.data || [])
+    setActiveVenueMenuId(null)
     setCategories(catRes.data || [])
     setProducts(prodRes.data || [])
     setStaffId(staffRes.data?.id || null)
@@ -149,28 +167,47 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
     }
   }
 
-  function changeQty(productId, delta) {
-    const product = products.find(p => p.id === productId)
+  // La clave del carrito es el id del producto, salvo para los menús de precio
+  // fijo: ahí es el menú más lo que se eligió, porque dos menús ejecutivos con
+  // platos distintos son dos líneas aunque valgan lo mismo y se llamen igual.
+  function changeQty(key, delta) {
     setCart(prev => {
-      const current = prev[productId]
-      const currentQty = current?.qty || 0
-      const next = currentQty + delta
+      const current = prev[key]
+      const product = current?.product || products.find(p => p.id === key)
+      if (!product) return prev
+      const next = (current?.qty || 0) + delta
       if (next <= 0) {
-        const { [productId]: _, ...rest } = prev
+        const { [key]: _, ...rest } = prev
         return rest
       }
-      return { ...prev, [productId]: { product, qty: next, notes: current?.notes || '' } }
+      return { ...prev, [key]: { ...current, product, qty: next, notes: current?.notes || '' } }
     })
   }
 
-  function setItemNote(productId, note) {
+  function setItemNote(key, note) {
     setCart(prev => ({
       ...prev,
-      [productId]: { ...prev[productId], notes: note }
+      [key]: { ...prev[key], notes: note }
     }))
   }
 
-  const cartItems = Object.values(cart).filter(i => i.product && i.qty > 0)
+  function addMenuToCart(menu, selections) {
+    const key = `menu:${menu.id}:${selections.map(s => s.product_id).join('|')}`
+    setCart(prev => ({
+      ...prev,
+      [key]: {
+        product: { id: `menu:${menu.id}`, name: menu.name, price: Number(menu.price) || 0, is_menu: true },
+        qty: (prev[key]?.qty || 0) + 1,
+        notes: prev[key]?.notes || '',
+        menuId: menu.id,
+        selections,
+      },
+    }))
+  }
+
+  const cartItems = Object.entries(cart)
+    .filter(([, i]) => i.product && i.qty > 0)
+    .map(([key, i]) => ({ ...i, key }))
   const subtotal = cartItems.reduce((sum, i) => sum + i.product.price * i.qty, 0)
   const selectedPaymentName = selectedPaymentMethod?.name || ''
   const isEfectivo = selectedPaymentName.toLowerCase().includes('efectivo')
@@ -207,11 +244,15 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
           total,
           notes: generalNotes.trim() || null,
           items: cartItems.map(i => ({
-            product_id: i.product.id,
+            // Un menú de precio fijo no es un producto de la carta: no hay id
+            // que referenciar, y lo que se pidió vive en selected_options
+            product_id: i.product.is_menu ? null : i.product.id,
             product_name: i.product.name,
             quantity: i.qty,
             unit_price: i.product.price,
-            item_notes: i.notes || null
+            item_notes: i.notes || null,
+            venue_menu_id: i.menuId || null,
+            selected_options: i.selections?.length ? i.selections : null,
           }))
         })
       })
@@ -386,7 +427,22 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
     : (filteredZones.length > 0 ? filteredZones : mesaZones)
   const hasMap = activeVenueId !== venueId && zones.some(z => z.pos_x != null)
 
-  const visibleProducts = products
+  const activeVenueMenu = venueMenus.find(m => m.id === activeVenueMenuId) || null
+
+  // Una carta libre es la carta del local recortada a sus productos. Una de
+  // precio fijo no se recorre: se arma por pasos, y eso se dibuja aparte.
+  // Un plato de solo carta no tiene precio propio: suelto en la comanda
+  // saldría en $0. Solo se pide desde adentro de la carta que lo incluye.
+  const orderableProducts = products.filter(p => p.in_main_menu !== false)
+
+  const cartaProducts = activeVenueMenu?.kind === 'libre'
+    ? (() => {
+        const ids = new Set((activeVenueMenu.venue_menu_products || []).map(p => p.product_id))
+        return products.filter(p => ids.has(p.id))
+      })()
+    : orderableProducts
+
+  const visibleProducts = cartaProducts
     .filter(p => p.category_id === activeCategory)
     .sort((a, b) => (b.is_daily_special ? 1 : 0) - (a.is_daily_special ? 1 : 0))
 
@@ -395,7 +451,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
   const searchResults = q
     ? (() => {
         const words = q.split(/\s+/)
-        return products
+        return cartaProducts
           .filter(p => {
             const haystack = `${p.name} ${categoryMap[p.category_id] || ''}`.toLowerCase()
             return words.every(w => haystack.includes(w))
@@ -586,20 +642,29 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
         <div className="px-4 space-y-3">
           {/* Ítems editables */}
           {cartItems.map(item => (
-            <div key={item.product.id} className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
+            <div key={item.key} className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
               <div className="flex items-center justify-between gap-3 mb-2">
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-[#1A2A3A]">{item.product.name}</p>
+                  {item.selections?.length > 0 && (
+                    <ul className="mt-0.5 mb-0.5">
+                      {item.selections.map((s, i) => (
+                        <li key={i} className="text-[11px] text-[#6B7A8D] leading-snug">
+                          <span className="text-[#A8B4C0]">{s.step}:</span> {s.name}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                   <p className="text-xs text-[#8896A5]">{formatPrice(item.product.price)} c/u</p>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
                   <button
-                    onClick={() => changeQty(item.product.id, -1)}
+                    onClick={() => changeQty(item.key, -1)}
                     className="w-9 h-9 rounded-full bg-[#F0F4F8] text-[#3A4A5A] flex items-center justify-center text-lg font-bold"
                   >−</button>
                   <span className="text-[#1A2A3A] font-semibold w-5 text-center">{item.qty}</span>
                   <button
-                    onClick={() => changeQty(item.product.id, 1)}
+                    onClick={() => changeQty(item.key, 1)}
                     className="w-9 h-9 rounded-full bg-[#008080] text-white flex items-center justify-center text-lg font-bold"
                   >+</button>
                 </div>
@@ -621,7 +686,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
                           const next = active
                             ? current.replace(qn.label, '').replace(/,\s*,/g, ',').replace(/^,\s*|,\s*$/g, '').trim()
                             : current ? `${current}, ${qn.label}` : qn.label
-                          setItemNote(item.product.id, next)
+                          setItemNote(item.key, next)
                         }}
                         className={`text-xs px-2.5 py-1 rounded-full border ${
                           active ? 'bg-[#008080] text-white border-[#008080]' : 'border-black/10 text-[#8896A5]'
@@ -636,7 +701,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
               <input
                 type="text"
                 value={item.notes || ''}
-                onChange={e => setItemNote(item.product.id, e.target.value)}
+                onChange={e => setItemNote(item.key, e.target.value)}
                 placeholder="Nota libre para este ítem..."
                 className="w-full border border-black/10 rounded-xl px-3 py-2 text-xs text-[#1A2A3A] bg-[#F8FAFC]"
               />
@@ -910,8 +975,32 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
         </div>
       )}
 
-      {/* Buscador + refresh */}
-      <div className="flex-shrink-0 px-4 pt-3 pb-1 flex gap-2 items-center">
+      {/* Cartas del local: la general y las que tenga activas */}
+      {venueMenus.length > 0 && (
+        <div className="flex-shrink-0 px-4 pt-3">
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+            {[{ id: null, name: 'Carta general' }, ...venueMenus].map(c => (
+              <button
+                key={c.id || 'general'}
+                onClick={() => { setActiveVenueMenuId(c.id); setSearchQuery('') }}
+                className={`whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold border ${
+                  activeVenueMenuId === c.id
+                    ? 'bg-[#008080] text-white border-[#008080]'
+                    : 'bg-white border-black/10 text-[#3A4A5A]'
+                }`}
+              >
+                {c.name}
+                {c.kind === 'fijo' && c.price ? (
+                  <span className="opacity-70"> · {formatPrice(c.price)}</span>
+                ) : null}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Buscador + refresh — una carta de precio fijo no se recorre */}
+      <div className={`flex-shrink-0 px-4 pt-3 pb-1 gap-2 items-center ${activeVenueMenu?.kind === 'fijo' ? 'hidden' : 'flex'}`}>
         <div className="relative flex-1">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-[#B0BEC5]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -1188,7 +1277,17 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
         </div>
       )}
 
-      {searchResults ? (
+      {activeVenueMenu?.kind === 'fijo' ? (
+        <div className="flex-1 overflow-y-auto">
+          <FixedMenuBuilder
+            menu={activeVenueMenu}
+            products={products}
+            accent="#008080"
+            accentText="#FFFFFF"
+            onAdd={selections => addMenuToCart(activeVenueMenu, selections)}
+          />
+        </div>
+      ) : searchResults ? (
         /* Resultados de búsqueda — scrollable */
         <div className="flex-1 overflow-y-auto px-4 pt-1 pb-4 space-y-2">
           {searchResults.length === 0 ? (
