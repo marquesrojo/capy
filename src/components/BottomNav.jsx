@@ -37,7 +37,10 @@ export default function BottomNav() {
   const { itemCount, location: cartLocation, addItem } = useCart()
   const venueCtx = useVenueOptional()
   const venue = venueCtx?.venue
-  const venueId = venue?.id || ACTIVE_VENUE_ID
+  // Dentro de /r/:slug el local lo manda la ruta; mientras se resuelve el slug
+  // venue es null y ACTIVE_VENUE_ID todavía apunta al local anterior. Los
+  // efectos de acá ya esperan a tener id.
+  const venueId = venueCtx ? venue?.id : ACTIVE_VENUE_ID
   const selfColor = venue?.landing_self_color || '#1A3A6B'
   const waiterColor = venue?.landing_waiter_color || '#B22222'
 

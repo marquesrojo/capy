@@ -7,6 +7,7 @@
   ],
   "rewrites": [
     { "source": "/qr-template.html", "destination": "/qr-template.html" },
+    { "source": "/ir/:id", "destination": "/api/ir?id=:id" },
     {
       "source": "/r/:slug",
       "missing": [{ "type": "query", "key": "go" }],

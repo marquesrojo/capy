@@ -68,8 +68,10 @@ export default function OrderConfirmedPage() {
     const ticketNum = order.daily_number ? `#${order.daily_number}` : `#${orderId.slice(0, 4).toUpperCase()}`
     const who = customer?.full_name || 'un cliente'
     // Al tablero y no a /pedido/:id: quien abre esto es el local, y ahí veía
-    // la pantalla del cliente, sin poder aceptar ni despachar nada
-    const adminUrl = `${window.location.origin}/admin?order=${orderId}`
+    // la pantalla del cliente, sin poder aceptar ni despachar nada.
+    // Pasa por /ir para que WhatsApp no le pegue una tarjeta con imagen a cada
+    // pedido: son decenas por día en el mismo chat.
+    const adminUrl = `${window.location.origin}/ir/${orderId}`
     const detalle = (order.order_items || [])
       .map(i => `• ${i.quantity}x ${i.product_name}${i.item_notes ? ` (${i.item_notes})` : ''}`)
       .join('\n')

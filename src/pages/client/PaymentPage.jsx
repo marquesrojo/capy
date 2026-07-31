@@ -18,7 +18,11 @@ export default function PaymentPage() {
   const navigate = useNavigate()
   const base = useClientBase()
   const venueCtx = useVenueOptional()
-  const venueId = venueCtx?.venue?.id || ACTIVE_VENUE_ID
+  // Dentro de /r/:slug el local lo manda la ruta, y mientras el contexto lo
+  // resuelve venue es null. Caer ahí en ACTIVE_VENUE_ID traía el local anterior
+  // —el que quedó guardado en localStorage— con sus descuentos y sus precios.
+  // Sin local todavía no hay nada que pedir: se espera.
+  const venueId = venueCtx ? venueCtx.venue?.id : ACTIVE_VENUE_ID
   const [submitting, setSubmitting] = useState(false)
   // El carrito pudo armarse antes de la pausa: hay que frenarlo también acá
   const [ordersPaused, setOrdersPaused] = useState(false)
@@ -61,6 +65,7 @@ export default function PaymentPage() {
   }, [itemCount, location, navigate])
 
   useEffect(() => {
+    if (!venueId) return
     async function loadData() {
       const [methodsRes, notesRes, venueRes, codesRes] = await Promise.all([
         supabaseCustomer
@@ -110,24 +115,34 @@ export default function PaymentPage() {
       }
     }
     loadData()
-  }, [])
+  }, [venueId])
 
   // Descuento por categoría: no se tipea ningún código, lo trae la pertenencia
   // al grupo. Si el cliente además carga un código, gana el más alto.
+  //
+  // El cliente puede ser de varios locales, así que el recorte por venue_id lo
+  // hace la consulta y no el filtro de acá: si el mismo usuario está en una
+  // categoría de otro local, esa fila ni llega.
   useEffect(() => {
-    if (!venueId || !customer?.id) return
+    if (!venueId || !customer?.id) {
+      setCategoryDiscount(null)
+      return
+    }
     let cancelled = false
     supabaseCustomer
       .from('discount_category_members')
-      .select('discount_categories(id, name, discount_percent, venue_id)')
+      .select('discount_categories!inner(id, name, discount_percent, venue_id)')
       .eq('customer_id', customer.id)
+      .eq('discount_categories.venue_id', venueId)
       .then(({ data }) => {
         if (cancelled) return
         const best = (data || [])
           .map(m => m.discount_categories)
           .filter(c => c && c.venue_id === venueId && c.discount_percent > 0)
           .sort((a, b) => b.discount_percent - a.discount_percent)[0]
-        if (best) setCategoryDiscount({ percent: Number(best.discount_percent), label: best.name })
+        // Se escribe siempre, también cuando no hay: antes solo se seteaba, y
+        // un descuento resuelto con el local anterior seguía aplicado después.
+        setCategoryDiscount(best ? { percent: Number(best.discount_percent), label: best.name } : null)
       })
     return () => { cancelled = true }
   }, [venueId, customer?.id])
@@ -220,6 +235,12 @@ export default function PaymentPage() {
 
   async function handleConfirm() {
     setError('')
+    // El pedido se guarda con venue_id: mandarlo sin local resuelto lo metía en
+    // el local equivocado
+    if (!venueId) {
+      setError('Estamos cargando el local. Probá de nuevo en un segundo.')
+      return
+    }
     if (location.type === 'retiro_externo' && !pickupTime) {
       setError('Indicá a qué hora pasás a buscar tu pedido.')
       return

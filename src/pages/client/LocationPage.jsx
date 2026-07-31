@@ -27,13 +27,17 @@ export default function LocationPage() {
   const navigate = useNavigate()
   const base = useClientBase()
   const venueCtx = useVenueOptional()
-  const venueId = venueCtx?.venue?.id || ACTIVE_VENUE_ID
+  // Dentro de /r/:slug el local lo manda la ruta; mientras se resuelve el slug
+  // venue es null y ACTIVE_VENUE_ID todavía apunta al local anterior. Se espera:
+  // las mesas del local de al lado no son mesas de este.
+  const venueId = venueCtx ? venueCtx.venue?.id : ACTIVE_VENUE_ID
 
   useEffect(() => {
     if (itemCount === 0) navigate(`${base}/carta`)
   }, [itemCount, navigate])
 
   useEffect(() => {
+    if (!venueId) return
     async function load() {
       const [zonesRes, venueRes] = await Promise.all([
         supabaseCustomer
@@ -70,7 +74,7 @@ export default function LocationPage() {
       setLoading(false)
     }
     load()
-  }, [])
+  }, [venueId])
 
   function chooseZone(zone) {
     setLocation({ type: zone.type, zoneId: zone.id, label: zone.name })

@@ -32,7 +32,10 @@ export default function MenuPage() {
   const navigate = useNavigate()
   const base = useClientBase()
   const venueCtx = useVenueOptional()
-  const venueId = venueCtx?.venue?.id || ACTIVE_VENUE_ID
+  // Dentro de /r/:slug el local lo manda la ruta; mientras se resuelve el slug
+  // venue es null y ACTIVE_VENUE_ID todavía apunta al local anterior. La carta
+  // se espera: cargarla con el id viejo era mostrar los productos de otro local.
+  const venueId = venueCtx ? venueCtx.venue?.id : ACTIVE_VENUE_ID
   const headerRef = useRef(null)
 
   // Si estamos en la ruta legacy /carta sin VenueProvider y hay un slug guardado,
@@ -47,6 +50,7 @@ export default function MenuPage() {
   }, [])
 
   useEffect(() => {
+    if (!venueId) return
     const sid = searchParams.get('session_id')
     const zoneId = searchParams.get('zone_id')
     const locationLabel = searchParams.get('location_label')
@@ -73,9 +77,10 @@ export default function MenuPage() {
       if (sid) setSessionId(sid)
       setLocation({ type: locationType || 'zona', zoneId: zoneId || null, label: locationLabel })
     }
-  }, [])
+  }, [venueId])
 
   useEffect(() => {
+    if (!venueId) return
     async function load() {
       const [catRes, prodRes, venueRes] = await Promise.all([
         supabaseCustomer.from('categories').select('*').eq('venue_id', venueId).eq('is_active', true).order('sort_order'),
@@ -110,7 +115,7 @@ export default function MenuPage() {
       setLoading(false)
     }
     load()
-  }, [])
+  }, [venueId])
 
   function handleRemoveFromMenu(product) {
     const index = items.findIndex(i => i.product.id === product.id)
