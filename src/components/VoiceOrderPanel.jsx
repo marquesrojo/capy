@@ -119,8 +119,8 @@ export default function VoiceOrderPanel({ venueId, accent = '#1A3A6B', accentTex
               </div>
               <button
                 onClick={onRecommend}
-                className="w-full bg-[#F0F4F8] border-2 rounded-2xl py-4 flex items-center justify-center gap-2 font-bold text-sm active:scale-[0.98] transition-transform"
-                style={{ borderColor: accent, color: accent }}
+                className="w-full rounded-2xl py-4 flex items-center justify-center gap-2 font-bold text-sm active:scale-[0.98] transition-transform"
+                style={{ backgroundColor: accent, color: accentText }}
               >
                 <span>✨</span> No sé qué pedir, recomendame
               </button>
