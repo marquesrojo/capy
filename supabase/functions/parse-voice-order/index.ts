@@ -58,12 +58,13 @@ INSTRUCCIONES:
 - Identificá qué productos mencionó el mozo, en qué cantidad, y si hay notas para cada ítem (ej: "sin sal", "bien cocido", "sin hielo", "a punto").
 - Si dice "una", "un", "uno" sin cantidad explícita, asumí 1.
 - Si menciona un apodo o variante coloquial (ej: "Quilmes" por cerveza, "napolitana" por milanesa napolitana), usá el más parecido de la carta.
+- Si menciona algo genérico que abarca varios productos de la carta (ej: dice "cerveza" y hay cinco cervezas distintas, o "empanada" y hay de varios gustos), poné en "index" el más común y listá TODOS los índices que podrían corresponder en "options", del más probable al menos. Si la mención es inequívoca, omití "options".
 - Si menciona algo que no existe en la carta, ignoralo.
 - Para "note": solo aclaraciones específicas del ítem. Si no hay nota, usá "".
 - Respondé ÚNICAMENTE con JSON válido, sin markdown ni texto adicional.
 
 FORMATO:
-{"zone_index":2,"items":[{"index":0,"quantity":2,"note":"sin sal"},{"index":3,"quantity":1,"note":""}]}`
+{"zone_index":2,"items":[{"index":0,"quantity":2,"note":"sin sal"},{"index":3,"quantity":1,"note":"","options":[3,8,11]}]}`
 
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
@@ -95,20 +96,32 @@ FORMATO:
     console.log('[parse-voice-order] raw:', raw.substring(0, 400))
 
     const jsonMatch = raw.match(/\{[\s\S]*\}/)
-    let parsed: { zone_index?: number; items?: Array<{ index: number; quantity: number; note?: string }> } = {}
+    let parsed: { zone_index?: number; items?: Array<{ index: number; quantity: number; note?: string; options?: number[] }> } = {}
     if (jsonMatch) {
       try { parsed = JSON.parse(jsonMatch[0]) } catch { /* fallback */ }
     }
 
+    const toProduct = (i: number) => ({
+      product_id: products[i].id,
+      product_name: products[i].name,
+      product_price: products[i].price,
+    })
+
     const result = (parsed.items || [])
       .filter(item => typeof item.index === 'number' && item.index >= 0 && item.index < products.length)
-      .map(item => ({
-        product_id: products[item.index].id,
-        product_name: products[item.index].name,
-        product_price: products[item.index].price,
-        quantity: Math.max(1, Math.round(item.quantity || 1)),
-        note: item.note || '',
-      }))
+      .map(item => {
+        // Alternativas para una mención genérica: "cerveza" cuando hay cinco.
+        // Elegir por el cliente es adivinar; que decida él.
+        const opts = (item.options || [])
+          .filter(i => typeof i === 'number' && i >= 0 && i < products.length)
+        const uniqueOpts = [...new Set([item.index, ...opts])]
+        return {
+          ...toProduct(item.index),
+          quantity: Math.max(1, Math.round(item.quantity || 1)),
+          note: item.note || '',
+          options: uniqueOpts.length > 1 ? uniqueOpts.map(toProduct) : undefined,
+        }
+      })
 
     const zone_id = typeof parsed.zone_index === 'number' &&
       parsed.zone_index >= 0 &&

@@ -77,6 +77,12 @@ export default function VoiceOrderPanel({ venueId, accent = '#1A3A6B', accentTex
       .filter(it => it.quantity > 0))
   }
 
+  function pickOption(idx, opt) {
+    setItems(prev => prev.map((it, i) => i === idx
+      ? { ...it, product_id: opt.product_id, product_name: opt.product_name, product_price: opt.product_price }
+      : it))
+  }
+
   function confirm() {
     onAddItems(items)
     onClose()
@@ -193,7 +199,8 @@ export default function VoiceOrderPanel({ venueId, accent = '#1A3A6B', accentTex
               ) : (
                 <div className="space-y-2">
                   {items.map((item, i) => (
-                    <div key={`${item.product_id}-${i}`} className="bg-white border border-black/[0.08] rounded-xl px-3 py-2.5 flex items-center gap-3">
+                    <div key={`${item.product_id}-${i}`} className="bg-white border border-black/[0.08] rounded-xl px-3 py-2.5">
+                    <div className="flex items-center gap-3">
                       <div className="min-w-0 flex-1">
                         <p className="text-[#1A2332] text-sm font-semibold leading-tight">{item.product_name}</p>
                         {item.note && <p className="text-[#8896A5] text-xs mt-0.5">{item.note}</p>}
@@ -212,6 +219,34 @@ export default function VoiceOrderPanel({ venueId, accent = '#1A3A6B', accentTex
                           style={{ backgroundColor: accent, color: accentText }}
                         >+</button>
                       </div>
+                    </div>
+
+                    {/* "Cerveza" puede ser cinco cervezas distintas. Elegir por
+                        el cliente es adivinar: se muestran todas y decide él. */}
+                    {item.options?.length > 1 && (
+                      <div className="mt-2.5 pt-2.5 border-t border-black/[0.06]">
+                        <p className="text-[#9DAAB8] text-[10px] font-semibold uppercase tracking-wide mb-1.5">
+                          ¿Cuál querés?
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {item.options.map(opt => {
+                            const active = opt.product_id === item.product_id
+                            return (
+                              <button
+                                key={opt.product_id}
+                                onClick={() => pickOption(i, opt)}
+                                className="text-xs px-2.5 py-1.5 rounded-full border font-medium transition-colors"
+                                style={active
+                                  ? { backgroundColor: accent, color: accentText, borderColor: accent }
+                                  : { borderColor: '#D1D9E0', color: '#4A5568' }}
+                              >
+                                {opt.product_name}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
                     </div>
                   ))}
                 </div>
