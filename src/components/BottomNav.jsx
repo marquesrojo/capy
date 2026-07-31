@@ -191,7 +191,7 @@ export default function BottomNav() {
               <path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4M8 22h8" />
             </svg>
           </span>
-          <span className="-mt-1" style={{ color: selfColor }}>HABLAR</span>
+          <span className="mt-1.5" style={{ color: selfColor }}>HABLAR</span>
         </button>
         )}
 
