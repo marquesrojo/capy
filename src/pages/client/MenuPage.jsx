@@ -8,6 +8,7 @@ import BottomNav from '../../components/BottomNav'
 import { useClientBase, useVenueOptional } from '../../hooks/useVenue'
 import { PinIcon, SunIcon, ShoppingBagIcon, ClockIcon, XIcon, DIETARY_TAGS } from '../../components/Icons'
 import RecommendModal from '../../components/RecommendModal'
+import VoiceOrderPanel from '../../components/VoiceOrderPanel'
 import EmailLoginModal from '../../components/EmailLoginModal'
 
 export default function MenuPage() {
@@ -17,6 +18,7 @@ export default function MenuPage() {
   const [activeCategory, setActiveCategory] = useState(null)
   const [showCategorySheet, setShowCategorySheet] = useState(false)
   const [showRecommend, setShowRecommend] = useState(false)
+  const [showVoice, setShowVoice] = useState(false)
   const [search, setSearch] = useState('')
   const [highDemand, setHighDemand] = useState(false)
   const [ordersPaused, setOrdersPaused] = useState(false)
@@ -441,19 +443,51 @@ export default function MenuPage() {
 
       <BottomNav />
 
-      {/* Recomendar un plato que no se puede pedir solo genera frustración */}
-      {itemCount === 0 && !showRecommend && !ordersPaused && (
+      {/* Un solo asistente: dictar el pedido y pedir una recomendación son la
+          misma pregunta —qué pido— y con dos botones flotantes la decisión
+          quedaba partida en dos esquinas. Con pedidos pausados no va: no hay
+          nada que agregar al carrito. */}
+      {!ordersPaused && !showVoice && !showRecommend && (
         <button
-          onClick={() => setShowRecommend(true)}
-          className="fixed left-4 z-20 flex items-center gap-1.5 px-4 py-3 rounded-full shadow-lg font-semibold text-sm active:scale-95 transition-transform"
-          style={{ backgroundColor: contentAccent, color: contentAccentText, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 5.75rem)' }}
+          onClick={() => setShowVoice(true)}
+          aria-label="Pedir hablando"
+          className="fixed left-4 z-20 flex items-center gap-2 pl-3 pr-4 py-3 rounded-full shadow-lg font-semibold text-sm active:scale-95 transition-transform"
+          style={{
+            backgroundColor: contentAccent,
+            color: contentAccentText,
+            // Con el carrito cargado, la barra de confirmar ocupa esa franja
+            bottom: itemCount > 0
+              ? 'calc(env(safe-area-inset-bottom, 0px) + 10.25rem)'
+              : 'calc(env(safe-area-inset-bottom, 0px) + 5.75rem)',
+          }}
         >
-          <span>✨</span>
-          <span>¿Qué como?</span>
+          <img src="/icon-512.png" alt="" className="w-6 h-6 rounded-full" />
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="9" y="2" width="6" height="11" rx="3" />
+            <path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4M8 22h8" />
+          </svg>
+          <span>Pedí hablando</span>
         </button>
       )}
 
-      {showRecommend && itemCount === 0 && (
+      {showVoice && (
+        <VoiceOrderPanel
+          venueId={venueId}
+          accent={contentAccent}
+          accentText={contentAccentText}
+          onAddItems={voiceItems => {
+            for (const it of voiceItems) {
+              const product = products.find(p => p.id === it.product_id)
+              if (product) addItem(product, it.quantity, it.note || '')
+            }
+          }}
+          onRecommend={() => { setShowVoice(false); setShowRecommend(true) }}
+          onClose={() => setShowVoice(false)}
+        />
+      )}
+
+      {showRecommend && (
         <RecommendModal
           venueId={venueId}
           accentColor={contentAccent}
