@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { supabaseCustomer } from '../../lib/supabase'
 import { useCustomer } from '../../hooks/useCustomer'
 import { useClientBase } from '../../hooks/useVenue'
-import { accentColor } from '../../lib/utils'
+import { accentColor, formatPrice } from '../../lib/utils'
 import { PhoneIcon } from '../../components/Icons'
 
 function GoogleIcon() {
@@ -32,7 +32,7 @@ export default function OrderConfirmedPage() {
     async function load() {
       const { data: orderData } = await supabaseCustomer
         .from('orders')
-        .select('id, venue_id, status, location_label, location_type, daily_number, created_by_staff, is_addition, session_id')
+        .select('id, venue_id, status, location_label, location_type, daily_number, created_by_staff, is_addition, session_id, total, notes, order_items(product_name, quantity, item_notes)')
         .eq('id', orderId)
         .single()
       setOrder(orderData)
@@ -67,10 +67,22 @@ export default function OrderConfirmedPage() {
   if (needsWhatsapp) {
     const ticketNum = order.daily_number ? `#${order.daily_number}` : `#${orderId.slice(0, 4).toUpperCase()}`
     const who = customer?.full_name || 'un cliente'
-    const orderUrl = `${window.location.origin}${base}/pedido/${orderId}`
-    const message = isRetiro
-      ? `Hola! Soy ${who}, confirmo mi pedido de retiro ${ticketNum}\nIngresá a: ${orderUrl}`
-      : `Hola! Soy ${who}, confirmo mi pedido ${ticketNum} — estoy en ${order.location_label}\nIngresá a: ${orderUrl}`
+    // Al tablero y no a /pedido/:id: quien abre esto es el local, y ahí veía
+    // la pantalla del cliente, sin poder aceptar ni despachar nada
+    const adminUrl = `${window.location.origin}/admin?order=${orderId}`
+    const detalle = (order.order_items || [])
+      .map(i => `• ${i.quantity}x ${i.product_name}${i.item_notes ? ` (${i.item_notes})` : ''}`)
+      .join('\n')
+    const cuerpo = [
+      isRetiro
+        ? `Hola! Soy ${who}, confirmo mi pedido de retiro ${ticketNum}`
+        : `Hola! Soy ${who}, confirmo mi pedido ${ticketNum} — estoy en ${order.location_label}`,
+      detalle ? `\n${detalle}` : '',
+      order.notes ? `\nNota: ${order.notes}` : '',
+      order.total ? `\nTotal: ${formatPrice(order.total)}` : '',
+      `\nVer en el tablero: ${adminUrl}`,
+    ].filter(Boolean).join('\n')
+    const message = cuerpo
     const waLink = `https://wa.me/${venueWhatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`
 
     return (
