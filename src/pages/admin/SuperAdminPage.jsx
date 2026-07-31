@@ -827,7 +827,8 @@ PANEL PRINCIPAL (/admin)
 SECCIÓN MI LOCAL — accesible desde el menú lateral o ícono de configuración
 - Carta (/admin/carta): se editan los productos y categorías del menú. Acá se agregan productos con nombre, descripción, precio y foto. También está el botón Importar con IA y Fotos con IA. NO se llama "Productos", se llama "Carta".
 - Ubicaciones (/admin/ubicaciones): se crean las zonas (Salón, Terraza, Barra) y las mesas dentro de cada zona. También se activa la opción de Retiro en local.
-- Medios de pago (/admin/configuracion/medios-pago): se activan efectivo, MercadoPago u otros métodos.
+- Medios de pago y descuentos (/admin/descuentos): se cargan las formas de cobro, los códigos y el descuento por efectivo. Es de plan free.
+- Facturación (/admin/configuracion/medios-pago): factura electrónica y cobro con Mercado Pago. Es de plan Pro.
 - Datos del local (/admin/configuracion/local): nombre del local, WhatsApp de contacto y ajustes generales.
 - Usuarios (/admin/usuarios): se agregan admins y camareros vinculados al local.
 - Descuentos (/admin/descuentos): códigos de descuento para clientes.
