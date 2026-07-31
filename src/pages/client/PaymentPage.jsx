@@ -41,6 +41,19 @@ export default function PaymentPage() {
   const [cashDiscount, setCashDiscount] = useState({ enabled: false, percent: 0 })
   const [stackDiscounts, setStackDiscounts] = useState(false)
   const [hasCodes, setHasCodes] = useState(false)
+  // El pie es fijo y crece con los descuentos y el aviso de error, así que un
+  // padding fijo abajo dejaba la forma de pago tapada. Se mide y se reserva.
+  const [footerNode, setFooterNode] = useState(null)
+  const [footerH, setFooterH] = useState(0)
+
+  useEffect(() => {
+    if (!footerNode) return
+    const measure = () => setFooterH(footerNode.offsetHeight)
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(footerNode)
+    return () => ro.disconnect()
+  }, [footerNode])
 
   useEffect(() => {
     if (itemCount === 0) navigate(`${base}/carta`)
@@ -362,7 +375,10 @@ export default function PaymentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F0F4F8] pb-40" style={{ '--input-focus-color': accent }}>
+    <div
+      className="min-h-screen bg-[#F0F4F8]"
+      style={{ '--input-focus-color': accent, paddingBottom: (footerH || 200) + 32 }}
+    >
       <header className="px-5 pb-4" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 1.5rem)', backgroundColor: venueColor, color: headerTextColor }}>
         <h1 className="font-display text-3xl tracking-wide">TU PEDIDO</h1>
         <p className="text-sm flex items-center gap-1" style={{ opacity: 0.7 }}><PinIcon size={14} /> {location.label}</p>
@@ -600,7 +616,11 @@ export default function PaymentPage() {
         )}
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-black/[0.06] px-5 py-4 space-y-3">
+      <div
+        ref={setFooterNode}
+        className="fixed bottom-0 left-0 right-0 bg-white border-t border-black/[0.06] px-5 pt-4 space-y-3"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)' }}
+      >
         {error && <p className="text-red-600 text-sm">{error}</p>}
         {discountAmount > 0 && (
           <div className="flex items-center justify-between text-[#1A2332]">
