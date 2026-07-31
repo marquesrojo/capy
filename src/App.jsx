@@ -61,6 +61,7 @@ import ReservasPage from './pages/admin/ReservasPage'
 import ReservationBookingPage from './pages/client/ReservationBookingPage'
 import UpgradeResultPage from './pages/admin/UpgradeResultPage'
 import WhatsAppPage from './pages/admin/WhatsAppPage'
+import UpdateBanner from './components/UpdateBanner'
 
 function CapyChatOverlay() {
   const { isStaff } = useAuth()
@@ -406,6 +407,8 @@ export default function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             <CapyChatOverlay />
+            {/* Vale para las tres apps: cliente, camarero y panel */}
+            <UpdateBanner />
           </BrowserRouter>
         </CartProvider>
       </CustomerProvider>
