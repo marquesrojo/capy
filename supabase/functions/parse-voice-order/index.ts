@@ -26,11 +26,15 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
 
+    // Los platos que solo existen dentro de una carta —el postre del menú
+    // ejecutivo— no tienen precio propio: dictarlos sueltos armaría un pedido
+    // que el local no puede cobrar
     const { data: products } = await supabase
       .from('products')
       .select('id, name, price')
       .eq('venue_id', venue_id)
       .eq('is_available', true)
+      .neq('in_main_menu', false)
 
     if (!products?.length) {
       return new Response(JSON.stringify({ items: [] }), {

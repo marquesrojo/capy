@@ -223,6 +223,22 @@ export default function MenuEditorPage() {
               />
             )}
 
+            {/* Qué significa "Solo carta": el interruptor por producto no
+                alcanza a explicar todo lo que apaga */}
+            <div className="mb-4 bg-carbon-900 border border-carbon-700 rounded-xl px-4 py-3">
+              <p className="text-smoke-400 text-xs leading-relaxed">
+                <span className="text-violet-400 font-semibold">Solo carta</span> es para los platos
+                que no se venden sueltos, como el postre del menú ejecutivo. Un producto marcado así
+                <span className="text-smoke-300"> no aparece en la carta general, ni en el buscador,
+                ni en las sugerencias del chef, ni en el pedido por voz, ni en el recomendador</span>.
+                Se pide únicamente dentro de las cartas que lo incluyan, y no hace falta ponerle
+                precio: lo cobra la carta.
+              </p>
+              <Link to="/admin/cartas" className="text-ember-500 text-xs underline mt-1.5 inline-block">
+                Armar una carta →
+              </Link>
+            </div>
+
             {/* Buscar en la carta: con cien productos repartidos en veinte
                 categorías, encontrar uno para editarlo era puro scroll */}
             <div className="mb-5 relative">
@@ -942,8 +958,8 @@ Respondé ÚNICAMENTE con el término de búsqueda, sin texto extra.`
           <button
             onClick={toggleMainMenu}
             title={product.in_main_menu === false
-              ? 'Solo dentro de una carta: no se ve en la carta general'
-              : 'Se ve en la carta general. Tocá para que exista solo dentro de una carta'}
+              ? 'Solo carta: no aparece en la carta general, ni en el buscador, ni en las sugerencias del chef, ni en el pedido por voz. Se pide únicamente dentro de las cartas que lo incluyan.'
+              : 'Se ve en la carta general. Tocá para que exista solo dentro de una carta (menú ejecutivo, de jugadores).'}
             className={`text-[10px] font-semibold px-2 py-1 rounded-full border ${
               product.in_main_menu === false
                 ? 'border-violet-500/50 text-violet-400'

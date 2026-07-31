@@ -28,7 +28,10 @@ Deno.serve(async (req) => {
 
     const [{ data: categories }, { data: products }] = await Promise.all([
       supabase.from('categories').select('id, name').eq('venue_id', venue_id).eq('is_active', true).order('sort_order'),
-      supabase.from('products').select('id, name, price, description, category_id, dietary_tags, is_featured, is_daily_special').eq('venue_id', venue_id).eq('is_available', true).order('sort_order'),
+      // Los platos que solo existen dentro de una carta —el postre del menú
+      // ejecutivo— no tienen precio propio: recomendarlos sueltos sería
+      // ofrecer algo que no se puede pedir así
+      supabase.from('products').select('id, name, price, description, category_id, dietary_tags, is_featured, is_daily_special').eq('venue_id', venue_id).eq('is_available', true).neq('in_main_menu', false).order('sort_order'),
     ])
 
     console.log('[recommend-dish] products count:', products?.length ?? 'null')
