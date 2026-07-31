@@ -5,6 +5,8 @@ import { useClientBase, useVenueOptional } from '../../hooks/useVenue'
 import { useCart } from '../../hooks/useCart'
 import { useCustomer } from '../../hooks/useCustomer'
 import { UtensilsIcon, XIcon, ClockIcon } from '../../components/Icons'
+import VoiceOrderPanel from '../../components/VoiceOrderPanel'
+import InstallHint from '../../components/InstallHint'
 import ClientFloorMap from '../../components/ClientFloorMap'
 import EmailLoginModal from '../../components/EmailLoginModal'
 
@@ -144,6 +146,7 @@ export default function IdentifyPage() {
   // Local sin salón: la home solo ofrece retiro y delivery
   const [takeawayOnly, setTakeawayOnly] = useState(false)
   const [ordersPaused, setOrdersPaused] = useState(false)
+  const [showVoice, setShowVoice] = useState(false)
   const [highDemand, setHighDemand] = useState(false)
   const [pauseMessage, setPauseMessage] = useState('')
   const [showExternalOptions, setShowExternalOptions] = useState(false)
@@ -157,7 +160,8 @@ export default function IdentifyPage() {
   const [pickedSector, setPickedSector] = useState(null)
   const [pickedZone, setPickedZone] = useState(null)
   const [showZonePicker, setShowZonePicker] = useState(false)
-  const [showRetiroPicker, setShowRetiroPicker] = useState(false)
+  // null = todavía no eligió cómo lo recibe
+  const [pickerMode, setPickerMode] = useState(null)
   const [zonePickerView, setZonePickerView] = useState('lista') // 'lista' | 'mapa'
   const [locationDisplayMode, setLocationDisplayMode] = useState('lista') // 'lista' | 'ambos' | 'mapa'
   const [mapZone, setMapZone] = useState(null)
@@ -326,7 +330,6 @@ export default function IdentifyPage() {
     setPickedZone(mesa)
     setLocation({ type: mesa.type, zoneId: mesa.id, label: mesa.name })
     setShowZonePicker(false)
-    setShowRetiroPicker(false)
     // El botón promete pedir: elegida la ubicación, va derecho a la carta
     navigate(cartaPath)
   }
@@ -382,6 +385,8 @@ export default function IdentifyPage() {
   const sectores = zones.filter(z => z.type === 'zona')
   const allMesas = zones.filter(z => z.type === 'mesa')
   const retiro = zones.filter(z => z.type === 'retiro')
+  // Hay dónde sentarse: si no, el paso de "¿cómo lo recibís?" no tiene sentido
+  const mesaZonesExist = allMesas.length > 0 || sectores.length > 0
   const hasMap = allMesas.some(m => m.pos_x != null)
   const zonesWithMap = sectores.filter(z => allMesas.some(m => m.parent_zone_id === z.id && m.pos_x != null))
   const sectorMesas = pickedSector
@@ -615,14 +620,53 @@ export default function IdentifyPage() {
         </div>
       )}
 
+      <InstallHint venueId={venueId} venueName={venue?.name} accent={selfColor} />
+
       {/* ── Contenido principal ── */}
       <div className={`px-4 pt-4 pb-6 space-y-3 w-full md:max-w-xl md:mx-auto md:px-6 ${fd ? 'max-w-2xl px-8 pt-8 pb-12 mx-auto' : fc ? '' : 'lg:max-w-2xl lg:px-8 lg:pt-8 lg:pb-12'}`}>
 
-        {/* ── Pido desde la mesa: abre las ubicaciones acá mismo ── */}
-        {!takeawayOnly && !prefillZoneId && zones.length > 0 && (
+        {/* ── Pedido rápido por voz ──
+             Arriba de los cuatro y con otro tratamiento: es el atajo, no una
+             quinta opción más de la lista. Solo para retiro, así no depende de
+             que el cliente sepa en qué mesa está —que es justo lo que no sabe
+             cuando entra por el QR general— y un pedido mal ubicado es comida
+             que sale de la cocina y no llega a nadie. */}
+        {!ordersPaused && retiro.length > 0 && (
+          <button
+            onClick={() => setShowVoice(true)}
+            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 border-dashed active:scale-[0.98] transition-transform mb-1"
+            style={{ borderColor: selfColor, backgroundColor: `${selfColor}0D` }}
+          >
+            <span
+              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: selfColor, color: 'white' }}
+            >
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="9" y="2" width="6" height="11" rx="3" />
+                <path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4M8 22h8" />
+              </svg>
+            </span>
+            <div className="flex-1 text-left">
+              <p className="font-black text-sm leading-tight" style={{ color: selfColor }}>Pedido rápido para retirar</p>
+              <p className="text-[#6B7A8D] text-xs mt-0.5">Decí qué querés y lo tenés listo</p>
+            </div>
+          </button>
+        )}
+
+        {/* ── Pido desde la carta ──
+             Antes eran dos botones, uno para mesa y otro para retiro, cada uno
+             con su lista. Ahora se entra por un solo lado y el primer paso es
+             decir cómo lo recibís: la lista de ubicaciones que aparece después
+             es la que corresponde y no las dos apiladas. */}
+        {!takeawayOnly && !prefillZoneId && (zones.length > 0 || retiro.length > 0) && (
           <div>
           <button
-            onClick={() => { setShowRetiroPicker(false); setShowZonePicker(v => !v) }}
+            onClick={() => {
+                        const opening = !showZonePicker
+              setShowZonePicker(opening)
+              // Con una sola forma de recibir el pedido, preguntarla sobra
+              if (opening) setPickerMode(mesaZonesExist && retiro.length > 0 ? null : (mesaZonesExist ? 'mesa' : 'retiro'))
+            }}
             className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl shadow-lg active:scale-[0.98] transition-transform"
             style={{ backgroundColor: selfColor }}
           >
@@ -631,7 +675,7 @@ export default function IdentifyPage() {
               <UtensilsIcon size={22} style={{ color: selfTextColor }} />
             </div>
             <div className="flex-1 text-left">
-              <p className="font-black text-sm leading-tight" style={{ color: selfTextColor }}>Pido desde la mesa</p>
+              <p className="font-black text-sm leading-tight" style={{ color: selfTextColor }}>Pido yo mismo desde la carta</p>
               <p className="text-xs mt-0.5" style={{ color: selfTextColor, opacity: 0.7 }}>
                 {pickedZone ? pickedZone.name : 'Elegí dónde estás y mirá la carta'}
               </p>
@@ -641,6 +685,59 @@ export default function IdentifyPage() {
               <polyline points="9 18 15 12 9 6"/>
             </svg>
           </button>
+
+          {/* Paso 1: cómo lo recibís */}
+          {showZonePicker && !ordersPaused && pickerMode === null && (
+            <div className="mt-2 bg-white rounded-2xl border border-black/[0.06] p-4 shadow-sm">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2.5">¿Cómo lo recibís?</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setPickerMode('mesa')}
+                  className="rounded-2xl py-4 px-3 border-2 flex flex-col items-center gap-2 active:scale-95 transition-transform"
+                  style={{ borderColor: selfColor, backgroundColor: `${selfColor}0D` }}
+                >
+                  <UtensilsIcon size={20} style={{ color: selfColor }} />
+                  <span className="text-xs font-bold" style={{ color: selfColor }}>Estoy en una mesa</span>
+                </button>
+                <button
+                  onClick={() => setPickerMode('retiro')}
+                  className="rounded-2xl py-4 px-3 border-2 flex flex-col items-center gap-2 active:scale-95 transition-transform"
+                  style={{ borderColor: accentOnWhite, backgroundColor: `${accentOnWhite}0D` }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={accentOnWhite} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
+                  </svg>
+                  <span className="text-xs font-bold" style={{ color: accentOnWhite }}>Lo retiro yo</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Paso 2b: puntos de retiro */}
+          {showZonePicker && !ordersPaused && pickerMode === 'retiro' && (
+            <div className="mt-2 bg-white rounded-2xl border border-black/[0.06] p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA]">¿Dónde lo retirás?</p>
+                {mesaZonesExist && (
+                  <button onClick={() => setPickerMode(null)} className="text-[11px] font-semibold" style={{ color: accentOnWhite }}>
+                    ← Cambiar
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {retiro.map(zone => (
+                  <button
+                    key={zone.id}
+                    onClick={() => pickMesa(zone)}
+                    className="rounded-xl py-3 text-xs font-bold text-center border-2 transition-all"
+                    style={{ backgroundColor: '#F0F4F8', borderColor: accentOnWhite, color: accentOnWhite }}
+                  >
+                    {zone.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Pausado: abrir el selector y elegir una mesa termina en un
               checkout que no se puede confirmar, así que se corta acá */}
@@ -661,9 +758,16 @@ export default function IdentifyPage() {
             </div>
           )}
 
-          {/* Expandable content */}
-          {showZonePicker && !ordersPaused && (
+          {/* Paso 2a: mesas */}
+          {showZonePicker && !ordersPaused && pickerMode === 'mesa' && (
             <div className="mt-2 bg-white rounded-2xl border border-black/[0.06] p-4 shadow-sm">
+              {retiro.length > 0 && (
+                <div className="flex justify-end -mt-1 mb-1">
+                  <button onClick={() => setPickerMode(null)} className="text-[11px] font-semibold" style={{ color: selfColor }}>
+                    ← Cambiar
+                  </button>
+                </div>
+              )}
 
               {/* Map / List toggle — only shown in 'ambos' mode */}
               {hasMap && locationDisplayMode === 'ambos' && (
@@ -834,70 +938,6 @@ export default function IdentifyPage() {
           )}
         </div>
       )}
-
-        {!takeawayOnly && (<>
-        {/* ── Voy a un punto de retiro ── */}
-        {retiro.length > 0 && !prefillZoneId && (
-          <div>
-            <button
-              onClick={() => { setShowZonePicker(false); setShowRetiroPicker(v => !v) }}
-              className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl shadow-md border active:scale-[0.98] transition-transform bg-white"
-              style={{ borderColor: `${accentOnWhite}30` }}
-            >
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: `${accentOnWhite}15` }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={accentOnWhite} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
-                </svg>
-              </div>
-              <div className="flex-1 text-left">
-                <p className="font-black text-sm leading-tight" style={{ color: accentOnWhite }}>Voy a un punto de retiro</p>
-                <p className="text-[#9DAAB8] text-xs mt-0.5">Pedís y lo retirás vos</p>
-              </div>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={accentOnWhite} strokeWidth="2.5" strokeOpacity="0.5"
-                className={`transition-transform duration-200 ${showRetiroPicker ? 'rotate-90' : ''}`}>
-                <polyline points="9 18 15 12 9 6"/>
-              </svg>
-            </button>
-
-            {showRetiroPicker && ordersPaused && (
-            <div className="mt-2 bg-red-50 border border-red-200 rounded-2xl p-4 text-center">
-              <p className="text-red-800 text-sm font-bold leading-snug">
-                No se pueden hacer pedidos en este momento
-              </p>
-              <p className="text-red-700 text-sm mt-1 leading-snug">
-                {pauseMessage || 'Podés mirar la carta y hacer tu pedido con un camarero/a.'}
-              </p>
-              <button
-                onClick={() => navigate(cartaPath)}
-                className="mt-3 bg-red-600 text-white text-sm font-bold px-6 py-2.5 rounded-xl active:scale-95 transition-transform"
-              >
-                Ver carta
-              </button>
-            </div>
-            )}
-
-            {showRetiroPicker && !ordersPaused && (
-              <div className="mt-2 bg-white rounded-2xl border border-black/[0.06] p-4 shadow-sm">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">¿Dónde lo retirás?</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {retiro.map(zone => (
-                    <button
-                      key={zone.id}
-                      onClick={() => pickMesa(zone)}
-                      className="rounded-xl py-3 text-xs font-bold text-center border-2 transition-all"
-                      style={{ backgroundColor: '#F0F4F8', borderColor: accentOnWhite, color: accentOnWhite }}
-                    >
-                      {zone.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        </>)}
 
         {/* ── Invitar a mi mesa ── */}
         {activeZoneId && activeLabel && (
@@ -1302,6 +1342,33 @@ export default function IdentifyPage() {
             Ver versión escritorio
           </button>
         </div>
+      )}
+
+      {showVoice && (
+        <VoiceOrderPanel
+          venueId={venueId}
+          accent={selfColor}
+          accentText="#FFFFFF"
+          title="Pedido rápido"
+          confirmLabel="Ir a pagar"
+          pickupZones={retiro}
+          onAddItems={(voiceItems, pickupZone) => {
+            if (!pickupZone) return
+            setLocation({ type: 'retiro', zoneId: pickupZone.id, label: pickupZone.name })
+            for (const it of voiceItems) {
+              addItem(
+                { id: it.product_id, name: it.product_name, price: it.product_price },
+                it.quantity,
+                it.note || ''
+              )
+            }
+            // Derecho al checkout: ya dijo qué quiere y dónde lo retira, mandarlo
+            // a la carta sería hacerlo desandar
+            navigate(`${base}/pago`)
+          }}
+          onRecommend={() => { setShowVoice(false); navigate(cartaPath) }}
+          onClose={() => setShowVoice(false)}
+        />
       )}
 
       {/* Crédito de CAPY: siempre al final de todo */}
