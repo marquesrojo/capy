@@ -6,6 +6,7 @@ import { useCart } from '../../hooks/useCart'
 import { useCustomer } from '../../hooks/useCustomer'
 import { UtensilsIcon, XIcon, ClockIcon } from '../../components/Icons'
 import VoiceOrderPanel from '../../components/VoiceOrderPanel'
+import RecommendModal from '../../components/RecommendModal'
 import InstallHint from '../../components/InstallHint'
 import ClientFloorMap from '../../components/ClientFloorMap'
 import EmailLoginModal from '../../components/EmailLoginModal'
@@ -147,6 +148,10 @@ export default function IdentifyPage() {
   const [takeawayOnly, setTakeawayOnly] = useState(false)
   const [ordersPaused, setOrdersPaused] = useState(false)
   const [showVoice, setShowVoice] = useState(false)
+  const [showRecommend, setShowRecommend] = useState(false)
+  // La recomendación puede caer en cualquier plato, no solo en los destacados
+  // de la home, así que hace falta la carta entera para resolver el nombre
+  const [allProducts, setAllProducts] = useState([])
   const [highDemand, setHighDemand] = useState(false)
   const [pauseMessage, setPauseMessage] = useState('')
   const [showExternalOptions, setShowExternalOptions] = useState(false)
@@ -198,6 +203,17 @@ export default function IdentifyPage() {
     if (prefillSession) setSessionId(prefillSession)
     if (prefillWaiterId) setAssignedStaffId(prefillWaiterId)
   }, [])
+
+  // Se traen recién al abrir el recomendador, no en cada visita a la home
+  useEffect(() => {
+    if (!showRecommend || allProducts.length > 0 || !venueId) return
+    supabaseCustomer
+      .from('products')
+      .select('id, name, price')
+      .eq('venue_id', venueId)
+      .or('is_available.is.null,is_available.eq.true')
+      .then(({ data }) => setAllProducts(data || []))
+  }, [showRecommend, venueId])
 
   useEffect(() => {
     if (!venueId) return
@@ -1366,8 +1382,23 @@ export default function IdentifyPage() {
             // a la carta sería hacerlo desandar
             navigate(`${base}/pago`)
           }}
-          onRecommend={() => { setShowVoice(false); navigate(cartaPath) }}
+          onRecommend={() => { setShowVoice(false); setShowRecommend(true) }}
           onClose={() => setShowVoice(false)}
+        />
+      )}
+
+      {showRecommend && (
+        <RecommendModal
+          venueId={venueId}
+          accentColor={selfColor}
+          onAddToCart={name => {
+            const product = allProducts.find(p => p.name === name)
+            if (product) addItem(product, 1)
+            // A la carta y no al checkout: desde la home todavía no dijo dónde
+            // está, y ahí es donde puede seguir sumando cosas
+            navigate(cartaPath)
+          }}
+          onClose={() => setShowRecommend(false)}
         />
       )}
 
