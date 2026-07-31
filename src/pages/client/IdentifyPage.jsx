@@ -6,6 +6,7 @@ import { useCart } from '../../hooks/useCart'
 import { useCustomer } from '../../hooks/useCustomer'
 import { UtensilsIcon, XIcon, ClockIcon } from '../../components/Icons'
 import VoiceOrderPanel from '../../components/VoiceOrderPanel'
+import InstallHint from '../../components/InstallHint'
 import ClientFloorMap from '../../components/ClientFloorMap'
 import EmailLoginModal from '../../components/EmailLoginModal'
 
@@ -618,6 +619,8 @@ export default function IdentifyPage() {
           </div>
         </div>
       )}
+
+      <InstallHint venueId={venueId} venueName={venue?.name} accent={selfColor} />
 
       {/* ── Contenido principal ── */}
       <div className={`px-4 pt-4 pb-6 space-y-3 w-full md:max-w-xl md:mx-auto md:px-6 ${fd ? 'max-w-2xl px-8 pt-8 pb-12 mx-auto' : fc ? '' : 'lg:max-w-2xl lg:px-8 lg:pt-8 lg:pb-12'}`}>
