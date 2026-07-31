@@ -8,10 +8,11 @@ import BottomNav from '../../components/BottomNav'
 import { useClientBase, useVenueOptional } from '../../hooks/useVenue'
 import { PinIcon, SunIcon, ShoppingBagIcon, ClockIcon, XIcon, DIETARY_TAGS } from '../../components/Icons'
 import EmailLoginModal from '../../components/EmailLoginModal'
+import FixedMenuBuilder from '../../components/FixedMenuBuilder'
 
 export default function MenuPage() {
   const [categories, setCategories] = useState([])
-  const [products, setProducts] = useState([])
+  const [allProducts, setAllProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState(null)
   const [showCategorySheet, setShowCategorySheet] = useState(false)
@@ -23,6 +24,10 @@ export default function MenuPage() {
   const [venueLogo, setVenueLogo] = useState('')
   const [headerBgColor, setHeaderBgColor] = useState('')
   const [headerTextColor, setHeaderTextColor] = useState('#FFFFFF')
+  // Cartas del local además de la general: el menú ejecutivo, el de jugadores.
+  // null = la carta general.
+  const [cartas, setCartas] = useState([])
+  const [activeCartaId, setActiveCartaId] = useState(null)
   const { items, addItem, updateQuantity, itemCount, subtotal, location, setLocation, setSessionId } = useCart()
   const [searchParams] = useSearchParams()
   const { customer, isAnonymous, userEmail, forgetCustomer, loginWithGoogle } = useCustomer()
@@ -82,11 +87,18 @@ export default function MenuPage() {
   useEffect(() => {
     if (!venueId) return
     async function load() {
-      const [catRes, prodRes, venueRes] = await Promise.all([
+      const [catRes, prodRes, venueRes, cartasRes] = await Promise.all([
         supabaseCustomer.from('categories').select('*').eq('venue_id', venueId).eq('is_active', true).order('sort_order'),
         supabaseCustomer.from('products').select('*').eq('venue_id', venueId).order('sort_order'),
         supabaseCustomer.from('venues').select('high_demand, orders_paused, orders_paused_message, name, logo_url, header_bg_color, header_text_color').eq('id', venueId).single(),
+        supabaseCustomer
+          .from('venue_menus')
+          .select('*, venue_menu_steps(*, venue_menu_step_options(*)), venue_menu_products(product_id)')
+          .eq('venue_id', venueId)
+          .eq('is_active', true)
+          .order('sort_order'),
       ])
+      setCartas(cartasRes.data || [])
       // ?menu=<id>: el QR compartió una carta específica (camarero autónomo) —
       // se muestran solo sus categorías. Si el id no matchea nada, carta completa.
       const menuFilter = searchParams.get('menu')
@@ -101,7 +113,7 @@ export default function MenuPage() {
         }
       }
       setCategories(cats)
-      setProducts(prods)
+      setAllProducts(prods)
       if (cats.length) setActiveCategory(cats[0].id)
       if (venueRes.data) {
         setHighDemand(venueRes.data.high_demand)
@@ -116,6 +128,15 @@ export default function MenuPage() {
     }
     load()
   }, [venueId])
+
+  // Al cambiar de carta la categoría elegida puede haber quedado vacía
+  useEffect(() => {
+    if (!categories.length) return
+    setActiveCategory(prev => {
+      const sigueSirviendo = prev && shownCategories.some(c => c.id === prev)
+      return sigueSirviendo ? prev : (shownCategories[0]?.id || null)
+    })
+  }, [activeCartaId, categories.length])
 
   function handleRemoveFromMenu(product) {
     const index = items.findIndex(i => i.product.id === product.id)
@@ -141,6 +162,22 @@ export default function MenuPage() {
     : '#1A2332'
   // Texto sobre contentAccent: blanco si es oscuro, oscuro si es claro
   const contentAccentText = lumOf(contentAccent) > 0.179 ? '#1A2332' : '#FFFFFF'
+
+  const activeCarta = cartas.find(c => c.id === activeCartaId) || null
+
+  // Una carta libre es la misma carta recortada a sus productos. Una de precio
+  // fijo no se recorre: se arma por pasos, y ese caso se dibuja aparte.
+  const products = activeCarta?.kind === 'libre'
+    ? (() => {
+        const ids = new Set((activeCarta.venue_menu_products || []).map(p => p.product_id))
+        return allProducts.filter(p => ids.has(p.id))
+      })()
+    : allProducts
+
+  // En una carta recortada, una categoría sin productos es una pestaña vacía
+  const shownCategories = activeCarta?.kind === 'libre'
+    ? categories.filter(c => products.some(p => p.category_id === c.id))
+    : categories
 
   const dailySpecials = products.filter(p => p.is_daily_special && p.is_available)
 
@@ -260,8 +297,32 @@ export default function MenuPage() {
           />
         )}
 
-        {/* Search + Category filter */}
-        <div className="flex items-center gap-2">
+        {/* Cartas del local: la general y las que el admin tenga activas */}
+        {cartas.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto -mx-1 px-1 pb-2.5 pt-0.5 scrollbar-none">
+            {[{ id: null, name: 'Carta' }, ...cartas].map(c => {
+              const active = activeCartaId === c.id
+              return (
+                <button
+                  key={c.id || 'general'}
+                  onClick={() => { setActiveCartaId(c.id); setSearch('') }}
+                  className="flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold leading-none transition-colors"
+                  style={active
+                    ? { backgroundColor: accentText, color: accentBg }
+                    : { backgroundColor: `${accentText}20`, color: accentText }}
+                >
+                  {c.name}
+                  {c.kind === 'fijo' && c.price ? (
+                    <span className="font-semibold opacity-70"> · {formatPrice(c.price)}</span>
+                  ) : null}
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Search + Category filter — una carta de precio fijo no se recorre */}
+        <div className={`items-center gap-2 ${activeCarta?.kind === 'fijo' ? 'hidden' : 'flex'}`}>
           <button
             onClick={() => setShowCategorySheet(true)}
             className="flex-shrink-0 flex items-center justify-center gap-1.5 h-9 w-[88px] rounded-xl text-[10px] font-bold leading-none"
@@ -293,7 +354,23 @@ export default function MenuPage() {
         {/* Recommend button — hidden while Gemini API is unavailable */}
       </header>
 
-      {search ? (
+      {activeCarta?.kind === 'fijo' ? (
+        <div className="flex-1 overflow-y-auto">
+          <FixedMenuBuilder
+            menu={activeCarta}
+            products={allProducts}
+            accent={contentAccent}
+            accentText={contentAccentText}
+            disabled={ordersPaused}
+            onAdd={selections => addItem(
+              { id: `menu:${activeCarta.id}`, name: activeCarta.name, price: Number(activeCarta.price) || 0, is_menu: true },
+              1,
+              '',
+              { menuId: activeCarta.id, selections }
+            )}
+          />
+        </div>
+      ) : search ? (
         /* Search results — full width scrollable */
         <div className="flex-1 overflow-y-auto px-4 pt-3 pb-36 space-y-2">
           {searchResults.length === 0 ? (
@@ -365,7 +442,7 @@ export default function MenuPage() {
               ><XIcon size={16} /></button>
             </div>
             <div className="grid grid-cols-3 gap-2">
-              {categories.map(cat => (
+              {shownCategories.map(cat => (
                 <button
                   key={cat.id}
                   onClick={() => { setActiveCategory(cat.id); setShowCategorySheet(false) }}
