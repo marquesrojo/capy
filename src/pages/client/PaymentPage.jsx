@@ -29,6 +29,7 @@ export default function PaymentPage() {
   const [paymentOptions, setPaymentOptions] = useState([])
   const [guestName, setGuestName] = useState('')
   const [quickNotes, setQuickNotes] = useState([])
+  const [showAllNotes, setShowAllNotes] = useState(false)
   const [venueColor, setVenueColor] = useState('#1A3A6B')
   const [pickupTime, setPickupTime] = useState('')
   const [deliveryAddress, setDeliveryAddress] = useState('')
@@ -158,6 +159,16 @@ export default function PaymentPage() {
   // las etiquetas que no sean la de efectivo, que va en su propia columna
   const discountLabels = applied.filter(d => d.kind !== 'efectivo').map(d => d.label)
   const total = subtotal - discountAmount
+
+  // Las que el cliente ya tocó no se esconden nunca: verlas desaparecer al
+  // plegar la lista haría pensar que se borraron del pedido
+  const NOTES_PREVIEW = 6
+  const chosenNotes = quickNotes.filter(qn => notes.includes(qn.label))
+  const restNotes = quickNotes.filter(qn => !notes.includes(qn.label))
+  const visibleNotes = showAllNotes
+    ? quickNotes
+    : [...chosenNotes, ...restNotes].slice(0, Math.max(NOTES_PREVIEW, chosenNotes.length))
+  const hiddenNotesCount = quickNotes.length - visibleNotes.length
 
   async function applyDiscount() {
     if (!discountCode.trim()) return
@@ -460,7 +471,10 @@ export default function PaymentPage() {
           />
           {quickNotes.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-2">
-              {quickNotes.map(qn => {
+              {/* Un local con quince aclaraciones empujaba la forma de pago y el
+                  total fuera de la pantalla. Se muestran unas pocas y el resto
+                  se despliega: las elegidas siempre quedan a la vista. */}
+              {visibleNotes.map(qn => {
                 const active = notes.includes(qn.label)
                 return (
                   <button
@@ -482,6 +496,16 @@ export default function PaymentPage() {
                   </button>
                 )
               })}
+              {hiddenNotesCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllNotes(v => !v)}
+                  className="text-xs px-2.5 py-1 rounded-full border border-dashed transition-colors"
+                  style={{ borderColor: accent, color: accent }}
+                >
+                  {showAllNotes ? 'Ver menos' : `+${hiddenNotesCount} más`}
+                </button>
+              )}
             </div>
           )}
         </label>
