@@ -69,10 +69,10 @@ export default function PaymentPage() {
       const dbMethods = methodsRes.data || []
       const mpEntry = venueRes.data?.mp_enabled ? [{ id: 'mercadopago', name: 'Mercado Pago' }] : []
       const allMethods = [...mpEntry, ...dbMethods]
-      if (allMethods.length) {
-        setPaymentOptions(allMethods)
-        setPaymentMethod(allMethods[0].id)
-      }
+      // Sin preseleccionar: si el primero de la lista era Efectivo, el cliente
+      // veía el descuento aplicado antes de elegir nada y el pedido se guardaba
+      // con un medio de pago que nunca eligió.
+      if (allMethods.length) setPaymentOptions(allMethods)
       setQuickNotes(notesRes.data || [])
       if (venueRes.data?.header_bg_color) setVenueColor(venueRes.data.header_bg_color)
       if (venueRes.data) {

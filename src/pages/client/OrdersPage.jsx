@@ -123,7 +123,11 @@ export default function OrdersPage() {
 }
 
 function SessionGroup({ group, onNavigate }) {
-  const totalAmount = group.reduce((sum, o) => sum + (o.total || 0), 0)
+  // Un pedido anulado se sigue mostrando —es parte de lo que pasó en la mesa—
+  // pero no se cobra, así que no puede sumar al total de la visita
+  const totalAmount = group
+    .filter(o => o.status !== 'cancelado')
+    .reduce((sum, o) => sum + (o.total || 0), 0)
   const worstStatus = (() => {
     const priority = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo', 'entregado', 'cerrado', 'cancelado']
     return group.map(o => o.status).sort((a, b) => priority.indexOf(a) - priority.indexOf(b))[0]
