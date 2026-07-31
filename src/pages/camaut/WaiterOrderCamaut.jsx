@@ -643,18 +643,41 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
           {/* Ítems editables */}
           {cartItems.map(item => (
             <div key={item.key} className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
-              <div className="flex items-center justify-between gap-3 mb-2">
-                <div className="flex-1">
+              {/* Un menú lleva cuatro pasos debajo del nombre: en una sola fila
+                  con los botones y el precio, el texto queda en una columna de
+                  dos palabras de ancho. Se apila. */}
+              {item.selections?.length > 0 ? (
+                <div className="mb-2">
                   <p className="text-sm font-semibold text-[#1A2A3A]">{item.product.name}</p>
-                  {item.selections?.length > 0 && (
-                    <ul className="mt-0.5 mb-0.5">
-                      {item.selections.map((s, i) => (
-                        <li key={i} className="text-[11px] text-[#6B7A8D] leading-snug">
-                          <span className="text-[#A8B4C0]">{s.step}:</span> {s.name}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                  <ul className="mt-1 mb-2">
+                    {item.selections.map((s, i) => (
+                      <li key={i} className="text-xs text-[#6B7A8D] leading-relaxed">
+                        <span className="text-[#A8B4C0]">{s.step}:</span> {s.name}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs text-[#8896A5]">{formatPrice(item.product.price)} c/u</p>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <button
+                        onClick={() => changeQty(item.key, -1)}
+                        className="w-9 h-9 rounded-full bg-[#F0F4F8] text-[#3A4A5A] flex items-center justify-center text-lg font-bold"
+                      >−</button>
+                      <span className="text-[#1A2A3A] font-semibold w-5 text-center">{item.qty}</span>
+                      <button
+                        onClick={() => changeQty(item.key, 1)}
+                        className="w-9 h-9 rounded-full bg-[#008080] text-white flex items-center justify-center text-lg font-bold"
+                      >+</button>
+                    </div>
+                    <span className="font-mono text-[#008080] font-semibold text-sm flex-shrink-0">
+                      {formatPrice(item.product.price * item.qty)}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-[#1A2A3A]">{item.product.name}</p>
                   <p className="text-xs text-[#8896A5]">{formatPrice(item.product.price)} c/u</p>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
@@ -672,6 +695,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
                   {formatPrice(item.product.price * item.qty)}
                 </span>
               </div>
+              )}
 
               {/* Notas por ítem */}
               {quickNotes.length > 0 && (
