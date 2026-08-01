@@ -63,6 +63,10 @@ const MI_LOCAL_ITEMS = [
     icon: <svg {...ICON_PROPS}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
   },
   {
+    to: '/admin/insumos', label: 'Insumos', pro: true, desc: 'Qué lleva cada plato',
+    icon: <svg {...ICON_PROPS}><path d="M12 2v6"/><path d="M8.5 4.5 12 8l3.5-3.5"/><path d="M5 12h14l-1.2 8.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8z"/></svg>
+  },
+  {
     to: '/admin/inventario', label: 'Inventario', pro: true, desc: 'Stock de insumos y materias primas',
     icon: <svg {...ICON_PROPS}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
   },

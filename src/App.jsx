@@ -22,6 +22,7 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import HistoryPage from './pages/admin/HistoryPage'
 import MenuEditorPage from './pages/admin/MenuEditorPage'
 import CartasPage from './pages/admin/CartasPage'
+import InsumosPage from './pages/admin/InsumosPage'
 import CustomerGroupsPage from './pages/admin/CustomerGroupsPage'
 import FeedbackPage from './pages/admin/FeedbackPage'
 import LocationsPage from './pages/admin/LocationsPage'
@@ -279,6 +280,10 @@ export default function App() {
               <Route
                 path="/admin/cartas"
                 element={<RequirePropietario><CartasPage /></RequirePropietario>}
+              />
+              <Route
+                path="/admin/insumos"
+                element={<RequirePropietario><InsumosPage /></RequirePropietario>}
               />
               <Route
                 path="/admin/grupos"

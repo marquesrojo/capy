@@ -421,7 +421,7 @@ function CategoryNameEditor({ cat, onSave }) {
 
 const UNITS = ['g', 'kg', 'ml', 'l', 'unidad', 'taza', 'cdita', 'cda', 'porción']
 
-function IngredientsPanel({ productId, productName, productDescription, productCategory, currentImageUrl, onPhotoSaved, venueId, onClose, onRefreshProducts }) {
+export function IngredientsPanel({ productId, productName, productDescription, productCategory, currentImageUrl, onPhotoSaved, venueId, onClose, onRefreshProducts }) {
   const [ingredients, setIngredients] = useState(null) // null = loading
   const [saving, setSaving] = useState(false)
   const [suggesting, setSuggesting] = useState(false)
@@ -638,7 +638,6 @@ Ejemplo trago: {"photo_query":"cuba libre cocktail rum coke lime glass","ingredi
 
 function ProductRow({ product, venueId, categories, allProducts = [], onToggle, onDelete, onSave, onRefreshProducts }) {
   const [editing, setEditing] = useState(false)
-  const [showIngredients, setShowIngredients] = useState(false)
   const [photoSearching, setPhotoSearching] = useState(false)
   const [foundPhoto, setFoundPhoto] = useState(null)
   const [savingPhoto, setSavingPhoto] = useState(false)
@@ -941,7 +940,7 @@ Respondé ÚNICAMENTE con el término de búsqueda, sin texto extra.`
       <div className="p-3 flex items-center gap-3">
         {/* Thumbnail */}
         <div
-          onClick={() => { setEditing(true); setShowIngredients(false) }}
+          onClick={() => { setEditing(true) }}
           className="w-12 h-12 rounded-lg bg-carbon-800 flex-shrink-0 overflow-hidden cursor-pointer flex items-center justify-center"
         >
           {product.image_url ? (
@@ -1044,13 +1043,7 @@ Respondé ÚNICAMENTE con el término de búsqueda, sin texto extra.`
           >
             {photoSearching ? 'Buscando...' : 'Foto IA'}
           </button>
-          <button
-            onClick={() => { setShowIngredients(v => !v); setEditing(false) }}
-            className={`text-xs underline ${showIngredients ? 'text-ember-500' : 'text-smoke-500'}`}
-          >
-            Ingredientes
-          </button>
-          <button onClick={() => { setEditing(true); setShowIngredients(false) }} className="text-smoke-400 text-xs underline">Editar</button>
+          <button onClick={() => { setEditing(true) }} className="text-smoke-400 text-xs underline">Editar</button>
           <button onClick={onDelete} className="text-smoke-500 text-xs underline">Borrar</button>
         </div>
       </div>
@@ -1077,19 +1070,6 @@ Respondé ÚNICAMENTE con el término de búsqueda, sin texto extra.`
         </div>
       )}
 
-      {showIngredients && (
-        <IngredientsPanel
-          productId={product.id}
-          productName={product.name}
-          productDescription={product.description}
-          productCategory={categories.find(c => c.id === product.category_id)}
-          currentImageUrl={product.image_url}
-          onPhotoSaved={url => onSave({ ...product, image_url: url })}
-          venueId={venueId}
-          onClose={() => setShowIngredients(false)}
-          onRefreshProducts={onRefreshProducts}
-        />
-      )}
     </div>
   )
 }
