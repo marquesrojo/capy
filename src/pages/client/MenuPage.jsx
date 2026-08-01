@@ -98,7 +98,13 @@ export default function MenuPage() {
           .eq('is_active', true)
           .order('sort_order'),
       ])
-      setCartas(cartasRes.data || [])
+      const lasCartas = cartasRes.data || []
+      setCartas(lasCartas)
+      // ?carta=<id>: entró eligiendo una desde la home. Si esa carta ya no
+      // existe o no le corresponde, queda en la general y no en una pantalla
+      // vacía que no sabe explicar.
+      const pedida = searchParams.get('carta')
+      if (pedida && lasCartas.some(c => c.id === pedida)) setActiveCartaId(pedida)
       // ?menu=<id>: el QR compartió una carta específica (camarero autónomo) —
       // se muestran solo sus categorías. Si el id no matchea nada, carta completa.
       const menuFilter = searchParams.get('menu')
