@@ -83,7 +83,7 @@ export default function PublicOrderPage() {
 
     const { data: itemsData } = await supabasePublic
       .from('order_items')
-      .select('product_name, quantity, unit_price, item_notes')
+      .select('product_name, quantity, unit_price, item_notes, selected_options')
       .eq('order_id', id)
 
     setOrder(orderData)
@@ -262,6 +262,11 @@ export default function PublicOrderPage() {
                 </div>
                 <span className="text-smoke-400 text-sm font-mono">{formatPrice(item.unit_price * item.quantity)}</span>
               </div>
+              {(item.selected_options || []).map((s, k) => (
+                <p key={k} className="text-smoke-500 text-xs mt-0.5 ml-6">
+                  <span className="text-smoke-600">{s.step}:</span> {s.name}
+                </p>
+              ))}
               {item.item_notes && (
                 <p className="text-smoke-500 text-xs mt-0.5 ml-6 italic">{item.item_notes}</p>
               )}

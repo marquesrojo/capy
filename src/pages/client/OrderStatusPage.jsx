@@ -11,6 +11,23 @@ import { useClientBase } from '../../hooks/useVenue'
 import { PinIcon, ChefHatIcon, ClockIcon } from '../../components/Icons'
 import BottomNav from '../../components/BottomNav'
 
+// Lo que se eligió en cada paso de un menú de precio fijo. Sin esto la línea
+// dice "MENU EJECUTIVO $26.000" y el cliente no tiene cómo confirmar que pidió
+// lo que quería, que es justo para lo que mira esta pantalla.
+function ItemSelections({ item }) {
+  const seleccion = item.selected_options || []
+  if (seleccion.length === 0) return null
+  return (
+    <span className="block mt-1 space-y-0.5">
+      {seleccion.map((s, i) => (
+        <span key={i} className="block text-smoke-500 text-xs leading-snug">
+          <span className="text-smoke-600">{s.step}:</span> {s.name}
+        </span>
+      ))}
+    </span>
+  )
+}
+
 function PrepCountdown({ prepStartedAt, prepTimeMinutes }) {
   const [remaining, setRemaining] = useState(null)
 
@@ -401,9 +418,12 @@ export default function OrderStatusPage() {
               <p className="text-smoke-500 text-xs uppercase tracking-wide font-semibold mb-2">Ya pedido · consumiendo</p>
               <div className="space-y-1.5 opacity-60">
                 {consumedItems.map(item => (
-                  <div key={item.id} className="bg-carbon-900 border border-carbon-700 rounded-xl p-3 flex justify-between">
-                    <span className="text-smoke-400 text-sm">{item.quantity}× {item.product_name}</span>
-                    <span className="font-mono text-smoke-500 text-sm">{formatPrice(item.line_total)}</span>
+                  <div key={item.id} className="bg-carbon-900 border border-carbon-700 rounded-xl p-3 flex justify-between gap-3">
+                    <span className="text-smoke-400 text-sm min-w-0">
+                      {item.quantity}× {item.product_name}
+                      <ItemSelections item={item} />
+                    </span>
+                    <span className="font-mono text-smoke-500 text-sm flex-shrink-0">{formatPrice(item.line_total)}</span>
                   </div>
                 ))}
               </div>
@@ -415,9 +435,12 @@ export default function OrderStatusPage() {
               <p className="text-smoke-500 text-xs uppercase tracking-wide font-semibold mb-2">En preparación</p>
               <div className="space-y-1.5">
                 {activeItems.map(item => (
-                  <div key={item.id} className="bg-carbon-900 border border-carbon-700 rounded-xl p-3 flex justify-between">
-                    <span className="text-smoke-300 text-sm">{item.quantity}× {item.product_name}</span>
-                    <span className="font-mono text-sm" style={{ color: venueColor }}>{formatPrice(item.line_total)}</span>
+                  <div key={item.id} className="bg-carbon-900 border border-carbon-700 rounded-xl p-3 flex justify-between gap-3">
+                    <span className="text-smoke-300 text-sm min-w-0">
+                      {item.quantity}× {item.product_name}
+                      <ItemSelections item={item} />
+                    </span>
+                    <span className="font-mono text-sm flex-shrink-0" style={{ color: venueColor }}>{formatPrice(item.line_total)}</span>
                   </div>
                 ))}
               </div>
@@ -432,9 +455,12 @@ export default function OrderStatusPage() {
       ) : (
         <div className="mt-6 space-y-2">
           {items.map(item => (
-            <div key={item.id} className="bg-carbon-900 border border-carbon-700 rounded-xl p-3 flex justify-between">
-              <span className="text-smoke-300 text-sm">{item.quantity}× {item.product_name}</span>
-              <span className="font-mono text-sm" style={{ color: venueColor }}>{formatPrice(item.line_total)}</span>
+            <div key={item.id} className="bg-carbon-900 border border-carbon-700 rounded-xl p-3 flex justify-between gap-3">
+              <span className="text-smoke-300 text-sm min-w-0">
+                {item.quantity}× {item.product_name}
+                <ItemSelections item={item} />
+              </span>
+              <span className="font-mono text-sm flex-shrink-0" style={{ color: venueColor }}>{formatPrice(item.line_total)}</span>
             </div>
           ))}
           {(() => {
