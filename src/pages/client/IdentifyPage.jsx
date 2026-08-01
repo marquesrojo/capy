@@ -151,6 +151,21 @@ export default function IdentifyPage() {
   // dictar algo que en el local sale bien pero no se puede llevar terminaría en
   // un pedido que el mostrador no puede entregar.
   const [pickupProductIds, setPickupProductIds] = useState(null)
+  // Las cartas activas del local, para ofrecerlas desde acá. La RLS ya recorta
+  // a las que este cliente puede ver, grupos incluidos.
+  const [cartas, setCartas] = useState([])
+  const [showCartasSheet, setShowCartasSheet] = useState(false)
+
+  useEffect(() => {
+    if (!venueId) return
+    supabaseCustomer
+      .from('venue_menus')
+      .select('id, name, kind, price')
+      .eq('venue_id', venueId)
+      .eq('is_active', true)
+      .order('sort_order')
+      .then(({ data }) => setCartas(data || []))
+  }, [venueId])
 
   useEffect(() => {
     if (!showVoice || pickupProductIds || !venueId) return
@@ -648,40 +663,56 @@ export default function IdentifyPage() {
              que el cliente sepa en qué mesa está —que es justo lo que no sabe
              cuando entra por el QR general— y un pedido mal ubicado es comida
              que sale de la cocina y no llega a nadie. */}
-        {!ordersPaused && retiro.length > 0 && (
-          <button
-            onClick={() => setShowVoice(true)}
-            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 border-dashed active:scale-[0.98] transition-transform mb-1"
-            style={{ borderColor: selfColor, backgroundColor: `${selfColor}0D` }}
-          >
-            <span
-              className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: selfColor, color: 'white' }}
-            >
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="9" y="2" width="6" height="11" rx="3" />
-                <path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4M8 22h8" />
-              </svg>
-            </span>
-            <div className="flex-1 text-left">
-              <p className="font-black text-sm leading-tight" style={{ color: selfColor }}>Pedido rápido para retirar</p>
-              <p className="text-[#6B7A8D] text-xs mt-0.5">Decí qué querés, sin pasar por la carta</p>
-            </div>
-          </button>
-        )}
+        {(() => {
+          const hayVoz = !ordersPaused && retiro.length > 0
+          if (!hayVoz && cartas.length === 0 && retiro.length === 0) return null
+          return (
+            <div className="flex gap-2 mb-1">
+              {hayVoz && (
+                <button
+                  onClick={() => setShowVoice(true)}
+                  className="flex-1 min-w-0 flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 border-dashed active:scale-[0.98] transition-transform"
+                  style={{ borderColor: selfColor, backgroundColor: `${selfColor}0D` }}
+                >
+                  <span
+                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: selfColor, color: 'white' }}
+                  >
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="9" y="2" width="6" height="11" rx="3" />
+                      <path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4M8 22h8" />
+                    </svg>
+                  </span>
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="font-black text-sm leading-tight" style={{ color: selfColor }}>Pedido rápido</p>
+                    <p className="text-[#6B7A8D] text-xs mt-0.5 leading-snug">Decilo y lo retirás</p>
+                  </div>
+                </button>
+              )}
 
-        {/* Para el que quiere mirar antes de dictar o de arrancar el pedido.
-            Va a la carta ya recortada, sin obligarlo a elegir dónde retira:
-            eso se lo vamos a preguntar recién cuando quiera confirmar. */}
-        {!ordersPaused && retiro.length > 0 && (
-          <button
-            onClick={() => navigate(`${cartaPath}${cartaPath.includes('?') ? '&' : '?'}ver=retiro`)}
-            className="w-full text-center text-xs font-semibold underline pb-1"
-            style={{ color: accentOnWhite }}
-          >
-            Ver qué se puede llevar
-          </button>
-        )}
+              {/* Mirar antes de pedir. Acá viven las cartas del local, que si no
+                  solo se descubren estando ya adentro de la carta. */}
+              <button
+                onClick={() => setShowCartasSheet(true)}
+                className={`${hayVoz ? 'w-[104px] flex-shrink-0 flex-col justify-center' : 'flex-1 flex-row gap-3 px-4'} flex items-center rounded-2xl border-2 py-3.5 active:scale-[0.98] transition-transform`}
+                style={{ borderColor: `${selfColor}40`, backgroundColor: '#FFFFFF' }}
+              >
+                <span
+                  className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: `${selfColor}15`, color: selfColor }}
+                >
+                  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 4h7v16H4z" /><path d="M13 4h7v16h-7z" />
+                  </svg>
+                </span>
+                <span className={hayVoz ? 'mt-1.5' : 'flex-1 text-left'}>
+                  <span className="block font-black text-sm leading-tight" style={{ color: selfColor }}>Ver cartas</span>
+                  {!hayVoz && <span className="block text-[#6B7A8D] text-xs mt-0.5">Mirá antes de pedir</span>}
+                </span>
+              </button>
+            </div>
+          )
+        })()}
 
         {/* ── Pido desde la carta ──
              Antes eran dos botones, uno para mesa y otro para retiro, cada uno
@@ -1371,6 +1402,63 @@ export default function IdentifyPage() {
             </svg>
             Ver versión escritorio
           </button>
+        </div>
+      )}
+
+      {/* Mirar, no pedir: se elige qué carta ver y recién al confirmar el
+          pedido se pregunta dónde está la persona */}
+      {showCartasSheet && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end" onClick={() => setShowCartasSheet(false)}>
+          <div className="absolute inset-0 bg-black/40" />
+          <div className="relative bg-white rounded-t-3xl px-5 pt-5 pb-10 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-3 mb-1">
+              <div>
+                <h2 className="text-[#1A2332] font-black text-xl uppercase">Ver cartas</h2>
+                <p className="text-[#9DAAB8] text-sm">Mirá sin empezar el pedido</p>
+              </div>
+              <button
+                onClick={() => setShowCartasSheet(false)}
+                aria-label="Cerrar"
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-[#F0F4F8] text-[#6B7A8D] flex-shrink-0"
+              ><XIcon size={16} /></button>
+            </div>
+
+            <div className="space-y-2 mt-4">
+              <button
+                onClick={() => { setShowCartasSheet(false); navigate(cartaPath) }}
+                className="w-full text-left px-4 py-3.5 rounded-2xl border-2 border-[#E4EAF1] active:scale-[0.99] transition-transform"
+              >
+                <p className="font-black text-sm text-[#1A2332]">Toda la carta</p>
+                <p className="text-[#9DAAB8] text-xs mt-0.5">Todo lo que sirve el local</p>
+              </button>
+
+              {retiro.length > 0 && (
+                <button
+                  onClick={() => { setShowCartasSheet(false); navigate(`${cartaPath}${cartaPath.includes('?') ? '&' : '?'}ver=retiro`) }}
+                  className="w-full text-left px-4 py-3.5 rounded-2xl border-2 border-[#E4EAF1] active:scale-[0.99] transition-transform"
+                >
+                  <p className="font-black text-sm text-[#1A2332]">Para llevar</p>
+                  <p className="text-[#9DAAB8] text-xs mt-0.5">Solo lo que se puede retirar</p>
+                </button>
+              )}
+
+              {cartas.map(c => (
+                <button
+                  key={c.id}
+                  onClick={() => { setShowCartasSheet(false); navigate(`${cartaPath}${cartaPath.includes('?') ? '&' : '?'}carta=${c.id}`) }}
+                  className="w-full text-left px-4 py-3.5 rounded-2xl border-2 active:scale-[0.99] transition-transform"
+                  style={{ borderColor: `${selfColor}40`, backgroundColor: `${selfColor}08` }}
+                >
+                  <p className="font-black text-sm" style={{ color: accentOnWhite }}>{c.name}</p>
+                  <p className="text-[#9DAAB8] text-xs mt-0.5">
+                    {c.kind === 'fijo' && c.price
+                      ? `Precio único · ${formatPrice(c.price)}`
+                      : 'Una selección del local'}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
