@@ -51,6 +51,11 @@ export default function BottomNav() {
   // Los productos se traen recién al abrir el asistente: hacen falta para
   // convertir lo dictado en ítems del carrito, y no en cada pantalla
   const [products, setProducts] = useState([])
+  // Las cartas libres a las que este cliente llega. Las de precio fijo no
+  // entran: dictar "el menú con bife y flan" es elegir en cada paso, otro
+  // problema, y ofrecerlas acá prometería algo que el panel no hace.
+  const [cartas, setCartas] = useState([])
+  const [voiceCartaId, setVoiceCartaId] = useState(null)
   const [zones, setZones] = useState([])
   const [waiterSector, setWaiterSector] = useState(null)
   const [selectedReason, setSelectedReason] = useState(null)
@@ -75,6 +80,24 @@ export default function BottomNav() {
       .neq('in_main_menu', false)
       .then(({ data }) => setProducts(data || []))
   }, [showVoice, showRecommend, venueId])
+
+  // La RLS ya recorta a las que este cliente puede ver, grupos incluidos
+  useEffect(() => {
+    if (!showVoice || cartas.length > 0 || !venueId) return
+    supabaseCustomer
+      .from('venue_menus')
+      .select('id, name, kind, venue_menu_products(product_id)')
+      .eq('venue_id', venueId)
+      .eq('is_active', true)
+      .eq('kind', 'libre')
+      .order('sort_order')
+      .then(({ data }) => setCartas(data || []))
+  }, [showVoice, venueId])
+
+  const voiceCarta = cartas.find(c => c.id === voiceCartaId) || null
+  const voiceProductIds = voiceCarta
+    ? (voiceCarta.venue_menu_products || []).map(p => p.product_id)
+    : null
 
   useEffect(() => {
     if (!showWaiter || zones.length > 0 || !venueId) return
@@ -227,6 +250,10 @@ export default function BottomNav() {
             }
             navigate(`${base}/pago`)
           }}
+          cartas={cartas}
+          activeCartaId={voiceCartaId}
+          cartaProductIds={voiceProductIds}
+          onCartaChange={setVoiceCartaId}
           onRecommend={() => { setShowVoice(false); setShowRecommend(true) }}
           onWaiter={venue?.takeaway_only ? null : () => { setShowVoice(false); openWaiter() }}
           onClose={() => setShowVoice(false)}

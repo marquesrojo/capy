@@ -114,7 +114,8 @@ export default function MenuPage() {
       }
       setCategories(cats)
       setAllProducts(prods)
-      if (cats.length) setActiveCategory(cats[0].id)
+      // Sin categoría elegida se ve la carta entera, sección por sección: abrir
+      // en la primera escondía el resto detrás de un botón que nadie tocaba
       if (venueRes.data) {
         setHighDemand(venueRes.data.high_demand)
         setOrdersPaused(!!venueRes.data.orders_paused)
@@ -129,13 +130,12 @@ export default function MenuPage() {
     load()
   }, [venueId])
 
-  // Al cambiar de carta la categoría elegida puede haber quedado vacía
+  // Al cambiar de carta la categoría elegida puede haber quedado vacía: se
+  // vuelve a la carta entera en vez de dejar una sección sin nada
   useEffect(() => {
-    if (!categories.length) return
-    setActiveCategory(prev => {
-      const sigueSirviendo = prev && shownCategories.some(c => c.id === prev)
-      return sigueSirviendo ? prev : (shownCategories[0]?.id || null)
-    })
+    setActiveCategory(prev =>
+      prev && shownCategories.some(c => c.id === prev) ? prev : null
+    )
   }, [activeCartaId, categories.length])
 
   function handleRemoveFromMenu(product) {
@@ -325,15 +325,19 @@ export default function MenuPage() {
 
         {/* Search + Category filter — una carta de precio fijo no se recorre */}
         <div className={`items-center gap-2 ${activeCarta?.kind === 'fijo' ? 'hidden' : 'flex'}`}>
+          {/* Sólido y no translúcido: con la carta entera abierta este botón
+              pasa a ser la forma de recortarla, y antes se perdía en el header */}
           <button
             onClick={() => setShowCategorySheet(true)}
-            className="flex-shrink-0 flex items-center justify-center gap-1.5 h-9 w-[88px] rounded-xl text-[10px] font-bold leading-none"
-            style={{ backgroundColor: `${accentText}20`, color: accentText }}
+            className="flex-shrink-0 flex items-center justify-center gap-1.5 h-9 px-3 min-w-[96px] rounded-xl text-[11px] font-black leading-none shadow-sm"
+            style={{ backgroundColor: accentText, color: accentBg }}
           >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
               <line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="9" y1="18" x2="15" y2="18"/>
             </svg>
-            <span className="truncate">{(activeDietaryTag?.label || categories.find(c => c.id === activeCategory)?.name || 'Categoría').slice(0, 8)}</span>
+            <span className="truncate max-w-[72px]">
+              {activeDietaryTag?.label || categories.find(c => c.id === activeCategory)?.name || 'Categorías'}
+            </span>
           </button>
           <div className="relative flex-1">
             <input
@@ -417,13 +421,40 @@ export default function MenuPage() {
               <div className="border-t border-black/[0.06] mt-3 mb-1" />
             </div>
           )}
-          {visibleProducts.map(product => (
-            <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu} canOrder={!ordersPaused}
-              qty={items.find(i => i.product.id === product.id)?.quantity || 0}
-              accentBg={contentAccent} accentText={contentAccentText}
-              customerPrefs={customerDietaryPrefs} />
-          ))}
-          {visibleProducts.length === 0 && dailySpecials.length === 0 && paraVos.length === 0 && (
+          {/* Sin filtro, la carta entera con sus secciones. El botón de
+              categoría pasa a servir para saltar, no para poder ver. */}
+          {activeCategory ? (
+            visibleProducts.map(product => (
+              <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu} canOrder={!ordersPaused}
+                qty={items.find(i => i.product.id === product.id)?.quantity || 0}
+                accentBg={contentAccent} accentText={contentAccentText}
+                customerPrefs={customerDietaryPrefs} />
+            ))
+          ) : (
+            shownCategories.map(cat => {
+              const deLaCategoria = products
+                .filter(p => p.is_available && p.category_id === cat.id)
+                .sort((a, b) => (b.image_url ? 1 : 0) - (a.image_url ? 1 : 0))
+              if (deLaCategoria.length === 0) return null
+              return (
+                <div key={cat.id} className="mb-1">
+                  <div className="flex items-center gap-2 px-1 mb-2 mt-3">
+                    <span className="text-[11px] font-black uppercase tracking-wider" style={{ color: contentAccent }}>
+                      {cat.name}
+                    </span>
+                    <span className="flex-1 border-t border-black/[0.06]" />
+                  </div>
+                  {deLaCategoria.map(product => (
+                    <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu} canOrder={!ordersPaused}
+                      qty={items.find(i => i.product.id === product.id)?.quantity || 0}
+                      accentBg={contentAccent} accentText={contentAccentText}
+                      customerPrefs={customerDietaryPrefs} />
+                  ))}
+                </div>
+              )
+            })
+          )}
+          {activeCategory && visibleProducts.length === 0 && dailySpecials.length === 0 && paraVos.length === 0 && (
             <p className="text-smoke-500 text-sm text-center py-10">
               {activeDietaryTag ? `Sin productos con preferencia "${activeDietaryTag.label}".` : 'Sin productos en esta categoría.'}
             </p>
@@ -444,6 +475,16 @@ export default function MenuPage() {
               ><XIcon size={16} /></button>
             </div>
             <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={() => { setActiveCategory(null); setShowCategorySheet(false) }}
+                className="py-3 px-2 rounded-xl text-sm font-semibold text-center border-2 transition-all leading-tight"
+                style={!activeCategory
+                  ? { backgroundColor: contentAccent, borderColor: contentAccent, color: contentAccentText }
+                  : { backgroundColor: '#F8FAFB', borderColor: '#E8EEF4', color: '#1A2332' }
+                }
+              >
+                Toda la carta
+              </button>
               {shownCategories.map(cat => (
                 <button
                   key={cat.id}
