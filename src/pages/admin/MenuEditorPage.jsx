@@ -238,14 +238,19 @@ export default function MenuEditorPage() {
                 Armar una carta →
               </Link>
               <p className="text-smoke-400 text-xs leading-relaxed mt-3 pt-3 border-t border-carbon-700">
-                El botón de <span className="text-smoke-300">Salón y retiro</span> dice dónde se puede
+                El botón de <span className="text-smoke-300">Salón y llevar</span> dice dónde se puede
                 pedir cada plato, y se toca para cambiarlo.{' '}
                 <span className="text-amber-500 font-semibold">Solo salón</span> es lo que en la mesa
                 sale bien y para llevar no —lo que se enfría, lo que se arma delante del cliente, la
                 copa de vino—, y{' '}
-                <span className="text-sky-400 font-semibold">Solo retiro</span> lo que existe nada más
-                que para llevar, como una porción familiar. Cada uno desaparece del caso que no le
+                <span className="text-sky-400 font-semibold">Solo llevar</span> lo que existe nada más
+                que para eso, como una porción familiar. Cada uno desaparece del caso que no le
                 corresponde. Por defecto van los dos.
+                <br />
+                <span className="text-smoke-500">
+                  "Llevar" son los tres casos por igual: retiro en el local, retiro externo pidiendo
+                  desde afuera, y delivery.
+                </span>
               </p>
             </div>
 
@@ -982,11 +987,11 @@ Respondé ÚNICAMENTE con el término de búsqueda, sin texto extra.`
               salon: 'border-amber-500/50 text-amber-500',
               retiro: 'border-sky-500/50 text-sky-400',
             }
-            const rotulos = { ambos: 'Salón y retiro', salon: 'Solo salón', retiro: 'Solo retiro' }
+            const rotulos = { ambos: 'Salón y llevar', salon: 'Solo salón', retiro: 'Solo llevar' }
             const ayuda = {
               ambos: 'Se pide de las dos formas. Tocá para limitarlo.',
-              salon: 'Solo para comer acá: no aparece si el pedido es para retiro o delivery.',
-              retiro: 'Solo para llevar: no aparece si el pedido es para una mesa.',
+              salon: 'Solo para comer acá: no aparece si el pedido es para retiro, retiro externo o delivery.',
+              retiro: 'Solo para llevar —retiro, retiro externo o delivery—: no aparece si el pedido es para una mesa.',
             }
             return (
               <button
