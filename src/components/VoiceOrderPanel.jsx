@@ -176,19 +176,25 @@ export default function VoiceOrderPanel({
 
               {/* El recomendador vive acá adentro: es la otra forma de resolver
                   lo mismo —qué pido— y tener dos botones flotantes para eso
-                  partía la decisión en dos lugares de la pantalla */}
-              <div className="flex items-center gap-3 my-5">
-                <div className="h-px flex-1 bg-black/[0.08]" />
-                <span className="text-[#C0CBDA] text-[11px] font-semibold uppercase tracking-wider">o</span>
-                <div className="h-px flex-1 bg-black/[0.08]" />
-              </div>
-              <button
-                onClick={onRecommend}
-                className="w-full rounded-2xl py-4 flex items-center justify-center gap-2 font-bold text-sm active:scale-[0.98] transition-transform"
-                style={{ backgroundColor: accent, color: accentText }}
-              >
-                <span>✨</span> No sé qué pedir, recomendame
-              </button>
+                  partía la decisión en dos lugares de la pantalla.
+                  Desde la home no va: ahí el panel es el atajo para el que ya
+                  sabe qué quiere, y ponerse a recomendar lo desanda. */}
+              {onRecommend && (
+                <>
+                  <div className="flex items-center gap-3 my-5">
+                    <div className="h-px flex-1 bg-black/[0.08]" />
+                    <span className="text-[#C0CBDA] text-[11px] font-semibold uppercase tracking-wider">o</span>
+                    <div className="h-px flex-1 bg-black/[0.08]" />
+                  </div>
+                  <button
+                    onClick={onRecommend}
+                    className="w-full rounded-2xl py-4 flex items-center justify-center gap-2 font-bold text-sm active:scale-[0.98] transition-transform"
+                    style={{ backgroundColor: accent, color: accentText }}
+                  >
+                    <span>✨</span> No sé qué pedir, recomendame
+                  </button>
+                </>
+              )}
 
               {onWaiter && (
                 <button

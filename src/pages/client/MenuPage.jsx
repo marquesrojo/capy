@@ -9,6 +9,7 @@ import { useClientBase, useVenueOptional } from '../../hooks/useVenue'
 import { PinIcon, SunIcon, ShoppingBagIcon, ClockIcon, XIcon, DIETARY_TAGS } from '../../components/Icons'
 import EmailLoginModal from '../../components/EmailLoginModal'
 import FixedMenuBuilder from '../../components/FixedMenuBuilder'
+import { isStandaloneApp } from '../../lib/standalone'
 
 export default function MenuPage() {
   const [categories, setCategories] = useState([])
@@ -33,7 +34,6 @@ export default function MenuPage() {
   const { customer, isAnonymous, userEmail, forgetCustomer, loginWithGoogle } = useCustomer()
   const [showEmailLogin, setShowEmailLogin] = useState(false)
   // En la web app instalada el OAuth de Google no completa: login por código de email
-  const isStandaloneApp = window.matchMedia('(display-mode: standalone)').matches || !!window.navigator.standalone
   const navigate = useNavigate()
   const base = useClientBase()
   const venueCtx = useVenueOptional()
@@ -165,9 +165,18 @@ export default function MenuPage() {
 
   const activeCarta = cartas.find(c => c.id === activeCartaId) || null
 
+  // Cada plato desaparece del caso que no le corresponde: lo de solo salón
+  // cuando el pedido se lleva, lo de solo retiro cuando es para una mesa
+  const seLoLleva = ['retiro', 'retiro_externo', 'delivery'].includes(location?.type)
+  const paraEsteConsumo = p => {
+    const modo = p.service_mode || 'ambos'
+    if (modo === 'ambos') return true
+    return seLoLleva ? modo === 'retiro' : modo === 'salon'
+  }
+
   // Una carta libre es la misma carta recortada a sus productos. Una de precio
   // fijo no se recorre: se arma por pasos, y ese caso se dibuja aparte.
-  const products = activeCarta?.kind === 'libre'
+  const products = (activeCarta?.kind === 'libre'
     ? (() => {
         const ids = new Set((activeCarta.venue_menu_products || []).map(p => p.product_id))
         return allProducts.filter(p => ids.has(p.id))
@@ -175,6 +184,7 @@ export default function MenuPage() {
     // Los platos que solo existen dentro de una carta no tienen precio propio:
     // sueltos aparecerían en $0
     : allProducts.filter(p => p.in_main_menu !== false)
+  ).filter(paraEsteConsumo)
 
   // En una carta recortada, una categoría sin productos es una pestaña vacía
   const shownCategories = activeCarta?.kind === 'libre'
@@ -277,7 +287,7 @@ export default function MenuPage() {
           </div>
           {isAnonymous ? (
             <button
-              onClick={() => { if (isStandaloneApp) { setShowEmailLogin(true); return } loginWithGoogle(`${base}/carta`) }}
+              onClick={() => { if (isStandaloneApp()) { setShowEmailLogin(true); return } loginWithGoogle(`${base}/carta`) }}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[11px] font-semibold shrink-0"
               style={{ borderColor: `${accentText}40`, color: accentText, backgroundColor: `${accentText}15` }}
             >
@@ -368,6 +378,7 @@ export default function MenuPage() {
             accent={contentAccent}
             accentText={contentAccentText}
             disabled={ordersPaused}
+            forPickup={seLoLleva}
             onAdd={selections => addItem(
               { id: `menu:${activeCarta.id}`, name: activeCarta.name, price: Number(activeCarta.price) || 0, is_menu: true },
               1,

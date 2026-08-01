@@ -5,6 +5,8 @@ import { useCustomer } from '../../hooks/useCustomer'
 import { useClientBase } from '../../hooks/useVenue'
 import { accentColor, formatPrice } from '../../lib/utils'
 import { PhoneIcon } from '../../components/Icons'
+import EmailLoginModal from '../../components/EmailLoginModal'
+import { isStandaloneApp } from '../../lib/standalone'
 
 function GoogleIcon() {
   return (
@@ -27,6 +29,7 @@ export default function OrderConfirmedPage() {
   const [accent, setAccent] = useState('#1A3A6B')
   const [loading, setLoading] = useState(true)
   const [googleError, setGoogleError] = useState('')
+  const [showEmailLogin, setShowEmailLogin] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -150,13 +153,19 @@ export default function OrderConfirmedPage() {
               <p className="text-smoke-300 text-sm font-semibold mb-0.5">Guardá tu historial</p>
               <p className="text-smoke-500 text-xs mb-3">Con Google podés ver tus pedidos desde cualquier dispositivo.</p>
               <button
-                onClick={async () => { const r = await signInWithGoogle(`${base}/pedidos` || '/pedidos'); if (r?.error) setGoogleError(r.error.message) }}
+                onClick={async () => { if (isStandaloneApp()) { setShowEmailLogin(true); return } const r = await signInWithGoogle(`${base}/pedidos` || '/pedidos'); if (r?.error) setGoogleError(r.error.message) }}
                 className="flex items-center gap-2.5 bg-white text-[#1A2332] font-semibold text-sm px-4 py-2.5 rounded-xl"
               >
                 <GoogleIcon />
                 Continuar con Google
               </button>
               {googleError && <p className="text-red-500 text-xs mt-2">{googleError}</p>}
+              {showEmailLogin && (
+                <EmailLoginModal
+                  onClose={() => setShowEmailLogin(false)}
+                  onSuccess={() => window.location.reload()}
+                />
+              )}
             </div>
           )}
         </div>
@@ -210,13 +219,19 @@ export default function OrderConfirmedPage() {
             <p className="text-smoke-300 text-sm font-semibold mb-0.5">Guardá tu historial</p>
             <p className="text-smoke-500 text-xs mb-3">Con Google podés ver tus pedidos desde cualquier dispositivo.</p>
             <button
-              onClick={async () => { const r = await signInWithGoogle(`${base}/pedidos` || '/pedidos'); if (r?.error) setGoogleError(r.error.message) }}
+              onClick={async () => { if (isStandaloneApp()) { setShowEmailLogin(true); return } const r = await signInWithGoogle(`${base}/pedidos` || '/pedidos'); if (r?.error) setGoogleError(r.error.message) }}
               className="flex items-center gap-2.5 bg-white text-[#1A2332] font-semibold text-sm px-4 py-2.5 rounded-xl"
             >
               <GoogleIcon />
               Continuar con Google
             </button>
             {googleError && <p className="text-red-500 text-xs mt-2">{googleError}</p>}
+              {showEmailLogin && (
+                <EmailLoginModal
+                  onClose={() => setShowEmailLogin(false)}
+                  onSuccess={() => window.location.reload()}
+                />
+              )}
           </div>
         )}
       </div>

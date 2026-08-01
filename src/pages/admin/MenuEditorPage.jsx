@@ -237,6 +237,16 @@ export default function MenuEditorPage() {
               <Link to="/admin/cartas" className="text-ember-500 text-xs underline mt-1.5 inline-block">
                 Armar una carta →
               </Link>
+              <p className="text-smoke-400 text-xs leading-relaxed mt-3 pt-3 border-t border-carbon-700">
+                El botón de <span className="text-smoke-300">Salón y retiro</span> dice dónde se puede
+                pedir cada plato, y se toca para cambiarlo.{' '}
+                <span className="text-amber-500 font-semibold">Solo salón</span> es lo que en la mesa
+                sale bien y para llevar no —lo que se enfría, lo que se arma delante del cliente, la
+                copa de vino—, y{' '}
+                <span className="text-sky-400 font-semibold">Solo retiro</span> lo que existe nada más
+                que para llevar, como una porción familiar. Cada uno desaparece del caso que no le
+                corresponde. Por defecto van los dos.
+              </p>
             </div>
 
             {/* Buscar en la carta: con cien productos repartidos en veinte
@@ -716,6 +726,16 @@ function ProductRow({ product, venueId, categories, allProducts = [], onToggle, 
     onSave({ ...product, is_daily_special: next })
   }
 
+  // El problema va para los dos lados: lo que solo sale bien en el salón y lo
+  // que existe solo para llevar. Un botón que cicla los tres estados.
+  async function cycleServiceMode() {
+    const orden = ['ambos', 'salon', 'retiro']
+    const actual = product.service_mode || 'ambos'
+    const next = orden[(orden.indexOf(actual) + 1) % orden.length]
+    await supabaseStaff.from('products').update({ service_mode: next }).eq('id', product.id)
+    onSave({ ...product, service_mode: next })
+  }
+
   // Hay platos que solo existen dentro de una carta —el budín de pan del menú
   // ejecutivo— y no tienen precio propio: sueltos aparecerían en $0
   async function toggleMainMenu() {
@@ -955,6 +975,29 @@ Respondé ÚNICAMENTE con el término de búsqueda, sin texto extra.`
           >
             <StarIcon size={18} />
           </button>
+          {(() => {
+            const modo = product.service_mode || 'ambos'
+            const estilos = {
+              ambos: 'border-carbon-600 text-smoke-600 opacity-40 hover:opacity-80',
+              salon: 'border-amber-500/50 text-amber-500',
+              retiro: 'border-sky-500/50 text-sky-400',
+            }
+            const rotulos = { ambos: 'Salón y retiro', salon: 'Solo salón', retiro: 'Solo retiro' }
+            const ayuda = {
+              ambos: 'Se pide de las dos formas. Tocá para limitarlo.',
+              salon: 'Solo para comer acá: no aparece si el pedido es para retiro o delivery.',
+              retiro: 'Solo para llevar: no aparece si el pedido es para una mesa.',
+            }
+            return (
+              <button
+                onClick={cycleServiceMode}
+                title={ayuda[modo]}
+                className={`text-[10px] font-semibold px-2 py-1 rounded-full border whitespace-nowrap ${estilos[modo]}`}
+              >
+                {rotulos[modo]}
+              </button>
+            )
+          })()}
           <button
             onClick={toggleMainMenu}
             title={product.in_main_menu === false
