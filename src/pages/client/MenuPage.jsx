@@ -171,10 +171,12 @@ export default function MenuPage() {
 
   const activeCarta = cartas.find(c => c.id === activeCartaId) || null
 
-  // ?ver=retiro: entró a mirar qué se puede llevar sin haber elegido todavía
-  // dónde lo retira. Es solo una forma de ver la carta, no arranca ningún
-  // pedido: cuando quiera confirmar, el checkout le va a pedir la ubicación.
-  const mirandoParaLlevar = searchParams.get('ver') === 'retiro'
+  // ?ver=1: vino a mirar, no a pedir. La carta se muestra sin los botones de
+  // agregar y con una salida abajo para pasar a pedir sin volver al principio.
+  // ?modo=retiro recorta a lo que se puede llevar, sin pedirle todavía dónde
+  // lo retira.
+  const soloVer = searchParams.get('ver') === '1'
+  const mirandoParaLlevar = searchParams.get('modo') === 'retiro'
 
   // Cada plato desaparece del caso que no le corresponde: lo de solo salón
   // cuando el pedido se lleva, lo de solo retiro cuando es para una mesa
@@ -237,14 +239,16 @@ export default function MenuPage() {
     <div className="h-screen flex flex-col bg-[#F0F4F8] overflow-hidden">
       {/* Vino a mirar qué se puede llevar. Se avisa porque está viendo una
           carta recortada y sin decirlo parecería que al local le faltan platos */}
-      {mirandoParaLlevar && !location && (
+      {soloVer && (
         <div className="flex-shrink-0 bg-[#1A2332] px-4 py-2 flex items-center justify-between gap-3">
-          <p className="text-white/80 text-xs font-semibold">Solo lo que se puede llevar</p>
+          <p className="text-white/80 text-xs font-semibold">
+            {mirandoParaLlevar ? 'Mirando lo que se puede llevar' : 'Estás mirando la carta'}
+          </p>
           <button
-            onClick={() => navigate(`${base}/carta`, { replace: true })}
+            onClick={() => navigate(base || '/identificacion', { replace: true })}
             className="text-white text-xs font-bold underline flex-shrink-0"
           >
-            Ver toda la carta
+            Volver
           </button>
         </div>
       )}
@@ -403,7 +407,8 @@ export default function MenuPage() {
             products={allProducts}
             accent={contentAccent}
             accentText={contentAccentText}
-            disabled={ordersPaused}
+            disabled={ordersPaused || soloVer}
+            readOnly={soloVer}
             forPickup={seLoLleva}
             onAdd={selections => addItem(
               { id: `menu:${activeCarta.id}`, name: activeCarta.name, price: Number(activeCarta.price) || 0, is_menu: true },
@@ -419,7 +424,7 @@ export default function MenuPage() {
           {searchResults.length === 0 ? (
             <p className="text-smoke-500 text-sm text-center py-10">No encontramos "{search}" en la carta.</p>
           ) : searchResults.map(product => (
-            <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu} canOrder={!ordersPaused}
+            <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu} canOrder={!ordersPaused && !soloVer}
               qty={items.find(i => i.product.id === product.id)?.quantity || 0}
               accentBg={contentAccent} accentText={contentAccentText}
               customerPrefs={customerDietaryPrefs} />
@@ -434,7 +439,7 @@ export default function MenuPage() {
                 <span className="text-[11px] font-black uppercase tracking-wider flex items-center gap-1" style={{ color: contentAccent }}><SunIcon size={13} /> Plato del día</span>
               </div>
               {dailySpecials.map(product => (
-                <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu} canOrder={!ordersPaused}
+                <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu} canOrder={!ordersPaused && !soloVer}
                   qty={items.find(i => i.product.id === product.id)?.quantity || 0}
                   accentBg={contentAccent} accentText={contentAccentText} isDaily
                   customerPrefs={customerDietaryPrefs} />
@@ -450,7 +455,7 @@ export default function MenuPage() {
                 </span>
               </div>
               {paraVos.map(product => (
-                <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu} canOrder={!ordersPaused}
+                <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu} canOrder={!ordersPaused && !soloVer}
                   qty={items.find(i => i.product.id === product.id)?.quantity || 0}
                   accentBg={contentAccent} accentText={contentAccentText}
                   customerPrefs={customerDietaryPrefs} />
@@ -462,7 +467,7 @@ export default function MenuPage() {
               categoría pasa a servir para saltar, no para poder ver. */}
           {activeCategory ? (
             visibleProducts.map(product => (
-              <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu} canOrder={!ordersPaused}
+              <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu} canOrder={!ordersPaused && !soloVer}
                 qty={items.find(i => i.product.id === product.id)?.quantity || 0}
                 accentBg={contentAccent} accentText={contentAccentText}
                 customerPrefs={customerDietaryPrefs} />
@@ -482,7 +487,7 @@ export default function MenuPage() {
                     <span className="flex-1 border-t border-black/[0.06]" />
                   </div>
                   {deLaCategoria.map(product => (
-                    <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu} canOrder={!ordersPaused}
+                    <ProductCard key={product.id} product={product} onAdd={addItem} onRemove={handleRemoveFromMenu} canOrder={!ordersPaused && !soloVer}
                       qty={items.find(i => i.product.id === product.id)?.quantity || 0}
                       accentBg={contentAccent} accentText={contentAccentText}
                       customerPrefs={customerDietaryPrefs} />
@@ -570,7 +575,7 @@ export default function MenuPage() {
         </div>
       )}
 
-      {itemCount > 0 && !ordersPaused && (
+      {itemCount > 0 && !ordersPaused && !soloVer && (
         <button
           onClick={() => navigate(location ? `${base}/pago` : `${base}/ubicacion`)}
           className="fixed left-4 right-4 rounded-2xl py-4 px-5 flex items-center justify-between shadow-lg font-semibold z-20 active:opacity-90"
@@ -578,6 +583,23 @@ export default function MenuPage() {
         >
           <span>{itemCount} {itemCount === 1 ? 'item' : 'items'}</span>
           <span>{formatPrice(subtotal)} · {location ? 'Confirmar →' : 'Continuar →'}</span>
+        </button>
+      )}
+
+      {/* Mirar no puede ser un callejón: el que encontró lo que quería pasa a
+          pedir sobre la misma carta, sin volver al principio. Va arriba de la
+          barra, que sigue estando para todo lo demás. */}
+      {soloVer && !ordersPaused && (
+        <button
+          onClick={() => {
+            const params = new URLSearchParams(searchParams)
+            params.delete('ver')
+            navigate(`${base}/carta${params.toString() ? `?${params}` : ''}`, { replace: true })
+          }}
+          className="fixed left-4 right-4 rounded-2xl py-4 px-5 text-center shadow-lg font-black z-20 active:opacity-90"
+          style={{ backgroundColor: contentAccent, color: contentAccentText, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 5.75rem)' }}
+        >
+          Pedir de esta carta
         </button>
       )}
 

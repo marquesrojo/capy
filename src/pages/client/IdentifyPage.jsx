@@ -1425,7 +1425,7 @@ export default function IdentifyPage() {
 
             <div className="space-y-2 mt-4">
               <button
-                onClick={() => { setShowCartasSheet(false); navigate(cartaPath) }}
+                onClick={() => { setShowCartasSheet(false); navigate(`${cartaPath}${cartaPath.includes('?') ? '&' : '?'}ver=1`) }}
                 className="w-full text-left px-4 py-3.5 rounded-2xl border-2 border-[#E4EAF1] active:scale-[0.99] transition-transform"
               >
                 <p className="font-black text-sm text-[#1A2332]">Toda la carta</p>
@@ -1434,7 +1434,7 @@ export default function IdentifyPage() {
 
               {retiro.length > 0 && (
                 <button
-                  onClick={() => { setShowCartasSheet(false); navigate(`${cartaPath}${cartaPath.includes('?') ? '&' : '?'}ver=retiro`) }}
+                  onClick={() => { setShowCartasSheet(false); navigate(`${cartaPath}${cartaPath.includes('?') ? '&' : '?'}ver=1&modo=retiro`) }}
                   className="w-full text-left px-4 py-3.5 rounded-2xl border-2 border-[#E4EAF1] active:scale-[0.99] transition-transform"
                 >
                   <p className="font-black text-sm text-[#1A2332]">Para llevar</p>
@@ -1445,7 +1445,7 @@ export default function IdentifyPage() {
               {cartas.map(c => (
                 <button
                   key={c.id}
-                  onClick={() => { setShowCartasSheet(false); navigate(`${cartaPath}${cartaPath.includes('?') ? '&' : '?'}carta=${c.id}`) }}
+                  onClick={() => { setShowCartasSheet(false); navigate(`${cartaPath}${cartaPath.includes('?') ? '&' : '?'}ver=1&carta=${c.id}`) }}
                   className="w-full text-left px-4 py-3.5 rounded-2xl border-2 active:scale-[0.99] transition-transform"
                   style={{ borderColor: `${selfColor}40`, backgroundColor: `${selfColor}08` }}
                 >
@@ -1471,7 +1471,7 @@ export default function IdentifyPage() {
           confirmLabel="Ir a pagar"
           cartaProductIds={pickupProductIds}
           scopeNote="Estás pidiendo para retirar: buscamos solo entre los platos que se pueden llevar"
-          onScopeBrowse={() => { setShowVoice(false); navigate(`${cartaPath}${cartaPath.includes('?') ? '&' : '?'}ver=retiro`) }}
+          onScopeBrowse={() => { setShowVoice(false); navigate(`${cartaPath}${cartaPath.includes('?') ? '&' : '?'}ver=1&modo=retiro`) }}
           pickupZones={retiro}
           onAddItems={(voiceItems, pickupZone) => {
             if (!pickupZone) return
