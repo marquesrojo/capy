@@ -21,6 +21,7 @@ export default function CartasPage() {
   const { venueId } = useAuth()
   const [menus, setMenus] = useState([])
   const [products, setProducts] = useState([])
+  const [groups, setGroups] = useState([])
   const [loading, setLoading] = useState(true)
   const [openId, setOpenId] = useState(null)
   const [error, setError] = useState('')
@@ -33,7 +34,7 @@ export default function CartasPage() {
   useEffect(() => { if (venueId) load() }, [venueId])
 
   async function load() {
-    const [menusRes, prodRes] = await Promise.all([
+    const [menusRes, prodRes, groupsRes] = await Promise.all([
       supabaseStaff
         .from('venue_menus')
         .select('*, venue_menu_steps(*, venue_menu_step_options(*)), venue_menu_products(product_id)')
@@ -45,7 +46,13 @@ export default function CartasPage() {
         .select('id, name, price, category_id, is_available, in_main_menu')
         .eq('venue_id', venueId)
         .order('sort_order'),
+      supabaseStaff
+        .from('customer_groups')
+        .select('id, name')
+        .eq('venue_id', venueId)
+        .order('created_at'),
     ])
+    setGroups(groupsRes.data || [])
     const list = (menusRes.data || []).map(m => ({
       ...m,
       venue_menu_steps: (m.venue_menu_steps || []).sort((a, b) => a.sort_order - b.sort_order),
@@ -178,6 +185,7 @@ export default function CartasPage() {
             key={menu.id}
             menu={menu}
             products={products}
+            groups={groups}
             open={openId === menu.id}
             onToggleOpen={() => setOpenId(openId === menu.id ? null : menu.id)}
             onToggleActive={() => toggleActive(menu)}
@@ -190,7 +198,7 @@ export default function CartasPage() {
   )
 }
 
-function MenuCard({ menu, products, open, onToggleOpen, onToggleActive, onDelete, onChanged }) {
+function MenuCard({ menu, products, groups, open, onToggleOpen, onToggleActive, onDelete, onChanged }) {
   const inMenu = new Set((menu.venue_menu_products || []).map(p => p.product_id))
   const stepCount = (menu.venue_menu_steps || []).length
   const optionCount = (menu.venue_menu_steps || []).reduce(
@@ -224,8 +232,38 @@ function MenuCard({ menu, products, open, onToggleOpen, onToggleActive, onDelete
       </div>
 
       <p className="text-smoke-600 text-[11px]">
-        {menu.is_active ? 'Visible para los clientes' : 'Apagada: no la ve nadie'}
+        {!menu.is_active
+          ? 'Apagada: no la ve nadie'
+          : menu.audience_group_id
+            ? `Solo la ve ${groups.find(g => g.id === menu.audience_group_id)?.name || 'un grupo borrado'}`
+            : 'Visible para todos los clientes'}
       </p>
+
+      {/* Quién la ve. Fuera del grupo la carta no existe: no aparece bloqueada
+          ni en gris, directamente no llega al navegador. */}
+      <div>
+        <label className="text-smoke-500 text-xs block mb-1">Quién la ve</label>
+        <select
+          value={menu.audience_group_id || ''}
+          onChange={async e => {
+            const v = e.target.value || null
+            await supabaseStaff.from('venue_menus').update({ audience_group_id: v }).eq('id', menu.id)
+            onChanged()
+          }}
+          className="input"
+        >
+          <option value="">Todos los clientes</option>
+          {groups.map(g => (
+            <option key={g.id} value={g.id}>Solo {g.name}</option>
+          ))}
+        </select>
+        {groups.length === 0 && (
+          <p className="text-smoke-600 text-[11px] mt-1">
+            Para reservarla a un grupo, creá uno primero en{' '}
+            <Link to="/admin/grupos" className="text-ember-500 underline">Grupos de clientes</Link>.
+          </p>
+        )}
+      </div>
 
       <div className="flex gap-3">
         <button onClick={onToggleOpen} className="text-ember-400 text-xs font-semibold underline">
