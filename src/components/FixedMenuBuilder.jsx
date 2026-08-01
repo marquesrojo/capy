@@ -7,7 +7,7 @@ import { formatPrice } from '../lib/utils'
 //
 // Las opciones son productos reales de la carta, así que lo que la cocina marcó
 // agotado no se puede elegir acá tampoco.
-export default function FixedMenuBuilder({ menu, products, accent = '#1A3A6B', accentText = '#FFFFFF', onAdd, disabled, forPickup = false }) {
+export default function FixedMenuBuilder({ menu, products, accent = '#1A3A6B', accentText = '#FFFFFF', onAdd, disabled, readOnly = false, forPickup = false }) {
   // { [stepId]: [productId] }
   const [picked, setPicked] = useState({})
   const [added, setAdded] = useState(false)
@@ -138,7 +138,9 @@ export default function FixedMenuBuilder({ menu, products, accent = '#1A3A6B', a
           className="w-full font-black py-4 rounded-2xl text-sm disabled:opacity-40 shadow-lg transition-transform active:scale-[0.99]"
           style={{ backgroundColor: accent, color: accentText }}
         >
-          {disabled
+          {readOnly
+            ? 'Estás mirando la carta'
+            : disabled
             ? 'Pedidos suspendidos'
             : completo
               ? `Agregar al pedido — ${formatPrice(menu.price || 0)}`
