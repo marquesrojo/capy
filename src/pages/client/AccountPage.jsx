@@ -337,10 +337,17 @@ export default function AccountPage() {
                 </div>
 
                 <div className="space-y-2.5">
-                  {/* Nombre */}
-                  <div className="flex items-center gap-3">
-                    <span className="text-smoke-500 text-xs w-20 shrink-0">Nombre</span>
-                    <span className="text-smoke-200 text-sm font-medium">{customer.full_name}</span>
+                  {/* Nombre. Con cuenta va el mail al lado: el nombre solo no
+                      alcanza para saber en qué cuenta estás parado, y menos si
+                      quedó uno escrito de apuro en un pedido anterior. */}
+                  <div className="flex items-start gap-3">
+                    <span className="text-smoke-500 text-xs w-20 shrink-0 pt-0.5">Nombre</span>
+                    <span className="min-w-0">
+                      <span className="text-smoke-200 text-sm font-medium block">{customer.full_name}</span>
+                      {userEmail && (
+                        <span className="text-smoke-600 text-[11px] font-mono block truncate">{userEmail}</span>
+                      )}
+                    </span>
                   </div>
                   {/* Usuario */}
                   <div className="flex items-center gap-3">

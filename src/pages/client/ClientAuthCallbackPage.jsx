@@ -82,18 +82,38 @@ export default function ClientAuthCallbackPage() {
           userId = data?.session?.user?.id
         }
 
-        // ── Redirect ─────────────────────────────────────────────────────
-        // If the authenticated user has no customers record (first-time Google
-        // user, or staff account used as customer), send them to the venue home
-        // so they can register name/whatsapp when they place their first order.
+        // ── Nombre ───────────────────────────────────────────────────────
+        // El nombre que alguien escribe pidiendo como invitado es de apuro, y
+        // cuando entra con su cuenta corresponde que valga el de la cuenta. Lo
+        // que ya editó en Mi cuenta no se toca: eso lo eligió.
         let destination
         if (userId) {
+          const { data: { user } } = await supabaseCustomer.auth.getUser()
+          const nombreDelProveedor =
+            user?.user_metadata?.full_name || user?.user_metadata?.name || null
+
           const { data: existing } = await supabaseCustomer
             .from('customers')
-            .select('id')
+            .select('id, full_name, name_set_by_user')
             .eq('id', userId)
             .maybeSingle()
-          if (!existing) {
+
+          if (existing) {
+            if (nombreDelProveedor && !existing.name_set_by_user && existing.full_name !== nombreDelProveedor) {
+              await supabaseCustomer
+                .from('customers')
+                .update({ full_name: nombreDelProveedor })
+                .eq('id', userId)
+            }
+          } else if (nombreDelProveedor) {
+            // Ya sabemos cómo se llama: no hace falta volver a preguntárselo en
+            // medio del primer pedido
+            await supabaseCustomer
+              .from('customers')
+              .insert({ id: userId, full_name: nombreDelProveedor, whatsapp: null })
+          } else {
+            // Sin nombre del proveedor (login por código de email) se lo pedimos
+            // al pedir, así que va a la home del local
             const fallback = localStorage.getItem('capy-customer-return-to') || '/identificacion'
             localStorage.removeItem('capy-customer-return-to')
             destination = fallback.replace(/\/(carta|pedidos|pedido\/.*)$/, '') || '/identificacion'
