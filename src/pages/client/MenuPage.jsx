@@ -9,6 +9,7 @@ import { useClientBase, useVenueOptional } from '../../hooks/useVenue'
 import { PinIcon, SunIcon, ShoppingBagIcon, ClockIcon, XIcon, DIETARY_TAGS } from '../../components/Icons'
 import EmailLoginModal from '../../components/EmailLoginModal'
 import FixedMenuBuilder from '../../components/FixedMenuBuilder'
+import { isStandaloneApp } from '../../lib/standalone'
 
 export default function MenuPage() {
   const [categories, setCategories] = useState([])
@@ -33,7 +34,6 @@ export default function MenuPage() {
   const { customer, isAnonymous, userEmail, forgetCustomer, loginWithGoogle } = useCustomer()
   const [showEmailLogin, setShowEmailLogin] = useState(false)
   // En la web app instalada el OAuth de Google no completa: login por código de email
-  const isStandaloneApp = window.matchMedia('(display-mode: standalone)').matches || !!window.navigator.standalone
   const navigate = useNavigate()
   const base = useClientBase()
   const venueCtx = useVenueOptional()
@@ -277,7 +277,7 @@ export default function MenuPage() {
           </div>
           {isAnonymous ? (
             <button
-              onClick={() => { if (isStandaloneApp) { setShowEmailLogin(true); return } loginWithGoogle(`${base}/carta`) }}
+              onClick={() => { if (isStandaloneApp()) { setShowEmailLogin(true); return } loginWithGoogle(`${base}/carta`) }}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[11px] font-semibold shrink-0"
               style={{ borderColor: `${accentText}40`, color: accentText, backgroundColor: `${accentText}15` }}
             >

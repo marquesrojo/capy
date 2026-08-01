@@ -10,6 +10,7 @@ import RecommendModal from '../../components/RecommendModal'
 import InstallHint from '../../components/InstallHint'
 import ClientFloorMap from '../../components/ClientFloorMap'
 import EmailLoginModal from '../../components/EmailLoginModal'
+import { isStandaloneApp } from '../../lib/standalone'
 
 // Extrae el número de un nombre como "Mesa 4" → "4", o devuelve las primeras 2 letras
 function zoneShort(name) {
@@ -70,11 +71,10 @@ export default function IdentifyPage() {
   const [suggestionState, setSuggestionState] = useState('idle') // idle | sending | sent | error
   // En la web app instalada el OAuth de Google no completa el flujo
   // (limitación de las PWA): se usa login por código de email
-  const isStandaloneApp = window.matchMedia('(display-mode: standalone)').matches || !!window.navigator.standalone
 
   async function handleLoginClick() {
     try {
-      if (isStandaloneApp) { setShowEmailLogin(true); return }
+      if (isStandaloneApp()) { setShowEmailLogin(true); return }
       const r = await loginWithGoogle(`${base}/carta`)
       if (r?.error) setGoogleError(r.error.message)
     } catch (e) {

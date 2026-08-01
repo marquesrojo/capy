@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { supabaseCustomer } from '../../lib/supabase'
 import { useVenueOptional, useClientBase } from '../../hooks/useVenue'
 import { useCustomer } from '../../hooks/useCustomer'
+import EmailLoginModal from '../../components/EmailLoginModal'
+import { isStandaloneApp } from '../../lib/standalone'
 
 const SHAPE_LABELS = { cuadrada: 'Cuadrada', redonda: 'Redonda', rectangular: 'Rectangular', barra: 'Barra' }
 const DAYS_ES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
@@ -23,6 +25,7 @@ export default function ReservationBookingPage() {
   const selfColor = venue?.header_bg_color || '#1A3A6B'
   const { customer, isAnonymous, userEmail, loginWithGoogle } = useCustomer()
   const [loginError, setLoginError] = useState('')
+  const [showEmailLogin, setShowEmailLogin] = useState(false)
 
   const [loading, setLoading] = useState(true)
   const [settings, setSettings] = useState(null)
@@ -248,6 +251,7 @@ export default function ReservationBookingPage() {
           </p>
           <button
             onClick={async () => {
+              if (isStandaloneApp()) { setShowEmailLogin(true); return }
               const r = await loginWithGoogle(`${base}/reservar`)
               if (r?.error) setLoginError(r.error.message)
             }}
@@ -587,6 +591,13 @@ export default function ReservationBookingPage() {
             </button>
           </>
         )}
+
+      {showEmailLogin && (
+        <EmailLoginModal
+          onClose={() => setShowEmailLogin(false)}
+          onSuccess={() => window.location.reload()}
+        />
+      )}
 
       </div>
     </div>

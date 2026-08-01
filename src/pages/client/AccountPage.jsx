@@ -5,6 +5,8 @@ import { useClientBase, useVenueOptional } from '../../hooks/useVenue'
 import { useCart } from '../../hooks/useCart'
 import { supabaseCustomer } from '../../lib/supabase'
 import BottomNav from '../../components/BottomNav'
+import EmailLoginModal from '../../components/EmailLoginModal'
+import { isStandaloneApp } from '../../lib/standalone'
 import { MedalIcon, RankIcon, RANK_COLORS, DEFAULT_RANKS, DIETARY_TAGS } from '../../components/Icons'
 
 const CONDICIONES_IVA = ['Consumidor Final', 'Responsable Inscripto', 'Monotributista', 'Exento']
@@ -37,6 +39,7 @@ export default function AccountPage() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [googleError, setGoogleError] = useState('')
+  const [showEmailLogin, setShowEmailLogin] = useState(false)
 
   // Top 3
   const [top3, setTop3] = useState([])
@@ -377,16 +380,24 @@ export default function AccountPage() {
 
                 {isAnonymous ? (
                   <div className="border-t border-carbon-700 pt-3">
-                    <p className="text-smoke-500 text-xs mb-2">Vinculá Google para acceder desde cualquier dispositivo</p>
+                    <p className="text-smoke-500 text-xs mb-2">
+                      {isStandaloneApp()
+                        ? 'Entrá con tu email para acceder desde cualquier dispositivo'
+                        : 'Vinculá Google para acceder desde cualquier dispositivo'}
+                    </p>
                     <button
                       onClick={async () => {
+                        // Adentro de la app instalada el OAuth de Google no
+                        // completa: se va al navegador, la sesión queda ahí y
+                        // deja abierta la pestaña del selector de cuentas
+                        if (isStandaloneApp()) { setShowEmailLogin(true); return }
                         const r = await signInWithGoogle(`${base}/cuenta`)
                         if (r?.error) setGoogleError(r.error.message)
                       }}
                       className="flex items-center gap-2.5 bg-white text-[#1A2332] font-semibold text-sm px-4 py-2.5 rounded-xl"
                     >
-                      <GoogleIcon />
-                      Vincular Google
+                      {isStandaloneApp() ? null : <GoogleIcon />}
+                      {isStandaloneApp() ? 'Entrar con mi email' : 'Vincular Google'}
                     </button>
                     {googleError && <p className="text-red-500 text-xs mt-2">{googleError}</p>}
                   </div>
@@ -681,6 +692,13 @@ export default function AccountPage() {
           </div>
         )}
       </main>
+
+      {showEmailLogin && (
+        <EmailLoginModal
+          onClose={() => setShowEmailLogin(false)}
+          onSuccess={() => window.location.reload()}
+        />
+      )}
 
       <BottomNav />
     </div>
