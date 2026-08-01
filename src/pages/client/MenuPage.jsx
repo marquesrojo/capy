@@ -165,9 +165,13 @@ export default function MenuPage() {
 
   const activeCarta = cartas.find(c => c.id === activeCartaId) || null
 
+  // Lo que solo sale bien en el salón no se ofrece cuando el pedido se lleva
+  const seLoLleva = ['retiro', 'retiro_externo', 'delivery'].includes(location?.type)
+  const paraEsteConsumo = p => !seLoLleva || p.available_for_pickup !== false
+
   // Una carta libre es la misma carta recortada a sus productos. Una de precio
   // fijo no se recorre: se arma por pasos, y ese caso se dibuja aparte.
-  const products = activeCarta?.kind === 'libre'
+  const products = (activeCarta?.kind === 'libre'
     ? (() => {
         const ids = new Set((activeCarta.venue_menu_products || []).map(p => p.product_id))
         return allProducts.filter(p => ids.has(p.id))
@@ -175,6 +179,7 @@ export default function MenuPage() {
     // Los platos que solo existen dentro de una carta no tienen precio propio:
     // sueltos aparecerían en $0
     : allProducts.filter(p => p.in_main_menu !== false)
+  ).filter(paraEsteConsumo)
 
   // En una carta recortada, una categoría sin productos es una pestaña vacía
   const shownCategories = activeCarta?.kind === 'libre'
@@ -368,6 +373,7 @@ export default function MenuPage() {
             accent={contentAccent}
             accentText={contentAccentText}
             disabled={ordersPaused}
+            forPickup={seLoLleva}
             onAdd={selections => addItem(
               { id: `menu:${activeCarta.id}`, name: activeCarta.name, price: Number(activeCarta.price) || 0, is_menu: true },
               1,

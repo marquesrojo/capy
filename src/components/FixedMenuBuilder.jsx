@@ -7,7 +7,7 @@ import { formatPrice } from '../lib/utils'
 //
 // Las opciones son productos reales de la carta, así que lo que la cocina marcó
 // agotado no se puede elegir acá tampoco.
-export default function FixedMenuBuilder({ menu, products, accent = '#1A3A6B', accentText = '#FFFFFF', onAdd, disabled }) {
+export default function FixedMenuBuilder({ menu, products, accent = '#1A3A6B', accentText = '#FFFFFF', onAdd, disabled, forPickup = false }) {
   // { [stepId]: [productId] }
   const [picked, setPicked] = useState({})
   const [added, setAdded] = useState(false)
@@ -75,7 +75,11 @@ export default function FixedMenuBuilder({ menu, products, accent = '#1A3A6B', a
           .sort((a, b) => a.sort_order - b.sort_order)
           .map(o => byId.get(o.product_id))
           .filter(Boolean)
-        const disponibles = opciones.filter(p => p.is_available !== false)
+        // Además de lo agotado, lo que solo sale bien en el salón cuando el
+        // pedido se lleva
+        const disponibles = opciones.filter(p =>
+          p.is_available !== false && (!forPickup || p.available_for_pickup !== false)
+        )
 
         if (disponibles.length === 0) return null
 

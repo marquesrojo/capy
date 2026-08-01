@@ -237,6 +237,12 @@ export default function MenuEditorPage() {
               <Link to="/admin/cartas" className="text-ember-500 text-xs underline mt-1.5 inline-block">
                 Armar una carta →
               </Link>
+              <p className="text-smoke-400 text-xs leading-relaxed mt-3 pt-3 border-t border-carbon-700">
+                <span className="text-amber-500 font-semibold">Solo salón</span> es para lo que en la
+                mesa sale bien y para llevar no: lo que se enfría, lo que se arma delante del cliente,
+                la copa de vino. Esos platos <span className="text-smoke-300">no aparecen cuando el
+                pedido es para retiro o delivery</span>. Por defecto todo se puede llevar.
+              </p>
             </div>
 
             {/* Buscar en la carta: con cien productos repartidos en veinte
@@ -716,6 +722,14 @@ function ProductRow({ product, venueId, categories, allProducts = [], onToggle, 
     onSave({ ...product, is_daily_special: next })
   }
 
+  // Lo que en el salón sale bien y para llevar no: lo que se enfría, lo que se
+  // arma en la mesa, la copa de vino
+  async function togglePickup() {
+    const next = product.available_for_pickup === false
+    await supabaseStaff.from('products').update({ available_for_pickup: next }).eq('id', product.id)
+    onSave({ ...product, available_for_pickup: next })
+  }
+
   // Hay platos que solo existen dentro de una carta —el budín de pan del menú
   // ejecutivo— y no tienen precio propio: sueltos aparecerían en $0
   async function toggleMainMenu() {
@@ -954,6 +968,19 @@ Respondé ÚNICAMENTE con el término de búsqueda, sin texto extra.`
             className={`leading-none transition-opacity ${product.is_featured ? 'text-amber-400 opacity-100' : 'text-smoke-500 opacity-25 hover:opacity-60'}`}
           >
             <StarIcon size={18} />
+          </button>
+          <button
+            onClick={togglePickup}
+            title={product.available_for_pickup === false
+              ? 'Solo para comer en el local: no aparece cuando el pedido es para retiro o delivery'
+              : 'Se puede llevar. Tocá si este plato solo sale bien en el salón'}
+            className={`text-[10px] font-semibold px-2 py-1 rounded-full border ${
+              product.available_for_pickup === false
+                ? 'border-amber-500/50 text-amber-500'
+                : 'border-carbon-600 text-smoke-600 opacity-40 hover:opacity-80'
+            }`}
+          >
+            {product.available_for_pickup === false ? 'Solo salón' : 'Retiro'}
           </button>
           <button
             onClick={toggleMainMenu}

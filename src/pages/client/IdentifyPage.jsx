@@ -6,7 +6,6 @@ import { useCart } from '../../hooks/useCart'
 import { useCustomer } from '../../hooks/useCustomer'
 import { UtensilsIcon, XIcon, ClockIcon } from '../../components/Icons'
 import VoiceOrderPanel from '../../components/VoiceOrderPanel'
-import RecommendModal from '../../components/RecommendModal'
 import InstallHint from '../../components/InstallHint'
 import ClientFloorMap from '../../components/ClientFloorMap'
 import EmailLoginModal from '../../components/EmailLoginModal'
@@ -148,10 +147,6 @@ export default function IdentifyPage() {
   const [takeawayOnly, setTakeawayOnly] = useState(false)
   const [ordersPaused, setOrdersPaused] = useState(false)
   const [showVoice, setShowVoice] = useState(false)
-  const [showRecommend, setShowRecommend] = useState(false)
-  // La recomendación puede caer en cualquier plato, no solo en los destacados
-  // de la home, así que hace falta la carta entera para resolver el nombre
-  const [allProducts, setAllProducts] = useState([])
   const [highDemand, setHighDemand] = useState(false)
   const [pauseMessage, setPauseMessage] = useState('')
   const [showExternalOptions, setShowExternalOptions] = useState(false)
@@ -203,19 +198,6 @@ export default function IdentifyPage() {
     if (prefillSession) setSessionId(prefillSession)
     if (prefillWaiterId) setAssignedStaffId(prefillWaiterId)
   }, [])
-
-  // Se traen recién al abrir el recomendador, no en cada visita a la home
-  useEffect(() => {
-    if (!showRecommend || allProducts.length > 0 || !venueId) return
-    supabaseCustomer
-      .from('products')
-      .select('id, name, price')
-      .eq('venue_id', venueId)
-      .or('is_available.is.null,is_available.eq.true')
-      // Un plato que solo existe dentro de una carta no se pide suelto
-      .neq('in_main_menu', false)
-      .then(({ data }) => setAllProducts(data || []))
-  }, [showRecommend, venueId])
 
   useEffect(() => {
     if (!venueId) return
@@ -667,7 +649,7 @@ export default function IdentifyPage() {
             </span>
             <div className="flex-1 text-left">
               <p className="font-black text-sm leading-tight" style={{ color: selfColor }}>Pedido rápido para retirar</p>
-              <p className="text-[#6B7A8D] text-xs mt-0.5">Decí qué querés y lo tenés listo</p>
+              <p className="text-[#6B7A8D] text-xs mt-0.5">Decí qué querés, sin pasar por la carta</p>
             </div>
           </button>
         )}
@@ -1385,25 +1367,10 @@ export default function IdentifyPage() {
             // a la carta sería hacerlo desandar
             navigate(`${base}/pago`)
           }}
-          onRecommend={() => { setShowVoice(false); setShowRecommend(true) }}
           onClose={() => setShowVoice(false)}
         />
       )}
 
-      {showRecommend && (
-        <RecommendModal
-          venueId={venueId}
-          accentColor={selfColor}
-          onAddToCart={name => {
-            const product = allProducts.find(p => p.name === name)
-            if (product) addItem(product, 1)
-            // A la carta y no al checkout: desde la home todavía no dijo dónde
-            // está, y ahí es donde puede seguir sumando cosas
-            navigate(cartaPath)
-          }}
-          onClose={() => setShowRecommend(false)}
-        />
-      )}
 
       {/* Crédito de CAPY: siempre al final de todo */}
       <div className={`flex justify-center pt-3 ${fd ? 'hidden' : fc ? '' : 'lg:hidden'}`}>
