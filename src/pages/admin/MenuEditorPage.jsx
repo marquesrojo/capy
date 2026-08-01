@@ -151,6 +151,19 @@ export default function MenuEditorPage() {
             ← Volver
           </Link>
         </div>
+        {/* Productos y cartas especiales entran por el mismo lado: eran dos
+            botones en Mi local para dos mitades de la misma cosa */}
+        <div className="max-w-5xl mx-auto flex gap-2 mt-3">
+          <span className="text-xs font-bold px-3 py-1.5 rounded-xl bg-ember-500 text-white">
+            Productos
+          </span>
+          <Link
+            to="/admin/cartas"
+            className="text-xs font-bold px-3 py-1.5 rounded-xl border border-carbon-700 text-smoke-400 hover:text-smoke-200 transition-colors"
+          >
+            Cartas especiales
+          </Link>
+        </div>
       </header>
 
       <div className="px-5 mt-4 max-w-5xl mx-auto">
@@ -238,14 +251,19 @@ export default function MenuEditorPage() {
                 Armar una carta →
               </Link>
               <p className="text-smoke-400 text-xs leading-relaxed mt-3 pt-3 border-t border-carbon-700">
-                El botón de <span className="text-smoke-300">Salón y retiro</span> dice dónde se puede
+                El botón de <span className="text-smoke-300">Salón y llevar</span> dice dónde se puede
                 pedir cada plato, y se toca para cambiarlo.{' '}
                 <span className="text-amber-500 font-semibold">Solo salón</span> es lo que en la mesa
                 sale bien y para llevar no —lo que se enfría, lo que se arma delante del cliente, la
                 copa de vino—, y{' '}
-                <span className="text-sky-400 font-semibold">Solo retiro</span> lo que existe nada más
-                que para llevar, como una porción familiar. Cada uno desaparece del caso que no le
+                <span className="text-sky-400 font-semibold">Solo llevar</span> lo que existe nada más
+                que para eso, como una porción familiar. Cada uno desaparece del caso que no le
                 corresponde. Por defecto van los dos.
+                <br />
+                <span className="text-smoke-500">
+                  "Llevar" son los tres casos por igual: retiro en el local, retiro externo pidiendo
+                  desde afuera, y delivery.
+                </span>
               </p>
             </div>
 
@@ -403,7 +421,7 @@ function CategoryNameEditor({ cat, onSave }) {
 
 const UNITS = ['g', 'kg', 'ml', 'l', 'unidad', 'taza', 'cdita', 'cda', 'porción']
 
-function IngredientsPanel({ productId, productName, productDescription, productCategory, currentImageUrl, onPhotoSaved, venueId, onClose, onRefreshProducts }) {
+export function IngredientsPanel({ productId, productName, productDescription, productCategory, currentImageUrl, onPhotoSaved, venueId, onClose, onRefreshProducts }) {
   const [ingredients, setIngredients] = useState(null) // null = loading
   const [saving, setSaving] = useState(false)
   const [suggesting, setSuggesting] = useState(false)
@@ -620,7 +638,6 @@ Ejemplo trago: {"photo_query":"cuba libre cocktail rum coke lime glass","ingredi
 
 function ProductRow({ product, venueId, categories, allProducts = [], onToggle, onDelete, onSave, onRefreshProducts }) {
   const [editing, setEditing] = useState(false)
-  const [showIngredients, setShowIngredients] = useState(false)
   const [photoSearching, setPhotoSearching] = useState(false)
   const [foundPhoto, setFoundPhoto] = useState(null)
   const [savingPhoto, setSavingPhoto] = useState(false)
@@ -923,7 +940,7 @@ Respondé ÚNICAMENTE con el término de búsqueda, sin texto extra.`
       <div className="p-3 flex items-center gap-3">
         {/* Thumbnail */}
         <div
-          onClick={() => { setEditing(true); setShowIngredients(false) }}
+          onClick={() => { setEditing(true) }}
           className="w-12 h-12 rounded-lg bg-carbon-800 flex-shrink-0 overflow-hidden cursor-pointer flex items-center justify-center"
         >
           {product.image_url ? (
@@ -982,11 +999,11 @@ Respondé ÚNICAMENTE con el término de búsqueda, sin texto extra.`
               salon: 'border-amber-500/50 text-amber-500',
               retiro: 'border-sky-500/50 text-sky-400',
             }
-            const rotulos = { ambos: 'Salón y retiro', salon: 'Solo salón', retiro: 'Solo retiro' }
+            const rotulos = { ambos: 'Salón y llevar', salon: 'Solo salón', retiro: 'Solo llevar' }
             const ayuda = {
               ambos: 'Se pide de las dos formas. Tocá para limitarlo.',
-              salon: 'Solo para comer acá: no aparece si el pedido es para retiro o delivery.',
-              retiro: 'Solo para llevar: no aparece si el pedido es para una mesa.',
+              salon: 'Solo para comer acá: no aparece si el pedido es para retiro, retiro externo o delivery.',
+              retiro: 'Solo para llevar —retiro, retiro externo o delivery—: no aparece si el pedido es para una mesa.',
             }
             return (
               <button
@@ -1026,13 +1043,7 @@ Respondé ÚNICAMENTE con el término de búsqueda, sin texto extra.`
           >
             {photoSearching ? 'Buscando...' : 'Foto IA'}
           </button>
-          <button
-            onClick={() => { setShowIngredients(v => !v); setEditing(false) }}
-            className={`text-xs underline ${showIngredients ? 'text-ember-500' : 'text-smoke-500'}`}
-          >
-            Ingredientes
-          </button>
-          <button onClick={() => { setEditing(true); setShowIngredients(false) }} className="text-smoke-400 text-xs underline">Editar</button>
+          <button onClick={() => { setEditing(true) }} className="text-smoke-400 text-xs underline">Editar</button>
           <button onClick={onDelete} className="text-smoke-500 text-xs underline">Borrar</button>
         </div>
       </div>
@@ -1059,19 +1070,6 @@ Respondé ÚNICAMENTE con el término de búsqueda, sin texto extra.`
         </div>
       )}
 
-      {showIngredients && (
-        <IngredientsPanel
-          productId={product.id}
-          productName={product.name}
-          productDescription={product.description}
-          productCategory={categories.find(c => c.id === product.category_id)}
-          currentImageUrl={product.image_url}
-          onPhotoSaved={url => onSave({ ...product, image_url: url })}
-          venueId={venueId}
-          onClose={() => setShowIngredients(false)}
-          onRefreshProducts={onRefreshProducts}
-        />
-      )}
     </div>
   )
 }

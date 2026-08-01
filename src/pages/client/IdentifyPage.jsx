@@ -147,6 +147,22 @@ export default function IdentifyPage() {
   const [takeawayOnly, setTakeawayOnly] = useState(false)
   const [ordersPaused, setOrdersPaused] = useState(false)
   const [showVoice, setShowVoice] = useState(false)
+  // Este atajo es solo para retiro, así que la búsqueda tiene que serlo también:
+  // dictar algo que en el local sale bien pero no se puede llevar terminaría en
+  // un pedido que el mostrador no puede entregar.
+  const [pickupProductIds, setPickupProductIds] = useState(null)
+
+  useEffect(() => {
+    if (!showVoice || pickupProductIds || !venueId) return
+    supabaseCustomer
+      .from('products')
+      .select('id')
+      .eq('venue_id', venueId)
+      .or('is_available.is.null,is_available.eq.true')
+      .neq('in_main_menu', false)
+      .in('service_mode', ['ambos', 'retiro'])
+      .then(({ data }) => setPickupProductIds((data || []).map(p => p.id)))
+  }, [showVoice, venueId])
   const [highDemand, setHighDemand] = useState(false)
   const [pauseMessage, setPauseMessage] = useState('')
   const [showExternalOptions, setShowExternalOptions] = useState(false)
@@ -651,6 +667,19 @@ export default function IdentifyPage() {
               <p className="font-black text-sm leading-tight" style={{ color: selfColor }}>Pedido rápido para retirar</p>
               <p className="text-[#6B7A8D] text-xs mt-0.5">Decí qué querés, sin pasar por la carta</p>
             </div>
+          </button>
+        )}
+
+        {/* Para el que quiere mirar antes de dictar o de arrancar el pedido.
+            Va a la carta ya recortada, sin obligarlo a elegir dónde retira:
+            eso se lo vamos a preguntar recién cuando quiera confirmar. */}
+        {!ordersPaused && retiro.length > 0 && (
+          <button
+            onClick={() => navigate(`${cartaPath}${cartaPath.includes('?') ? '&' : '?'}ver=retiro`)}
+            className="w-full text-center text-xs font-semibold underline pb-1"
+            style={{ color: accentOnWhite }}
+          >
+            Ver qué se puede llevar
           </button>
         )}
 
@@ -1352,6 +1381,9 @@ export default function IdentifyPage() {
           accentText="#FFFFFF"
           title="Pedido rápido"
           confirmLabel="Ir a pagar"
+          cartaProductIds={pickupProductIds}
+          scopeNote="Estás pidiendo para retirar: buscamos solo entre los platos que se pueden llevar"
+          onScopeBrowse={() => { setShowVoice(false); navigate(`${cartaPath}${cartaPath.includes('?') ? '&' : '?'}ver=retiro`) }}
           pickupZones={retiro}
           onAddItems={(voiceItems, pickupZone) => {
             if (!pickupZone) return

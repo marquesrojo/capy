@@ -28,6 +28,12 @@ export default function VoiceOrderPanel({
   cartaProductIds = null,
   activeCartaId = null,
   onCartaChange,
+  // Sobre qué está buscando, cuando no es toda la carta. Decirlo antes de que
+  // hable evita que dicte algo que no vamos a encontrar y parezca que falló.
+  scopeNote = null,
+  // Para el que quiere mirar la carta recortada antes de hablar
+  onScopeBrowse = null,
+  scopeBrowseLabel = 'Ver qué se puede llevar',
 }) {
   const [state, setState] = useState('idle') // idle | recording | processing | result | error
   const [transcript, setTranscript] = useState('')
@@ -170,7 +176,21 @@ export default function VoiceOrderPanel({
                 <MicIcon size={38} />
                 <span className="font-bold text-base">Tocá y decí tu pedido</span>
               </button>
-              <p className="text-[#9DAAB8] text-xs text-center mt-3 leading-snug">
+              {scopeNote && (
+                <p className="text-center text-xs mt-3 leading-snug font-semibold" style={{ color: accent }}>
+                  {scopeNote}
+                </p>
+              )}
+              {onScopeBrowse && (
+                <button
+                  onClick={onScopeBrowse}
+                  className="block mx-auto text-xs font-semibold underline mt-1.5"
+                  style={{ color: accent }}
+                >
+                  {scopeBrowseLabel}
+                </button>
+              )}
+              <p className="text-[#9DAAB8] text-xs text-center mt-2 leading-snug">
                 Por ejemplo: "dos milanesas con papas y una coca sin hielo"
               </p>
 

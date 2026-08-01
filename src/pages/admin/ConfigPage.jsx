@@ -18,12 +18,8 @@ const MI_LOCAL_ITEMS = [
     icon: <svg {...ICON_PROPS}><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
   },
   {
-    to: '/admin/carta', label: 'Carta', desc: 'Productos y categorías',
+    to: '/admin/carta', label: 'Carta', desc: 'Productos, categorías y cartas especiales',
     icon: <svg {...ICON_PROPS}><path d="M3 3v18M3 3h12a3 3 0 0 1 0 6H3M21 3v18" /></svg>
-  },
-  {
-    to: '/admin/cartas', label: 'Cartas', desc: 'Menú ejecutivo, de jugadores y otras cartas',
-    icon: <svg {...ICON_PROPS}><path d="M4 4h7v16H4z"/><path d="M13 4h7v16h-7z"/><path d="M6.5 8h2M6.5 11h2M15.5 8h2M15.5 11h2"/></svg>
   },
   {
     to: '/admin/grupos', label: 'Grupos de clientes', desc: 'Jugadores, socios: quién ve qué carta',
@@ -65,6 +61,10 @@ const MI_LOCAL_ITEMS = [
   {
     to: '/admin/rangos', label: 'Programa de rangos', pro: true, desc: 'Niveles y premios por fidelidad',
     icon: <svg {...ICON_PROPS}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+  },
+  {
+    to: '/admin/insumos', label: 'Insumos', pro: true, desc: 'Qué lleva cada plato',
+    icon: <svg {...ICON_PROPS}><path d="M12 2v6"/><path d="M8.5 4.5 12 8l3.5-3.5"/><path d="M5 12h14l-1.2 8.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8z"/></svg>
   },
   {
     to: '/admin/inventario', label: 'Inventario', pro: true, desc: 'Stock de insumos y materias primas',
