@@ -670,6 +670,19 @@ export default function IdentifyPage() {
           </button>
         )}
 
+        {/* Para el que quiere mirar antes de dictar o de arrancar el pedido.
+            Va a la carta ya recortada, sin obligarlo a elegir dónde retira:
+            eso se lo vamos a preguntar recién cuando quiera confirmar. */}
+        {!ordersPaused && retiro.length > 0 && (
+          <button
+            onClick={() => navigate(`${cartaPath}${cartaPath.includes('?') ? '&' : '?'}ver=retiro`)}
+            className="w-full text-center text-xs font-semibold underline pb-1"
+            style={{ color: accentOnWhite }}
+          >
+            Ver qué se puede llevar
+          </button>
+        )}
+
         {/* ── Pido desde la carta ──
              Antes eran dos botones, uno para mesa y otro para retiro, cada uno
              con su lista. Ahora se entra por un solo lado y el primer paso es
@@ -1370,6 +1383,7 @@ export default function IdentifyPage() {
           confirmLabel="Ir a pagar"
           cartaProductIds={pickupProductIds}
           scopeNote="Estás pidiendo para retirar: buscamos solo entre los platos que se pueden llevar"
+          onScopeBrowse={() => { setShowVoice(false); navigate(`${cartaPath}${cartaPath.includes('?') ? '&' : '?'}ver=retiro`) }}
           pickupZones={retiro}
           onAddItems={(voiceItems, pickupZone) => {
             if (!pickupZone) return

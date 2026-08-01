@@ -165,9 +165,15 @@ export default function MenuPage() {
 
   const activeCarta = cartas.find(c => c.id === activeCartaId) || null
 
+  // ?ver=retiro: entró a mirar qué se puede llevar sin haber elegido todavía
+  // dónde lo retira. Es solo una forma de ver la carta, no arranca ningún
+  // pedido: cuando quiera confirmar, el checkout le va a pedir la ubicación.
+  const mirandoParaLlevar = searchParams.get('ver') === 'retiro'
+
   // Cada plato desaparece del caso que no le corresponde: lo de solo salón
   // cuando el pedido se lleva, lo de solo retiro cuando es para una mesa
-  const seLoLleva = ['retiro', 'retiro_externo', 'delivery'].includes(location?.type)
+  const seLoLleva = mirandoParaLlevar ||
+    ['retiro', 'retiro_externo', 'delivery'].includes(location?.type)
   const paraEsteConsumo = p => {
     const modo = p.service_mode || 'ambos'
     if (modo === 'ambos') return true
@@ -223,6 +229,20 @@ export default function MenuPage() {
 
   return (
     <div className="h-screen flex flex-col bg-[#F0F4F8] overflow-hidden">
+      {/* Vino a mirar qué se puede llevar. Se avisa porque está viendo una
+          carta recortada y sin decirlo parecería que al local le faltan platos */}
+      {mirandoParaLlevar && !location && (
+        <div className="flex-shrink-0 bg-[#1A2332] px-4 py-2 flex items-center justify-between gap-3">
+          <p className="text-white/80 text-xs font-semibold">Solo lo que se puede llevar</p>
+          <button
+            onClick={() => navigate(`${base}/carta`, { replace: true })}
+            className="text-white text-xs font-bold underline flex-shrink-0"
+          >
+            Ver toda la carta
+          </button>
+        </div>
+      )}
+
       {/* Con los pedidos pausados el aviso de demora sobra: no se puede pedir */}
       {ordersPaused ? (
         <div className="flex-shrink-0 bg-red-500/12 border-b border-red-500/30 px-5 py-2.5 text-center">
