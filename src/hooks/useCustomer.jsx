@@ -96,6 +96,9 @@ export function CustomerProvider({ children }) {
       .update({
         full_name: fullName,
         whatsapp,
+        // Desde acá el nombre lo eligió la persona: el próximo login con Google
+        // ya no lo reemplaza
+        name_set_by_user: true,
         ...(username !== undefined && { username: username || null }),
         ...(deliveryAddress !== undefined && { delivery_address: deliveryAddress || null }),
       })
