@@ -165,9 +165,14 @@ export default function MenuPage() {
 
   const activeCarta = cartas.find(c => c.id === activeCartaId) || null
 
-  // Lo que solo sale bien en el salón no se ofrece cuando el pedido se lleva
+  // Cada plato desaparece del caso que no le corresponde: lo de solo salón
+  // cuando el pedido se lleva, lo de solo retiro cuando es para una mesa
   const seLoLleva = ['retiro', 'retiro_externo', 'delivery'].includes(location?.type)
-  const paraEsteConsumo = p => !seLoLleva || p.available_for_pickup !== false
+  const paraEsteConsumo = p => {
+    const modo = p.service_mode || 'ambos'
+    if (modo === 'ambos') return true
+    return seLoLleva ? modo === 'retiro' : modo === 'salon'
+  }
 
   // Una carta libre es la misma carta recortada a sus productos. Una de precio
   // fijo no se recorre: se arma por pasos, y ese caso se dibuja aparte.

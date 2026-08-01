@@ -75,11 +75,14 @@ export default function FixedMenuBuilder({ menu, products, accent = '#1A3A6B', a
           .sort((a, b) => a.sort_order - b.sort_order)
           .map(o => byId.get(o.product_id))
           .filter(Boolean)
-        // Además de lo agotado, lo que solo sale bien en el salón cuando el
-        // pedido se lleva
-        const disponibles = opciones.filter(p =>
-          p.is_available !== false && (!forPickup || p.available_for_pickup !== false)
-        )
+        // Además de lo agotado, lo que no corresponde a cómo se recibe el
+        // pedido: solo salón cuando se lleva, solo retiro cuando es a la mesa
+        const disponibles = opciones.filter(p => {
+          if (p.is_available === false) return false
+          const modo = p.service_mode || 'ambos'
+          if (modo === 'ambos') return true
+          return forPickup ? modo === 'retiro' : modo === 'salon'
+        })
 
         if (disponibles.length === 0) return null
 
