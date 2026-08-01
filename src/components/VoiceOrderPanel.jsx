@@ -21,6 +21,13 @@ export default function VoiceOrderPanel({
   pickupZones = null,
   title = 'Pedí hablando',
   confirmLabel = 'Agregar al pedido',
+  // Cartas a las que este cliente tiene acceso, además de la general. Si tiene
+  // más de una, hay que preguntarle de cuál está pidiendo: "milanesa" puede
+  // existir en las dos y a precios distintos.
+  cartas = [],
+  cartaProductIds = null,
+  activeCartaId = null,
+  onCartaChange,
 }) {
   const [state, setState] = useState('idle') // idle | recording | processing | result | error
   const [transcript, setTranscript] = useState('')
@@ -63,7 +70,14 @@ export default function VoiceOrderPanel({
             apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           },
-          body: JSON.stringify({ transcript: text, venue_id: venueId }),
+          // product_ids recorta la búsqueda a la carta elegida. Va la lista y no
+          // el id de la carta a propósito: son los productos que este cliente ya
+          // tiene delante, así que no abre ninguna puerta nueva.
+          body: JSON.stringify({
+            transcript: text,
+            venue_id: venueId,
+            product_ids: cartaProductIds || undefined,
+          }),
         })
         const data = await res.json()
         if (data.error) throw new Error(data.error)
@@ -121,6 +135,33 @@ export default function VoiceOrderPanel({
         <div className="px-5 pt-5">
           {state === 'idle' && (
             <>
+              {/* Con más de una carta hay que saber de cuál pide: el mismo plato
+                  puede estar en las dos y a precios distintos */}
+              {cartas.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-[#6B7A8D] mb-2">
+                    ¿De qué carta pedís?
+                  </p>
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {[{ id: null, name: 'Carta general' }, ...cartas].map(c => {
+                      const active = activeCartaId === c.id
+                      return (
+                        <button
+                          key={c.id || 'general'}
+                          onClick={() => onCartaChange?.(c.id)}
+                          className="flex-shrink-0 px-3.5 py-2 rounded-xl text-xs font-bold border-2 transition-all"
+                          style={active
+                            ? { borderColor: accent, backgroundColor: `${accent}12`, color: accent }
+                            : { borderColor: '#E4EAF1', backgroundColor: '#FFFFFF', color: '#6B7A8D' }}
+                        >
+                          {c.name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
               <button
                 onClick={startRecording}
                 className="w-full rounded-2xl py-7 flex flex-col items-center gap-3 active:scale-[0.98] transition-transform"

@@ -9,7 +9,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const { transcript, venue_id, zones } = await req.json()
+    const { transcript, venue_id, zones, product_ids } = await req.json()
 
     if (!transcript || !venue_id) {
       return new Response(JSON.stringify({ error: 'transcript and venue_id required' }), {
@@ -29,12 +29,21 @@ Deno.serve(async (req) => {
     // Los platos que solo existen dentro de una carta —el postre del menú
     // ejecutivo— no tienen precio propio: dictarlos sueltos armaría un pedido
     // que el local no puede cobrar
-    const { data: products } = await supabase
+    let productQuery = supabase
       .from('products')
       .select('id, name, price')
       .eq('venue_id', venue_id)
       .eq('is_available', true)
       .neq('in_main_menu', false)
+
+    // Si el cliente eligió una carta, la búsqueda se recorta a sus productos.
+    // Vienen los ids y no el id de la carta: son los que ya tenía delante, así
+    // que esto no abre ninguna puerta que la RLS haya cerrado.
+    if (Array.isArray(product_ids) && product_ids.length > 0) {
+      productQuery = productQuery.in('id', product_ids)
+    }
+
+    const { data: products } = await productQuery
 
     if (!products?.length) {
       return new Response(JSON.stringify({ items: [] }), {
