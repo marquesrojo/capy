@@ -18,12 +18,8 @@ const MI_LOCAL_ITEMS = [
     icon: <svg {...ICON_PROPS}><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
   },
   {
-    to: '/admin/carta', label: 'Carta', desc: 'Productos y categorías',
+    to: '/admin/carta', label: 'Carta', desc: 'Productos, categorías y cartas especiales',
     icon: <svg {...ICON_PROPS}><path d="M3 3v18M3 3h12a3 3 0 0 1 0 6H3M21 3v18" /></svg>
-  },
-  {
-    to: '/admin/cartas', label: 'Cartas', desc: 'Menú ejecutivo, de jugadores y otras cartas',
-    icon: <svg {...ICON_PROPS}><path d="M4 4h7v16H4z"/><path d="M13 4h7v16h-7z"/><path d="M6.5 8h2M6.5 11h2M15.5 8h2M15.5 11h2"/></svg>
   },
   {
     to: '/admin/grupos', label: 'Grupos de clientes', desc: 'Jugadores, socios: quién ve qué carta',

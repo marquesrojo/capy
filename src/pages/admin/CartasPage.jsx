@@ -122,6 +122,17 @@ export default function CartasPage() {
         <p className="text-smoke-500 text-xs mt-1">
           El cliente ve las que estén activas arriba de la carta
         </p>
+        <div className="flex gap-2 mt-3">
+          <Link
+            to="/admin/carta"
+            className="text-xs font-bold px-3 py-1.5 rounded-xl border border-carbon-700 text-smoke-400 hover:text-smoke-200 transition-colors"
+          >
+            Productos
+          </Link>
+          <span className="text-xs font-bold px-3 py-1.5 rounded-xl bg-ember-500 text-white">
+            Cartas especiales
+          </span>
+        </div>
       </header>
 
       <main className="px-5 mt-4 space-y-4 max-w-2xl mx-auto">

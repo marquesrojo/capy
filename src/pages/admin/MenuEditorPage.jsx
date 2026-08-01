@@ -151,6 +151,19 @@ export default function MenuEditorPage() {
             ← Volver
           </Link>
         </div>
+        {/* Productos y cartas especiales entran por el mismo lado: eran dos
+            botones en Mi local para dos mitades de la misma cosa */}
+        <div className="max-w-5xl mx-auto flex gap-2 mt-3">
+          <span className="text-xs font-bold px-3 py-1.5 rounded-xl bg-ember-500 text-white">
+            Productos
+          </span>
+          <Link
+            to="/admin/cartas"
+            className="text-xs font-bold px-3 py-1.5 rounded-xl border border-carbon-700 text-smoke-400 hover:text-smoke-200 transition-colors"
+          >
+            Cartas especiales
+          </Link>
+        </div>
       </header>
 
       <div className="px-5 mt-4 max-w-5xl mx-auto">
