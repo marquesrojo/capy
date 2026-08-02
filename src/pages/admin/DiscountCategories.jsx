@@ -1,16 +1,20 @@
 import { useEffect, useState } from 'react'
 import { supabaseStaff } from '../../lib/supabase'
 import { formatPrice } from '../../lib/utils'
+import { fetchVenueStaff, ensureStaffCustomer, mergePeople } from '../../lib/venuePeople'
+import MemberPicker, { PersonRole } from '../../components/MemberPicker'
 
 // Categorías de descuento: un grupo de clientes del local con un porcentaje
 // asociado. A diferencia de un código, no se comparte ni se tipea — lo tiene
 // quien pertenece, incluidos los que se agreguen después.
 //
 // Los clientes del local son los de venue_customers: los que se identificaron
-// en su página, hayan pedido o no.
+// en su página, hayan pedido o no. Más el personal, que suele ser el primero en
+// tener descuento y no llega por ahí.
 export default function DiscountCategories({ venueId }) {
   const [categories, setCategories] = useState([])
   const [rows, setRows] = useState([])
+  const [staff, setStaff] = useState([])
   const [members, setMembers] = useState({})
   const [loading, setLoading] = useState(true)
   const [name, setName] = useState('')
@@ -24,7 +28,7 @@ export default function DiscountCategories({ venueId }) {
 
   async function load() {
     setLoading(true)
-    const [clientsRes, catsRes, ordersRes] = await Promise.all([
+    const [clientsRes, catsRes, ordersRes, staffList] = await Promise.all([
       // Por RPC y no leyendo la tabla: el email vive en auth.users
       supabaseStaff.rpc('venue_customer_list', { p_venue_id: venueId }),
       supabaseStaff
@@ -38,8 +42,10 @@ export default function DiscountCategories({ venueId }) {
         .eq('venue_id', venueId)
         .not('customer_id', 'is', null)
         .neq('status', 'cancelado'),
+      fetchVenueStaff(venueId),
     ])
 
+    setStaff(staffList)
     const cats = catsRes.data || []
     setCategories(cats)
 
@@ -113,7 +119,14 @@ export default function DiscountCategories({ venueId }) {
     load()
   }
 
-  async function addMember(categoryId, customerId) {
+  async function addMember(categoryId, person) {
+    const customerId = person.id
+    // Un empleado puede no tener ficha de cliente todavía, y sin ficha no puede
+    // ser miembro. Es idempotente: si ya la tiene, no pasa nada.
+    if (person.staffRole) {
+      const staffError = await ensureStaffCustomer(venueId, customerId)
+      if (staffError) { alert('Error: ' + staffError.message); return }
+    }
     const { error } = await supabaseStaff
       .from('discount_category_members')
       // venue_id va en la fila: es lo que mira su policy, sin consultar la
@@ -135,7 +148,11 @@ export default function DiscountCategories({ venueId }) {
   if (loading) return <p className="text-smoke-500 text-sm text-center py-8">Cargando...</p>
 
   const anonCount = rows.filter(r => !r.identified).length
-  const visibleRows = showAnonymous ? rows : rows.filter(r => r.identified)
+  // people = clientes + personal. rows queda para el contador, que habla de
+  // clientes del local y no de la nómina.
+  const people = mergePeople(rows, staff)
+  const visibleRows = showAnonymous ? people : people.filter(r => r.identified)
+  const visibleCustomers = showAnonymous ? rows : rows.filter(r => r.identified)
 
   return (
     <div className="space-y-4">
@@ -184,8 +201,9 @@ export default function DiscountCategories({ venueId }) {
 
       <div className="px-1 flex items-center justify-between gap-3 flex-wrap">
         <p className="text-smoke-600 text-xs">
-          {visibleRows.length} {visibleRows.length === 1 ? 'cliente' : 'clientes'} en el local
-          {visibleRows.length === 0 && ' — aparecen acá cuando inician sesión en tu página'}
+          {visibleCustomers.length} {visibleCustomers.length === 1 ? 'cliente' : 'clientes'} en el local
+          {staff.length > 0 && ` · ${staff.length} del personal`}
+          {visibleCustomers.length === 0 && ' — aparecen acá cuando inician sesión en tu página'}
         </p>
         {anonCount > 0 && (
           <button
@@ -202,7 +220,7 @@ export default function DiscountCategories({ venueId }) {
       {categories.length === 0 ? (
         <p className="text-smoke-500 text-sm text-center py-6">Todavía no hay categorías.</p>
       ) : categories.map(c => {
-        const memberRows = rows.filter(r => (members[r.id] || []).includes(c.id))
+        const memberRows = people.filter(r => (members[r.id] || []).includes(c.id))
         const candidates = visibleRows.filter(r => !(members[r.id] || []).includes(c.id))
         return (
           <div key={c.id} className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5 space-y-3">
@@ -210,7 +228,7 @@ export default function DiscountCategories({ venueId }) {
               <div>
                 <p className="text-smoke-200 font-bold text-base">{c.name}</p>
                 <p className="text-smoke-500 text-xs mt-0.5">
-                  {memberRows.length} {memberRows.length === 1 ? 'cliente' : 'clientes'}
+                  {memberRows.length} {memberRows.length === 1 ? 'persona' : 'personas'}
                   {c.discount_percent ? ` · ${c.discount_percent}% de descuento` : ' · sin descuento'}
                 </p>
               </div>
@@ -232,7 +250,7 @@ export default function DiscountCategories({ venueId }) {
                 onClick={() => { setAddingTo(addingTo === c.id ? null : c.id); setOpenId(null) }}
                 className="text-ember-400 text-xs font-semibold underline"
               >
-                {addingTo === c.id ? 'Cancelar' : '+ Agregar clientes'}
+                {addingTo === c.id ? 'Cancelar' : '+ Agregar gente'}
               </button>
             </div>
 
@@ -241,7 +259,10 @@ export default function DiscountCategories({ venueId }) {
                 {memberRows.map(r => (
                   <div key={r.id} className="flex items-center justify-between gap-3 bg-carbon-800 rounded-lg px-3 py-2">
                     <div className="min-w-0">
-                      <p className="text-smoke-300 text-xs truncate">{r.name}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-smoke-300 text-xs truncate">{r.name}</p>
+                        <PersonRole person={r} />
+                      </div>
                       <p className="text-smoke-600 text-[10px] font-mono truncate">
                         {[r.email, r.whatsapp].filter(Boolean).join(' · ') || 'sin contacto'}
                       </p>
@@ -262,62 +283,15 @@ export default function DiscountCategories({ venueId }) {
             )}
 
             {addingTo === c.id && (
-              <MemberPicker candidates={candidates} onPick={id => addMember(c.id, id)} />
+              <MemberPicker
+                candidates={candidates}
+                onPick={person => addMember(c.id, person)}
+                emptyText="No hay clientes ni personal para agregar."
+              />
             )}
           </div>
         )
       })}
-    </div>
-  )
-}
-
-// Clientes del local que todavía no están en la categoría
-function MemberPicker({ candidates, onPick }) {
-  const [q, setQ] = useState('')
-  const term = q.trim().toLowerCase()
-  const list = candidates
-    .filter(r => !term
-      || r.name.toLowerCase().includes(term)
-      || r.email.toLowerCase().includes(term)
-      || r.whatsapp.includes(term))
-    .slice(0, 40)
-
-  return (
-    <div className="bg-carbon-800 rounded-xl p-3 space-y-2">
-      <input
-        className="input"
-        placeholder="Buscar por nombre, email o WhatsApp"
-        value={q}
-        onChange={e => setQ(e.target.value)}
-      />
-      {candidates.length === 0 ? (
-        <p className="text-smoke-600 text-xs text-center py-2">
-          No hay clientes para agregar.
-        </p>
-      ) : list.length === 0 ? (
-        <p className="text-smoke-600 text-xs text-center py-2">Nadie coincide con la búsqueda.</p>
-      ) : (
-        <div className="space-y-1">
-          {list.map(r => (
-            <button
-              key={r.id}
-              onClick={() => onPick(r.id)}
-              className="w-full flex items-center justify-between gap-3 bg-carbon-900 rounded-lg px-3 py-2 text-left"
-            >
-              <div className="min-w-0">
-                <p className="text-smoke-300 text-xs truncate">{r.name}</p>
-                <p className="text-smoke-600 text-[10px] font-mono truncate">
-                  {[r.email, r.whatsapp].filter(Boolean).join(' · ') || 'sin contacto'}
-                </p>
-                <p className="text-smoke-600 text-[10px]">
-                  {r.orders} {r.orders === 1 ? 'pedido' : 'pedidos'}
-                </p>
-              </div>
-              <span className="text-ember-400 text-[11px] font-semibold flex-shrink-0">Agregar</span>
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   )
 }

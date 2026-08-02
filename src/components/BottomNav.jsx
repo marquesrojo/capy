@@ -6,6 +6,7 @@ import { useCustomer } from '../hooks/useCustomer'
 import { supabaseCustomer, ACTIVE_VENUE_ID } from '../lib/supabase'
 import VoiceOrderPanel from './VoiceOrderPanel'
 import RecommendModal from './RecommendModal'
+import ClientFloorMap from './ClientFloorMap'
 import {
   UtensilsIcon,
   ReceiptIcon,
@@ -47,6 +48,12 @@ export default function BottomNav({ onHome = false }) {
   const waiterColor = venue?.landing_waiter_color || '#B22222'
 
   const [ordersPaused, setOrdersPaused] = useState(false)
+  // Cómo elige mesa el cliente en este local. Lo decide el dueño desde
+  // Ubicaciones y vale para toda la app: si acá se mostrara siempre la lista,
+  // el que llegó por el mapa tendría que reconocer su mesa por el número.
+  const [locationDisplayMode, setLocationDisplayMode] = useState('lista') // 'lista' | 'ambos' | 'mapa'
+  const [waiterView, setWaiterView] = useState('lista')
+  const [waiterMapZone, setWaiterMapZone] = useState(null)
   const [showWaiter, setShowWaiter] = useState(false)
   const [showVoice, setShowVoice] = useState(false)
   const [showRecommend, setShowRecommend] = useState(false)
@@ -66,8 +73,13 @@ export default function BottomNav({ onHome = false }) {
 
   useEffect(() => {
     if (!venueId) return
-    supabaseCustomer.from('venues').select('orders_paused').eq('id', venueId).single()
-      .then(({ data }) => setOrdersPaused(!!data?.orders_paused))
+    supabaseCustomer.from('venues').select('orders_paused, location_display_mode').eq('id', venueId).single()
+      .then(({ data }) => {
+        setOrdersPaused(!!data?.orders_paused)
+        const mode = data?.location_display_mode || 'lista'
+        setLocationDisplayMode(mode)
+        setWaiterView(mode === 'lista' ? 'lista' : 'mapa')
+      })
   }, [venueId])
 
   useEffect(() => {
@@ -105,7 +117,8 @@ export default function BottomNav({ onHome = false }) {
     if (!showWaiter || zones.length > 0 || !venueId) return
     supabaseCustomer
       .from('venue_zones')
-      .select('id, name, type, parent_zone_id')
+      // La geometría viene también: sin ella el mapa no se puede dibujar
+      .select('id, name, type, parent_zone_id, pos_x, pos_y, size_w, size_h, shape')
       .eq('venue_id', venueId)
       .eq('is_active', true)
       .order('sort_order')
@@ -118,12 +131,19 @@ export default function BottomNav({ onHome = false }) {
   const waiterSectorMesas = waiterSector
     ? allMesas.filter(m => m.parent_zone_id === waiterSector.id)
     : []
+  // Hay mapa si alguien puso las mesas en el plano: sin coordenadas no hay nada
+  // que dibujar, por más que el local esté configurado en modo mapa
+  const hasMap = allMesas.some(m => m.pos_x != null)
+  const zonesWithMap = sectores.filter(z => allMesas.some(m => m.parent_zone_id === z.id && m.pos_x != null))
+  const showMapView = waiterView === 'mapa' && hasMap && locationDisplayMode !== 'lista'
 
   function openWaiter() {
     setShowWaiter(true)
     setCallSent(false)
     setSelectedReason(null)
     setWaiterSector(null)
+    setWaiterMapZone(null)
+    setWaiterView(locationDisplayMode === 'lista' ? 'lista' : 'mapa')
   }
 
   async function submitCall(zoneId, zoneName) {
@@ -376,6 +396,68 @@ export default function BottomNav({ onHome = false }) {
                   <div>
                     <p className="text-[#9DAAB8] text-xs font-bold uppercase tracking-wider mb-3">¿Dónde estás?</p>
 
+                    {/* Con el local en "ambos", que elija; en mapa o lista no hay
+                        nada que preguntar */}
+                    {hasMap && locationDisplayMode === 'ambos' && (
+                      <div className="flex gap-1 bg-[#F0F4F8] rounded-xl p-1 mb-4">
+                        {['mapa', 'lista'].map(mode => (
+                          <button
+                            key={mode}
+                            onClick={() => { setWaiterView(mode); setWaiterMapZone(null) }}
+                            className="flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize"
+                            style={waiterView === mode
+                              ? { backgroundColor: waiterColor, color: 'white' }
+                              : { color: waiterColor }
+                            }
+                          >
+                            {mode === 'mapa' ? 'Mapa' : 'Lista'}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {showMapView && (
+                      !waiterMapZone ? (
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-3">Elegí una zona</p>
+                          <div className="grid grid-cols-2 gap-3 mb-2">
+                            {zonesWithMap.map(zona => (
+                              <button
+                                key={zona.id}
+                                onClick={() => setWaiterMapZone(zona)}
+                                className="rounded-2xl py-5 px-3 text-sm font-bold text-center border-2 transition-all active:scale-95 leading-tight"
+                                style={{ backgroundColor: '#F8FAFB', borderColor: waiterColor, color: waiterColor }}
+                              >
+                                {zona.name}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <button
+                            onClick={() => setWaiterMapZone(null)}
+                            className="flex items-center gap-1 text-xs font-semibold mb-4"
+                            style={{ color: waiterColor }}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M19 12H5M12 5l-7 7 7 7"/>
+                            </svg>
+                            Zonas
+                          </button>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">{waiterMapZone.name}</p>
+                          <ClientFloorMap
+                            zones={zones.filter(z => z.id === waiterMapZone.id || z.parent_zone_id === waiterMapZone.id)}
+                            accent={waiterColor}
+                            confirmStep={false}
+                            venueId={venueId}
+                            onChoose={zone => submitCall(zone.id, zone.name)}
+                          />
+                        </div>
+                      )
+                    )}
+
+                    {!showMapView && (<>
                     {sectores.length > 0 && (
                       <>
                         <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2">Sector</p>
@@ -447,6 +529,7 @@ export default function BottomNav({ onHome = false }) {
                         </div>
                       </>
                     )}
+                    </>)}
                   </div>
                 )}
               </>
