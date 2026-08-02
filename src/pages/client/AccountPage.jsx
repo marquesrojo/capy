@@ -265,6 +265,31 @@ export default function AccountPage() {
       </header>
 
       <main className="px-5 space-y-4">
+        {/* Sin ficha todavía no hay perfil que mostrar, pero sí hay algo que
+            ofrecer: entrar. Antes esta pantalla quedaba sin ninguna forma de
+            hacerlo, que es justo a lo que vino quien toca CUENTA. */}
+        {!customer && (
+          <div className="bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-4">
+            <p className="text-smoke-300 text-sm font-semibold mb-0.5">Entrá a tu cuenta</p>
+            <p className="text-smoke-500 text-xs mb-3 leading-snug">
+              Tu historial, tus datos y tus beneficios quedan guardados, aunque cambies de celular.
+            </p>
+            <button
+              onClick={async () => {
+                // Adentro de la app instalada el OAuth de Google no completa
+                if (isStandaloneApp()) { setShowEmailLogin(true); return }
+                const r = await signInWithGoogle(`${base}/cuenta`)
+                if (r?.error) setGoogleError(r.error.message)
+              }}
+              className="flex items-center gap-2.5 bg-white text-[#1A2332] font-semibold text-sm px-4 py-2.5 rounded-xl"
+            >
+              {isStandaloneApp() ? null : <GoogleIcon />}
+              {isStandaloneApp() ? 'Entrar con mi email' : 'Continuar con Google'}
+            </button>
+            {googleError && <p className="text-red-500 text-xs mt-2">{googleError}</p>}
+          </div>
+        )}
+
         {/* Profile card */}
         {customer && (
           <div className="bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-4 space-y-3">
