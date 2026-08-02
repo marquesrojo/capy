@@ -40,7 +40,6 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
   const [showMap, setShowMap] = useState(false)
   const [menuQrModal, setMenuQrModal] = useState(null) // { slug, name, menuId, zoneId, zoneLabel, staffId }
   const [ownSlug, setOwnSlug] = useState(null)
-  const [showCategorySheet, setShowCategorySheet] = useState(false)
   const [showLocationSheet, setShowLocationSheet] = useState(false)
   const [discounts, setDiscounts] = useState([])
   const [selectedDiscount, setSelectedDiscount] = useState(null)
@@ -1176,24 +1175,11 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
         </div>
       )}
 
-      {/* Categoría + Ubicación */}
-      <div className="flex-shrink-0 px-4 pt-1 pb-2 flex gap-2">
-        <button
-          onClick={() => setShowCategorySheet(true)}
-          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-colors ${
-            activeCategory
-              ? 'bg-[#008080] text-white border-[#008080]'
-              : 'bg-white text-[#3A4A5A] border-black/10'
-          }`}
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-          </svg>
-          Categoría
-        </button>
+      {/* Ubicación */}
+      <div className="flex-shrink-0 px-4 pt-1 pb-2">
         <button
           onClick={() => setShowLocationSheet(true)}
-          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-colors min-w-0 ${
+          className={`w-full flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-colors min-w-0 ${
             locationLabel
               ? 'bg-[#008080] text-white border-[#008080]'
               : 'bg-white text-[#3A4A5A] border-black/10'
@@ -1204,29 +1190,23 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
         </button>
       </div>
 
-      {/* Bottom sheet de categorías */}
-      {showCategorySheet && (
-        <div className="fixed inset-0 z-40 flex flex-col justify-end" onClick={() => setShowCategorySheet(false)}>
-          <div className="absolute inset-0 bg-black/40" />
-          <div className="relative bg-white rounded-t-3xl px-4 pt-4 pb-8 z-10" onClick={e => e.stopPropagation()}>
-            <div className="w-10 h-1 bg-[#D0D9E0] rounded-full mx-auto mb-4" />
-            <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">Categorías</p>
-            <div className="grid grid-cols-3 gap-2">
-              {filteredCategories.map(cat => (
-                <button
-                  key={cat.id}
-                  onClick={() => { setActiveCategory(cat.id); setShowCategorySheet(false) }}
-                  className={`py-3 px-2 rounded-xl border-2 text-center text-xs font-semibold leading-tight transition-all ${
-                    activeCategory === cat.id
-                      ? 'border-[#008080] bg-[#008080]/5 text-[#005f5f]'
-                      : 'border-[#E4EBF0] text-[#3A4A5A]'
-                  }`}
-                >
-                  {cat.name}
-                </button>
-              ))}
-            </div>
-          </div>
+      {/* Categorías a la vista: el camarero está apurado y con el nombre del
+          rubro delante encuentra antes que abriendo un panel para elegir */}
+      {filteredCategories.length > 0 && (
+        <div className="flex-shrink-0 flex gap-2 overflow-x-auto px-4 pb-2">
+          {filteredCategories.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => setActiveCategory(cat.id)}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border flex-shrink-0 transition-colors ${
+                activeCategory === cat.id
+                  ? 'bg-[#008080] text-white border-[#008080]'
+                  : 'bg-white border-black/10 text-[#3A4A5A]'
+              }`}
+            >
+              {cat.name}
+            </button>
+          ))}
         </div>
       )}
 
