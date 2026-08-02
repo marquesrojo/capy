@@ -4,6 +4,7 @@ import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice } from '../../lib/utils'
 import { CameraIcon, StarIcon, DIETARY_TAGS } from '../../components/Icons'
+import HelpNote from '../../components/HelpNote'
 import { geminiGenerate } from '../../lib/gemini'
 
 const KIND_LABELS = { bebida: 'Bebida', comida: 'Comida', otro: 'Otro' }
@@ -236,9 +237,9 @@ export default function MenuEditorPage() {
               />
             )}
 
-            {/* Qué significa "Solo carta": el interruptor por producto no
-                alcanza a explicar todo lo que apaga */}
-            <div className="mb-4 bg-carbon-900 border border-carbon-700 rounded-xl px-4 py-3">
+            {/* La explicación completa se lee una vez; después estorba,
+                así que arranca plegada y recuerda si la abriste */}
+            <HelpNote title="Cómo funciona la carta" storageKey="carta-modos">
               <p className="text-smoke-400 text-xs leading-relaxed">
                 <span className="text-violet-400 font-semibold">Solo carta</span> es para los platos
                 que no se venden sueltos, como el postre del menú ejecutivo. Un producto marcado así
@@ -265,7 +266,7 @@ export default function MenuEditorPage() {
                   desde afuera, y delivery.
                 </span>
               </p>
-            </div>
+            </HelpNote>
 
             {/* Buscar en la carta: con cien productos repartidos en veinte
                 categorías, encontrar uno para editarlo era puro scroll */}
