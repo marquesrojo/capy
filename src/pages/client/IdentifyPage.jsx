@@ -927,6 +927,46 @@ export default function IdentifyPage() {
                 Ver carta
               </button>
             </div>
+            ) : retiroExternoEnabled !== deliveryEnabled ? (
+              /* Una sola forma de recibirlo —el caso del local que solo hace
+                 take away— no es una pregunta. Preguntar "¿cómo lo querés?"
+                 para una única respuesta obliga a un toque que no decide nada,
+                 así que va directo: un botón que dice qué pasa al tocarlo. */
+              <button
+                onClick={() => {
+                  setLocation(deliveryEnabled
+                    ? { type: 'delivery', label: 'Delivery' }
+                    : { type: 'retiro_externo', label: 'Retiro en local' })
+                  navigate(cartaPath)
+                }}
+                className="w-full flex items-center gap-4 px-5 py-5 rounded-2xl shadow-md active:scale-[0.98] transition-transform text-left"
+                style={{ backgroundColor: accentOnWhite }}
+              >
+                <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                  {deliveryEnabled ? (
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+                    </svg>
+                  ) : (
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
+                    </svg>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-black text-base leading-tight">
+                    {deliveryEnabled ? 'Pedir con delivery' : 'Pedir para retirar'}
+                  </p>
+                  <p className="text-white/75 text-xs mt-0.5 leading-snug">
+                    {deliveryEnabled
+                      ? 'Elegís de la carta y te lo llevamos'
+                      : 'Elegís de la carta y pasás a buscarlo'}
+                  </p>
+                </div>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" className="flex-shrink-0 opacity-80">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              </button>
             ) : (
               <div className="bg-white border border-black/[0.06] rounded-2xl shadow-sm overflow-hidden">
                 <div className="px-5 pt-4 pb-3 flex items-center justify-between">
