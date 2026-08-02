@@ -25,6 +25,7 @@ export default function MenuPage() {
   const [venueLogo, setVenueLogo] = useState('')
   const [headerBgColor, setHeaderBgColor] = useState('')
   const [headerTextColor, setHeaderTextColor] = useState('#FFFFFF')
+  const [takeawayOnly, setTakeawayOnly] = useState(false)
   // Cartas del local además de la general: el menú ejecutivo, el de jugadores.
   // null = la carta general.
   const [cartas, setCartas] = useState([])
@@ -90,7 +91,7 @@ export default function MenuPage() {
       const [catRes, prodRes, venueRes, cartasRes] = await Promise.all([
         supabaseCustomer.from('categories').select('*').eq('venue_id', venueId).eq('is_active', true).order('sort_order'),
         supabaseCustomer.from('products').select('*').eq('venue_id', venueId).order('sort_order'),
-        supabaseCustomer.from('venues').select('high_demand, orders_paused, orders_paused_message, name, logo_url, header_bg_color, header_text_color').eq('id', venueId).single(),
+        supabaseCustomer.from('venues').select('high_demand, orders_paused, orders_paused_message, name, logo_url, header_bg_color, header_text_color, takeaway_only').eq('id', venueId).single(),
         supabaseCustomer
           .from('venue_menus')
           .select('*, venue_menu_steps(*, venue_menu_step_options(*)), venue_menu_products(product_id)')
@@ -128,6 +129,7 @@ export default function MenuPage() {
         setPauseMessage(venueRes.data.orders_paused_message || '')
         setVenueName(venueRes.data.name)
         setVenueLogo(venueRes.data.logo_url)
+        setTakeawayOnly(!!venueRes.data.takeaway_only)
         if (venueRes.data.header_bg_color) setHeaderBgColor(venueRes.data.header_bg_color)
         if (venueRes.data.header_text_color) setHeaderTextColor(venueRes.data.header_text_color)
       }
@@ -180,8 +182,14 @@ export default function MenuPage() {
 
   // Cada plato desaparece del caso que no le corresponde: lo de solo salón
   // cuando el pedido se lleva, lo de solo retiro cuando es para una mesa
+  // Dónde estás no es lo mismo que si el pedido se consume acá. El socio que
+  // está en la pileta del club y lo va a buscar a la barra está comiendo en el
+  // local: no tiene por qué perder la copa de vino. Lo que sí se lleva es el
+  // que pasa a buscarlo y el delivery — y, en un local que es solo para llevar,
+  // también el retiro del mostrador.
   const seLoLleva = mirandoParaLlevar ||
-    ['retiro', 'retiro_externo', 'delivery'].includes(location?.type)
+    ['retiro_externo', 'delivery'].includes(location?.type) ||
+    (location?.type === 'retiro' && takeawayOnly)
   const paraEsteConsumo = p => {
     const modo = p.service_mode || 'ambos'
     if (modo === 'ambos') return true
