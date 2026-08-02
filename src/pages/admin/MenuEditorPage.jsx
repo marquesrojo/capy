@@ -50,13 +50,11 @@ export default function MenuEditorPage() {
   const unlimitedPhotos = isSuperAdmin
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
-  const [supplyProductIds, setSupplyProductIds] = useState([])
   const [extraCredits, setExtraCredits] = useState(0)
   const [photoPackPrice, setPhotoPackPrice] = useState(10000)
   const [loading, setLoading] = useState(true)
   const [showProductForm, setShowProductForm] = useState(false)
   const [showCategoryForm, setShowCategoryForm] = useState(false)
-  const [activeTab, setActiveTab] = useState('carta') // 'carta' | 'insumos'
   const [search, setSearch] = useState('')
 
   async function loadAll() {
@@ -71,18 +69,6 @@ export default function MenuEditorPage() {
     setProducts(allProds)
     setExtraCredits(venueRes.data?.extra_image_credits || 0)
     if (settingsRes.data?.photo_pack_price) setPhotoPackPrice(settingsRes.data.photo_pack_price)
-
-    const productIds = allProds.map(p => p.id)
-    if (productIds.length > 0) {
-      const { data: piData } = await supabaseStaff
-        .from('product_ingredients')
-        .select('supply_product_id')
-        .in('product_id', productIds)
-        .not('supply_product_id', 'is', null)
-      setSupplyProductIds([...new Set((piData || []).map(r => r.supply_product_id))])
-    } else {
-      setSupplyProductIds([])
-    }
 
     setLoading(false)
   }
@@ -170,26 +156,7 @@ export default function MenuEditorPage() {
       </header>
 
       <div className="px-5 mt-4 max-w-5xl mx-auto">
-        {/* Tabs */}
-        <div className="flex gap-1 mb-4 bg-carbon-900 p-1 rounded-xl">
-          <button
-            onClick={() => setActiveTab('carta')}
-            className={`flex-1 text-sm font-semibold py-2 rounded-lg transition-colors ${activeTab === 'carta' ? 'bg-ember-500 text-white' : 'text-smoke-400'}`}
-          >
-            Carta
-          </button>
-          <button
-            onClick={() => setActiveTab('insumos')}
-            className={`flex-1 text-sm font-semibold py-2 rounded-lg transition-colors ${activeTab === 'insumos' ? 'bg-ember-500 text-white' : 'text-smoke-400'}`}
-          >
-            Insumos
-          </button>
-        </div>
-
-        {activeTab === 'insumos' ? (
-          <InsumosList venueId={venueId} categories={categories} allProducts={products} supplyProductIds={supplyProductIds} onRefresh={loadAll} />
-        ) : (
-          <>
+        <>
             <div className="flex gap-2 mb-4">
               <button
                 onClick={() => { setShowProductForm(true); setShowCategoryForm(false) }}
@@ -2222,138 +2189,6 @@ function RecipeEditor({ productId, productName, productDescription, venueId, all
         ))}
       </div>
       <button type="button" onClick={addRow} className="text-xs text-smoke-400 underline">+ Agregar insumo</button>
-    </div>
-  )
-}
-
-function InsumosList({ venueId, categories, allProducts, supplyProductIds = [], onRefresh }) {
-  const insumos = [...(allProducts || [])]
-    .filter(p => p.is_ingredient_only || supplyProductIds.includes(p.id))
-    .sort((a, b) => a.name.localeCompare(b.name))
-  const [showForm, setShowForm] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [newStock, setNewStock] = useState('')
-  const [newAlert, setNewAlert] = useState('')
-  const [newCategory, setNewCategory] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [editingId, setEditingId] = useState(null)
-  const [editStock, setEditStock] = useState('')
-  const [editAlert, setEditAlert] = useState('')
-
-  useEffect(() => { if (categories.length && !newCategory) setNewCategory(categories[0]?.id || '') }, [categories])
-
-  async function createInsumo() {
-    if (!newName.trim()) return
-    setSaving(true)
-    await supabaseStaff.from('products').insert({
-      venue_id: venueId,
-      name: newName.trim(),
-      price: 0,
-      is_available: false,
-      is_ingredient_only: true,
-      stock_mode: 'unit',
-      unit_stock: newStock !== '' ? parseInt(newStock, 10) : 0,
-      min_stock_alert: newAlert !== '' ? parseInt(newAlert, 10) : null,
-      category_id: newCategory || categories[0]?.id || null,
-    })
-    setNewName(''); setNewStock(''); setNewAlert('')
-    setSaving(false)
-    setShowForm(false)
-    onRefresh?.()
-  }
-
-  async function adjustStock(id) {
-    await supabaseStaff.from('products').update({
-      unit_stock: parseInt(editStock, 10) || 0,
-      min_stock_alert: editAlert !== '' ? parseInt(editAlert, 10) : null,
-      is_available: (parseInt(editStock, 10) || 0) > 0,
-    }).eq('id', id)
-    setEditingId(null)
-    onRefresh?.()
-  }
-
-  async function deleteInsumo(id) {
-    if (!confirm('¿Eliminar este insumo?')) return
-    await supabaseStaff.from('products').delete().eq('id', id)
-    onRefresh?.()
-  }
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-smoke-400 text-xs font-semibold uppercase tracking-wide">Insumos · {insumos.length}</p>
-        <button onClick={() => setShowForm(v => !v)} className="text-xs bg-ember-500 text-white font-semibold px-3 py-1.5 rounded-lg">
-          + Nuevo insumo
-        </button>
-      </div>
-
-      {showForm && (
-        <div className="bg-carbon-900 border border-carbon-700 rounded-xl p-3 mb-4 space-y-2">
-          <input className="input" placeholder="Nombre (ej: Harina 000)" value={newName} onChange={e => setNewName(e.target.value)} />
-          <select className="input" value={newCategory} onChange={e => setNewCategory(e.target.value)}>
-            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <label className="text-smoke-600 text-[10px] block mb-1">Stock inicial</label>
-              <input className="input text-xs" type="number" min="0" placeholder="0" value={newStock} onChange={e => setNewStock(e.target.value)} />
-            </div>
-            <div className="flex-1">
-              <label className="text-smoke-600 text-[10px] block mb-1">Alerta cuando queden</label>
-              <input className="input text-xs" type="number" min="0" placeholder="Ej: 5" value={newAlert} onChange={e => setNewAlert(e.target.value)} />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => setShowForm(false)} className="flex-1 border border-carbon-700 text-smoke-400 py-2 rounded-xl text-xs">Cancelar</button>
-            <button onClick={createInsumo} disabled={saving || !newName.trim()} className="flex-1 bg-ember-500 text-white font-semibold py-2 rounded-xl text-xs disabled:opacity-50">
-              {saving ? 'Creando...' : 'Crear insumo'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {insumos.length === 0 ? (
-        <p className="text-smoke-600 text-xs italic mt-4">No hay insumos. Creá uno manualmente o la IA los crea automáticamente al sugerir recetas.</p>
-      ) : (
-        <div className="space-y-2">
-          {insumos.map(p => (
-            <div key={p.id} className="bg-carbon-900 border border-carbon-700 rounded-xl p-3 flex items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-smoke-200 text-sm font-medium truncate">{p.name}</p>
-                <p className={`text-[10px] font-semibold ${
-                  p.unit_stock == null ? 'text-smoke-600'
-                  : p.unit_stock === 0 ? 'text-red-400'
-                  : p.min_stock_alert != null && p.unit_stock <= p.min_stock_alert ? 'text-amber-500'
-                  : 'text-smoke-500'
-                }`}>
-                  {p.unit_stock == null ? 'Sin control de stock' : p.unit_stock === 0 ? 'Sin stock' : `${p.unit_stock} u.`}
-                  {p.min_stock_alert != null && ` · alerta ≤ ${p.min_stock_alert}`}
-                </p>
-              </div>
-              {editingId === p.id ? (
-                <div className="flex items-center gap-1.5">
-                  <input autoFocus type="number" min="0" value={editStock} onChange={e => setEditStock(e.target.value)}
-                    placeholder="Stock" className="w-16 bg-carbon-800 border border-carbon-600 text-smoke-200 text-xs px-2 py-1 rounded-lg" />
-                  <input type="number" min="0" value={editAlert} onChange={e => setEditAlert(e.target.value)}
-                    placeholder="Alerta" className="w-16 bg-carbon-800 border border-carbon-600 text-smoke-200 text-xs px-2 py-1 rounded-lg" />
-                  <button onClick={() => adjustStock(p.id)} className="text-xs text-emerald-500 font-semibold">OK</button>
-                  <button onClick={() => setEditingId(null)} className="text-xs text-smoke-500">✕</button>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => { setEditingId(p.id); setEditStock(String(p.unit_stock ?? 0)); setEditAlert(p.min_stock_alert != null ? String(p.min_stock_alert) : '') }}
-                    className="text-[10px] text-amber-500 border border-amber-500/40 px-2 py-1 rounded-lg font-semibold"
-                  >
-                    Ajustar
-                  </button>
-                  <button onClick={() => deleteInsumo(p.id)} className="text-[10px] text-smoke-500 underline">Borrar</button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
