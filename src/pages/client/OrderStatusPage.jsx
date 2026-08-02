@@ -376,7 +376,8 @@ export default function OrderStatusPage() {
         </div>
       )}
 
-      {!isCancelado && order.location_type === 'retiro' && order.status === 'listo' && (
+      {/* El que pidió de afuera para pasar a buscarlo también se lo lleva */}
+      {!isCancelado && ['retiro', 'retiro_externo'].includes(order.location_type) && order.status === 'listo' && (
         <div className="mt-6 bg-emerald-500/10 border border-emerald-500/40 rounded-2xl p-5 text-center">
           <p className="text-emerald-700 font-semibold text-lg">¡Ya podés venir a buscarlo!</p>
           <p className="text-smoke-400 text-xs mt-1 flex items-center justify-center gap-1"><PinIcon size={12} /> {order.location_label}</p>

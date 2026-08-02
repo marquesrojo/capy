@@ -35,7 +35,7 @@ export default function OrderConfirmedPage() {
     async function load() {
       const { data: orderData } = await supabaseCustomer
         .from('orders')
-        .select('id, venue_id, status, location_label, location_type, daily_number, created_by_staff, is_addition, session_id, total, notes, order_items(product_name, quantity, item_notes)')
+        .select('id, venue_id, status, location_label, location_type, daily_number, created_by_staff, is_addition, session_id, total, notes, delivery_address, pickup_time, order_items(product_name, quantity, item_notes)')
         .eq('id', orderId)
         .single()
       setOrder(orderData)
@@ -63,9 +63,14 @@ export default function OrderConfirmedPage() {
   }
 
   const isMostrador = !!order?.created_by_staff
-  const isRetiro = order?.location_type === 'retiro' && !isMostrador
+  // Retiro es tanto el punto de entrega adentro del local como el que pide de
+  // afuera para pasar a buscarlo: los dos se llevan el pedido y los dos
+  // necesitan número. Sin retiro_externo acá, el take away quedaba sin la
+  // pantalla de confirmar por WhatsApp.
+  const isRetiro = ['retiro', 'retiro_externo'].includes(order?.location_type) && !isMostrador
+  const isDelivery = order?.location_type === 'delivery' && !isMostrador
   const isZona = (order?.location_type === 'zona' || order?.location_type === 'mesa') && !isMostrador
-  const needsWhatsapp = (isRetiro || isZona) && venueWhatsapp
+  const needsWhatsapp = (isRetiro || isZona || isDelivery) && venueWhatsapp
 
   if (needsWhatsapp) {
     const ticketNum = order.daily_number ? `#${order.daily_number}` : `#${orderId.slice(0, 4).toUpperCase()}`
@@ -81,7 +86,9 @@ export default function OrderConfirmedPage() {
     const cuerpo = [
       isRetiro
         ? `Hola! Soy ${who}, confirmo mi pedido de retiro ${ticketNum}`
-        : `Hola! Soy ${who}, confirmo mi pedido ${ticketNum} — estoy en ${order.location_label}`,
+        : isDelivery
+          ? `Hola! Soy ${who}, confirmo mi pedido ${ticketNum} para delivery${order.delivery_address ? ` a ${order.delivery_address}` : ''}`
+          : `Hola! Soy ${who}, confirmo mi pedido ${ticketNum} — estoy en ${order.location_label}`,
       detalle ? `\n${detalle}` : '',
       order.notes ? `\nNota: ${order.notes}` : '',
       order.total ? `\nTotal: ${formatPrice(order.total)}` : '',
@@ -123,6 +130,12 @@ export default function OrderConfirmedPage() {
               <h1 className="font-display text-3xl tracking-wide mb-2" style={{ color: accent }}>
                 FALTA VALIDAR
               </h1>
+              {isDelivery && order.delivery_address && (
+                <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-4 mb-4">
+                  <p className="text-smoke-500 text-xs mb-0.5">Enviamos a</p>
+                  <p className="text-smoke-300 text-sm font-semibold">{order.delivery_address}</p>
+                </div>
+              )}
               <p className="text-smoke-300 text-sm mb-8">
                 Para que tu pedido entre en preparación, confirmalo por WhatsApp. Es rápido.
               </p>
