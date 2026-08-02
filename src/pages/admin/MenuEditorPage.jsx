@@ -1231,10 +1231,31 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
   const [imageCount, setImageCount] = useState(1)
   const [detected, setDetected] = useState([])
   const [error, setError] = useState('')
-  // Un menú de precio fijo se escanea igual, pero sus platos no valen lo que
-  // dice la foto: vale el menú entero. Entran sin precio y solo para cartas.
-  const [paraCarta, setParaCarta] = useState(false)
+  // A dónde va lo que se escanea. 'general' es la carta del local; cualquier
+  // otra cosa es una carta aparte, y entonces los productos entran marcados
+  // Solo carta: existen ahí adentro y en ningún otro lado.
+  const [destino, setDestino] = useState('general') // 'general' | 'nueva' | <menuId>
+  const [cartas, setCartas] = useState([])
+  const [nuevaCarta, setNuevaCarta] = useState({ name: '', kind: 'libre', price: '' })
   const fileRef = useRef(null)
+
+  // Las cartas ya hechas, para poder mandar el escaneo a una de ellas
+  useEffect(() => {
+    if (step !== 'review' || !venueId) return
+    supabaseStaff
+      .from('venue_menus')
+      .select('id, name, kind')
+      .eq('venue_id', venueId)
+      .order('sort_order')
+      .then(({ data }) => setCartas(data || []))
+  }, [step, venueId])
+
+  // En una carta de precio fijo el plato no tiene precio propio, así que la
+  // columna de precios de la revisión no tiene sentido
+  const destinoKind = destino === 'nueva'
+    ? nuevaCarta.kind
+    : destino === 'general' ? null : cartas.find(c => c.id === destino)?.kind
+  const sinPrecio = destinoKind === 'fijo'
 
   function pickMode(selectedMode) {
     if (!unlimited && selectedMode === 'rich' && getUnsplashCount(venueId) >= UNSPLASH_DAILY_LIMIT) {
@@ -1348,8 +1369,42 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
 
   async function handleSave() {
     if (!venueId) return
-    setStep('saving')
+    setError('')
     const toImport = detected.filter(i => i.selected && i.name.trim())
+
+    // Resolver la carta destino antes de tocar nada: si falta el nombre o el
+    // precio, mejor decirlo ahora que después de haber creado los productos
+    let menu = null
+    if (destino === 'nueva') {
+      if (!nuevaCarta.name.trim()) { setError('Poné el nombre de la carta nueva.'); return }
+      const price = nuevaCarta.kind === 'fijo' ? parseFloat(nuevaCarta.price) : null
+      if (nuevaCarta.kind === 'fijo' && (!price || isNaN(price) || price <= 0)) {
+        setError('Una carta de precio fijo necesita su precio.')
+        return
+      }
+      setStep('saving')
+      const { data: creada, error: menuError } = await supabaseStaff
+        .from('venue_menus')
+        .insert({
+          venue_id: venueId,
+          name: nuevaCarta.name.trim(),
+          kind: nuevaCarta.kind,
+          price,
+          sort_order: cartas.length,
+        })
+        .select('id, name, kind')
+        .single()
+      if (menuError || !creada) {
+        setError(menuError?.message || 'No se pudo crear la carta.')
+        setStep('review')
+        return
+      }
+      menu = creada
+    } else if (destino !== 'general') {
+      menu = cartas.find(c => c.id === destino) || null
+    }
+
+    setStep('saving')
     const catNames = [...new Set(toImport.map(i => i.category || 'General'))]
     const catMap = {}
     for (const catName of catNames) {
@@ -1363,24 +1418,37 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
         catMap[catName] = newCat?.id
       }
     }
-    await supabaseStaff.from('products').insert(
+    // En una carta de precio fijo los platos no valen lo que dice la foto:
+    // vale el menú entero, y la IA repitió ese precio en cada uno. Sin precio
+    // propio es más fiel que un precio inventado.
+    const guardarSinPrecio = menu?.kind === 'fijo'
+    const { data: creados } = await supabaseStaff.from('products').insert(
       toImport.map(i => ({
         venue_id: venueId,
         name: i.name.trim(),
-        // Una foto de menú ejecutivo no trae precios por plato, así que la IA
-        // repite el precio del menú en los quince. Sin precio propio es más
-        // fiel que un precio inventado.
-        price: paraCarta ? 0 : (parseFloat(i.price) || 0),
-        in_main_menu: !paraCarta,
+        price: guardarSinPrecio ? 0 : (parseFloat(i.price) || 0),
+        in_main_menu: !menu,
         category_id: catMap[i.category || 'General'],
         description: i.description?.trim() || null,
         image_url: i.image_url || null,
         is_available: true
       }))
-    )
+    ).select('id')
+
+    // Una carta libre se recorre producto por producto, así que se puede dejar
+    // armada acá mismo. Una de precio fijo se arma por pasos, y esos pasos los
+    // decide el dueño: los productos quedan listos para engancharlos en Cartas.
+    if (menu?.kind === 'libre' && creados?.length) {
+      await supabaseStaff.from('venue_menu_products').insert(
+        creados.map(p => ({ menu_id: menu.id, product_id: p.id }))
+      )
+    }
+
     onImported()
     setStep('idle')
-    setDetected([]); setParaCarta(false)
+    setDetected([])
+    setDestino('general')
+    setNuevaCarta({ name: '', kind: 'libre', price: '' })
     setPreview(null)
   }
 
@@ -1410,27 +1478,74 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
           </p>
           <p className="text-smoke-500 text-xs mb-3">Revisá y editá antes de importar</p>
 
-          {/* Menú ejecutivo, de jugadores: la foto tiene un solo precio para
-              todo, así que la IA lo repite en cada plato */}
-          <label className={`flex items-start gap-2.5 rounded-xl border p-3 mb-3 cursor-pointer transition-colors ${
-            paraCarta ? 'border-violet-500/50 bg-violet-500/10' : 'border-carbon-700 bg-carbon-800'
-          }`}>
-            <input
-              type="checkbox"
-              checked={paraCarta}
-              onChange={e => setParaCarta(e.target.checked)}
-              className="mt-0.5 accent-violet-500 flex-shrink-0"
-            />
-            <span className="min-w-0">
-              <span className="block text-smoke-300 text-xs font-semibold">
-                Es un menú de precio fijo
-              </span>
-              <span className="block text-smoke-500 text-[11px] leading-snug mt-0.5">
-                Entran sin precio y marcados <span className="text-violet-400">Solo carta</span>: el
-                precio lo pone la carta, no el plato. Después los agregás a los pasos en Cartas.
-              </span>
-            </span>
-          </label>
+          {/* Una foto puede ser la carta del local o una carta aparte —el menú
+              ejecutivo, el de jugadores—. Preguntarlo acá evita cargar todo a
+              la general y después tener que mover producto por producto. */}
+          <div className="rounded-xl border border-carbon-700 bg-carbon-800 p-3 mb-3">
+            <p className="text-smoke-300 text-xs font-semibold mb-2">¿A qué carta van?</p>
+            <select
+              value={destino}
+              onChange={e => setDestino(e.target.value)}
+              className="w-full bg-carbon-900 border border-carbon-700 rounded-lg px-3 py-2 text-smoke-200 text-xs focus:outline-none focus:border-ember-500"
+            >
+              <option value="general">A la carta del local</option>
+              {cartas.map(c => (
+                <option key={c.id} value={c.id}>
+                  A "{c.name}"{c.kind === 'fijo' ? ' (precio fijo)' : ''}
+                </option>
+              ))}
+              <option value="nueva">A una carta nueva…</option>
+            </select>
+
+            {destino === 'nueva' && (
+              <div className="mt-2.5 space-y-2">
+                <input
+                  type="text"
+                  value={nuevaCarta.name}
+                  onChange={e => setNuevaCarta(v => ({ ...v, name: e.target.value }))}
+                  placeholder="Nombre de la carta — ej: Menú ejecutivo"
+                  className="w-full bg-carbon-900 border border-carbon-700 rounded-lg px-3 py-2 text-smoke-200 text-xs focus:outline-none focus:border-ember-500"
+                />
+                <div className="flex gap-2">
+                  {[
+                    { id: 'libre', label: 'Cada uno con su precio' },
+                    { id: 'fijo', label: 'Un precio para todo' },
+                  ].map(o => (
+                    <button
+                      key={o.id}
+                      onClick={() => setNuevaCarta(v => ({ ...v, kind: o.id }))}
+                      className={`flex-1 py-2 px-2 rounded-lg border text-[11px] font-semibold leading-tight ${
+                        nuevaCarta.kind === o.id
+                          ? 'border-violet-500/60 bg-violet-500/10 text-violet-300'
+                          : 'border-carbon-700 text-smoke-500'
+                      }`}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+                {nuevaCarta.kind === 'fijo' && (
+                  <input
+                    type="number"
+                    value={nuevaCarta.price}
+                    onChange={e => setNuevaCarta(v => ({ ...v, price: e.target.value }))}
+                    placeholder="Precio del menú completo"
+                    className="w-full bg-carbon-900 border border-carbon-700 rounded-lg px-3 py-2 text-smoke-200 text-xs focus:outline-none focus:border-ember-500"
+                  />
+                )}
+              </div>
+            )}
+
+            {destino !== 'general' && (
+              <p className="text-smoke-500 text-[11px] leading-snug mt-2.5">
+                Entran marcados <span className="text-violet-400">Solo carta</span>: no se ven en la
+                carta del local ni en el buscador.{' '}
+                {sinPrecio
+                  ? 'Como el precio lo pone la carta, entran sin precio propio; los pasos los armás en Cartas.'
+                  : 'Quedan enganchados a la carta, listos para pedir.'}
+              </p>
+            )}
+          </div>
 
           <div className="space-y-2 max-h-72 overflow-y-auto">
             {detected.map((item, i) => (
@@ -1463,7 +1578,7 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
                       />
                     )}
                   </div>
-                  {paraCarta ? (
+                  {sinPrecio ? (
                     <span className="w-20 text-[10px] text-smoke-600 text-right flex-shrink-0 leading-tight">
                       sin precio
                     </span>
@@ -1481,7 +1596,7 @@ function ImportarConIA({ venueId, onImported, unlimited = false }) {
           </div>
           <div className="flex gap-2 mt-4">
             <button
-              onClick={() => { setStep('idle'); setDetected([]); setPreview(null); setParaCarta(false) }}
+              onClick={() => { setStep('idle'); setDetected([]); setPreview(null); setDestino('general') }}
               className="flex-1 border border-carbon-700 text-smoke-400 text-sm py-2.5 rounded-xl"
             >
               Cancelar
