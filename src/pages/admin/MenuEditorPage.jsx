@@ -1571,9 +1571,7 @@ function ImportarConIA({ venueId, onImported, unlimited = false, isPro = true, p
                     <p className="font-semibold text-smoke-300 text-sm">Importar con fotos y descripciones</p>
                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-ember-500/20 text-ember-400 leading-none flex-shrink-0">PRO</span>
                   </div>
-                  <p className="text-smoke-500 text-xs">
-                    {bloqueado ? 'Disponible en el plan Pro' : 'Suma descripción e imagen desde Unsplash'}
-                  </p>
+                  {bloqueado && <p className="text-smoke-500 text-xs">Disponible en el plan Pro</p>}
                 </div>
                 {bloqueado && (
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-smoke-600 flex-shrink-0">
@@ -1586,7 +1584,6 @@ function ImportarConIA({ venueId, onImported, unlimited = false, isPro = true, p
         </>
       )}
 
-          <p className="text-smoke-600 text-[10px] text-center">Podés seleccionar varias fotos a la vez</p>
 
       {error && <p className="text-red-500 text-xs text-center">{error}</p>}
     </div>
