@@ -15,6 +15,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
   const [menus, setMenus] = useState([])
   const [activeMenuId, setActiveMenuId] = useState('all') // 'all' o menu_id
   const [activeCategory, setActiveCategory] = useState(null)
+  const [showCategorySheet, setShowCategorySheet] = useState(false)
   // Cartas del local (venue_menus), distintas de las propias del camarero
   const [venueMenus, setVenueMenus] = useState([])
   const [activeVenueMenuId, setActiveVenueMenuId] = useState(null)
@@ -142,7 +143,8 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
     setPaymentMethods(payMethodsRes.data || [])
     setVenueWhatsapp(venueRes.data?.whatsapp_number || null)
     setStackDiscounts(!!venueRes.data?.stack_discounts)
-    if (resetCategory && catRes.data?.length) setActiveCategory(catRes.data[0].id)
+    // Arranca en "todas": la carta entera a la vista, como del lado del cliente
+    if (resetCategory) setActiveCategory(null)
   }
 
   async function loadCarta() {
@@ -441,9 +443,15 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
       })()
     : orderableProducts
 
+  // Sin categoría elegida se ve la carta entera, rubro por rubro: es el estado
+  // inicial, igual que del lado del cliente. Elegir una es recortar.
   const visibleProducts = cartaProducts
-    .filter(p => p.category_id === activeCategory)
+    .filter(p => !activeCategory || p.category_id === activeCategory)
     .sort((a, b) => (b.is_daily_special ? 1 : 0) - (a.is_daily_special ? 1 : 0))
+
+  // Las que tienen algo para mostrar en esta carta: una pestaña vacía no sirve
+  const shownCategories = filteredCategories.filter(c => cartaProducts.some(p => p.category_id === c.id))
+  const sinCategoria = cartaProducts.filter(p => !shownCategories.some(c => c.id === p.category_id))
 
   const categoryMap = Object.fromEntries(categories.map(c => [c.id, c.name]))
   const q = searchQuery.trim().toLowerCase()
@@ -958,7 +966,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
             <button
-              onClick={() => { setActiveMenuId('all'); setActiveCategory(categories[0]?.id || null) }}
+              onClick={() => { setActiveMenuId('all'); setActiveCategory(null) }}
               className={`whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold border ${
                 activeMenuId === 'all' ? 'bg-[#008080] text-white border-[#008080]' : 'bg-white border-black/10 text-[#3A4A5A]'
               }`}
@@ -969,8 +977,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
               <button
                 onClick={() => {
                   setActiveMenuId(null)
-                  const first = categories.find(c => !c.menu_id)
-                  setActiveCategory(first?.id || null)
+                  setActiveCategory(null)
                 }}
                 className={`whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold border ${
                   activeMenuId === null ? 'bg-[#008080] text-white border-[#008080]' : 'bg-white border-black/10 text-[#3A4A5A]'
@@ -984,8 +991,7 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
                 key={m.id}
                 onClick={() => {
                   setActiveMenuId(m.id)
-                  const first = categories.find(c => c.menu_id === m.id)
-                  setActiveCategory(first?.id || null)
+                  setActiveCategory(null)
                 }}
                 className={`whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold border ${
                   activeMenuId === m.id ? 'bg-[#008080] text-white border-[#008080]' : 'bg-white border-black/10 text-[#3A4A5A]'
@@ -1175,11 +1181,26 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
         </div>
       )}
 
-      {/* Ubicación */}
-      <div className="flex-shrink-0 px-4 pt-1 pb-2">
+      {/* Categoría + Ubicación */}
+      <div className="flex-shrink-0 px-4 pt-1 pb-2 flex gap-2">
+        <button
+          onClick={() => setShowCategorySheet(true)}
+          className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-colors ${
+            activeCategory
+              ? 'bg-[#008080] text-white border-[#008080]'
+              : 'bg-white text-[#3A4A5A] border-black/10'
+          }`}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="9" y1="18" x2="15" y2="18"/>
+          </svg>
+          <span className="truncate">
+            {categories.find(c => c.id === activeCategory)?.name || 'Todas las categorías'}
+          </span>
+        </button>
         <button
           onClick={() => setShowLocationSheet(true)}
-          className={`w-full flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-colors min-w-0 ${
+          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-colors min-w-0 ${
             locationLabel
               ? 'bg-[#008080] text-white border-[#008080]'
               : 'bg-white text-[#3A4A5A] border-black/10'
@@ -1190,23 +1211,40 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
         </button>
       </div>
 
-      {/* Categorías a la vista: el camarero está apurado y con el nombre del
-          rubro delante encuentra antes que abriendo un panel para elegir */}
-      {filteredCategories.length > 0 && (
-        <div className="flex-shrink-0 flex gap-2 overflow-x-auto px-4 pb-2">
-          {filteredCategories.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border flex-shrink-0 transition-colors ${
-                activeCategory === cat.id
-                  ? 'bg-[#008080] text-white border-[#008080]'
-                  : 'bg-white border-black/10 text-[#3A4A5A]'
-              }`}
-            >
-              {cat.name}
-            </button>
-          ))}
+      {/* Bottom sheet de categorías */}
+      {showCategorySheet && (
+        <div className="fixed inset-0 z-40 flex flex-col justify-end" onClick={() => setShowCategorySheet(false)}>
+          <div className="absolute inset-0 bg-black/40" />
+          <div className="relative bg-white rounded-t-3xl px-4 pt-4 pb-8 z-10 max-h-[75vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-[#D0D9E0] rounded-full mx-auto mb-4" />
+            <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">Categorías</p>
+            <div className="grid grid-cols-3 gap-2">
+              {/* Primera y por defecto: la carta entera, rubro por rubro */}
+              <button
+                onClick={() => { setActiveCategory(null); setShowCategorySheet(false) }}
+                className={`py-3 px-2 rounded-xl border-2 text-center text-xs font-semibold leading-tight transition-all ${
+                  !activeCategory
+                    ? 'border-[#008080] bg-[#008080]/5 text-[#005f5f]'
+                    : 'border-[#E4EBF0] text-[#3A4A5A]'
+                }`}
+              >
+                Todas las categorías
+              </button>
+              {shownCategories.map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => { setActiveCategory(cat.id); setShowCategorySheet(false) }}
+                  className={`py-3 px-2 rounded-xl border-2 text-center text-xs font-semibold leading-tight transition-all ${
+                    activeCategory === cat.id
+                      ? 'border-[#008080] bg-[#008080]/5 text-[#005f5f]'
+                      : 'border-[#E4EBF0] text-[#3A4A5A]'
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -1320,28 +1358,29 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
           )}
         </div>
       ) : (
-        /* Lista de productos con categoría activa */
+        /* Lista de productos. Sin categoría elegida va la carta entera con el
+           nombre del rubro como separador; con una elegida, solo esa. */
         <div className="flex-1 overflow-y-auto pt-1 pb-4 px-4 space-y-2">
-          {visibleProducts.map(product => {
-            const item = cart[product.id]
-            const qty = item?.qty || 0
-            return (
-              <div key={product.id} className={`bg-white rounded-xl px-3 py-3 flex items-center justify-between border shadow-sm ${product.is_daily_special ? 'border-amber-300 bg-amber-50' : 'border-black/5'}`}>
-                <div className="flex-1 min-w-0 pr-3">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-sm font-semibold text-[#1A2A3A] leading-snug">{product.name}</p>
-                    {product.is_daily_special && <span className="text-[10px] font-bold bg-amber-400 text-white px-1.5 py-0.5 rounded-full leading-none">HOY</span>}
-                  </div>
-                  <p className="text-xs text-[#008080] font-semibold mt-0.5">{formatPrice(product.price)}</p>
+          {activeCategory ? (
+            visibleProducts.map(product => <ProductRow key={product.id} product={product} cart={cart} changeQty={changeQty} />)
+          ) : (
+            <>
+              {shownCategories.map(cat => (
+                <div key={cat.id} className="space-y-2">
+                  <p className="text-[#8896A5] text-[11px] font-bold uppercase tracking-wide pt-2">{cat.name}</p>
+                  {visibleProducts
+                    .filter(p => p.category_id === cat.id)
+                    .map(product => <ProductRow key={product.id} product={product} cart={cart} changeQty={changeQty} />)}
                 </div>
-                <div className="flex items-center gap-2.5 flex-shrink-0">
-                  <button onClick={() => changeQty(product.id, -1)} className="w-11 h-11 rounded-xl border border-black/10 bg-[#F8FAFC] text-[#3A4A5A] font-bold text-lg flex items-center justify-center">−</button>
-                  <span className="font-bold text-[#1A2A3A] text-base w-6 text-center">{qty}</span>
-                  <button onClick={() => changeQty(product.id, 1)} className="w-11 h-11 rounded-xl bg-[#4DD0E1] text-white font-bold text-lg flex items-center justify-center">+</button>
+              ))}
+              {sinCategoria.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[#8896A5] text-[11px] font-bold uppercase tracking-wide pt-2">Otros</p>
+                  {sinCategoria.map(product => <ProductRow key={product.id} product={product} cart={cart} changeQty={changeQty} />)}
                 </div>
-              </div>
-            )
-          })}
+              )}
+            </>
+          )}
           <NuevoProductoInline venueId={activeVenueId} categoryId={activeCategory || categories[0]?.id} onAdded={loadCarta} />
         </div>
       )}
@@ -1365,6 +1404,26 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
         </div>
       )}
 
+    </div>
+  )
+}
+
+function ProductRow({ product, cart, changeQty }) {
+  const qty = cart[product.id]?.qty || 0
+  return (
+    <div className={`bg-white rounded-xl px-3 py-3 flex items-center justify-between border shadow-sm ${product.is_daily_special ? 'border-amber-300 bg-amber-50' : 'border-black/5'}`}>
+      <div className="flex-1 min-w-0 pr-3">
+        <div className="flex items-center gap-1.5">
+          <p className="text-sm font-semibold text-[#1A2A3A] leading-snug">{product.name}</p>
+          {product.is_daily_special && <span className="text-[10px] font-bold bg-amber-400 text-white px-1.5 py-0.5 rounded-full leading-none">HOY</span>}
+        </div>
+        <p className="text-xs text-[#008080] font-semibold mt-0.5">{formatPrice(product.price)}</p>
+      </div>
+      <div className="flex items-center gap-2.5 flex-shrink-0">
+        <button onClick={() => changeQty(product.id, -1)} className="w-11 h-11 rounded-xl border border-black/10 bg-[#F8FAFC] text-[#3A4A5A] font-bold text-lg flex items-center justify-center">−</button>
+        <span className="font-bold text-[#1A2A3A] text-base w-6 text-center">{qty}</span>
+        <button onClick={() => changeQty(product.id, 1)} className="w-11 h-11 rounded-xl bg-[#4DD0E1] text-white font-bold text-lg flex items-center justify-center">+</button>
+      </div>
     </div>
   )
 }
