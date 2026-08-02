@@ -47,7 +47,7 @@ export default function BillRequest({ order, onUpdated, venueColor = '#002F6C' }
     if (isTransfer && !order.payment_proof_url) {
       return <UploadProof order={order} onUpdated={onUpdated} />
     }
-    const isPickup = order.location_type === 'retiro'
+    const isPickup = ['retiro', 'retiro_externo'].includes(order.location_type)
     return (
       <div className="mt-6 bg-carbon-900 border border-carbon-700 rounded-2xl p-5 text-center">
         <p className="text-smoke-300">
