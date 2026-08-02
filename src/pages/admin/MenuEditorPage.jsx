@@ -1538,9 +1538,9 @@ function ImportarConIA({ venueId, onImported, unlimited = false, isPro = true, p
                 <polyline points="10 9 9 9 8 9"/>
               </svg>
             </div>
-            <div>
-              <p className="font-semibold text-smoke-300 text-sm">Importar productos</p>
-              <p className="text-smoke-500 text-xs">Nombre, precio y categoría</p>
+            <div className="min-w-0">
+              <p className="font-semibold text-smoke-300 text-sm leading-snug">Importar carta simple con una imagen</p>
+              <p className="text-smoke-500 text-xs mt-0.5">Nombre, precio y categoría</p>
             </div>
           </button>
 
@@ -1568,7 +1568,7 @@ function ImportarConIA({ venueId, onImported, unlimited = false, isPro = true, p
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="font-semibold text-smoke-300 text-sm">Importar con fotos y descripciones</p>
+                    <p className="font-semibold text-smoke-300 text-sm leading-snug">Importar carta con notas y agregarle imágenes con IA</p>
                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-ember-500/20 text-ember-400 leading-none flex-shrink-0">PRO</span>
                   </div>
                   {bloqueado && <p className="text-smoke-500 text-xs">Disponible en el plan Pro</p>}
