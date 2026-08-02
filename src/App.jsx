@@ -399,7 +399,10 @@ export default function App() {
               <Route path="/cliente/callback" element={<ClientAuthCallbackPage />} />
               <Route path="/ver-pedido/:id" element={<PublicOrderPage />} />
               <Route path="/ver-cuenta/:sessionId" element={<PublicAccountPage />} />
-              <Route path="/display/:venueId" element={<DisplayPage />} />
+              {/* La misma pantalla por slug o por id: /pantalla/mi-local se
+                  tipea en el control remoto de una tele, un uuid no. */}
+              <Route path="/pantalla/:ref" element={<DisplayPage />} />
+              <Route path="/display/:ref" element={<DisplayPage />} />
               <Route path="/camareroa" element={<CamautLandingPage />} />
               <Route path="/camareroa/registro" element={<CamautRegisterPage />} />
               <Route path="/camareroa/login" element={<CamautLoginPage />} />
