@@ -1827,7 +1827,7 @@ Respondé ÚNICAMENTE con el término de búsqueda, sin texto extra.`
           </svg>
         </div>
         <div>
-          <p className="font-semibold text-smoke-300 text-sm">Generar fotos con IA</p>
+          <p className="font-semibold text-smoke-300 text-sm">Incorporar imágenes a la carta con IA</p>
           <p className="text-smoke-500 text-xs">
             {noPhoto.length} productos sin foto
             {!unlimited && ` · ${dailyRemaining} diarias${extraCredits > 0 ? ` + ${extraCredits} extra` : ''}`}
@@ -1927,7 +1927,7 @@ Respondé ÚNICAMENTE con el término de búsqueda, sin texto extra.`
   return (
     <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5 mb-4 space-y-4">
       <div>
-        <p className="font-semibold text-smoke-300 text-sm mb-1">Generar fotos con IA</p>
+        <p className="font-semibold text-smoke-300 text-sm mb-1">Incorporar imágenes a la carta con IA</p>
         <p className="text-smoke-500 text-xs">Busca fotos en Unsplash para los productos sin imagen, usando IA para encontrar la foto correcta.</p>
       </div>
       <div className="flex gap-3 text-center">
@@ -1978,7 +1978,7 @@ Respondé ÚNICAMENTE con el término de búsqueda, sin texto extra.`
           disabled={effectiveBatch === 0}
           className="flex-1 bg-ember-500 hover:bg-ember-600 disabled:opacity-50 text-white font-semibold text-sm py-2.5 rounded-xl"
         >
-          Generar fotos
+          Incorporar imágenes
         </button>
       </div>
       {!unlimited && <BuyMoreCreditsRow venueId={venueId} price={photoPackPrice} />}
