@@ -591,73 +591,6 @@ export default function IdentifyPage() {
             </button>
           )}
 
-          {retiro.length > 0 && (
-            <button
-              onClick={() => {
-                const abriendo = !(showZonePicker && pickerMode === 'retiro')
-                setShowZonePicker(abriendo)
-                setPickerMode(abriendo ? 'retiro' : null)
-              }}
-              className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl shadow-md border active:scale-[0.98] transition-transform bg-white"
-              style={{ borderColor: `${selfColor}30` }}
-            >
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: `${accentOnWhite}15` }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={accentOnWhite} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M8 10V8a4 4 0 0 1 8 0v2" /><rect x="5" y="10" width="14" height="10" rx="2" />
-                </svg>
-              </div>
-              <div className="flex-1 text-left">
-                <p className="font-black text-sm leading-tight" style={{ color: accentOnWhite }}>Estoy acá, pero no en una mesa</p>
-                <p className="text-[#9DAAB8] text-xs mt-0.5">Lo pasás a buscar por un punto de entrega</p>
-              </div>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={accentOnWhite} strokeWidth="2.5" strokeOpacity="0.5"
-                className={`transition-transform duration-200 ${showZonePicker && pickerMode === 'retiro' ? 'rotate-90' : ''}`}>
-                <polyline points="9 18 15 12 9 6"/>
-              </svg>
-            </button>
-          )}
-
-          {/* Paso 2b: puntos de retiro */}
-          {showZonePicker && !ordersPaused && pickerMode === 'retiro' && (
-            <div className="mt-2 bg-white rounded-2xl border border-black/[0.06] p-4 shadow-sm">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA]">¿Dónde lo retirás?</p>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {retiro.map(zone => (
-                  <button
-                    key={zone.id}
-                    onClick={() => pickMesa(zone)}
-                    className="rounded-xl py-3 text-xs font-bold text-center border-2 transition-all"
-                    style={{ backgroundColor: '#F0F4F8', borderColor: accentOnWhite, color: accentOnWhite }}
-                  >
-                    {zone.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Pausado: abrir el selector y elegir una mesa termina en un
-              checkout que no se puede confirmar, así que se corta acá */}
-          {showZonePicker && ordersPaused && (
-            <div className="mt-2 bg-red-50 border border-red-200 rounded-2xl p-4 text-center">
-              <p className="text-red-800 text-sm font-bold leading-snug">
-                No se pueden hacer pedidos en este momento
-              </p>
-              <p className="text-red-700 text-sm mt-1 leading-snug">
-                {pauseMessage || 'Podés mirar la carta y hacer tu pedido con un camarero/a.'}
-              </p>
-              <button
-                onClick={() => navigate(cartaPath)}
-                className="mt-3 bg-red-600 text-white text-sm font-bold px-6 py-2.5 rounded-xl active:scale-95 transition-transform"
-              >
-                Ver carta
-              </button>
-            </div>
-          )}
-
           {/* Paso 2a: mesas */}
           {showZonePicker && !ordersPaused && pickerMode === 'mesa' && (
             <div className="mt-2 bg-white rounded-2xl border border-black/[0.06] p-4 shadow-sm">
@@ -829,6 +762,72 @@ export default function IdentifyPage() {
               </>)}
             </div>
           )}
+          {retiro.length > 0 && (
+            <button
+              onClick={() => {
+                const abriendo = !(showZonePicker && pickerMode === 'retiro')
+                setShowZonePicker(abriendo)
+                setPickerMode(abriendo ? 'retiro' : null)
+              }}
+              className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl shadow-md border active:scale-[0.98] transition-transform bg-white"
+              style={{ borderColor: `${selfColor}30` }}
+            >
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: `${accentOnWhite}15` }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={accentOnWhite} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 10V8a4 4 0 0 1 8 0v2" /><rect x="5" y="10" width="14" height="10" rx="2" />
+                </svg>
+              </div>
+              <div className="flex-1 text-left">
+                <p className="font-black text-sm leading-tight" style={{ color: accentOnWhite }}>Retiro en un punto de entrega</p>
+                <p className="text-[#9DAAB8] text-xs mt-0.5">Estás en el local, pero no en una mesa</p>
+              </div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={accentOnWhite} strokeWidth="2.5" strokeOpacity="0.5"
+                className={`transition-transform duration-200 ${showZonePicker && pickerMode === 'retiro' ? 'rotate-90' : ''}`}>
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </button>
+          )}
+
+          {/* Paso 2b: puntos de retiro */}
+          {showZonePicker && !ordersPaused && pickerMode === 'retiro' && (
+            <div className="mt-2 bg-white rounded-2xl border border-black/[0.06] p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA]">¿Dónde lo retirás?</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {retiro.map(zone => (
+                  <button
+                    key={zone.id}
+                    onClick={() => pickMesa(zone)}
+                    className="rounded-xl py-3 text-xs font-bold text-center border-2 transition-all"
+                    style={{ backgroundColor: '#F0F4F8', borderColor: accentOnWhite, color: accentOnWhite }}
+                  >
+                    {zone.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Pausado: abrir el selector y elegir una mesa termina en un
+              checkout que no se puede confirmar, así que se corta acá */}
+          {showZonePicker && ordersPaused && (
+            <div className="mt-2 bg-red-50 border border-red-200 rounded-2xl p-4 text-center">
+              <p className="text-red-800 text-sm font-bold leading-snug">
+                No se pueden hacer pedidos en este momento
+              </p>
+              <p className="text-red-700 text-sm mt-1 leading-snug">
+                {pauseMessage || 'Podés mirar la carta y hacer tu pedido con un camarero/a.'}
+              </p>
+              <button
+                onClick={() => navigate(cartaPath)}
+                className="mt-3 bg-red-600 text-white text-sm font-bold px-6 py-2.5 rounded-xl active:scale-95 transition-transform"
+              >
+                Ver carta
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -875,7 +874,21 @@ export default function IdentifyPage() {
           <div className="pt-1">
             {!showExternalOptions ? (
               <button
-                onClick={() => setShowExternalOptions(true)}
+                onClick={() => {
+                  // Con una sola forma habilitada, el botón ya dice cuál es:
+                  // abrir un panel para elegir la única opción es un toque de más
+                  if (retiroExternoEnabled && !deliveryEnabled) {
+                    setLocation({ type: 'retiro_externo', label: 'Retiro en local' })
+                    navigate(cartaPath)
+                    return
+                  }
+                  if (deliveryEnabled && !retiroExternoEnabled) {
+                    setLocation({ type: 'delivery', label: 'Delivery' })
+                    navigate(cartaPath)
+                    return
+                  }
+                  setShowExternalOptions(true)
+                }}
                 className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl bg-white border border-black/[0.06] shadow-sm active:scale-[0.98] transition-transform text-left"
               >
                 <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${accentOnWhite}15` }}>
@@ -884,8 +897,16 @@ export default function IdentifyPage() {
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <p className="font-black text-sm leading-tight text-[#1A2332]">No estoy en el local</p>
-                  <p className="text-[#9DAAB8] text-xs mt-0.5">Pasás a buscarlo o te lo llevamos</p>
+                  <p className="font-black text-sm leading-tight text-[#1A2332]">
+                    {retiroExternoEnabled && deliveryEnabled
+                      ? 'No estoy en el local'
+                      : deliveryEnabled ? 'Quiero delivery' : 'Paso a buscarlo'}
+                  </p>
+                  <p className="text-[#9DAAB8] text-xs mt-0.5">
+                    {retiroExternoEnabled && deliveryEnabled
+                      ? 'Pasás a buscarlo o te lo llevamos'
+                      : deliveryEnabled ? 'Te lo llevamos a tu dirección' : 'Lo preparamos y lo retirás en el local'}
+                  </p>
                 </div>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9DAAB8" strokeWidth="2.5">
                   <polyline points="9 18 15 12 9 6"/>
