@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useClientBase, useVenueOptional } from '../hooks/useVenue'
 import { useCart } from '../hooks/useCart'
+import { useCustomer } from '../hooks/useCustomer'
 import { supabaseCustomer, ACTIVE_VENUE_ID } from '../lib/supabase'
 import VoiceOrderPanel from './VoiceOrderPanel'
 import RecommendModal from './RecommendModal'
@@ -30,11 +31,12 @@ function zoneShort(name) {
   return name.slice(0, 2).toUpperCase()
 }
 
-export default function BottomNav() {
+export default function BottomNav({ onHome = false }) {
   const base = useClientBase()
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const { itemCount, location: cartLocation, addItem } = useCart()
+  const { isAnonymous } = useCustomer()
   const venueCtx = useVenueOptional()
   const venue = venueCtx?.venue
   // Dentro de /r/:slug el local lo manda la ruta; mientras se resuelve el slug
@@ -158,8 +160,10 @@ export default function BottomNav() {
         style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' }}
       >
         {/* Carta */}
+        {/* Sin ubicación todavía no hay pedido posible: se entra a mirar, que
+            es lo mismo que ofrece "Ver cartas". Con ubicación, la carta normal. */}
         <NavLink
-          to={`${base}/carta`}
+          to={cartLocation ? `${base}/carta` : `${base}/carta?ver=1`}
           className="flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold tracking-wide transition-colors rounded-l-[1.75rem]"
           style={({ isActive }) => ({ color: isActive ? selfColor : '#9DAAB8' })}
         >
@@ -190,8 +194,10 @@ export default function BottomNav() {
         {/* Pedí hablando — destacado, es lo nuevo y hay que encontrarlo.
             Con los pedidos pausados vuelve el botón de atención: no hay nada
             que dictar, pero sí a quién llamar. */}
+        {/* En pausa el central pasa a llamar al camarero, salvo en la home:
+            ahí todavía no hay mesa desde donde llamar y el botón no sirve */}
         {ordersPaused ? (
-          !venue?.takeaway_only && (
+          !venue?.takeaway_only && !onHome && (
             <button
               onClick={openWaiter}
               className="flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold tracking-wide"
@@ -230,10 +236,20 @@ export default function BottomNav() {
           className="flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-bold tracking-wide transition-colors rounded-r-[1.75rem]"
           style={{ color: isOnCuenta ? selfColor : '#9DAAB8' }}
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="8" r="4"/>
-            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
-          </svg>
+          {/* El punto dice que hay sesión: sin el avatar del header, es lo
+              único que lo cuenta de un vistazo */}
+          <span className="relative">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="8" r="4"/>
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+            </svg>
+            {!isAnonymous && (
+              <span
+                className="absolute -top-0.5 -right-1 w-2 h-2 rounded-full border border-white"
+                style={{ backgroundColor: selfColor }}
+              />
+            )}
+          </span>
           CUENTA
         </button>
       </nav>
@@ -254,6 +270,7 @@ export default function BottomNav() {
           activeCartaId={voiceCartaId}
           cartaProductIds={voiceProductIds}
           onCartaChange={setVoiceCartaId}
+          scopeNote={cartLocation ? null : 'Sin mesa elegida: pedimos para retirar'}
           onRecommend={() => { setShowVoice(false); setShowRecommend(true) }}
           onWaiter={venue?.takeaway_only ? null : () => { setShowVoice(false); openWaiter() }}
           onClose={() => setShowVoice(false)}

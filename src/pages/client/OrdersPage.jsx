@@ -6,6 +6,7 @@ import { useVenueOptional } from '../../hooks/useVenue'
 import { formatPrice, STATUS_LABELS, STATUS_COLORS } from '../../lib/utils'
 import BottomNav from '../../components/BottomNav'
 import { PinIcon } from '../../components/Icons'
+import OrderLookup from '../../components/OrderLookup'
 
 const ACTIVE_STATUSES = ['pendiente_aprobacion', 'pendiente_pago', 'recibido', 'en_preparacion', 'listo']
 const CLOSED_STATUSES = ['entregado', 'cerrado', 'cancelado']
@@ -70,7 +71,12 @@ export default function OrdersPage() {
         {loading && <p className="text-smoke-500 text-sm text-center py-10">Cargando...</p>}
 
         {!loading && orders.length === 0 && (
-          <p className="text-smoke-500 text-sm text-center py-10">Todavía no hiciste ningún pedido.</p>
+          <div className="py-8 space-y-4">
+            <p className="text-smoke-500 text-sm text-center">Todavía no hiciste ningún pedido.</p>
+            {/* El pedido que tomó un camarero no nació en esta app y no aparece
+                en el historial: acá es donde alguien lo viene a buscar */}
+            <OrderLookup venueId={venueId} />
+          </div>
         )}
 
         {!loading && activeOrders.some(o => o.waiter_called_at) && (

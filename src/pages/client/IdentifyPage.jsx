@@ -7,8 +7,8 @@ import { useCustomer } from '../../hooks/useCustomer'
 import { UtensilsIcon, XIcon, ClockIcon } from '../../components/Icons'
 import VoiceOrderPanel from '../../components/VoiceOrderPanel'
 import InstallHint from '../../components/InstallHint'
+import BottomNav from '../../components/BottomNav'
 import ClientFloorMap from '../../components/ClientFloorMap'
-import EmailLoginModal from '../../components/EmailLoginModal'
 import { isStandaloneApp } from '../../lib/standalone'
 
 // Extrae el número de un nombre como "Mesa 4" → "4", o devuelve las primeras 2 letras
@@ -58,67 +58,15 @@ export default function IdentifyPage() {
     return '#1A2332'
   })()
   const { setLocation, setSessionId, addItem, setAssignedStaffId } = useCart()
-  const { customer, isAnonymous, userEmail, loginWithGoogle } = useCustomer()
+  const { customer } = useCustomer()
   // "Logueado" = sesión real (no anónima), aunque todavía no haya completado
   // su perfil de cliente (nombre/WhatsApp). El perfil se completa al pedir.
-  const isLoggedIn = !isAnonymous
-  const accountInitial = (customer?.full_name || userEmail || '?').trim()[0]?.toUpperCase() || '?'
   const [googleError, setGoogleError] = useState('')
-  const [showEmailLogin, setShowEmailLogin] = useState(false)
   const [showSuggestion, setShowSuggestion] = useState(false)
   const [suggestion, setSuggestion] = useState('')
   const [suggestionState, setSuggestionState] = useState('idle') // idle | sending | sent | error
   // En la web app instalada el OAuth de Google no completa el flujo
   // (limitación de las PWA): se usa login por código de email
-
-  async function handleLoginClick() {
-    try {
-      if (isStandaloneApp()) { setShowEmailLogin(true); return }
-      const r = await loginWithGoogle(`${base}/carta`)
-      if (r?.error) setGoogleError(r.error.message)
-    } catch (e) {
-      alert(`Error de login: ${e?.message || e}`)
-    }
-  }
-  // Cliente del local: queda asociado al local donde se identifica, sin
-  // necesidad de pedir. Si otro día se identifica en otro, queda en los dos.
-  useEffect(() => {
-    if (!venueId || !customer?.id) return
-    const key = `capy-venue-linked-${venueId}`
-    try { if (localStorage.getItem(key) === '1') return } catch { /* storage no disponible */ }
-    supabaseCustomer.rpc('link_customer_to_venue', { p_venue_id: venueId }).then(({ error }) => {
-      if (!error) { try { localStorage.setItem(key, '1') } catch { /* ignore */ } }
-    })
-  }, [venueId, customer?.id])
-
-  async function sendSuggestion() {
-    if (!suggestion.trim()) return
-    setSuggestionState('sending')
-    try {
-      const { data: { session } } = await supabaseCustomer.auth.getSession()
-      const token = session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/support-ticket`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({
-          message: suggestion,
-          source: 'cliente',
-          venue_id: venueId,
-          venue_name: venue?.name || '',
-          staff_name: customer?.full_name || 'Cliente',
-        }),
-      })
-      if (!res.ok) throw new Error(await res.text())
-      setSuggestion('')
-      setSuggestionState('sent')
-    } catch {
-      setSuggestionState('error')
-    }
-  }
 
   const [forceDesktop, setForceDesktop] = useState(() => localStorage.getItem('capy-force-desktop') === '1')
   function toggleDesktop(v) {
@@ -181,9 +129,6 @@ export default function IdentifyPage() {
   const [highDemand, setHighDemand] = useState(false)
   const [pauseMessage, setPauseMessage] = useState('')
   const [showExternalOptions, setShowExternalOptions] = useState(false)
-  const [orderNumber, setOrderNumber] = useState('')
-  const [finding, setFinding] = useState(false)
-  const [orderError, setOrderError] = useState('')
   const [topProducts, setTopProducts] = useState([])
   const [reservationEnabled, setReservationEnabled] = useState(false)
 
@@ -198,7 +143,6 @@ export default function IdentifyPage() {
   const [mapZone, setMapZone] = useState(null)
   const [waiterMapZone, setWaiterMapZone] = useState(null)
 
-  const [showOrderLookup, setShowOrderLookup] = useState(false)
   const [waiterAlertWa, setWaiterAlertWa] = useState(null) // venue fallback WA for waiter calls
   const [callWaiterWa, setCallWaiterWa] = useState(null) // resolved WA shown after call is sent
   const [linkCopied, setLinkCopied] = useState(false)
@@ -366,24 +310,6 @@ export default function IdentifyPage() {
     navigate(cartaPath)
   }
 
-  async function handleFindOrder(e) {
-    e.preventDefault()
-    if (!orderNumber.trim()) return
-    setFinding(true)
-    setOrderError('')
-    const { data } = await supabaseCustomer
-      .from('orders')
-      .select('id')
-      .eq('venue_id', venueId)
-      .eq('daily_number', parseInt(orderNumber))
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single()
-    setFinding(false)
-    if (!data) { setOrderError('No encontramos ese número. Verificá con el camarero.'); return }
-    navigate(`/pedido/${data.id}`)
-  }
-
   function formatPrice(p) {
     return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(p)
   }
@@ -444,37 +370,6 @@ export default function IdentifyPage() {
       >
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/10 to-black/80 pointer-events-none" />
         <div className="absolute bottom-0 inset-x-0 h-2/3 bg-gradient-to-t from-black/70 via-black/30 to-transparent pointer-events-none" />
-
-        {/* Login / cuenta — top right. z alto + área táctil grande: en standalone
-            iOS el bloque del logo (misma capa) se comía el toque en esta esquina */}
-        <div className="absolute z-[60]" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)', right: '0.5rem' }}>
-          {isLoggedIn ? (
-            <button
-              onClick={() => navigate(`${base}/cuenta`)}
-              className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center text-white font-bold text-sm"
-            >
-              {accountInitial}
-            </button>
-          ) : (
-            <button
-              onClick={handleLoginClick}
-              className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center text-white"
-              title="Iniciar sesión"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                <circle cx="12" cy="7" r="4"/>
-              </svg>
-            </button>
-          )}
-        </div>
-
-        {showEmailLogin && (
-          <EmailLoginModal
-            onClose={() => setShowEmailLogin(false)}
-            onSuccess={() => window.location.reload()}
-          />
-        )}
 
         <div className={`relative z-10 px-6 text-center ${fd ? 'flex-1 flex flex-col items-center justify-center py-10' : fc ? '' : 'lg:flex-1 lg:flex lg:flex-col lg:items-center lg:justify-center lg:py-10'}`}>
           <div className={`${fd ? 'w-28 h-28' : fc ? 'w-20 h-20' : 'w-20 h-20 lg:w-28 lg:h-28'} mx-auto mb-3 rounded-2xl bg-white/95 p-1.5 shadow-lg`}>
@@ -657,121 +552,70 @@ export default function IdentifyPage() {
       {/* ── Contenido principal ── */}
       <div className={`px-4 pt-4 pb-6 space-y-3 w-full md:max-w-xl md:mx-auto md:px-6 ${fd ? 'max-w-2xl px-8 pt-8 pb-12 mx-auto' : fc ? '' : 'lg:max-w-2xl lg:px-8 lg:pt-8 lg:pb-12'}`}>
 
-        {/* ── Pedido rápido por voz ──
-             Arriba de los cuatro y con otro tratamiento: es el atajo, no una
-             quinta opción más de la lista. Solo para retiro, así no depende de
-             que el cliente sepa en qué mesa está —que es justo lo que no sabe
-             cuando entra por el QR general— y un pedido mal ubicado es comida
-             que sale de la cocina y no llega a nadie. */}
-        {(() => {
-          const hayVoz = !ordersPaused && retiro.length > 0
-          if (!hayVoz && cartas.length === 0 && retiro.length === 0) return null
-          return (
-            <div className="flex gap-2 mb-1">
-              {hayVoz && (
-                <button
-                  onClick={() => setShowVoice(true)}
-                  className="flex-1 min-w-0 flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 border-dashed active:scale-[0.98] transition-transform"
-                  style={{ borderColor: selfColor, backgroundColor: `${selfColor}0D` }}
-                >
-                  <span
-                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: selfColor, color: 'white' }}
-                  >
-                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="9" y="2" width="6" height="11" rx="3" />
-                      <path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4M8 22h8" />
-                    </svg>
-                  </span>
-                  <div className="flex-1 min-w-0 text-left">
-                    <p className="font-black text-sm leading-tight" style={{ color: selfColor }}>Pedido rápido</p>
-                    <p className="text-[#6B7A8D] text-xs mt-0.5 leading-snug">Decilo y lo retirás</p>
-                  </div>
-                </button>
-              )}
-
-              {/* Mirar antes de pedir. Acá viven las cartas del local, que si no
-                  solo se descubren estando ya adentro de la carta. */}
-              <button
-                onClick={() => setShowCartasSheet(true)}
-                className={`${hayVoz ? 'w-[104px] flex-shrink-0 flex-col justify-center' : 'flex-1 flex-row gap-3 px-4'} flex items-center rounded-2xl border-2 py-3.5 active:scale-[0.98] transition-transform`}
-                style={{ borderColor: `${selfColor}40`, backgroundColor: '#FFFFFF' }}
-              >
-                <span
-                  className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: `${selfColor}15`, color: selfColor }}
-                >
-                  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M4 4h7v16H4z" /><path d="M13 4h7v16h-7z" />
-                  </svg>
-                </span>
-                <span className={hayVoz ? 'mt-1.5' : 'flex-1 text-left'}>
-                  <span className="block font-black text-sm leading-tight" style={{ color: selfColor }}>Ver cartas</span>
-                  {!hayVoz && <span className="block text-[#6B7A8D] text-xs mt-0.5">Mirá antes de pedir</span>}
-                </span>
-              </button>
-            </div>
-          )
-        })()}
-
         {/* ── Pido desde la carta ──
              Antes eran dos botones, uno para mesa y otro para retiro, cada uno
              con su lista. Ahora se entra por un solo lado y el primer paso es
              decir cómo lo recibís: la lista de ubicaciones que aparece después
              es la que corresponde y no las dos apiladas. */}
+        {/* ── Dónde estás ──
+             Tres situaciones distintas, no una pregunta con respuestas: estar
+             sentado, estar en el predio pero no en una mesa —la barra, el
+             patio, la cancha del club— y no estar. Cada botón aparece solo si
+             el local lo tiene. */}
         {!takeawayOnly && !prefillZoneId && (zones.length > 0 || retiro.length > 0) && (
-          <div>
-          <button
-            onClick={() => {
-                        const opening = !showZonePicker
-              setShowZonePicker(opening)
-              // Con una sola forma de recibir el pedido, preguntarla sobra
-              if (opening) setPickerMode(mesaZonesExist && retiro.length > 0 ? null : (mesaZonesExist ? 'mesa' : 'retiro'))
-            }}
-            className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl shadow-lg active:scale-[0.98] transition-transform"
-            style={{ backgroundColor: selfColor }}
-          >
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: selfTextColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.08)' }}>
-              <UtensilsIcon size={22} style={{ color: selfTextColor }} />
-            </div>
-            <div className="flex-1 text-left">
-              <p className="font-black text-sm leading-tight" style={{ color: selfTextColor }}>Pido yo mismo desde la carta</p>
-              <p className="text-xs mt-0.5" style={{ color: selfTextColor, opacity: 0.7 }}>
-                {pickedZone ? pickedZone.name : 'Elegí dónde estás y mirá la carta'}
-              </p>
-            </div>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={selfTextColor} strokeWidth="2.5" strokeOpacity="0.6"
-              className={`transition-transform duration-200 ${showZonePicker ? 'rotate-90' : ''}`}>
-              <polyline points="9 18 15 12 9 6"/>
-            </svg>
-          </button>
-
-          {/* Paso 1: cómo lo recibís */}
-          {showZonePicker && !ordersPaused && pickerMode === null && (
-            <div className="mt-2 bg-white rounded-2xl border border-black/[0.06] p-4 shadow-sm">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA] mb-2.5">¿Cómo lo recibís?</p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => setPickerMode('mesa')}
-                  className="rounded-2xl py-4 px-3 border-2 flex flex-col items-center gap-2 active:scale-95 transition-transform"
-                  style={{ borderColor: selfColor, backgroundColor: `${selfColor}0D` }}
-                >
-                  <UtensilsIcon size={20} style={{ color: selfColor }} />
-                  <span className="text-xs font-bold" style={{ color: selfColor }}>Estoy en una mesa</span>
-                </button>
-                <button
-                  onClick={() => setPickerMode('retiro')}
-                  className="rounded-2xl py-4 px-3 border-2 flex flex-col items-center gap-2 active:scale-95 transition-transform"
-                  style={{ borderColor: accentOnWhite, backgroundColor: `${accentOnWhite}0D` }}
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={accentOnWhite} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
-                  </svg>
-                  <span className="text-xs font-bold" style={{ color: accentOnWhite }}>Lo retiro yo</span>
-                </button>
+          <div className="space-y-3">
+          {mesaZonesExist && (
+            <button
+              onClick={() => {
+                const abriendo = !(showZonePicker && pickerMode === 'mesa')
+                setShowZonePicker(abriendo)
+                setPickerMode(abriendo ? 'mesa' : null)
+              }}
+              className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl shadow-lg active:scale-[0.98] transition-transform"
+              style={{ backgroundColor: selfColor }}
+            >
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: selfTextColor === 'white' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.08)' }}>
+                <UtensilsIcon size={22} style={{ color: selfTextColor }} />
               </div>
-            </div>
+              <div className="flex-1 text-left">
+                <p className="font-black text-sm leading-tight" style={{ color: selfTextColor }}>Estoy en una mesa</p>
+                <p className="text-xs mt-0.5" style={{ color: selfTextColor, opacity: 0.7 }}>
+                  {pickedZone ? pickedZone.name : 'Elegí cuál y te lo llevamos'}
+                </p>
+              </div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={selfTextColor} strokeWidth="2.5" strokeOpacity="0.6"
+                className={`transition-transform duration-200 ${showZonePicker && pickerMode === 'mesa' ? 'rotate-90' : ''}`}>
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </button>
+          )}
+
+          {retiro.length > 0 && (
+            <button
+              onClick={() => {
+                const abriendo = !(showZonePicker && pickerMode === 'retiro')
+                setShowZonePicker(abriendo)
+                setPickerMode(abriendo ? 'retiro' : null)
+              }}
+              className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl shadow-md border active:scale-[0.98] transition-transform bg-white"
+              style={{ borderColor: `${selfColor}30` }}
+            >
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: `${accentOnWhite}15` }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={accentOnWhite} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 10V8a4 4 0 0 1 8 0v2" /><rect x="5" y="10" width="14" height="10" rx="2" />
+                </svg>
+              </div>
+              <div className="flex-1 text-left">
+                <p className="font-black text-sm leading-tight" style={{ color: accentOnWhite }}>Estoy acá, pero no en una mesa</p>
+                <p className="text-[#9DAAB8] text-xs mt-0.5">Lo pasás a buscar por un punto de entrega</p>
+              </div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={accentOnWhite} strokeWidth="2.5" strokeOpacity="0.5"
+                className={`transition-transform duration-200 ${showZonePicker && pickerMode === 'retiro' ? 'rotate-90' : ''}`}>
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </button>
           )}
 
           {/* Paso 2b: puntos de retiro */}
@@ -779,11 +623,6 @@ export default function IdentifyPage() {
             <div className="mt-2 bg-white rounded-2xl border border-black/[0.06] p-4 shadow-sm">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-[#C0CBDA]">¿Dónde lo retirás?</p>
-                {mesaZonesExist && (
-                  <button onClick={() => setPickerMode(null)} className="text-[11px] font-semibold" style={{ color: accentOnWhite }}>
-                    ← Cambiar
-                  </button>
-                )}
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {retiro.map(zone => (
@@ -822,13 +661,6 @@ export default function IdentifyPage() {
           {/* Paso 2a: mesas */}
           {showZonePicker && !ordersPaused && pickerMode === 'mesa' && (
             <div className="mt-2 bg-white rounded-2xl border border-black/[0.06] p-4 shadow-sm">
-              {retiro.length > 0 && (
-                <div className="flex justify-end -mt-1 mb-1">
-                  <button onClick={() => setPickerMode(null)} className="text-[11px] font-semibold" style={{ color: selfColor }}>
-                    ← Cambiar
-                  </button>
-                </div>
-              )}
 
               {/* Map / List toggle — only shown in 'ambos' mode */}
               {hasMap && locationDisplayMode === 'ambos' && (
@@ -1037,59 +869,6 @@ export default function IdentifyPage() {
           </button>
         )}
 
-        {/* ── ¿Ya te atendió un camarero/a? ── */}
-        {!takeawayOnly && (
-        <div>
-          <button
-            onClick={() => setShowOrderLookup(v => !v)}
-            className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl shadow-sm border active:scale-[0.98] transition-transform bg-white"
-            style={{ borderColor: 'rgba(0,0,0,0.06)' }}
-          >
-            <div className="w-11 h-11 rounded-xl bg-[#F0F4F8] flex items-center justify-center flex-shrink-0">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6B7A8D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-                <line x1="16" y1="13" x2="8" y2="13"/>
-                <line x1="16" y1="17" x2="8" y2="17"/>
-                <polyline points="10 9 9 9 8 9"/>
-              </svg>
-            </div>
-            <div className="flex-1 text-left">
-              <p className="font-black text-sm leading-tight text-[#1A2332]">¿Ya te atendió un camarero/a?</p>
-              <p className="text-[#9DAAB8] text-xs mt-0.5">Pedile el N° de pedido y hacé el seguimiento</p>
-            </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9DAAB8" strokeWidth="2.5"
-              className={`transition-transform duration-200 ${showOrderLookup ? 'rotate-180' : ''}`}>
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
-          </button>
-          {showOrderLookup && (
-            <div className="mt-2 bg-white border border-black/[0.06] rounded-2xl p-4 shadow-sm">
-              <p className="text-[#9DAAB8] text-xs mb-3">Ingresá el número que te dio el camarero</p>
-              <form onSubmit={handleFindOrder} className="flex gap-2">
-                <input
-                  type="number"
-                  value={orderNumber}
-                  onChange={e => setOrderNumber(e.target.value)}
-                  placeholder="Nº de pedido"
-                  className="flex-1 bg-[#F0F4F8] text-center font-mono text-lg py-2.5 rounded-xl focus:outline-none text-[#1A2332] border border-transparent focus:border-[#1A2332]/20"
-                  min="1"
-                  autoFocus
-                />
-                <button
-                  type="submit"
-                  disabled={finding || !orderNumber.trim()}
-                  style={{ backgroundColor: selfColor }}
-                  className="disabled:opacity-40 text-white font-bold px-4 rounded-xl text-sm"
-                >
-                  {finding ? '...' : 'Ver →'}
-                </button>
-              </form>
-              {orderError && <p className="text-red-500 text-xs mt-2">{orderError}</p>}
-            </div>
-          )}
-        </div>
-        )}
 
         {/* ── Para llevar — separado ── */}
         {(retiroExternoEnabled || deliveryEnabled) && (
@@ -1105,8 +884,8 @@ export default function IdentifyPage() {
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <p className="font-black text-sm leading-tight text-[#1A2332]">Pido desde mi casa</p>
-                  <p className="text-[#9DAAB8] text-xs mt-0.5">Retiro en el local o delivery</p>
+                  <p className="font-black text-sm leading-tight text-[#1A2332]">No estoy en el local</p>
+                  <p className="text-[#9DAAB8] text-xs mt-0.5">Pasás a buscarlo o te lo llevamos</p>
                 </div>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9DAAB8" strokeWidth="2.5">
                   <polyline points="9 18 15 12 9 6"/>
@@ -1270,37 +1049,6 @@ export default function IdentifyPage() {
           )}
         </div>
       </div>
-
-      {/* Login accesible al pie: mismo flujo que la personita del hero */}
-      {!isLoggedIn ? (
-        <div className="flex flex-col items-center gap-2 pb-2 px-6">
-          <div className="text-center">
-            <p className="text-[#3A4A5A] text-xs font-bold">¿Por qué iniciar sesión?</p>
-            <p className="text-black/50 text-[11px] leading-snug mt-0.5 max-w-[19rem]">
-              Tu historial, tus datos y tus beneficios quedan guardados, aunque cambies de celular.
-            </p>
-          </div>
-          <button
-            onClick={handleLoginClick}
-            className="flex items-center gap-2 border border-black/15 text-[#3A4A5A] text-sm font-semibold px-5 py-2.5 rounded-full bg-white shadow-sm active:opacity-70"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-              <circle cx="12" cy="7" r="4"/>
-            </svg>
-            Iniciar sesión
-          </button>
-        </div>
-      ) : (
-        <div className="flex justify-center pb-2">
-          <button
-            onClick={() => navigate(`${base}/cuenta`)}
-            className="flex items-center gap-2 border border-black/15 text-[#3A4A5A] text-sm font-semibold px-5 py-2.5 rounded-full bg-white shadow-sm active:opacity-70"
-          >
-            Mi cuenta{customer?.full_name ? ` · ${customer.full_name.split(' ')[0]}` : ''}
-          </button>
-        </div>
-      )}
 
       {/* Sugerencias: llega al soporte de CAPY, no al local */}
       <div className="flex justify-center pt-1">
@@ -1504,6 +1252,12 @@ export default function IdentifyPage() {
       <p className="text-center text-[9px] text-black/25 py-1 select-none">
         capy {typeof __BUILD_TS__ !== 'undefined' ? __BUILD_TS__ : 'dev'}
       </p>
+
+      {/* La barra se lleva mirar la carta, hablar, el pedido y la cuenta: la
+          home queda para decir dónde estás. onHome le saca el botón central
+          cuando los pedidos están pausados, que acá no tendría a quién llamar. */}
+      <div style={{ height: 'calc(env(safe-area-inset-bottom, 0px) + 5.5rem)' }} />
+      <BottomNav onHome />
 
       </div>{/* end right column */}
     </div>
