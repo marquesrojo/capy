@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
-import { usePlan } from '../../hooks/usePlan'
 import { formatPrice } from '../../lib/utils'
 import { CameraIcon, StarIcon, DIETARY_TAGS } from '../../components/Icons'
 import HelpNote from '../../components/HelpNote'
@@ -45,7 +44,6 @@ const PHOTO_QUERY_RULES = `Reglas para el término de búsqueda:
 
 export default function MenuEditorPage() {
   const { venueId, isSuperAdmin, isPropietario } = useAuth()
-  const { isPro, loading: planLoading } = usePlan(venueId)
   const today = new Date().toISOString().slice(0, 10)
   const unlimitedPhotos = isSuperAdmin
   const [categories, setCategories] = useState([])
@@ -176,8 +174,6 @@ export default function MenuEditorPage() {
               venueId={venueId}
               onImported={loadAll}
               unlimited={unlimitedPhotos}
-              isPro={isPro || isSuperAdmin}
-              planLoading={planLoading}
             />
             <FotosConIA
               venueId={venueId}
@@ -1228,7 +1224,7 @@ async function searchUnsplash(query, venueId, { skipLimit = false } = {}) {
 }
 
 
-function ImportarConIA({ venueId, onImported, unlimited = false, isPro = true, planLoading = false }) {
+function ImportarConIA({ venueId, onImported, unlimited = false }) {
   const [step, setStep] = useState('idle') // idle | pick_mode | analyzing | enriching | review | saving
   const [mode, setMode] = useState('basic') // 'basic' | 'rich'
   const [preview, setPreview] = useState(null)
@@ -1544,43 +1540,23 @@ function ImportarConIA({ venueId, onImported, unlimited = false, isPro = true, p
             </div>
           </button>
 
-          {/* En un local free se muestra pero apagado, igual que las secciones
-              Pro de Mi local: que se vea qué hay del otro lado sin dejar entrar.
-              Mientras carga el plan no se apaga, para no parpadear. */}
-          {(() => {
-            const bloqueado = !planLoading && !isPro
-            return (
-              <button
-                onClick={() => { if (!bloqueado) pickMode('rich') }}
-                aria-disabled={bloqueado}
-                title={bloqueado ? 'Disponible en el plan Pro' : undefined}
-                className={`w-full bg-carbon-900 border rounded-2xl p-4 flex items-center gap-3 text-left ${
-                  bloqueado
-                    ? 'border-carbon-700 opacity-45 cursor-default'
-                    : 'border-ember-500/30 hover:border-ember-500/60'
-                }`}
-              >
-                <div className="w-9 h-9 rounded-xl bg-ember-500/20 flex items-center justify-center flex-shrink-0">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
-                    <polyline points="21 15 16 10 5 21"/>
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold text-smoke-300 text-sm leading-snug">Importar carta con notas y agregarle imágenes con IA</p>
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-ember-500/20 text-ember-400 leading-none flex-shrink-0">PRO</span>
-                  </div>
-                  {bloqueado && <p className="text-smoke-500 text-xs">Disponible en el plan Pro</p>}
-                </div>
-                {bloqueado && (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-smoke-600 flex-shrink-0">
-                    <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                  </svg>
-                )}
-              </button>
-            )
-          })()}
+          <button
+            onClick={() => pickMode('rich')}
+            className="w-full bg-carbon-900 border border-ember-500/30 hover:border-ember-500/60 rounded-2xl p-4 flex items-center gap-3 text-left"
+          >
+            <div className="w-9 h-9 rounded-xl bg-ember-500/20 flex items-center justify-center flex-shrink-0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="font-semibold text-smoke-300 text-sm leading-snug">Importar carta con notas y agregarle imágenes con IA</p>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-ember-500/20 text-ember-400 leading-none flex-shrink-0">PRO</span>
+              </div>
+            </div>
+          </button>
         </>
       )}
 
