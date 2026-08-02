@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice } from '../../lib/utils'
+import { fetchVenueStaff, ensureStaffCustomer, mergePeople } from '../../lib/venuePeople'
+import MemberPicker, { PersonRole } from '../../components/MemberPicker'
 
 // Grupos de clientes: los jugadores del club, los socios, el personal de la
 // empresa de al lado. Un grupo abre cartas — se elige desde Cartas cuál grupo
@@ -15,6 +17,7 @@ export default function CustomerGroupsPage() {
   const { venueId } = useAuth()
   const [groups, setGroups] = useState([])
   const [rows, setRows] = useState([])
+  const [staff, setStaff] = useState([])
   const [members, setMembers] = useState({})
   const [menusByGroup, setMenusByGroup] = useState({})
   const [loading, setLoading] = useState(true)
@@ -29,7 +32,7 @@ export default function CustomerGroupsPage() {
 
   async function load() {
     setLoading(true)
-    const [clientsRes, groupsRes, ordersRes, menusRes] = await Promise.all([
+    const [clientsRes, groupsRes, ordersRes, menusRes, staffList] = await Promise.all([
       // Por RPC y no leyendo la tabla: el email vive en auth.users
       supabaseStaff.rpc('venue_customer_list', { p_venue_id: venueId }),
       supabaseStaff.from('customer_groups').select('*').eq('venue_id', venueId).order('created_at'),
@@ -44,8 +47,10 @@ export default function CustomerGroupsPage() {
         .select('id, name, audience_group_id')
         .eq('venue_id', venueId)
         .not('audience_group_id', 'is', null),
+      fetchVenueStaff(venueId),
     ])
 
+    setStaff(staffList)
     const gs = groupsRes.data || []
     setGroups(gs)
 
@@ -111,7 +116,14 @@ export default function CustomerGroupsPage() {
     load()
   }
 
-  async function addMember(groupId, customerId) {
+  async function addMember(groupId, person) {
+    const customerId = person.id
+    // Un empleado puede no tener ficha de cliente todavía, y sin ficha no puede
+    // ser miembro. Es idempotente: si ya la tiene, no pasa nada.
+    if (person.staffRole) {
+      const staffError = await ensureStaffCustomer(venueId, customerId)
+      if (staffError) { alert('Error: ' + staffError.message); return }
+    }
     // venue_id va en la fila: es lo que mira su policy, sin consultar la tabla
     // de grupos (ver 0086, la recursión entre policies)
     const { error } = await supabaseStaff
@@ -139,7 +151,11 @@ export default function CustomerGroupsPage() {
   }
 
   const anonCount = rows.filter(r => !r.identified).length
-  const visibleRows = showAnonymous ? rows : rows.filter(r => r.identified)
+  // people = clientes + personal. rows queda para el contador, que habla de
+  // clientes del local y no de la nómina.
+  const people = mergePeople(rows, staff)
+  const visibleRows = showAnonymous ? people : people.filter(r => r.identified)
+  const visibleCustomers = showAnonymous ? rows : rows.filter(r => r.identified)
 
   return (
     <div className="min-h-screen bg-carbon-950 pb-16">
@@ -184,8 +200,9 @@ export default function CustomerGroupsPage() {
 
         <div className="px-1 flex items-center justify-between gap-3 flex-wrap">
           <p className="text-smoke-600 text-xs">
-            {visibleRows.length} {visibleRows.length === 1 ? 'cliente' : 'clientes'} en el local
-            {visibleRows.length === 0 && ' — aparecen acá cuando inician sesión en tu página'}
+            {visibleCustomers.length} {visibleCustomers.length === 1 ? 'cliente' : 'clientes'} en el local
+            {staff.length > 0 && ` · ${staff.length} del personal`}
+            {visibleCustomers.length === 0 && ' — aparecen acá cuando inician sesión en tu página'}
           </p>
           {anonCount > 0 && (
             <button onClick={() => setShowAnonymous(v => !v)} className="text-smoke-600 text-[11px] underline">
@@ -197,14 +214,15 @@ export default function CustomerGroupsPage() {
         {/* Sin cuenta no hay grupo posible: la lista se arma con quien se
             identificó, y alguien que escanea el QR de paso no está en ninguna */}
         <p className="text-smoke-600 text-[11px] px-1 leading-relaxed">
-          Para sumar a alguien tiene que haber iniciado sesión al menos una vez en la página del
-          local. Si un jugador no aparece en la lista, pedile que entre con su cuenta y volvé.
+          Para sumar a un cliente tiene que haber iniciado sesión al menos una vez en la página del
+          local. Si un jugador no aparece en la lista, pedile que entre con su cuenta y volvé. Tu
+          personal aparece siempre, haya pedido o no.
         </p>
 
         {groups.length === 0 ? (
           <p className="text-smoke-500 text-sm text-center py-6">Todavía no hay grupos.</p>
         ) : groups.map(g => {
-          const memberRows = rows.filter(r => (members[r.id] || []).includes(g.id))
+          const memberRows = people.filter(r => (members[r.id] || []).includes(g.id))
           const candidates = visibleRows.filter(r => !(members[r.id] || []).includes(g.id))
           const cartas = menusByGroup[g.id] || []
           return (
@@ -213,7 +231,7 @@ export default function CustomerGroupsPage() {
                 <div className="min-w-0">
                   <p className="text-smoke-200 font-bold text-base">{g.name}</p>
                   <p className="text-smoke-500 text-xs mt-0.5">
-                    {memberRows.length} {memberRows.length === 1 ? 'cliente' : 'clientes'}
+                    {memberRows.length} {memberRows.length === 1 ? 'persona' : 'personas'}
                     {g.description ? ` · ${g.description}` : ''}
                   </p>
                   {cartas.length > 0 && (
@@ -240,7 +258,7 @@ export default function CustomerGroupsPage() {
                   onClick={() => { setAddingTo(addingTo === g.id ? null : g.id); setOpenId(null) }}
                   className="text-ember-400 text-xs font-semibold underline"
                 >
-                  {addingTo === g.id ? 'Cancelar' : '+ Agregar clientes'}
+                  {addingTo === g.id ? 'Cancelar' : '+ Agregar gente'}
                 </button>
               </div>
 
@@ -249,7 +267,10 @@ export default function CustomerGroupsPage() {
                   {memberRows.map(r => (
                     <div key={r.id} className="flex items-center justify-between gap-3 bg-carbon-800 rounded-lg px-3 py-2">
                       <div className="min-w-0">
-                        <p className="text-smoke-300 text-xs truncate">{r.name}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-smoke-300 text-xs truncate">{r.name}</p>
+                          <PersonRole person={r} />
+                        </div>
                         <p className="text-smoke-600 text-[10px] font-mono truncate">
                           {[r.email, r.whatsapp].filter(Boolean).join(' · ') || 'sin contacto'}
                         </p>
@@ -269,59 +290,17 @@ export default function CustomerGroupsPage() {
                 </div>
               )}
 
-              {addingTo === g.id && <MemberPicker candidates={candidates} onPick={id => addMember(g.id, id)} />}
+              {addingTo === g.id && (
+                <MemberPicker
+                  candidates={candidates}
+                  onPick={person => addMember(g.id, person)}
+                  emptyText="No hay clientes ni personal para agregar."
+                />
+              )}
             </div>
           )
         })}
       </main>
-    </div>
-  )
-}
-
-function MemberPicker({ candidates, onPick }) {
-  const [q, setQ] = useState('')
-  const term = q.trim().toLowerCase()
-  const list = candidates
-    .filter(r => !term
-      || r.name.toLowerCase().includes(term)
-      || r.email.toLowerCase().includes(term)
-      || r.whatsapp.includes(term))
-    .slice(0, 40)
-
-  return (
-    <div className="bg-carbon-800 rounded-xl p-3 space-y-2">
-      <input
-        className="input"
-        placeholder="Buscar por nombre, email o WhatsApp"
-        value={q}
-        onChange={e => setQ(e.target.value)}
-      />
-      {candidates.length === 0 ? (
-        <p className="text-smoke-600 text-xs text-center py-2">No hay clientes para agregar.</p>
-      ) : list.length === 0 ? (
-        <p className="text-smoke-600 text-xs text-center py-2">Nadie coincide con la búsqueda.</p>
-      ) : (
-        <div className="space-y-1">
-          {list.map(r => (
-            <button
-              key={r.id}
-              onClick={() => onPick(r.id)}
-              className="w-full flex items-center justify-between gap-3 bg-carbon-900 rounded-lg px-3 py-2 text-left"
-            >
-              <div className="min-w-0">
-                <p className="text-smoke-300 text-xs truncate">{r.name}</p>
-                <p className="text-smoke-600 text-[10px] font-mono truncate">
-                  {[r.email, r.whatsapp].filter(Boolean).join(' · ') || 'sin contacto'}
-                </p>
-                <p className="text-smoke-600 text-[10px]">
-                  {r.orders} {r.orders === 1 ? 'pedido' : 'pedidos'}
-                </p>
-              </div>
-              <span className="text-ember-400 text-[11px] font-semibold flex-shrink-0">Agregar</span>
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
