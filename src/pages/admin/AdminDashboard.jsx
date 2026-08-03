@@ -2016,16 +2016,6 @@ function InPersonCard({ order, waiters, onConfirm, onAssignWaiter, compact }) {
 }
 
 function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssignWaiter, pendingInPersonOrders = [], paidOrders = [], onConfirmPayment, onCloseOrder, fiscalEnabled = false, fiscalCondition, invoices = {}, onInvoiceEmitted, venueName }) {
-  const nextStatus = {
-    recibido: 'en_preparacion',
-    en_preparacion: 'entregado',
-  }[status]
-
-  const prevStatus = {
-    en_preparacion: 'recibido',
-    entregado: 'en_preparacion'
-  }[status]
-
   const columnLabel = status === 'en_preparacion' ? 'Preparación' : STATUS_LABELS[status]
   const totalCount = orders.length + pendingInPersonOrders.length + paidOrders.length
 
@@ -2058,8 +2048,6 @@ function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssi
               <OrderCard
                 key={order.id}
                 order={order}
-                nextStatus={nextStatus}
-                prevStatus={prevStatus}
                 onUpdateStatus={onUpdateStatus}
                 onDismissCall={onDismissCall}
                 waiters={waiters}
@@ -2087,8 +2075,6 @@ function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssi
                   <OrderCard
                     key={order.id}
                     order={order}
-                    nextStatus={nextStatus}
-                    prevStatus={prevStatus}
                     onUpdateStatus={onUpdateStatus}
                     onDismissCall={onDismissCall}
                     waiters={waiters}
@@ -2284,11 +2270,27 @@ function PaidGroup({ group, fiscalEnabled, fiscalCondition, venueName, invoices,
   )
 }
 
-function OrderCard({ order, nextStatus, prevStatus, onUpdateStatus, onDismissCall, waiters, onAssignWaiter, onCloseOrder, onConfirmPayment, venueName, fiscalEnabled = false, fiscalCondition, invoice, onInvoiceEmitted, inGroup }) {
+function OrderCard({ order, onUpdateStatus, onDismissCall, waiters, onAssignWaiter, onCloseOrder, onConfirmPayment, venueName, fiscalEnabled = false, fiscalCondition, invoice, onInvoiceEmitted, inGroup }) {
   const [showWaiterSelect, setShowWaiterSelect] = useState(false)
   const [showQR, setShowQR] = useState(false)
   const [showSummary, setShowSummary] = useState(false)
   const elapsedMin = Math.round((Date.now() - new Date(order.created_at).getTime()) / 60000)
+
+  // El paso lo marca el pedido y no la columna: en Preparación conviven los que
+  // se están cocinando y los que ya están listos, y antes los dos ofrecían
+  // "Entregado". Así el pedido saltaba de la hornalla a la mano del cliente sin
+  // pasar por listo, que es el estado que la pantalla de retiro pinta de verde.
+  const nextStatus = {
+    recibido: 'en_preparacion',
+    en_preparacion: 'listo',
+    listo: 'entregado',
+  }[order.status]
+
+  const prevStatus = {
+    en_preparacion: 'recibido',
+    listo: 'en_preparacion',
+    entregado: 'listo',
+  }[order.status]
 
   // Semáforo: verde <15, amarillo 15-30, rojo >30
   const trafficColor = order.status === 'entregado'
