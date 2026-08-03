@@ -329,6 +329,26 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
     setSelectedIds(new Set())
   }
 
+  // Una mesa que se saca del mapa queda en la lista de abajo para volver a
+  // usarla. Si el local la sacó porque ya no existe, ahí se muere: esto la
+  // borra de verdad. Los pedidos viejos no se pierden —guardan el nombre del
+  // lugar como texto— pero el QR impreso de esa mesa deja de servir.
+  async function deleteUnpositioned(z) {
+    if (z.isPending) {
+      setPendingCopies(prev => prev.filter(p => p.tempId !== z.itemId))
+      return
+    }
+    if (!confirm(`¿Borrar "${z.name}" para siempre? Su QR impreso deja de funcionar. Los pedidos que ya pasaron por ahí no se tocan.`)) return
+    const { error } = await supabaseStaff.from('venue_zones').delete().eq('id', z.id)
+    if (error) { alert('No se pudo borrar: ' + error.message); return }
+    setPositions(prev => {
+      const next = { ...prev }
+      delete next[z.id]
+      return next
+    })
+    onSaved?.()
+  }
+
   function rotate(id) {
     setSizes(prev => ({ ...prev, [id]: { w: prev[id].h, h: prev[id].w } }))
   }
@@ -664,16 +684,30 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
 
       {unpositioned.length > 0 && (
         <div className="mt-3">
-          <p className="text-smoke-600 text-[11px] mb-2">Sin posicionar — tocá para agregar al mapa:</p>
+          <p className="text-smoke-600 text-[11px] mb-2">
+            Sin posicionar — tocá para agregar al mapa, o la ✕ para borrarla del local:
+          </p>
           <div className="flex flex-wrap gap-2">
             {unpositioned.map(z => (
-              <button
+              <span
                 key={z.itemId}
-                onClick={() => placeOnCanvas(z)}
-                className="border border-dashed border-carbon-600 text-smoke-400 text-xs px-3 py-1.5 rounded-lg hover:border-ember-500 hover:text-smoke-200 transition-colors"
+                className="flex items-center border border-dashed border-carbon-600 rounded-lg overflow-hidden hover:border-ember-500 transition-colors"
               >
-                + {z.name}
-              </button>
+                <button
+                  onClick={() => placeOnCanvas(z)}
+                  className="text-smoke-400 text-xs pl-3 pr-2 py-1.5 hover:text-smoke-200"
+                >
+                  + {z.name}
+                </button>
+                <button
+                  onClick={() => deleteUnpositioned(z)}
+                  aria-label={`Borrar ${z.name}`}
+                  title="Borrar del local"
+                  className="text-smoke-600 hover:text-red-400 text-xs pr-2.5 pl-1 py-1.5 border-l border-carbon-700"
+                >
+                  ✕
+                </button>
+              </span>
             ))}
           </div>
         </div>
