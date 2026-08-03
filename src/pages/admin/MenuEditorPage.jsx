@@ -4,7 +4,6 @@ import { supabaseStaff } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { formatPrice } from '../../lib/utils'
 import { CameraIcon, StarIcon, DIETARY_TAGS } from '../../components/Icons'
-import HelpNote from '../../components/HelpNote'
 import { geminiGenerate } from '../../lib/gemini'
 
 const KIND_LABELS = { bebida: 'Bebida', comida: 'Comida', otro: 'Otro' }
@@ -170,23 +169,6 @@ export default function MenuEditorPage() {
               </button>
             </div>
 
-            <ImportarConIA
-              venueId={venueId}
-              onImported={loadAll}
-              unlimited={unlimitedPhotos}
-            />
-            <FotosConIA
-              venueId={venueId}
-              products={products.filter(p => !p.is_ingredient_only)}
-              categories={categories}
-              onUpdated={loadAll}
-              unlimited={unlimitedPhotos}
-              extraCredits={extraCredits}
-              onExtraCreditsChanged={setExtraCredits}
-              isSuperAdmin={isSuperAdmin}
-              photoPackPrice={photoPackPrice}
-            />
-
             {showCategoryForm && (
               <NewCategoryForm
                 venueId={venueId}
@@ -204,36 +186,22 @@ export default function MenuEditorPage() {
               />
             )}
 
-            {/* La explicación completa se lee una vez; después estorba,
-                así que arranca plegada y recuerda si la abriste */}
-            <HelpNote title="Cómo funciona la carta" storageKey="carta-modos">
-              <p className="text-smoke-400 text-xs leading-relaxed">
-                <span className="text-violet-400 font-semibold">Solo carta</span> es para los platos
-                que no se venden sueltos, como el postre del menú ejecutivo. Un producto marcado así
-                <span className="text-smoke-300"> no aparece en la carta general, ni en el buscador,
-                ni en las sugerencias del chef, ni en el pedido por voz, ni en el recomendador</span>.
-                Se pide únicamente dentro de las cartas que lo incluyan, y no hace falta ponerle
-                precio: lo cobra la carta.
-              </p>
-              <Link to="/admin/cartas" className="text-ember-500 text-xs underline mt-1.5 inline-block">
-                Armar una carta →
-              </Link>
-              <p className="text-smoke-400 text-xs leading-relaxed mt-3 pt-3 border-t border-carbon-700">
-                El botón de <span className="text-smoke-300">Salón y llevar</span> dice dónde se puede
-                pedir cada plato, y se toca para cambiarlo.{' '}
-                <span className="text-amber-500 font-semibold">Solo salón</span> es lo que en la mesa
-                sale bien y para llevar no —lo que se enfría, lo que se arma delante del cliente, la
-                copa de vino—, y{' '}
-                <span className="text-sky-400 font-semibold">Solo llevar</span> lo que existe nada más
-                que para eso, como una porción familiar. Cada uno desaparece del caso que no le
-                corresponde. Por defecto van los dos.
-                <br />
-                <span className="text-smoke-500">
-                  "Llevar" son los tres casos por igual: retiro en el local, retiro externo pidiendo
-                  desde afuera, y delivery.
-                </span>
-              </p>
-            </HelpNote>
+            <ImportarConIA
+              venueId={venueId}
+              onImported={loadAll}
+              unlimited={unlimitedPhotos}
+            />
+            <FotosConIA
+              venueId={venueId}
+              products={products.filter(p => !p.is_ingredient_only)}
+              categories={categories}
+              onUpdated={loadAll}
+              unlimited={unlimitedPhotos}
+              extraCredits={extraCredits}
+              onExtraCreditsChanged={setExtraCredits}
+              isSuperAdmin={isSuperAdmin}
+              photoPackPrice={photoPackPrice}
+            />
 
             {/* Buscar en la carta: con cien productos repartidos en veinte
                 categorías, encontrar uno para editarlo era puro scroll */}
