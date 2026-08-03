@@ -103,10 +103,13 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
 
   const singleSelectedId = selectedIds.size === 1 ? [...selectedIds][0] : null
   const selectedPending = pendingCopies.find(p => p.tempId === singleSelectedId)
-  const selectedSavedDecor = !selectedPending && singleSelectedId
-    ? mesas.find(z => z.id === singleSelectedId && z.type === 'decor')
+  // Cualquier cosa guardada del mapa, mesa u objeto: las dos se pueden
+  // renombrar sin salir de acá. El color es lo único que sigue siendo de los
+  // objetos de referencia.
+  const selectedSaved = !selectedPending && singleSelectedId
+    ? mesas.find(z => z.id === singleSelectedId)
     : null
-  const selectedIsDecor = selectedPending?.type === 'decor' || !!selectedSavedDecor
+  const selectedIsDecor = selectedPending?.type === 'decor' || selectedSaved?.type === 'decor'
 
   function decorName(zone) {
     if (zone.isPending) return zone.name
@@ -146,10 +149,10 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
   function updateSelectedDecor(patch) {
     if (selectedPending) {
       setPendingCopies(prev => prev.map(p => p.tempId === singleSelectedId ? { ...p, ...patch } : p))
-    } else if (selectedSavedDecor) {
+    } else if (selectedSaved) {
       setDecorEdits(prev => ({
         ...prev,
-        [selectedSavedDecor.id]: { ...prev[selectedSavedDecor.id], ...patch },
+        [selectedSaved.id]: { ...prev[selectedSaved.id], ...patch },
       }))
     }
   }
@@ -389,10 +392,12 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
           size_w: sizes[z.id]?.w,
           size_h: sizes[z.id]?.h,
         }
-        if (z.type === 'decor' && decorEdits[z.id]) {
+        // El nombre se puede haber cambiado en el mapa, sea mesa u objeto.
+        // El color es solo de los objetos de referencia.
+        if (decorEdits[z.id]) {
           const e = decorEdits[z.id]
           if (e.name != null) upd.name = e.name.trim() || z.name
-          if (e.color) upd.color = e.color
+          if (e.color && z.type === 'decor') upd.color = e.color
         }
         return supabaseStaff.from('venue_zones').update(upd).eq('id', z.id)
       })
@@ -619,8 +624,10 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
         </div>
       )}
 
-      {/* Name (+ color for decor) editor: new pending copies and saved decor objects */}
-      {(selectedPending || selectedSavedDecor) && (
+      {/* Nombre (y color si es objeto de referencia). Aparece al seleccionar
+          cualquier cosa del mapa: antes solo las nuevas y los objetos, así que
+          para corregir el número de una mesa había que irse a la lista. */}
+      {(selectedPending || selectedSaved) && (
         <div className="mt-2 border border-ember-500/40 rounded-xl px-3 py-2.5" style={{ background: '#fff' }}>
           <div className="flex items-center gap-2">
             <span className="text-smoke-400 text-xs whitespace-nowrap">Nombre:</span>
@@ -628,10 +635,10 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
               autoFocus={!!selectedPending}
               className="flex-1 bg-transparent text-sm outline-none min-w-0"
               style={{ color: '#2A2824' }}
-              value={selectedPending ? selectedPending.name : decorName(selectedSavedDecor)}
+              value={selectedPending ? selectedPending.name : decorName(selectedSaved)}
               onChange={e => updateSelectedDecor({ name: e.target.value })}
               onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
-              placeholder={selectedIsDecor ? 'Ej: Columna, Planta, Escenario...' : 'Nombre de la nueva ubicación'}
+              placeholder={selectedIsDecor ? 'Ej: Columna, Planta, Escenario...' : 'Ej: Mesa 6, Barra, Deck 2...'}
             />
             <span className="text-smoke-400 text-[10px] whitespace-nowrap">Se guarda con el mapa</span>
           </div>
@@ -640,7 +647,7 @@ export default function FloorPlanEditor({ zones, parentZones = [], onSaved, venu
               <span className="text-smoke-400 text-xs whitespace-nowrap">Color:</span>
               <div className="flex gap-1.5 flex-wrap">
                 {DECOR_COLORS.map(c => {
-                  const current = selectedPending ? (selectedPending.color || DEFAULT_DECOR_COLOR) : decorColor(selectedSavedDecor)
+                  const current = selectedPending ? (selectedPending.color || DEFAULT_DECOR_COLOR) : decorColor(selectedSaved)
                   return (
                     <button
                       key={c}
