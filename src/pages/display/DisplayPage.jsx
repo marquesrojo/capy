@@ -188,22 +188,28 @@ function OrderCard({ order, accent }) {
 
   return (
     <div className={`rounded-2xl border ${bgColor} ${borderColor} px-7 py-5`}>
-      <p className={`font-mono font-bold leading-none mb-2 ${numColor}`} style={{ fontSize: 'clamp(2.5rem, 5vw, 5rem)' }}>
+      {/* Sin nombre cargado no va nada, ni el renglón: el número es lo que la
+          persona busca, y un "Cliente" de relleno no le dice a nadie */}
+      <p className={`font-mono font-bold leading-none ${numColor} ${order.customer_name || donde ? 'mb-2' : ''}`} style={{ fontSize: 'clamp(2.5rem, 5vw, 5rem)' }}>
         #{num}
       </p>
-      <div className="flex items-baseline gap-3 min-w-0">
-        <p className="text-white/80 font-medium truncate" style={{ fontSize: 'clamp(1.1rem, 2vw, 1.75rem)' }}>
-          {order.customer_name}
-        </p>
-        {donde && (
-          <span
-            className="text-white/40 font-medium truncate flex-shrink-0"
-            style={{ fontSize: 'clamp(0.85rem, 1.3vw, 1.15rem)' }}
-          >
-            {donde}
-          </span>
-        )}
-      </div>
+      {(order.customer_name || donde) && (
+        <div className="flex items-baseline gap-3 min-w-0">
+          {order.customer_name && (
+            <p className="text-white/80 font-medium truncate" style={{ fontSize: 'clamp(1.1rem, 2vw, 1.75rem)' }}>
+              {order.customer_name}
+            </p>
+          )}
+          {donde && (
+            <span
+              className="text-white/40 font-medium truncate flex-shrink-0"
+              style={{ fontSize: 'clamp(0.85rem, 1.3vw, 1.15rem)' }}
+            >
+              {donde}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   )
 }
