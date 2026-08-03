@@ -113,7 +113,7 @@ export default function DisplayPage() {
         <div className="flex items-center gap-4">
           <span className="text-white font-bold text-2xl tracking-widest uppercase">{venue.name}</span>
           <span className="text-white/20 text-xl">·</span>
-          <span className="text-white/40 tracking-widest uppercase text-lg">Pedidos</span>
+          <span className="text-white/40 tracking-widest uppercase text-lg">Pedidos para retirar</span>
         </div>
         <span className="font-mono text-white/30 text-2xl tabular-nums">{timeStr}</span>
       </div>
@@ -181,10 +181,10 @@ function OrderCard({ order, accent }) {
   const borderColor = accent === 'amber' ? 'border-amber-500/25' : 'border-emerald-500/40'
   const bgColor = accent === 'amber' ? 'bg-amber-500/[0.06]' : 'bg-emerald-500/10'
   const num = order.daily_number || order.id.slice(0, 4).toUpperCase()
-  // Un pedido de retiro se anuncia solo con el número; uno de mesa necesita
-  // decir cuál, o el que lo lleva no sabe a dónde va
-  const esRetiro = ['retiro', 'retiro_externo'].includes(order.location_type)
-  const donde = esRetiro ? 'Retiro' : order.location_label
+  // Acá todo es retiro, así que aclararlo sobraría. Lo que sí sirve es el
+  // punto de entrega cuando el local tiene más de uno; el que pidió de afuera
+  // no tiene ninguno asignado y no necesita nada.
+  const donde = order.location_type === 'retiro' ? order.location_label : null
 
   return (
     <div className={`rounded-2xl border ${bgColor} ${borderColor} px-7 py-5`}>
