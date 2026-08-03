@@ -437,11 +437,13 @@ async function loadZones() {
     }
   }
 
-  // Archiva un pedido entregado: sale del tablero y queda en Historial.
-  // Si era el último pedido activo de su sesión, cierra también la mesa.
-  async function closeOrder(order) {
+  // Saca un pedido del tablero. Cerrado y anulado se archivan igual, pero no
+  // significan lo mismo: cerrado es algo que se vendió y se cobró, anulado es
+  // algo que no pasó. La caja, los KPIs y el consumo de insumos los cuentan
+  // distinto, así que no alcanza con cerrar un pedido que se cayó.
+  async function archiveOrder(order, status) {
     setOrders(prev => prev.filter(o => o.id !== order.id))
-    await supabaseStaff.from('orders').update({ status: 'cerrado' }).eq('id', order.id)
+    await supabaseStaff.from('orders').update({ status }).eq('id', order.id)
     if (order.session_id) {
       const { data: remaining } = await supabaseStaff
         .from('orders')
@@ -456,6 +458,19 @@ async function loadZones() {
           .eq('id', order.session_id)
       }
     }
+  }
+
+  // Archiva un pedido entregado: sale del tablero y queda en Historial
+  async function closeOrder(order) {
+    await archiveOrder(order, 'cerrado')
+  }
+
+  // El pedido no va: se equivocó el cliente, se cayó la mesa, no hay el plato.
+  // Queda en el historial como anulado y no suma a la facturación.
+  async function cancelOrder(order) {
+    const label = `#${order.daily_number || order.id.slice(0, 6)}`
+    if (!confirm(`¿Anular el pedido ${label}? No se cobra y queda registrado como anulado en el historial.`)) return
+    await archiveOrder(order, 'cancelado')
   }
 
   async function dismissWaiterCall(orderId) {
@@ -755,6 +770,7 @@ async function loadZones() {
           venueName={venueName}
           onUpdateStatus={updateStatus}
           onConfirmPayment={confirmPayment}
+          onCancelOrder={cancelOrder}
           fiscalEnabled={fiscalEnabled}
           fiscalCondition={fiscalCondition}
           invoices={invoices}
@@ -858,6 +874,7 @@ async function loadZones() {
               paidOrders={status === 'entregado' ? paidOrders.filter(p => !orders.some(o => o.id === p.id)) : []}
               onConfirmPayment={status === 'entregado' ? confirmPayment : null}
               onCloseOrder={status === 'entregado' ? closeOrder : null}
+              onCancelOrder={cancelOrder}
               fiscalEnabled={status === 'entregado' ? fiscalEnabled : false}
               fiscalCondition={fiscalCondition}
               invoices={invoices}
@@ -1085,7 +1102,7 @@ function SeguimientoButton({ order }) {
   )
 }
 
-function MesaPanel({ mesa, orders, zones = [], venueSlug, venueName, onClose, onCloseTable, onUpdateStatus, onConfirmPayment, fiscalEnabled = false, fiscalCondition, invoices = {}, onInvoiceEmitted }) {
+function MesaPanel({ mesa, orders, zones = [], venueSlug, venueName, onClose, onCloseTable, onUpdateStatus, onConfirmPayment, onCancelOrder, fiscalEnabled = false, fiscalCondition, invoices = {}, onInvoiceEmitted }) {
   const navigate = useNavigate()
   const ACTIVE = ['pendiente_aprobacion', 'recibido', 'en_preparacion', 'listo', 'entregado']
   const STATUS_RANK = { listo: 0, en_preparacion: 1, recibido: 2, pendiente_aprobacion: 3, entregado: 4 }
@@ -1412,6 +1429,17 @@ function MesaPanel({ mesa, orders, zones = [], venueSlug, venueName, onClose, on
                                 Entregar ✓
                               </button>
                             )}
+                            {/* Anular no es cerrar la mesa: acá muere un pedido
+                                puntual, sin cobrarlo */}
+                            {onCancelOrder && order.status !== 'entregado' && (
+                              <button
+                                onClick={() => onCancelOrder(order)}
+                                className="text-smoke-600 hover:text-red-500 border border-carbon-700 hover:border-red-500/50 text-xs px-2.5 py-1.5 rounded-xl transition-colors"
+                                title="Anular: el pedido no se cobra y queda en el historial como anulado"
+                              >
+                                Anular
+                              </button>
+                            )}
                             {onConfirmPayment && order.status === 'entregado' && order.payment_status === 'pendiente' && (
                               <button
                                 onClick={() => onConfirmPayment(order)}
@@ -1532,7 +1560,7 @@ function MesaPanel({ mesa, orders, zones = [], venueSlug, venueName, onClose, on
   )
 }
 
-function MapaView({ orders, zones, venueId, venueSlug, venueName, onUpdateStatus, onConfirmPayment, fiscalEnabled, fiscalCondition, invoices, onInvoiceEmitted }) {
+function MapaView({ orders, zones, venueId, venueSlug, venueName, onUpdateStatus, onConfirmPayment, onCancelOrder, fiscalEnabled, fiscalCondition, invoices, onInvoiceEmitted }) {
   const containerRef = useRef(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   // Cuántos sectores entran por fila depende del ancho real, no del zoom solo
@@ -1742,6 +1770,7 @@ function MapaView({ orders, zones, venueId, venueSlug, venueName, onUpdateStatus
           venueSlug={venueSlug}
           venueName={venueName}
           onConfirmPayment={onConfirmPayment}
+          onCancelOrder={onCancelOrder}
           fiscalEnabled={fiscalEnabled}
           fiscalCondition={fiscalCondition}
           invoices={invoices}
@@ -2015,7 +2044,7 @@ function InPersonCard({ order, waiters, onConfirm, onAssignWaiter, compact }) {
   )
 }
 
-function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssignWaiter, pendingInPersonOrders = [], paidOrders = [], onConfirmPayment, onCloseOrder, fiscalEnabled = false, fiscalCondition, invoices = {}, onInvoiceEmitted, venueName }) {
+function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssignWaiter, pendingInPersonOrders = [], paidOrders = [], onConfirmPayment, onCloseOrder, onCancelOrder, fiscalEnabled = false, fiscalCondition, invoices = {}, onInvoiceEmitted, venueName }) {
   const columnLabel = status === 'en_preparacion' ? 'Preparación' : STATUS_LABELS[status]
   const totalCount = orders.length + pendingInPersonOrders.length + paidOrders.length
 
@@ -2053,6 +2082,7 @@ function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssi
                 waiters={waiters}
                 onAssignWaiter={onAssignWaiter}
                 onCloseOrder={onCloseOrder}
+                onCancelOrder={onCancelOrder}
                 onConfirmPayment={onConfirmPayment}
                 venueName={venueName}
                 fiscalEnabled={fiscalEnabled}
@@ -2080,6 +2110,7 @@ function Column({ status, orders, onUpdateStatus, onDismissCall, waiters, onAssi
                     waiters={waiters}
                     onAssignWaiter={onAssignWaiter}
                     onCloseOrder={onCloseOrder}
+                    onCancelOrder={onCancelOrder}
                     onConfirmPayment={onConfirmPayment}
                     venueName={venueName}
                     fiscalEnabled={fiscalEnabled}
@@ -2270,7 +2301,7 @@ function PaidGroup({ group, fiscalEnabled, fiscalCondition, venueName, invoices,
   )
 }
 
-function OrderCard({ order, onUpdateStatus, onDismissCall, waiters, onAssignWaiter, onCloseOrder, onConfirmPayment, venueName, fiscalEnabled = false, fiscalCondition, invoice, onInvoiceEmitted, inGroup }) {
+function OrderCard({ order, onUpdateStatus, onDismissCall, waiters, onAssignWaiter, onCloseOrder, onCancelOrder, onConfirmPayment, venueName, fiscalEnabled = false, fiscalCondition, invoice, onInvoiceEmitted, inGroup }) {
   const [showWaiterSelect, setShowWaiterSelect] = useState(false)
   const [showQR, setShowQR] = useState(false)
   const [showSummary, setShowSummary] = useState(false)
@@ -2462,6 +2493,18 @@ function OrderCard({ order, onUpdateStatus, onDismissCall, waiters, onAssignWait
           )}
           {order.status === 'entregado' && order.payment_status === 'aprobado' && (
             <span className="text-emerald-500 text-xs font-semibold">Pagado ✓</span>
+          )}
+          {/* Anular es lo contrario de cerrar: cerrar archiva algo vendido,
+              anular deja constancia de que no se cobró. Discreto a propósito —
+              se usa poco y no tiene vuelta atrás desde acá. */}
+          {onCancelOrder && order.status !== 'entregado' && (
+            <button
+              onClick={() => onCancelOrder(order)}
+              className="text-smoke-600 hover:text-red-500 border border-carbon-700 hover:border-red-500/50 text-xs px-2.5 py-1.5 rounded-full transition-colors"
+              title="Anular: el pedido no se cobra y queda en el historial como anulado"
+            >
+              Anular
+            </button>
           )}
           {onCloseOrder && order.status === 'entregado' && (
             <button
