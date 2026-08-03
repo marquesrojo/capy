@@ -250,6 +250,8 @@ function MenuCard({ menu, products, groups, open, onToggleOpen, onToggleActive, 
             : 'Visible para todos los clientes'}
       </p>
 
+      {menu.kind === 'fijo' && <PrecioFijo menu={menu} onChanged={onChanged} />}
+
       {/* Quién la ve. Fuera del grupo la carta no existe: no aparece bloqueada
           ni en gris, directamente no llega al navegador. */}
       <div>
@@ -287,6 +289,67 @@ function MenuCard({ menu, products, groups, open, onToggleOpen, onToggleActive, 
         ? <StepsEditor menu={menu} products={products} onChanged={onChanged} />
         : <FreeMenuEditor menu={menu} products={products} inMenu={inMenu} onChanged={onChanged} />
       )}
+    </div>
+  )
+}
+
+// El precio de un menú cerrado cambia: sube la carne, arranca la temporada. Se
+// fijaba al crear la carta y después no había dónde tocarlo, así que la única
+// salida era rehacerla entera con sus pasos.
+function PrecioFijo({ menu, onChanged }) {
+  const actual = Number(menu.price) || 0
+  const [value, setValue] = useState(String(actual))
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [saved, setSaved] = useState(false)
+
+  // Si la carta se recarga por otro cambio, el campo sigue al dato
+  useEffect(() => { setValue(String(Number(menu.price) || 0)) }, [menu.price])
+
+  const nuevo = parseFloat(value)
+  const cambio = !isNaN(nuevo) && nuevo !== actual
+
+  async function guardar() {
+    if (isNaN(nuevo) || nuevo <= 0) { setError('El precio tiene que ser mayor a cero.'); return }
+    setSaving(true)
+    setError('')
+    // .select() para distinguir "no se guardó" de "se guardó y no lo veo":
+    // si la RLS filtra la escritura, vuelve sin error y sin filas
+    const { data, error: updateError } = await supabaseStaff
+      .from('venue_menus')
+      .update({ price: nuevo })
+      .eq('id', menu.id)
+      .select('id')
+    setSaving(false)
+    if (updateError) { setError(updateError.message); return }
+    if (!data?.length) { setError('No se pudo guardar. Tu usuario no tiene permiso sobre este local.'); return }
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+    onChanged()
+  }
+
+  return (
+    <div>
+      <label className="text-smoke-500 text-xs block mb-1">
+        Precio del menú completo <span className="text-smoke-600">— lo que paga el cliente</span>
+      </label>
+      <div className="flex gap-2">
+        <input
+          className="input"
+          type="number"
+          min="1"
+          value={value}
+          onChange={e => { setValue(e.target.value); setError('') }}
+        />
+        <button
+          onClick={guardar}
+          disabled={!cambio || saving}
+          className="flex-shrink-0 bg-ember-500 hover:bg-ember-600 disabled:opacity-40 text-white font-semibold text-xs px-4 rounded-xl"
+        >
+          {saving ? '...' : saved && !cambio ? 'Guardado' : 'Guardar'}
+        </button>
+      </div>
+      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
     </div>
   )
 }
