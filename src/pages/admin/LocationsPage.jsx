@@ -372,6 +372,8 @@ function ZoneRow({ zone, onToggle, onToggleClientVisible, onRename, parentZones 
 
   function handleBlur() {
     setEditing(false)
+    // Vaciar el campo y salir no borra el nombre: vuelve el que tenía
+    if (!name.trim()) { setName(zone.name); return }
     onRename(zone, name)
   }
 
@@ -396,8 +398,22 @@ function ZoneRow({ zone, onToggle, onToggleClientVisible, onRename, parentZones 
           />
         ) : (
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <button onClick={() => setEditing(true)} className="text-smoke-300 text-sm text-left truncate">
-              {zone.name}
+            {/* El nombre siempre se pudo cambiar tocándolo, pero nada lo decía:
+                sin el lápiz parecía que había que borrar la mesa y rehacerla */}
+            <button
+              onClick={() => { setName(zone.name); setEditing(true) }}
+              title="Editar el nombre"
+              className="flex items-center gap-1.5 text-smoke-300 text-sm text-left min-w-0 group"
+            >
+              <span className="truncate">{zone.name}</span>
+              <svg
+                width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+                className="text-smoke-600 group-hover:text-ember-500 flex-shrink-0"
+              >
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+              </svg>
             </button>
             {parentZones.length > 0 && (
               <select
