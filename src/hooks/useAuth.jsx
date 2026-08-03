@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { supabaseStaff, setActiveVenueId, clearActiveVenueId } from '../lib/supabase'
 
 // Autenticacion del STAFF (camarero/admin). Los clientes finales no usan
@@ -15,18 +15,29 @@ export function AuthProvider({ children }) {
   const [venueOverride, setVenueOverride] = useState(
     () => localStorage.getItem(SUPERADMIN_VENUE_KEY) || null
   )
+  // Quién está logueado ahora, para distinguir un login de un refresco de token
+  const userIdRef = useRef(null)
 
   useEffect(() => {
     supabaseStaff.auth.getSession().then(({ data }) => {
       // Si hay usuario, activar profileLoading en el mismo batch que loading=false
       // para que ProtectedRoute nunca vea un render con loading=false pero sin profile
       if (data.session?.user) setProfileLoading(true)
+      userIdRef.current = data.session?.user?.id ?? null
       setSession(data.session)
       setLoading(false)
     })
 
     const { data: listener } = supabaseStaff.auth.onAuthStateChange((_event, newSession) => {
-      if (newSession?.user) setProfileLoading(true)
+      const nextId = newSession?.user?.id ?? null
+      const mismaPersona = nextId && nextId === userIdRef.current
+      userIdRef.current = nextId
+      // Volver a la pestaña dispara un refresco de token, y eso llega acá como
+      // un evento de sesión. Si prendemos profileLoading, ProtectedRoute cambia
+      // la pantalla por el cargando, la pantalla se desmonta y se pierde todo
+      // lo que estaba escrito sin guardar. Solo es carga real cuando cambia la
+      // persona.
+      if (nextId && !mismaPersona) setProfileLoading(true)
       setSession(newSession)
     })
 
@@ -71,7 +82,9 @@ export function AuthProvider({ children }) {
       .catch(() => {
         setProfileLoading(false)
       })
-  }, [session])
+    // Por id y no por el objeto sesión: cada refresco de token trae una sesión
+    // nueva para la misma persona, y el perfil no cambió
+  }, [session?.user?.id])
 
   async function signInWithEmail(email, password) {
     return supabaseStaff.auth.signInWithPassword({ email, password })
