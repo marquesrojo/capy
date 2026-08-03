@@ -2,23 +2,58 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { createClient } from '@supabase/supabase-js'
 
+// Sesión propia y persistida: los pedidos solo se pueden escuchar en vivo con
+// una sesión, y guardarla evita crear un usuario nuevo cada vez que la tele se
+// reinicia. Lo que se lee sigue viniendo de la función pública.
 const supabasePublic = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_ANON_KEY,
-  { auth: { persistSession: false } }
+  { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'sb-display-auth', detectSessionInUrl: false } }
 )
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+// El tablero que se cuelga en una tele. Sin login: la URL es la llave, y lo
+// único que muestra es número, nombre de pila y dónde. La dirección puede venir
+// por id o por slug — /pantalla/mi-local se tipea en un control remoto, un uuid
+// no.
 export default function DisplayPage() {
-  const { venueId } = useParams()
+  const { ref } = useParams()
+  const [venue, setVenue] = useState(null)
   const [orders, setOrders] = useState([])
-  const [venueName, setVenueName] = useState('')
   const [loading, setLoading] = useState(true)
   const [clock, setClock] = useState(new Date())
+  const [enVivo, setEnVivo] = useState(false)
+
+  // Sesión anónima al entrar. Si falla, la pantalla igual anda: los pedidos se
+  // leen por la función pública y el refresco periódico la mantiene al día.
+  useEffect(() => {
+    let vivo = true
+    supabasePublic.auth.getSession().then(async ({ data }) => {
+      if (!data.session) await supabasePublic.auth.signInAnonymously().catch(() => {})
+      const { data: after } = await supabasePublic.auth.getSession()
+      if (vivo) setEnVivo(!!after.session)
+    })
+    return () => { vivo = false }
+  }, [])
 
   const preparando = orders.filter(o => o.status === 'recibido' || o.status === 'en_preparacion')
   const listo = orders.filter(o => o.status === 'listo')
 
+  useEffect(() => {
+    if (!ref) return
+    const q = supabasePublic.from('venues').select('id, name')
+    ;(UUID_RE.test(ref) ? q.eq('id', ref) : q.eq('slug', ref))
+      .maybeSingle()
+      .then(({ data }) => {
+        setVenue(data || null)
+        if (!data) setLoading(false)
+      })
+  }, [ref])
+
+  const venueId = venue?.id
   const fetchOrders = useCallback(async () => {
+    if (!venueId) return
     const { data } = await supabasePublic.rpc('get_display_orders', { p_venue_id: venueId })
     if (data) setOrders(data)
     setLoading(false)
@@ -26,16 +61,27 @@ export default function DisplayPage() {
 
   useEffect(() => {
     if (!venueId) return
-    supabasePublic
-      .from('venues')
-      .select('name')
-      .eq('id', venueId)
-      .single()
-      .then(({ data }) => { if (data) setVenueName(data.name) })
     fetchOrders()
-    const interval = setInterval(fetchOrders, 5000)
-    return () => clearInterval(interval)
-  }, [venueId, fetchOrders])
+
+    // En vivo con el tablero: cuando alguien mueve un pedido de columna, o le
+    // cambia la mesa, la pantalla lo refleja sin esperar al próximo refresco.
+    let channel = null
+    if (enVivo) {
+      channel = supabasePublic
+        .channel(`display-${venueId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `venue_id=eq.${venueId}` }, fetchOrders)
+        .subscribe()
+    }
+
+    // Red de una tele: si el socket se cae nadie lo va a notar mirando la
+    // pantalla, así que igual se refresca cada tanto. Sin sesión, esto es lo
+    // único que la mantiene al día, y entonces va más seguido.
+    const interval = setInterval(fetchOrders, enVivo ? 20000 : 5000)
+    return () => {
+      if (channel) supabasePublic.removeChannel(channel)
+      clearInterval(interval)
+    }
+  }, [venueId, enVivo, fetchOrders])
 
   useEffect(() => {
     const t = setInterval(() => setClock(new Date()), 1000)
@@ -52,14 +98,22 @@ export default function DisplayPage() {
     )
   }
 
+  if (!venue) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center px-8 text-center">
+        <p className="text-white/40 text-xl">No encontramos este local. Revisá el link.</p>
+      </div>
+    )
+  }
+
   return (
     <div className="h-screen bg-[#060606] flex flex-col overflow-hidden select-none">
       {/* Header */}
       <div className="flex items-center justify-between px-8 py-4 border-b border-white/[0.07] flex-shrink-0">
         <div className="flex items-center gap-4">
-          <span className="text-white font-bold text-2xl tracking-widest uppercase">{venueName}</span>
+          <span className="text-white font-bold text-2xl tracking-widest uppercase">{venue.name}</span>
           <span className="text-white/20 text-xl">·</span>
-          <span className="text-white/40 tracking-widest uppercase text-lg">Pedidos Retiro</span>
+          <span className="text-white/40 tracking-widest uppercase text-lg">Pedidos</span>
         </div>
         <span className="font-mono text-white/30 text-2xl tabular-nums">{timeStr}</span>
       </div>
@@ -127,15 +181,29 @@ function OrderCard({ order, accent }) {
   const borderColor = accent === 'amber' ? 'border-amber-500/25' : 'border-emerald-500/40'
   const bgColor = accent === 'amber' ? 'bg-amber-500/[0.06]' : 'bg-emerald-500/10'
   const num = order.daily_number || order.id.slice(0, 4).toUpperCase()
+  // Un pedido de retiro se anuncia solo con el número; uno de mesa necesita
+  // decir cuál, o el que lo lleva no sabe a dónde va
+  const esRetiro = ['retiro', 'retiro_externo'].includes(order.location_type)
+  const donde = esRetiro ? 'Retiro' : order.location_label
 
   return (
     <div className={`rounded-2xl border ${bgColor} ${borderColor} px-7 py-5`}>
       <p className={`font-mono font-bold leading-none mb-2 ${numColor}`} style={{ fontSize: 'clamp(2.5rem, 5vw, 5rem)' }}>
         #{num}
       </p>
-      <p className="text-white/80 font-medium truncate" style={{ fontSize: 'clamp(1.1rem, 2vw, 1.75rem)' }}>
-        {order.customer_name}
-      </p>
+      <div className="flex items-baseline gap-3 min-w-0">
+        <p className="text-white/80 font-medium truncate" style={{ fontSize: 'clamp(1.1rem, 2vw, 1.75rem)' }}>
+          {order.customer_name}
+        </p>
+        {donde && (
+          <span
+            className="text-white/40 font-medium truncate flex-shrink-0"
+            style={{ fontSize: 'clamp(0.85rem, 1.3vw, 1.15rem)' }}
+          >
+            {donde}
+          </span>
+        )}
+      </div>
     </div>
   )
 }

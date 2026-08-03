@@ -126,6 +126,10 @@ ${items.map(item => `<div class="card"><div class="type">${typeLabel[item.type] 
           )}
         </div>
 
+        {/* Pantalla de pedidos: no es un QR, pero es lo otro que el local
+            comparte para que alguien lo abra en otro dispositivo */}
+        {!loading && <PantallaCard slug={slug} venueId={venueId} />}
+
         {/* QR Clientes — segundo */}
         {!loading && (
           <QRCard
@@ -174,6 +178,54 @@ ${items.map(item => `<div class="card"><div class="type">${typeLabel[item.type] 
             </p>
           </div>
         )}
+      </div>
+    </div>
+  )
+}
+
+// La pantalla que se cuelga en una tele o se deja en una tablet sobre el
+// mostrador. No pide login: el link es la llave, y solo muestra número, nombre
+// de pila y ubicación — ni plata ni qué pidió cada uno.
+function PantallaCard({ slug, venueId }) {
+  const [copied, setCopied] = useState(false)
+  const url = `https://capyapp.co/pantalla/${slug || venueId}`
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch { /* sin permiso de portapapeles queda el link a la vista */ }
+  }
+
+  return (
+    <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5">
+      <p className="text-smoke-200 font-semibold mb-1">Pantalla de pedidos</p>
+      <p className="text-smoke-500 text-xs mb-4">
+        Para colgar en una tele o dejar en una tablet: muestra los pedidos en preparación y los que
+        están listos, y se actualiza sola cuando los movés en el tablero. Solo se ve el número, el
+        nombre y la ubicación.
+      </p>
+
+      <div className="bg-carbon-800 border border-carbon-700 rounded-xl px-4 py-3 mb-3">
+        <p className="text-smoke-300 text-xs font-mono break-all">{url}</p>
+      </div>
+
+      <div className="flex gap-2">
+        <button
+          onClick={copy}
+          className="flex-1 bg-ember-500 hover:bg-ember-600 text-white font-semibold text-sm py-3 rounded-xl"
+        >
+          {copied ? '¡Link copiado!' : 'Copiar link'}
+        </button>
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-1 border border-carbon-700 text-smoke-300 font-semibold text-sm py-3 rounded-xl text-center"
+        >
+          Abrir
+        </a>
       </div>
     </div>
   )
