@@ -55,6 +55,34 @@ export default function CamautConfigPage({ initialTab, embedded, staffId, overri
   )
 }
 
+// Interruptor de la app del camarero, del mismo tamaño que el resto de los
+// controles: se toca con el pulgar y con el celular en una mano
+function Interruptor({ activo, onChange, titulo, detalle, disabled = false }) {
+  return (
+    <button
+      onClick={() => !disabled && onChange(!activo)}
+      disabled={disabled}
+      className={`w-full flex items-start gap-3 text-left ${disabled ? 'opacity-40' : ''}`}
+    >
+      <span
+        className={`mt-0.5 flex-shrink-0 w-11 h-6 rounded-full relative transition-colors ${
+          activo ? 'bg-[#008080]' : 'bg-[#D0D9E0]'
+        }`}
+      >
+        <span
+          className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${
+            activo ? 'left-[22px]' : 'left-0.5'
+          }`}
+        />
+      </span>
+      <span className="min-w-0">
+        <span className="block text-[#1A2A3A] text-sm font-semibold leading-tight">{titulo}</span>
+        <span className="block text-[#8896A5] text-[11px] leading-snug mt-0.5">{detalle}</span>
+      </span>
+    </button>
+  )
+}
+
 function sanitizeAlias(v) {
   return v.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9_-]/g, '')
 }
@@ -68,6 +96,9 @@ function PerfilTab({ profile, overrideStaffId }) {
   const [linkedin, setLinkedin] = useState('')
   const [docNumber, setDocNumber] = useState('')
   const [aliasBancario, setAliasBancario] = useState('')
+  // Qué de su página ve el que escanea el QR. Los dos arrancan prendidos.
+  const [paginaPublica, setPaginaPublica] = useState(true)
+  const [reputacionPublica, setReputacionPublica] = useState(true)
   const [waPhone, setWaPhone] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
@@ -120,6 +151,8 @@ function PerfilTab({ profile, overrideStaffId }) {
     setLinkedin(data.linkedin_url || '')
     setDocNumber(data.document_number || '')
     setAliasBancario(data.alias_bancario || '')
+    setPaginaPublica(data.public_page_enabled !== false)
+    setReputacionPublica(data.public_ratings_enabled !== false)
     setAvatarUrl(data.avatar_url || '')
     setWaPhone(data.whatsapp_number || '')
   }
@@ -182,7 +215,9 @@ function PerfilTab({ profile, overrideStaffId }) {
         document_number: docNumber.trim() || null,
         alias_bancario: aliasBancario.trim() || null,
         avatar_url: avatarUrl || null,
-        whatsapp_number: waPhone.trim() || null
+        whatsapp_number: waPhone.trim() || null,
+        public_page_enabled: paginaPublica,
+        public_ratings_enabled: reputacionPublica
       })
       .eq('id', staffData.id)
       .select('id')
@@ -291,8 +326,29 @@ function PerfilTab({ profile, overrideStaffId }) {
           <input type="text" value={aliasBancario} onChange={e => setAliasBancario(e.target.value)}
             placeholder="Ej: matias.borges.mp"
             className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-[#F8FAFC] text-[#1A2A3A]" />
-          <p className="text-[#B0BEC5] text-[10px] mt-1">Aparece en el QR del pedido para que el cliente te deje propina</p>
+          <p className="text-[#B0BEC5] text-[10px] mt-1">Es el que ve el cliente en tu página para dejarte propina</p>
         </label>
+
+        {/* Qué muestra su página. Alguien puede querer el QR para cobrar sin
+            exponer sus estrellas mientras arranca, o apagarla del todo. */}
+        <div className="border border-black/10 rounded-xl p-4 space-y-3">
+          <p className="text-[#8896A5] text-xs">Qué se ve en tu página pública</p>
+          <Interruptor
+            activo={paginaPublica}
+            onChange={setPaginaPublica}
+            titulo="Mi página está activa"
+            detalle={paginaPublica
+              ? 'Quien escanea tu QR ve tu perfil y puede dejarte propina'
+              : 'Apagada: tu QR no lleva a ningún lado'}
+          />
+          <Interruptor
+            activo={reputacionPublica}
+            onChange={setReputacionPublica}
+            disabled={!paginaPublica}
+            titulo="Mostrar mis calificaciones"
+            detalle="Estrellas, reconocimientos y comentarios de clientes. Apagado, se puede dejar propina pero no calificar."
+          />
+        </div>
         <label className="block">
           <span className="text-[#8896A5] text-xs block mb-1.5">Tu WhatsApp</span>
           <input type="tel" value={waPhone} onChange={e => setWaPhone(e.target.value)}
