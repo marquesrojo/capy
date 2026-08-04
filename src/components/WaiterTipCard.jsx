@@ -107,10 +107,13 @@ function EncuestaCard({ staff, nombre }) {
     })
     setEnviando(false)
     if (insertError) {
-      // El índice único deja una sola calificación suelta por teléfono
+      // Un "probá de nuevo" a secas no dice nada y esconde el motivo, que es lo
+      // único que sirve cuando falla siempre igual
+      console.error('[encuesta] no se pudo guardar', insertError)
       setError(insertError.code === '23505'
+        // El índice único deja una sola calificación suelta por teléfono
         ? `Ya calificaste a ${nombre} desde este teléfono.`
-        : 'No se pudo enviar. Probá de nuevo.')
+        : `No se pudo enviar (${insertError.code || 'sin código'}): ${insertError.message}`)
       return
     }
     setListo(true)
