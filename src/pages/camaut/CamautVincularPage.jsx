@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import jsQR from 'jsqr'
 import { supabaseCamaut, supabaseStaff } from '../../lib/supabase'
+import { ensureWaiterRecord } from '../../lib/camautSetup'
 
 const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent.toLowerCase())
 const isStandalone = window.matchMedia('(display-mode: standalone)').matches || !!window.navigator.standalone
@@ -99,12 +100,17 @@ export default function CamautVincularPage() {
   const intervalRef = useRef(null)
 
   useEffect(() => {
-    if (searchParams.get('code')) {
-      // Puede llegar sin cuenta: guardamos el código para retomar la
-      // vinculación después de registrarse o iniciar sesión (incluso si el
-      // login sale de la app, como el de Google).
-      try { localStorage.setItem('capy_pending_invite', searchParams.get('code')) } catch { /* storage no disponible */ }
-      handleSearch(searchParams.get('code'))
+    const enLaUrl = searchParams.get('code')
+    if (enLaUrl) {
+      // Guardarlo sirve para una sola cosa: sobrevivir la ida y vuelta del
+      // login, que se lleva puesta la URL. Con sesión ya abierta no hay viaje
+      // que sobrevivir, y guardarlo lo deja pegado para el próximo que se
+      // registre en este navegador.
+      supabaseCamaut.auth.getSession().then(({ data }) => {
+        if (data.session) return
+        try { localStorage.setItem('capy_pending_invite', enLaUrl) } catch { /* storage no disponible */ }
+      })
+      handleSearch(enLaUrl)
     }
     return () => stopScan()
   }, [])
@@ -211,11 +217,30 @@ export default function CamautVincularPage() {
     })
 
     // Leer venue personal del camarero
-    const { data: profileData } = await supabaseStaff
+    let { data: profileData } = await supabaseStaff
       .from('profiles')
       .select('venue_id')
       .eq('id', session.user.id)
-      .single()
+      .maybeSingle()
+
+    // Puede llegar acá sin cuenta armada: quien viene de un código pendiente
+    // entra directo a vincularse, antes de que el arranque le cree el perfil.
+    // Sin fila en profiles, el alta en venue_staff rebota por foreign key con
+    // un mensaje que no le dice nada a nadie.
+    if (!profileData) {
+      try {
+        const nombre = session.user?.user_metadata?.full_name || 'Camarero/a'
+        await ensureWaiterRecord(session.user.id, nombre)
+        const res = await supabaseStaff
+          .from('profiles').select('venue_id').eq('id', session.user.id).maybeSingle()
+        profileData = res.data
+      } catch (err) {
+        setError('No se pudo crear tu cuenta: ' + err.message)
+        setConfirming(false)
+        return
+      }
+    }
+
     const venuePersonal = profileData?.venue_id || null
 
     // Verificar si ya está vinculado

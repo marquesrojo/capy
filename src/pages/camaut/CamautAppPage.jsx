@@ -120,7 +120,15 @@ export default function CamautAppPage() {
       // Si venía de escanear el QR de un local sin tener cuenta, retomamos la
       // vinculación ahora que ya está logueado (sirve para email y Google).
       let pendingInvite = null
-      try { pendingInvite = localStorage.getItem('capy_pending_invite') } catch { /* storage no disponible */ }
+      try {
+        pendingInvite = localStorage.getItem('capy_pending_invite')
+        // Se consume acá: de este punto en adelante el código viaja en la URL,
+        // así que dejarlo guardado no sirve para nada y sí hace daño. Antes
+        // solo se borraba al completar la vinculación, y un código abandonado a
+        // mitad de camino quedaba pegado secuestrando todos los registros
+        // siguientes en ese navegador —incluidos los de otra persona—.
+        if (pendingInvite) localStorage.removeItem('capy_pending_invite')
+      } catch { /* storage no disponible */ }
       if (pendingInvite) {
         navigate(`/camareroa/vincular?code=${encodeURIComponent(pendingInvite)}`)
         return

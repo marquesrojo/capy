@@ -271,7 +271,7 @@ export default function CamautRegisterPage() {
           </div>
           <div>
             <label className="text-smoke-500 text-xs font-semibold uppercase tracking-wide block mb-1.5">
-              DNI / Documento
+              DNI / Documento (opcional)
             </label>
             <input
               type="text"
@@ -280,7 +280,10 @@ export default function CamautRegisterPage() {
               placeholder="Ej: 35123456"
               className="w-full border border-carbon-700 rounded-xl px-4 py-3 text-sm bg-white text-[#2A2824]"
             />
-            <p className="text-smoke-600 text-[10px] mt-1">Necesario para generar tu certificado verificado</p>
+            {/* Pedirle el documento a alguien que recién llega, para algo que
+                va a querer dentro de meses, es la clase de fricción que hace
+                abandonar un registro */}
+            <p className="text-smoke-600 text-[10px] mt-1">Lo vas a necesitar cuando pidas tu certificado verificado. Podés cargarlo después.</p>
           </div>
           <div>
             <label className="text-smoke-500 text-xs font-semibold uppercase tracking-wide block mb-1.5">
