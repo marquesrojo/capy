@@ -2,12 +2,11 @@ import { supabaseStaff } from './supabase'
 
 // Camareros asignables de un venue: los que usan CAPY Camarero y se vincularon
 // con el código del local (venue_staff). Su staff_names vive en su venue
-// personal y se resuelve por profile_id, con fallback por nombre para las
-// vinculaciones viejas que quedaron sin él.
+// personal y se resuelve por profile_id.
 export async function fetchVenueWaiters(venueId) {
   const { data: linked } = await supabaseStaff
     .from('venue_staff')
-    .select('staff_profile_id, profile:profiles(full_name)')
+    .select('staff_profile_id')
     .eq('venue_id', venueId)
     .eq('status', 'active')
 
@@ -19,24 +18,6 @@ export async function fetchVenueWaiters(venueId) {
       .select('*')
       .in('profile_id', linkedIds)
     linkedStaff = byId || []
-
-    const foundProfileIds = new Set(linkedStaff.map(s => s.profile_id).filter(Boolean))
-    const missingNames = (linked || [])
-      .filter(l => !foundProfileIds.has(l.staff_profile_id))
-      .map(l => l.profile?.full_name)
-      .filter(Boolean)
-    if (missingNames.length) {
-      // Sin profile_id no queda más que el nombre. Es un match débil —dos
-      // "Federico" en la plataforma son indistinguibles— así que se limita a
-      // los que además tienen profile_id nulo: los registros viejos que este
-      // fallback vino a cubrir. Si no, arrastraba homónimos de otros locales.
-      const { data: byName } = await supabaseStaff
-        .from('staff_names')
-        .select('*')
-        .in('full_name', missingNames)
-        .is('profile_id', null)
-      linkedStaff = [...linkedStaff, ...(byName || [])]
-    }
   }
 
   // La ficha del vinculado vive en su venue personal, así que una dada de baja
