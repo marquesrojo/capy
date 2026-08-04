@@ -139,6 +139,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
     setPrefillLocation(locationLabel)
     setTab('tomar')
   }
+  const [showMyQR, setShowMyQR] = useState(false)
   const [staffName, setStaffName] = useState(initialName)
   const [staffXP, setStaffXP] = useState(initialXP || 0)
   const [staffAlias, setStaffAlias] = useState(null)
@@ -347,6 +348,15 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
 
   return (
     <div className="flex flex-col bg-[#F0F4F8]" style={{ height: heightOffset ? '100%' : '100dvh' }}>
+      {showMyQR && (
+        <MiQRModal
+          staffId={staffId}
+          staffAlias={staffAlias}
+          staffName={staffName}
+          onClose={() => setShowMyQR(false)}
+        />
+      )}
+
       {/* Header */}
       <div className="bg-white border-b border-black/8 px-5 pb-0 shadow-sm flex-shrink-0" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}>
         <div className="flex items-center justify-between mb-3">
@@ -367,6 +377,19 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {/* Su QR, a mano en cualquier pantalla: es con lo que cobra, no
+                algo que va a ir a buscar al fondo de un menú */}
+            <button
+              onClick={() => setShowMyQR(true)}
+              className="flex items-center gap-1.5 text-[#008080] text-xs font-semibold border border-[#008080]/30 px-2.5 py-1.5 rounded-xl"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="5" height="5"/><rect x="16" y="3" width="5" height="5"/>
+                <rect x="3" y="16" width="5" height="5"/>
+                <path d="M21 16h-3a2 2 0 0 0-2 2v3M21 21v.01M12 7v3a2 2 0 0 1-2 2H7M3 12h.01M12 3h.01M7 17H4a1 1 0 0 1-1-1v-3"/>
+              </svg>
+              Mi QR
+            </button>
             <button onClick={() => window.location.reload()} className="text-[#8896A5]" title="Actualizar">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
@@ -1548,6 +1571,82 @@ function HistorialTab({ staffId, venueId }) {
           </button>
         )
       })}
+    </div>
+  )
+}
+
+// El QR con el que cobra. Apunta al id y no al alias: el alias se puede
+// cambiar, y un QR que alguien ya guardó o mandó por WhatsApp no tiene por qué
+// morirse por eso. El link con alias queda para decirlo en voz alta.
+function MiQRModal({ staffId, staffAlias, staffName, onClose }) {
+  const canvasRef = useRef(null)
+  const [copiado, setCopiado] = useState(false)
+  const urlQR = `https://capyapp.co/c/${staffId}`
+  const urlLinda = `capyapp.co/c/${staffAlias || staffId}`
+
+  useEffect(() => {
+    if (!canvasRef.current) return
+    QRCode.toCanvas(canvasRef.current, urlQR, {
+      width: 240,
+      margin: 2,
+      color: { dark: '#1A2A3A', light: '#FFFFFF' },
+    })
+  }, [urlQR])
+
+  async function compartir() {
+    const texto = `Dejame una propina o calificá cómo te atendí 🦫\nhttps://${urlLinda}`
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: staffName || 'Mi página', text: texto })
+        return
+      } catch { /* canceló el menú de compartir */ }
+    }
+    copiar()
+  }
+
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(`https://${urlLinda}`)
+      setCopiado(true)
+      setTimeout(() => setCopiado(false), 2500)
+    } catch { /* queda el link a la vista */ }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/50" />
+      <div
+        className="relative bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl px-5 pt-5 pb-8 z-10"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="w-10 h-1 bg-[#D0D9E0] rounded-full mx-auto mb-4 sm:hidden" />
+
+        <p className="text-[#1A2A3A] font-bold text-base text-center">Mi QR</p>
+        <p className="text-[#8896A5] text-xs text-center mt-1 leading-relaxed">
+          Mostrale esto al cliente. Puede dejarte propina y calificarte.
+        </p>
+
+        <div className="flex justify-center my-4">
+          <div className="bg-white p-3 rounded-2xl border border-black/10">
+            <canvas ref={canvasRef} />
+          </div>
+        </div>
+
+        <p className="text-[#008080] font-mono text-xs text-center break-all mb-4">{urlLinda}</p>
+
+        <button
+          onClick={compartir}
+          className="w-full bg-[#008080] hover:bg-[#006666] text-white font-bold py-3.5 rounded-xl text-sm"
+        >
+          Compartir
+        </button>
+        <button
+          onClick={copiar}
+          className="w-full mt-2 border border-black/10 text-[#3A4A5A] font-semibold py-3 rounded-xl text-sm"
+        >
+          {copiado ? '¡Link copiado!' : 'Copiar link'}
+        </button>
+      </div>
     </div>
   )
 }

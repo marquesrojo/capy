@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { supabaseCustomer } from '../../lib/supabase'
 import { getLevel, getXPProgress } from '../../lib/xpUtils'
 import { StarIcon } from '../../components/Icons'
+import WaiterTipCard from '../../components/WaiterTipCard'
 
 const LEVEL_ICONS = {
   'Camarero Activo': <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
@@ -54,7 +55,8 @@ export default function WaiterPublicPage() {
     query = isUUID ? query.eq('id', alias) : query.eq('alias', alias)
     const { data, error } = await query.maybeSingle()
 
-    if (error || !data) {
+    // Apagada por su dueño: para el que entra es como si no existiera
+    if (error || !data || data.public_page_enabled === false) {
       setNotFound(true)
       setLoading(false)
       return
@@ -63,7 +65,7 @@ export default function WaiterPublicPage() {
 
     const promises = [
       supabaseCustomer.rpc('count_orders_by_staff', { p_staff_id: data.id }),
-      supabaseCustomer.from('order_feedback').select('rating, notes, tags').eq('staff_id', data.id),
+      supabaseCustomer.from('order_feedback').select('rating, notes, tags, order_id').eq('staff_id', data.id),
     ]
     if (data.venue_id) {
       promises.push(
@@ -99,6 +101,9 @@ export default function WaiterPublicPage() {
       orders: ordersRes.data || 0,
       avgRating,
       ratingCount: ratings.length,
+      // Una calificación con pedido detrás vale distinto que una suelta, y
+      // quien mira la página tiene derecho a saber cuántas son de cada tipo
+      verificadas: ratings.filter(r => r.order_id).length,
       fiveStarPct,
       tagCounts,
       archetype: calcArchetype(ordersRes.data || 0, fiveStarPct, ratings.length),
@@ -166,6 +171,9 @@ export default function WaiterPublicPage() {
       </div>
 
       <div className="px-4 -mt-5 pb-10 space-y-3">
+        {/* Lo primero: cobrar. El currículum va abajo. */}
+        <WaiterTipCard staff={staff} mostrarEncuesta={staff.public_ratings_enabled !== false} />
+
         {/* Bio */}
         {staff.bio && (
           <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
@@ -210,7 +218,7 @@ export default function WaiterPublicPage() {
         </div>
 
         {/* Stats */}
-        {stats && (
+        {stats && staff.public_ratings_enabled !== false && (
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm text-center">
               <p className="font-bold text-[#1A2A3A] text-3xl">{stats.orders.toLocaleString()}</p>
@@ -221,6 +229,9 @@ export default function WaiterPublicPage() {
                 <>
                   <p className="font-bold text-[#008080] text-3xl">{stats.avgRating}</p>
                   <p className="text-[#8896A5] text-xs mt-1 flex items-center gap-1">{stats.ratingCount} opiniones <StarIcon size={11} /></p>
+                  {stats.verificadas > 0 && (
+                    <p className="text-[#008080] text-[10px] mt-0.5 font-semibold">{stats.verificadas} verificadas</p>
+                  )}
                 </>
               ) : (
                 <>
@@ -233,7 +244,7 @@ export default function WaiterPublicPage() {
         )}
 
         {/* Reconocimientos */}
-        {stats?.tagCounts && Object.values(stats.tagCounts).some(v => v > 0) && (
+        {staff.public_ratings_enabled !== false && stats?.tagCounts && Object.values(stats.tagCounts).some(v => v > 0) && (
           <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
             <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-3">Reconocimientos</p>
             <div className="flex flex-wrap gap-2">
@@ -253,7 +264,7 @@ export default function WaiterPublicPage() {
         )}
 
         {/* Mejor comentario */}
-        {bestComment && (
+        {bestComment && staff.public_ratings_enabled !== false && (
           <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
             <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide mb-2">Lo que dicen sus clientes</p>
             <p className="text-[#1A2A3A] text-sm italic leading-relaxed">"{bestComment}"</p>
