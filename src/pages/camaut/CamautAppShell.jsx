@@ -817,7 +817,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                 {micapyTab === 'carta' && micapySubTab === 'descuentos' && <CamautConfigPage key="descuentos-en-carta" embedded initialTab="descuentos" staffId={staffId} />}
                 {micapyTab === 'ubicaciones' && <UbicacionesViewer linkedVenues={linkedVenues} venueId={venueId} />}
                 {micapyTab === 'soporte' && <SoporteTab staffId={staffId} staffName={staffName} />}
-                {micapyTab === 'invitar' && <InvitarTab staffName={staffName} staffId={staffId} />}
+                {micapyTab === 'invitar' && <InvitarTab staffName={staffName} staffId={staffId} staffAlias={staffAlias} />}
               </div>
             </>
           )}
@@ -1336,7 +1336,7 @@ function SoporteTab({ staffId, staffName }) {
 // bajo se lea como privilegio y no como vacío
 const MOSTRAR_NUMERO_FUNDADOR = false
 
-function InvitarTab({ staffName, staffId }) {
+function InvitarTab({ staffName, staffId, staffAlias }) {
   const [inviteType, setInviteType] = useState('camaut')
   const [progreso, setProgreso] = useState(null)
   const [fundador, setFundador] = useState(null)
@@ -1352,9 +1352,13 @@ function InvitarTab({ staffName, staffId }) {
   }, [staffId])
 
   // El link lleva quién invita: sin eso no hay forma de saber quién trajo a
-  // quién, que es lo único que hace que invitar signifique algo
-  const linkCamaut = staffId
-    ? `https://capyapp.co/camareroa?ref=${staffId}`
+  // quién, que es lo único que hace que invitar signifique algo. Con el alias
+  // cuando lo tiene: un uuid ocupa tres renglones en un WhatsApp y da
+  // desconfianza. El alta acepta las dos formas, así que un link viejo con id
+  // sigue atribuyendo aunque después cambie el alias.
+  const ref = staffAlias || staffId
+  const linkCamaut = ref
+    ? `https://capyapp.co/camareroa?ref=${ref}`
     : 'https://capyapp.co/camareroa'
 
   const INVITE_CONFIG = {
