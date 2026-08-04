@@ -99,12 +99,17 @@ export default function CamautVincularPage() {
   const intervalRef = useRef(null)
 
   useEffect(() => {
-    if (searchParams.get('code')) {
-      // Puede llegar sin cuenta: guardamos el código para retomar la
-      // vinculación después de registrarse o iniciar sesión (incluso si el
-      // login sale de la app, como el de Google).
-      try { localStorage.setItem('capy_pending_invite', searchParams.get('code')) } catch { /* storage no disponible */ }
-      handleSearch(searchParams.get('code'))
+    const enLaUrl = searchParams.get('code')
+    if (enLaUrl) {
+      // Guardarlo sirve para una sola cosa: sobrevivir la ida y vuelta del
+      // login, que se lleva puesta la URL. Con sesión ya abierta no hay viaje
+      // que sobrevivir, y guardarlo lo deja pegado para el próximo que se
+      // registre en este navegador.
+      supabaseCamaut.auth.getSession().then(({ data }) => {
+        if (data.session) return
+        try { localStorage.setItem('capy_pending_invite', enLaUrl) } catch { /* storage no disponible */ }
+      })
+      handleSearch(enLaUrl)
     }
     return () => stopScan()
   }, [])
