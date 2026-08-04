@@ -310,7 +310,7 @@ function PerfilTab({ profile, overrideStaffId }) {
             className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-[#F8FAFC] text-[#1A2A3A] font-mono" />
         </label>
         <label className="block">
-          <span className="text-[#8896A5] text-xs block mb-1.5">DNI / Documento</span>
+          <span className="text-[#8896A5] text-xs block mb-1.5">DNI / Documento (opcional)</span>
           <input type="text" value={docNumber} onChange={e => setDocNumber(e.target.value)}
             placeholder="Para tu certificado verificado"
             className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm bg-[#F8FAFC] text-[#1A2A3A]" />
