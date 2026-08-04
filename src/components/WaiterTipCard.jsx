@@ -97,9 +97,11 @@ function EncuestaCard({ staff, nombre }) {
     if (!rating) return
     setEnviando(true)
     setError('')
+    // Sin venue_id: la tabla no lo tiene. Una calificación pertenece al pedido,
+    // y el local se deduce por ahí. Estas no tienen pedido y tampoco local: son
+    // de la persona, que es de lo que se trata.
     const { error: insertError } = await supabaseCustomer.from('order_feedback').insert({
       staff_id: staff.id,
-      venue_id: staff.venue_id || null,
       rating,
       tags: tags.length ? tags : null,
       notes: notes.trim() || null,
