@@ -241,7 +241,11 @@ export default function WaiterOrderCamaut({ venueId, linkedVenues = [], staffId:
         body: JSON.stringify({
           venueId: currentVenueId,
           locationLabel,
-          staffId: staffId || null,
+          // El id de la ficha sale de una consulta que puede volver vacía en un
+          // camarero recién creado. El prop lo trae igual, y acá se ignoraba: el
+          // pedido se guardaba sin camarero asignado, así que la calificación
+          // del cliente no era de nadie y su reputación no arrancaba nunca.
+          staffId: staffId || waiterStaffId || null,
           total,
           notes: generalNotes.trim() || null,
           items: cartItems.map(i => ({

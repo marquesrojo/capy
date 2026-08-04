@@ -37,7 +37,10 @@ export default function WaiterPublicPage() {
 
     const promises = [
       supabaseCustomer.rpc('count_orders_by_staff', { p_staff_id: data.id }),
-      supabaseCustomer.from('order_feedback').select('rating, notes, tags, order_id').eq('staff_id', data.id),
+      // Por RPC y no leyendo la tabla: una reseña puede ser suya sin nombrarlo
+      // —por el pedido que tenía asignado, o por ser de su local personal— y esa
+      // regla vive en un solo lugar, compartida con el contador de Embajador
+      supabaseCustomer.rpc('resenas_del_camarero', { p_staff_id: data.id }),
     ]
     if (data.venue_id) {
       promises.push(
@@ -75,7 +78,7 @@ export default function WaiterPublicPage() {
       ratingCount: ratings.length,
       // Una calificación con pedido detrás vale distinto que una suelta, y
       // quien mira la página tiene derecho a saber cuántas son de cada tipo
-      verificadas: ratings.filter(r => r.order_id).length,
+      verificadas: ratings.filter(r => r.verificada).length,
       fiveStarPct,
       tagCounts,
     })
