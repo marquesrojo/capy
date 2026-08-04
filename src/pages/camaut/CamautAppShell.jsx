@@ -1332,6 +1332,10 @@ function SoporteTab({ staffId, staffName }) {
   )
 }
 
+// Se prende cuando la comunidad sea lo bastante grande como para que un número
+// bajo se lea como privilegio y no como vacío
+const MOSTRAR_NUMERO_FUNDADOR = false
+
 function InvitarTab({ staffName, staffId }) {
   const [inviteType, setInviteType] = useState('camaut')
   const [progreso, setProgreso] = useState(null)
@@ -1385,9 +1389,13 @@ function InvitarTab({ staffName, staffId }) {
       {(fundador || esEmbajador || validos > 0) && (
         <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm space-y-3">
           <div className="flex flex-wrap gap-2">
+            {/* El número se guarda desde el alta —es un dato que después no se
+                puede reconstruir— pero no se muestra todavía: "Fundador #7" no
+                dice "llegué temprano", dice "acá hay siete personas". Cuando la
+                base sea grande, el número pasa a ser un trofeo y se prende. */}
             {fundador != null && (
               <span className="flex items-center gap-1.5 bg-[#1A2A3A] text-white text-xs font-bold px-3 py-1.5 rounded-full">
-                Fundador #{fundador}
+                Fundador{MOSTRAR_NUMERO_FUNDADOR ? ` #${fundador}` : ''}
               </span>
             )}
             {esEmbajador && (
