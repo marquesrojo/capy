@@ -79,7 +79,7 @@ export default function UsersPage() {
     setCompLoading(true)
     const { data: linked } = await supabaseStaff
       .from('venue_staff')
-      .select('staff_profile_id, profile:profiles(full_name)')
+      .select('staff_profile_id')
       .eq('venue_id', venueId)
       .eq('status', 'active')
 
@@ -93,25 +93,12 @@ export default function UsersPage() {
       .select('id, full_name, alias, xp, total_orders, profile_id')
       .in('profile_id', linkedIds)
 
-    const foundProfileIds = new Set((byId || []).map(s => s.profile_id).filter(Boolean))
-    const missingLinks = linked.filter(l => !foundProfileIds.has(l.staff_profile_id))
-    const missingNames = missingLinks.map(l => l.profile?.full_name).filter(Boolean)
-
-    let byName = []
-    if (missingNames.length) {
-      const { data: fallback } = await supabaseStaff
-        .from('staff_names')
-        .select('id, full_name, alias, xp, total_orders, profile_id')
-        .in('full_name', missingNames)
-        .order('xp', { ascending: false, nullsFirst: false })
-      const seen = new Map()
-      for (const s of fallback || []) {
-        if (!seen.has(s.full_name)) seen.set(s.full_name, s)
-      }
-      byName = Array.from(seen.values())
-    }
-
-    const staffList = [...(byId || []), ...byName]
+    // Antes, al que no aparecía por profile_id se lo buscaba por nombre en toda
+    // la plataforma y se tomaba el de más XP. Dos camareros llamados igual son
+    // indistinguibles así, y le atribuía a uno las estadísticas del otro. Hoy
+    // toda ficha nace con profile_id, así que ese rescate ya no tiene a quién
+    // rescatar: el que no aparece, no aparece.
+    const staffList = byId || []
     if (!staffList.length) { setComparativa([]); setCompLoading(false); return }
 
     const ids = staffList.map(s => s.id)
