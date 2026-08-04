@@ -81,6 +81,15 @@ export default function CamautLandingPage() {
   const [showQR, setShowQR] = useState(false)
   const qrRef = useRef(null)
 
+  // Quién lo invitó. Se guarda apenas entra porque entre el link y el alta hay
+  // un registro con Google que se lleva puesta la URL, y ahí se perdía el dato.
+  useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get('ref')
+    if (ref) {
+      try { localStorage.setItem('camaut-ref', ref) } catch { /* sin storage, se pierde */ }
+    }
+  }, [])
+
   useEffect(() => {
     if (!showQR) return
     function handleClick(e) {

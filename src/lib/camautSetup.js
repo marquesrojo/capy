@@ -55,6 +55,17 @@ export async function ensureWaiterRecord(userId, fullName) {
     .eq('profile_id', userId)
     .maybeSingle()
 
+  // Quién lo invitó, si llegó por el link de otro camarero. Solo al crear la
+  // ficha: cambiarlo después sería reescribir de dónde salió.
+  let referidoPor = null
+  try {
+    const ref = localStorage.getItem('camaut-ref')
+    if (ref) {
+      const { data } = await supabaseStaff.from('staff_names').select('id').eq('id', ref).maybeSingle()
+      if (data && data.id !== userId) referidoPor = data.id
+    }
+  } catch { /* sin storage o id inválido: queda sin referente */ }
+
   if (existingStaff) {
     await supabaseStaff
       .from('staff_names')
@@ -63,7 +74,7 @@ export async function ensureWaiterRecord(userId, fullName) {
   } else {
     const { error: staffError } = await supabaseStaff
       .from('staff_names')
-      .insert({ venue_id: venue.id, full_name: name, profile_id: userId, xp: 0 })
+      .insert({ venue_id: venue.id, full_name: name, profile_id: userId, xp: 0, referred_by: referidoPor })
     if (staffError) throw new Error(staffError.message)
   }
 
