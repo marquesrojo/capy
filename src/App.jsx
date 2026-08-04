@@ -66,6 +66,12 @@ import UpgradeResultPage from './pages/admin/UpgradeResultPage'
 import WhatsAppPage from './pages/admin/WhatsAppPage'
 import UpdateBanner from './components/UpdateBanner'
 
+// Apagado por ahora. El botón flotante tapaba contenido en pantallas que ya
+// están llenas —el tablero, la comanda— y competía por atención con lo que la
+// persona estaba haciendo. Se deja el componente y la condición para poder
+// volver a prenderlo cambiando esta línea.
+const CHAT_FLOTANTE_ACTIVO = false
+
 function CapyChatOverlay() {
   const { isStaff } = useAuth()
   const location = useLocation()
@@ -74,7 +80,7 @@ function CapyChatOverlay() {
   // de dudas previas al registro, no el interno de gestión del local.
   const isInsideApp = location.pathname.startsWith('/admin')
     || location.pathname.startsWith('/camareroa/app')
-  if (!isStaff || !isInsideApp) return null
+  if (!CHAT_FLOTANTE_ACTIVO || !isStaff || !isInsideApp) return null
   return <CapyChat />
 }
 
