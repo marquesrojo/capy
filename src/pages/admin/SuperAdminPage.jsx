@@ -128,10 +128,20 @@ function StatsTab() {
         },
         body: JSON.stringify({}),
       })
-      const data = await r.json()
-      setSendResult(r.ok ? 'ok' : 'error')
-    } catch {
-      setSendResult('error')
+      // El motivo importa: sin clave de Resend, con el dominio sin verificar o
+      // con la función sin desplegar, el error es distinto y se arregla en otro
+      // lado. Un "error al enviar" a secas no dice dónde mirar.
+      const data = await r.json().catch(() => null)
+      if (r.ok) {
+        setSendResult('ok')
+      } else {
+        const motivo = data?.error === 'no_resend_key'
+          ? 'Falta RESEND_API_KEY en las variables de la edge function'
+          : data?.message || data?.error?.message || data?.error || `HTTP ${r.status}`
+        setSendResult(typeof motivo === 'string' ? motivo : JSON.stringify(motivo))
+      }
+    } catch (err) {
+      setSendResult(`No se pudo llamar a la función: ${err.message}`)
     } finally {
       setSending(false)
     }
@@ -159,7 +169,9 @@ function StatsTab() {
           {sending ? 'Enviando...' : '📧 Enviar reporte ahora'}
         </button>
         {sendResult === 'ok' && <span className="text-emerald-400 text-xs">✓ Enviado a matias@bravosm.com</span>}
-        {sendResult === 'error' && <span className="text-red-400 text-xs">Error al enviar</span>}
+        {sendResult && sendResult !== 'ok' && (
+          <span className="text-red-400 text-xs break-all">{sendResult}</span>
+        )}
       </div>
       <p className="text-smoke-600 text-[10px]">El reporte también se envía automáticamente a las 23:00 ART.</p>
     </div>
