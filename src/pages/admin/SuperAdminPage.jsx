@@ -539,11 +539,14 @@ function PagosTab() {
   const [waTestLoading, setWaTestLoading] = useState(false)
   const [waTestResult, setWaTestResult] = useState(null)
   const [waTestOrderId, setWaTestOrderId] = useState('')
+  const [reportEmails, setReportEmails] = useState('')
+  const [savingEmails, setSavingEmails] = useState(false)
+  const [savedEmails, setSavedEmails] = useState(false)
 
   useEffect(() => {
     supabaseStaff
       .from('capy_settings')
-      .select('mp_access_token, photo_pack_price, camarero_image_pack_price, wa_phone_number_id, wa_access_token, wa_enabled')
+      .select('mp_access_token, photo_pack_price, camarero_image_pack_price, wa_phone_number_id, wa_access_token, wa_enabled, report_emails')
       .eq('id', 1)
       .single()
       .then(({ data }) => {
@@ -553,6 +556,7 @@ function PagosTab() {
         if (data?.wa_phone_number_id) setWaPhoneNumberId(data.wa_phone_number_id)
         if (data?.wa_access_token) setWaAccessToken(data.wa_access_token)
         if (data?.wa_enabled != null) setWaEnabled(data.wa_enabled)
+        if (data?.report_emails) setReportEmails(data.report_emails)
         setLoading(false)
       })
   }, [])
@@ -589,6 +593,24 @@ function PagosTab() {
     setSavingCamPrice(false)
     setSavedCamPrice(true)
     setTimeout(() => setSavedCamPrice(false), 2000)
+  }
+
+  async function saveEmails() {
+    setSavingEmails(true)
+    // Normalizado al guardar: se escribe con comas y espacios de cualquier
+    // forma, y la edge function no tiene por qué adivinar
+    const limpio = reportEmails
+      .split(',')
+      .map(e => e.trim())
+      .filter(Boolean)
+      .join(', ')
+    await supabaseStaff
+      .from('capy_settings')
+      .upsert({ id: 1, report_emails: limpio || null, updated_at: new Date().toISOString() })
+    setReportEmails(limpio)
+    setSavingEmails(false)
+    setSavedEmails(true)
+    setTimeout(() => setSavedEmails(false), 2000)
   }
 
   async function saveWa() {
@@ -680,6 +702,32 @@ function PagosTab() {
               {saving ? '...' : saved ? '✓' : 'Guardar'}
             </button>
           </div>
+        </div>
+      </div>
+
+      <div className="bg-carbon-900 border border-carbon-700 rounded-2xl p-5 space-y-4">
+        <div>
+          <p className="text-smoke-300 font-medium text-sm">Reporte diario — destinatarios</p>
+          <p className="text-smoke-500 text-xs mt-0.5">
+            <span className="font-mono text-smoke-400">matias@bravosm.com</span> lo recibe siempre.
+            Sumá otros separados por coma.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={reportEmails}
+            onChange={e => { setReportEmails(e.target.value); setSavedEmails(false) }}
+            placeholder="socio@capyapp.co, contador@estudio.com"
+            className="input flex-1 font-mono text-xs"
+          />
+          <button
+            onClick={saveEmails}
+            disabled={savingEmails}
+            className="bg-blue-500 hover:bg-blue-600 disabled:opacity-40 text-white font-semibold px-4 rounded-xl text-sm flex-shrink-0"
+          >
+            {savingEmails ? '...' : savedEmails ? '✓' : 'Guardar'}
+          </button>
         </div>
       </div>
 
