@@ -1,7 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import QRCode from 'qrcode'
 import { supabaseCamaut, supabaseStaff } from '../../lib/supabase'
 import { ensureWaiterRecord } from '../../lib/camautSetup'
+
+// El alias es parte de una URL: sin espacios ni acentos ni signos
+function sanitizeAlias(v) {
+  return v.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9_-]/g, '')
+}
 
 const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent.toLowerCase())
 const isStandalone = window.matchMedia('(display-mode: standalone)').matches || !!window.navigator.standalone
@@ -120,6 +126,11 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
   const [step, setStep] = useState(1)
   const [fullName, setFullName] = useState(initialName || '')
   const [saving, setSaving] = useState(false)
+  // El cobro es lo primero que tiene que quedar listo: es a lo que vino
+  const [alias, setAlias] = useState('')
+  const [aliasBancario, setAliasBancario] = useState('')
+  const [aliasError, setAliasError] = useState('')
+  const [staffId, setStaffId] = useState(null)
   const [inviteCode, setInviteCode] = useState('')
   const [linkedVenue, setLinkedVenue] = useState(null)
   const [searching, setSearching] = useState(false)
@@ -142,9 +153,49 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
         await supabaseStaff.from('staff_names').update({ full_name: fullName.trim() }).eq('venue_id', venueId)
         await supabaseStaff.from('profiles').update({ full_name: fullName.trim() }).eq('id', session.user.id)
       }
+      // La ficha se crea acá y no al final: el paso que sigue guarda el alias
+      // encima de ella, y el último muestra el QR, que necesita su id
+      try {
+        await ensureWaiterRecord(session.user.id, fullName.trim())
+        const { data } = await supabaseStaff
+          .from('staff_names')
+          .select('id, alias, alias_bancario')
+          .eq('profile_id', session.user.id)
+          .maybeSingle()
+        if (data) {
+          setStaffId(data.id)
+          setAlias(data.alias || sanitizeAlias(fullName.trim().split(' ')[0]))
+          if (data.alias_bancario) setAliasBancario(data.alias_bancario)
+        }
+      } catch (err) {
+        alert('Error creando tu cuenta: ' + err.message)
+        setSaving(false)
+        return
+      }
     }
     setSaving(false)
     setStep(2)
+  }
+
+  // Alias de usuario y alias bancario: lo que hace falta para poder cobrar
+  async function saveCobro() {
+    setAliasError('')
+    const limpio = sanitizeAlias(alias)
+    if (!limpio) { setAliasError('Elegí un alias para tu página.'); return }
+    setSaving(true)
+    const { error } = await supabaseStaff
+      .from('staff_names')
+      .update({ alias: limpio, alias_bancario: aliasBancario.trim() || null })
+      .eq('id', staffId)
+    setSaving(false)
+    if (error) {
+      setAliasError(error.code === '23505'
+        ? 'Ese alias ya lo está usando otro camarero. Probá con otro.'
+        : error.message)
+      return
+    }
+    setAlias(limpio)
+    setStep(3)
   }
 
   async function searchVenue() {
@@ -211,7 +262,7 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
 
       {/* Progress */}
       <div className="flex gap-1.5 mb-8">
-        {[1, 2].map(i => (
+        {[1, 2, 3].map(i => (
           <div key={i} className={`flex-1 h-1 rounded-full ${i <= step ? 'bg-ember-500' : 'bg-carbon-700'}`} />
         ))}
       </div>
@@ -220,7 +271,7 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
       {step === 1 && (
         <div className="flex-1 flex flex-col">
           <div className="mb-8">
-            <p className="text-smoke-500 text-sm mb-1">Paso 1 de 2</p>
+            <p className="text-smoke-500 text-sm mb-1">Paso 1 de 3</p>
             <h1 className="font-bold text-smoke-200 text-2xl mb-2">¿Cómo te llamás?</h1>
             <p className="text-smoke-500 text-sm">Tu nombre aparece en el ranking, el certificado y en los pedidos.</p>
           </div>
@@ -245,25 +296,90 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
         </div>
       )}
 
-      {/* PASO 2 — Primeros pasos */}
-      {step === 2 && !showVincular && (
+      {/* PASO 2 — Cobrar. Es a lo que vino: que quede listo antes que nada */}
+      {step === 2 && (
         <div className="flex-1 flex flex-col">
           <div className="mb-6">
-            <p className="text-smoke-500 text-sm mb-1">Paso 2 de 2</p>
-            <h1 className="font-bold text-smoke-200 text-2xl mb-2">
-              ¡Listo, {fullName.split(' ')[0]}!
-            </h1>
+            <p className="text-smoke-500 text-sm mb-1">Paso 2 de 3</p>
+            <h1 className="font-bold text-smoke-200 text-2xl mb-2">Cobrá tus propinas</h1>
             <p className="text-smoke-500 text-sm leading-relaxed">
-              Tu cuenta está lista. Te recomendamos estas acciones para arrancar:
+              El cliente escanea tu QR, copia tu alias y te transfiere. Directo a tu cuenta, sin
+              intermediarios ni comisiones.
             </p>
           </div>
 
-          <div className="space-y-2.5 mb-6">
+          <div className="space-y-4">
+            <div>
+              <label className="text-smoke-400 text-xs block mb-1.5">Tu alias bancario o CVU</label>
+              <input
+                type="text"
+                value={aliasBancario}
+                onChange={e => setAliasBancario(e.target.value)}
+                placeholder="juan.perez.mp"
+                className="w-full bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-4 text-smoke-200 text-base"
+                autoFocus
+              />
+              <p className="text-smoke-600 text-[11px] mt-1.5">
+                El mismo que usás para que te transfieran. Lo podés cambiar cuando quieras.
+              </p>
+            </div>
+
+            <div>
+              <label className="text-smoke-400 text-xs block mb-1.5">La dirección de tu página</label>
+              <div className="flex items-center bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-4">
+                <span className="text-smoke-600 text-sm flex-shrink-0">capyapp.co/c/</span>
+                <input
+                  type="text"
+                  value={alias}
+                  onChange={e => { setAlias(sanitizeAlias(e.target.value)); setAliasError('') }}
+                  placeholder="tunombre"
+                  className="flex-1 min-w-0 bg-transparent text-smoke-200 text-base outline-none"
+                />
+              </div>
+              {aliasError && <p className="text-red-400 text-xs mt-1.5">{aliasError}</p>}
+            </div>
+          </div>
+
+          <div className="mt-auto space-y-3 pt-6">
+            <button
+              onClick={saveCobro}
+              disabled={saving}
+              className="w-full bg-ember-500 disabled:opacity-50 text-white font-bold py-4 rounded-2xl text-sm"
+            >
+              {saving ? 'Guardando...' : 'Crear mi QR →'}
+            </button>
+            <button
+              onClick={() => { setAliasBancario(''); saveCobro() }}
+              className="w-full text-smoke-500 text-xs"
+            >
+              Cargar el alias bancario después
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* PASO 3 — Tu QR, ya listo */}
+      {step === 3 && !showVincular && (
+        <div className="flex-1 flex flex-col">
+          <div className="mb-6">
+            <p className="text-smoke-500 text-sm mb-1">Paso 3 de 3</p>
+            <h1 className="font-bold text-smoke-200 text-2xl mb-2">
+              Este es tu QR, {fullName.split(' ')[0]}
+            </h1>
+            <p className="text-smoke-500 text-sm leading-relaxed">
+              Mostralo o compartilo y ya podés cobrar. Lo tenés siempre a mano arriba en la app.
+            </p>
+          </div>
+
+          <OnboardingQR staffId={staffId} alias={alias} nombre={fullName.split(' ')[0]} />
+
+          <div className="space-y-2.5 mb-6 mt-5">
+            <p className="text-smoke-500 text-xs">Después, cuando quieras:</p>
             {[
               {
                 num: '1',
                 label: 'Completá tu perfil',
-                desc: 'Foto, alias y datos para tu página pública',
+                desc: 'Foto y presentación para tu página pública',
                 icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               },
               {
@@ -271,12 +387,6 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
                 label: 'Cargá tu carta con IA',
                 desc: 'Sacale una foto al menú y la IA lo sube en segundos',
                 icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-              },
-              {
-                num: '3',
-                label: 'Agregá ubicaciones',
-                desc: 'Mesas, barras y salones de tu lugar de trabajo',
-                icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
               },
             ].map(item => (
               <div key={item.num} className="flex items-center gap-3 bg-carbon-900 border border-carbon-700 rounded-2xl px-4 py-3.5">
@@ -300,13 +410,13 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
               disabled={saving}
               className="w-full bg-ember-500 disabled:opacity-50 text-white font-bold py-4 rounded-2xl text-sm"
             >
-              {saving ? 'Creando tu cuenta...' : 'Empezar →'}
+              {saving ? 'Entrando...' : 'Empezar →'}
             </button>
             <button
               onClick={() => setShowVincular(true)}
               className="w-full bg-carbon-900 border border-carbon-700 text-smoke-400 font-semibold py-3.5 rounded-2xl text-sm"
             >
-              Vincularme a un restaurante primero
+              Vincularme a un restaurante
             </button>
             <p className="text-smoke-600 text-xs text-center">
               También podés vincular un restaurante después desde <span className="text-ember-500">Mi CAPY</span>.
@@ -315,8 +425,8 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
         </div>
       )}
 
-      {/* PASO 2b — Vincular restaurante */}
-      {step === 2 && showVincular && (
+      {/* PASO 3b — Vincular restaurante */}
+      {step === 3 && showVincular && (
         <div className="flex-1 flex flex-col">
           <button onClick={() => { setShowVincular(false); setLinkedVenue(null); setInviteCode('') }}
             className="text-smoke-500 text-sm mb-6">← Volver</button>
@@ -372,6 +482,58 @@ export default function CamautOnboardingPage({ staffName: initialName, venueId, 
 
         </div>
       )}
+    </div>
+  )
+}
+
+// El QR recién hecho, en el mismo momento del registro. Apunta al id y no al
+// alias: el alias se puede cambiar y lo que ya se compartió tiene que seguir
+// funcionando.
+function OnboardingQR({ staffId, alias, nombre }) {
+  const canvasRef = useRef(null)
+  const [copiado, setCopiado] = useState(false)
+  const urlLinda = `capyapp.co/c/${alias || staffId}`
+
+  useEffect(() => {
+    if (!canvasRef.current || !staffId) return
+    QRCode.toCanvas(canvasRef.current, `https://capyapp.co/c/${staffId}`, {
+      width: 200,
+      margin: 2,
+      color: { dark: '#1A2A3A', light: '#FFFFFF' },
+    })
+  }, [staffId])
+
+  async function compartir() {
+    const texto = `Dejame una propina o calificá cómo te atendí 🦫\nhttps://${urlLinda}`
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: nombre, text: texto })
+        return
+      } catch { /* canceló */ }
+    }
+    try {
+      await navigator.clipboard.writeText(`https://${urlLinda}`)
+      setCopiado(true)
+      setTimeout(() => setCopiado(false), 2500)
+    } catch { /* queda a la vista */ }
+  }
+
+  if (!staffId) return null
+
+  return (
+    <div className="bg-carbon-900 border border-ember-500/30 rounded-2xl p-5 text-center">
+      <div className="flex justify-center">
+        <div className="bg-white p-3 rounded-2xl">
+          <canvas ref={canvasRef} />
+        </div>
+      </div>
+      <p className="text-smoke-500 font-mono text-xs mt-3 break-all">{urlLinda}</p>
+      <button
+        onClick={compartir}
+        className="w-full mt-3 bg-carbon-800 border border-carbon-700 text-smoke-200 font-semibold py-3 rounded-xl text-sm"
+      >
+        {copiado ? '¡Link copiado!' : 'Compartir mi QR'}
+      </button>
     </div>
   )
 }
