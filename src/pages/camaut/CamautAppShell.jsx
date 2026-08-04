@@ -361,8 +361,12 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
       <div className="bg-white border-b border-black/8 px-5 pb-0 shadow-sm flex-shrink-0" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full bg-[#008080] flex items-center justify-center text-white font-bold text-base flex-shrink-0">
-              {staffName?.slice(0, 2).toUpperCase() || 'CA'}
+            {/* Las iniciales son el respaldo, no el destino: si cargó una foto
+                es porque quiere que se vea */}
+            <div className="w-11 h-11 rounded-full bg-[#008080] overflow-hidden flex items-center justify-center text-white font-bold text-base flex-shrink-0">
+              {staffAvatarUrl
+                ? <img src={staffAvatarUrl} alt={staffName || 'Mi foto'} className="w-full h-full object-cover" />
+                : (staffName?.slice(0, 2).toUpperCase() || 'CA')}
             </div>
             <div>
               <p className="font-bold text-[#1A2A3A] text-sm leading-tight">{staffName || 'Camarero/a'}</p>
