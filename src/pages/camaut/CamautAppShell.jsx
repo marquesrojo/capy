@@ -817,7 +817,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                 {micapyTab === 'carta' && micapySubTab === 'descuentos' && <CamautConfigPage key="descuentos-en-carta" embedded initialTab="descuentos" staffId={staffId} />}
                 {micapyTab === 'ubicaciones' && <UbicacionesViewer linkedVenues={linkedVenues} venueId={venueId} />}
                 {micapyTab === 'soporte' && <SoporteTab staffId={staffId} staffName={staffName} />}
-                {micapyTab === 'invitar' && <InvitarTab staffName={staffName} />}
+                {micapyTab === 'invitar' && <InvitarTab staffName={staffName} staffId={staffId} />}
               </div>
             </>
           )}
@@ -1332,13 +1332,35 @@ function SoporteTab({ staffId, staffName }) {
   )
 }
 
-function InvitarTab({ staffName }) {
+// Se prende cuando la comunidad sea lo bastante grande como para que un número
+// bajo se lea como privilegio y no como vacío
+const MOSTRAR_NUMERO_FUNDADOR = false
+
+function InvitarTab({ staffName, staffId }) {
   const [inviteType, setInviteType] = useState('camaut')
+  const [progreso, setProgreso] = useState(null)
+  const [fundador, setFundador] = useState(null)
+
+  // El progreso lo calcula la base sobre datos reales. Si en el camino se
+  // cumplieron los cinco, esta misma llamada entrega el premio.
+  useEffect(() => {
+    if (!staffId) return
+    supabaseStaff.rpc('revisar_embajador', { p_staff_id: staffId })
+      .then(({ data }) => { if (data?.[0]) setProgreso(data[0]) })
+    supabaseStaff.from('staff_names').select('founder_number').eq('id', staffId).maybeSingle()
+      .then(({ data }) => setFundador(data?.founder_number ?? null))
+  }, [staffId])
+
+  // El link lleva quién invita: sin eso no hay forma de saber quién trajo a
+  // quién, que es lo único que hace que invitar signifique algo
+  const linkCamaut = staffId
+    ? `https://capyapp.co/camareroa?ref=${staffId}`
+    : 'https://capyapp.co/camareroa'
 
   const INVITE_CONFIG = {
     camaut: {
       label: 'Camaut',
-      message: `${staffName ? `${staffName} te invita a` : 'Unite a'} Camaut, la app para camareros 🍽️\n\nhttps://capyapp.co/camareroa`,
+      message: `${staffName ? `${staffName} te invita a` : 'Unite a'} Camaut, la app para camareros 🍽️\n\n${linkCamaut}`,
     },
     local: {
       label: 'CAPY',
@@ -1357,8 +1379,57 @@ function InvitarTab({ staffName }) {
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer')
   }
 
+  const validos = progreso?.invitados_validos ?? 0
+  const esEmbajador = !!progreso?.es_embajador
+
   return (
     <div className="space-y-4">
+      {/* Los distintivos que se ven entre camareros. No hablan de trabajo ni de
+          reputación: hablan de haber estado y de haber traído gente. */}
+      {(fundador || esEmbajador || validos > 0) && (
+        <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm space-y-3">
+          <div className="flex flex-wrap gap-2">
+            {/* El número se guarda desde el alta —es un dato que después no se
+                puede reconstruir— pero no se muestra todavía: "Fundador #7" no
+                dice "llegué temprano", dice "acá hay siete personas". Cuando la
+                base sea grande, el número pasa a ser un trofeo y se prende. */}
+            {fundador != null && (
+              <span className="flex items-center gap-1.5 bg-[#1A2A3A] text-white text-xs font-bold px-3 py-1.5 rounded-full">
+                Fundador{MOSTRAR_NUMERO_FUNDADOR ? ` #${fundador}` : ''}
+              </span>
+            )}
+            {esEmbajador && (
+              <span className="flex items-center gap-1.5 bg-[#E8F5F5] text-[#008080] text-xs font-bold px-3 py-1.5 rounded-full border border-[#008080]/30">
+                Embajador
+              </span>
+            )}
+          </div>
+
+          {!esEmbajador && (
+            <div>
+              <div className="flex items-baseline justify-between mb-1.5">
+                <p className="text-[#1A2A3A] text-sm font-semibold">Embajador</p>
+                <p className="text-[#8896A5] text-xs font-mono">{validos} de 5</p>
+              </div>
+              <div className="w-full h-1.5 bg-[#F0F4F8] rounded-full overflow-hidden">
+                <div className="h-1.5 bg-[#008080] rounded-full transition-all"
+                  style={{ width: `${Math.min(100, (validos / 5) * 100)}%` }} />
+              </div>
+              <p className="text-[#8896A5] text-[11px] mt-2 leading-snug">
+                Cuentan los que cargaron su alias y ya recibieron una reseña. Al quinto sumás
+                5 imágenes de carta con IA.
+              </p>
+            </div>
+          )}
+
+          {esEmbajador && (
+            <p className="text-[#8896A5] text-[11px] leading-snug">
+              Trajiste 5 camareros que están cobrando. Se te sumaron 5 imágenes de carta con IA.
+            </p>
+          )}
+        </div>
+      )}
+
       <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide">¿Qué querés invitar?</p>
       <div className="grid grid-cols-2 gap-2">
         {[
