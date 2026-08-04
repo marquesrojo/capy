@@ -181,6 +181,22 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: 'no_resend_key' }), { status: 503, headers: corsHeaders })
   }
 
+  // Destinatarios extra, cargados desde SuperAdmin y separados por coma. El de
+  // siempre va primero y no depende de esta consulta: si la tabla no responde o
+  // el campo quedó mal escrito, el reporte igual llega.
+  const { data: settings } = await supabase
+    .from('capy_settings')
+    .select('report_emails')
+    .eq('id', 1)
+    .maybeSingle()
+
+  const extra = (settings?.report_emails || '')
+    .split(',')
+    .map((e: string) => e.trim())
+    .filter((e: string) => e.includes('@'))
+
+  const to = [...new Set(['matias@bravosm.com', ...extra])]
+
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -189,7 +205,7 @@ Deno.serve(async (req) => {
     },
     body: JSON.stringify({
       from: 'CAPY <noreply@capyapp.co>',
-      to: 'matias@bravosm.com',
+      to,
       subject: `CAPY · Reporte del ${dateLabel}`,
       html,
     }),

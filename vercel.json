@@ -1,10 +1,4 @@
 {
-  "crons": [
-    {
-      "path": "/api/cron-daily-report",
-      "schedule": "0 2 * * *"
-    }
-  ],
   "rewrites": [
     { "source": "/qr-template.html", "destination": "/qr-template.html" },
     { "source": "/ir/:id", "destination": "/api/ir?id=:id" },
