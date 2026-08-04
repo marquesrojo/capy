@@ -546,7 +546,7 @@ function PagosTab() {
   useEffect(() => {
     supabaseStaff
       .from('capy_settings')
-      .select('mp_access_token, photo_pack_price, camarero_image_pack_price, wa_phone_number_id, wa_access_token, wa_enabled, report_emails')
+      .select('mp_access_token, photo_pack_price, camarero_image_pack_price, wa_phone_number_id, wa_access_token, wa_enabled')
       .eq('id', 1)
       .single()
       .then(({ data }) => {
@@ -556,7 +556,6 @@ function PagosTab() {
         if (data?.wa_phone_number_id) setWaPhoneNumberId(data.wa_phone_number_id)
         if (data?.wa_access_token) setWaAccessToken(data.wa_access_token)
         if (data?.wa_enabled != null) setWaEnabled(data.wa_enabled)
-        if (data?.report_emails) setReportEmails(data.report_emails)
         setLoading(false)
       })
   }, [])
