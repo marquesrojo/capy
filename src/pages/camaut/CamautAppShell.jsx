@@ -1359,8 +1359,10 @@ function InvitarTab({ staffName, staffId }) {
 
   const INVITE_CONFIG = {
     camaut: {
-      label: 'Camaut',
-      message: `${staffName ? `${staffName} te invita a` : 'Unite a'} Camaut, la app para camareros 🍽️\n\n${linkCamaut}`,
+      label: 'CAPY Camarero',
+      // "Camaut" es el nombre interno del código y no significa nada para
+      // quien recibe el mensaje: la app se llama CAPY Camarero
+      message: `${staffName ? `${staffName} te invita a` : 'Unite a'} CAPY Camarero, la app para camareros 🍽️\n\n${linkCamaut}`,
     },
     local: {
       label: 'CAPY',
@@ -1433,7 +1435,7 @@ function InvitarTab({ staffName, staffId }) {
       <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide">¿Qué querés invitar?</p>
       <div className="grid grid-cols-2 gap-2">
         {[
-          { id: 'camaut', label: 'Camarero', desc: 'Se suma a Camaut' },
+          { id: 'camaut', label: 'Camarero', desc: 'Se suma a CAPY Camarero' },
           { id: 'local', label: 'Local', desc: 'Registra su restaurante' },
         ].map(t => (
           <button

@@ -958,10 +958,10 @@ Los métodos activos se muestran al cliente en la pantalla de pago. Se pueden ac
   {
     title: 'Agregar camareros y usuarios',
     content: `En Mi Local → Usuarios se gestionan los camareros y administradores vinculados al local.
-Para agregar un camarero: ir a Usuarios y tocar + Agregar. El camarero recibe un link para crear su cuenta en Camaut (la plataforma de camareros de CAPY). Una vez que acepta, queda vinculado al local.
+Para agregar un camarero: ir a Usuarios y tocar + Agregar. El camarero recibe un link para crear su cuenta en CAPY Camarero (la plataforma de camareros de CAPY). Una vez que acepta, queda vinculado al local.
 Roles disponibles: admin (acceso total al panel) y camarero (acceso solo al modo tomar pedidos y ver historial).
 El camarero puede tomar pedidos desde su celular usando /admin/tomar — ve las mesas disponibles, elige una y toma el pedido como si fuera el cliente.
-Los camareros también acumulan XP y suben de rango en el programa de fidelización de Camaut.`,
+Los camareros también acumulan XP y suben de rango en el programa de fidelización de CAPY Camarero.`,
     tags: ['camareros', 'usuarios', 'staff', 'roles', 'camaut'],
   },
   {
@@ -985,17 +985,17 @@ Son útiles para evitar que el cliente tenga que escribir siempre las mismas acl
     tags: ['notas rápidas', 'aclaraciones', 'chips', 'pedidos'],
   },
   {
-    title: 'Qué es Camaut y para qué sirve',
-    content: `Camaut es la app de CAPY para camareros. Permite al camarero tomar pedidos digitalmente, ver el estado de los pedidos en tiempo real, llevar un registro de su carrera y acumular XP por turno.
-Camaut tiene dos modos:
+    title: 'Qué es CAPY Camarero y para qué sirve',
+    content: `CAPY Camarero es la app de CAPY para camareros. Permite al camarero tomar pedidos digitalmente, ver el estado de los pedidos en tiempo real, llevar un registro de su carrera y acumular XP por turno.
+CAPY Camarero tiene dos modos:
 1. Camarero vinculado a un local: trabaja en un restaurante o bar que usa CAPY. El dueño lo agrega desde Mi Local → Usuarios. El camarero recibe un link para crear su cuenta y queda vinculado al local.
 2. Camarero autónomo: trabaja freelance o en varios locales. Se registra en camaut.app y puede vincularse a múltiples locales.
 Los camareros acceden a su app en /camareroa/app o desde el panel de admin en /admin/tomar si están vinculados a un local.`,
     tags: ['camaut', 'camarero', 'app', 'registro'],
   },
   {
-    title: 'Cómo registrarse en Camaut',
-    content: `Para crear una cuenta en Camaut:
+    title: 'Cómo registrarse en CAPY Camarero',
+    content: `Para crear una cuenta en CAPY Camarero:
 1. Ir a camaut.app o escanear el QR de camarero del local.
 2. Tocar Crear cuenta, ingresar nombre, email y contraseña.
 3. Si el dueño del local ya envió una invitación, al entrar al link de invitación el camarero queda vinculado automáticamente al local.
@@ -1007,7 +1007,7 @@ Una vez registrado, el camarero accede a su perfil con historial de pedidos, XP 
     title: 'Tomar pedidos como camarero',
     content: `El camarero puede tomar pedidos desde dos lugares:
 1. Panel admin en /admin/tomar: si está logueado como camarero en el panel, ve las mesas disponibles del local, elige una mesa y puede hacer el pedido en nombre del cliente.
-2. App Camaut (/camaut/app): tiene 5 secciones accesibles desde la barra inferior:
+2. App CAPY Camarero (/camaut/app): tiene 5 secciones accesibles desde la barra inferior:
    - Comanda: tomar un pedido nuevo seleccionando mesa y productos de la carta.
    - Pedidos: ver todos los pedidos activos y su estado (pendiente, en preparación, listo, entregado).
    - Turno: resumen del turno actual — pedidos tomados, XP ganado en el turno.
@@ -1017,7 +1017,7 @@ El camarero también recibe notificaciones push cuando un pedido cambia de estad
     tags: ['camaut', 'camarero', 'pedidos', 'comanda', 'tomar pedidos'],
   },
   {
-    title: 'XP y rangos del camarero en Camaut',
+    title: 'XP y rangos del camarero en CAPY Camarero',
     content: `Los camareros acumulan XP (experiencia) por cada pedido que toman. El XP se suma al perfil del camarero y determina su rango.
 Rangos disponibles (de menor a mayor): Novato, Bronce, Plata, Oro, Diamante.
 Cada rango desbloquea beneficios dentro de la plataforma y mejora el posicionamiento en el ranking público de camareros.
@@ -1026,11 +1026,11 @@ El ranking compara al camarero con otros de su zona, mostrando posición, propin
     tags: ['camaut', 'xp', 'rangos', 'ranking', 'carrera', 'reputación'],
   },
   {
-    title: 'CV digital del camarero en Camaut',
-    content: `Cada camarero en Camaut tiene un CV digital público accesible en /c/:alias (por ejemplo capy.ar/c/nombre).
+    title: 'CV digital del camarero en CAPY Camarero',
+    content: `Cada camarero en CAPY Camarero tiene un CV digital público accesible en /c/:alias (por ejemplo capy.ar/c/nombre).
 El CV muestra: nombre, foto, rango actual, XP total, cantidad de pedidos tomados, locales donde trabajó y calificaciones de clientes.
 Es útil para que el camarero muestre su experiencia verificada en entrevistas de trabajo o al ofrecer sus servicios a nuevos locales.
-El alias se configura desde el perfil en la app de Camaut. También hay una versión extendida tipo CV en /cv/:alias con más detalle profesional.`,
+El alias se configura desde el perfil en la app de CAPY Camarero. También hay una versión extendida tipo CV en /cv/:alias con más detalle profesional.`,
     tags: ['camaut', 'cv', 'perfil', 'reputación', 'alias'],
   },
   {
