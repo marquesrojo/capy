@@ -1,24 +1,20 @@
 -- ============================================================
--- Una reseña cuenta venga de donde venga
+-- De quién es una reseña, definido en un solo lugar
 --
--- Hasta ahora una calificación era del camarero solo si tenía su staff_id
--- escrito encima. Eso deja afuera el caso más común del camarero autónomo:
--- toma un pedido en su propio local, el cliente califica desde la pantalla del
--- pedido, y si ese pedido no quedó con camarero asignado la reseña no es de
--- nadie. Su reputación no arranca, y su invitación tampoco cuenta.
+-- Lo usaban dos: el contador de Embajador y la página pública del camarero. Con
+-- la regla escrita dos veces, tarde o temprano muestran números distintos.
 --
--- Tres formas de que una reseña sea suya, en orden de certeza:
+-- Una reseña es suya por dos caminos, y los dos son hechos, no suposiciones:
 --   1. La reseña lo nombra (staff_id).
---   2. El pedido que se califica lo tenía asignado a él.
---   3. La reseña no nombra a nadie y el pedido es de su local personal. El
---      venue de un camarero autónomo es él: no hay otro a quién atribuirla.
+--   2. El pedido que se está calificando lo tenía asignado a él. Pasa cuando la
+--      calificación se guardó sin copiar el camarero, pero el pedido sí lo dice.
 --
--- La tercera no aplica a un restaurante con varios camareros: ahí staff_names
--- guarda el venue personal de cada uno, no el del local, así que un pedido del
--- restaurante no coincide con el venue de nadie.
---
--- Una sola definición para los dos que la usan: el contador de Embajador y la
--- página pública. Si viven separadas, muestran números distintos.
+-- Se descartó una tercera: "la reseña no nombra a nadie y el pedido es de su
+-- local personal". Rescataba las reseñas que quedaron huérfanas por el bug de
+-- la comanda —que se guardaba sin camarero asignado—, pero ese bug ya está
+-- corregido en el origen. Dejarla puesta significaría que, si mañana otro
+-- camino vuelve a dejar pedidos sin asignar, las reseñas se absorben solas y
+-- nadie se entera. Preferimos que se note.
 -- ============================================================
 
 CREATE OR REPLACE FUNCTION resenas_del_camarero(p_staff_id uuid)
@@ -34,25 +30,24 @@ STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
-  SELECT DISTINCT ON (f.id)
+  SELECT
     f.rating,
     f.notes,
     f.tags,
     f.order_id,
+    -- Con un pedido detrás vale distinto que una suelta desde el QR
     f.order_id IS NOT NULL AS verificada
   FROM order_feedback f
   LEFT JOIN orders o ON o.id = f.order_id
-  LEFT JOIN staff_names s ON s.id = p_staff_id
   WHERE f.staff_id = p_staff_id
      OR o.assigned_staff_id = p_staff_id
-     OR (f.staff_id IS NULL AND o.venue_id IS NOT NULL AND o.venue_id = s.venue_id)
 $$;
 
 GRANT EXECUTE ON FUNCTION resenas_del_camarero(uuid) TO anon;
 GRANT EXECUTE ON FUNCTION resenas_del_camarero(uuid) TO authenticated;
 
 
--- Embajador pasa a usar la misma regla
+-- Embajador pasa a usar la misma definición
 CREATE OR REPLACE FUNCTION revisar_embajador(p_staff_id uuid)
 RETURNS TABLE (
   invitados int,
