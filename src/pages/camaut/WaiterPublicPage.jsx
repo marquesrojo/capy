@@ -1,36 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabaseCustomer } from '../../lib/supabase'
-import { getLevel, getXPProgress } from '../../lib/xpUtils'
 import { StarIcon } from '../../components/Icons'
 import WaiterTipCard from '../../components/WaiterTipCard'
-
-const LEVEL_ICONS = {
-  'Camarero Activo': <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-  'Mozo Veloz': <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
-  'Mozo Experto': <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
-  'Leyenda del Salón': <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>,
-}
-
-const ARCHETYPE_ICONS = {
-  'Flash del Salón': <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
-  'Encantador de Dulces': <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>,
-  'Tanque de la Barra': <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
-  'Imán de Estrellas': <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>,
-  'En Ascenso': <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
-}
-
-function calcArchetype(orderCount, fiveStarPct, ratingCount) {
-  if (orderCount >= 400)
-    return { name: 'Flash del Salón', desc: 'Velocidad pura. Ningún pedido lo para.' }
-  if (fiveStarPct === 100 && ratingCount >= 50)
-    return { name: 'Encantador de Dulces', desc: 'Efectividad perfecta. Sus clientes lo aman.' }
-  if (orderCount >= 200)
-    return { name: 'Tanque de la Barra', desc: 'Sólido y confiable. El salón lo necesita.' }
-  if (fiveStarPct >= 80 && ratingCount >= 20)
-    return { name: 'Imán de Estrellas', desc: 'Sus clientes no paran de felicitarlo.' }
-  return { name: 'En Ascenso', desc: 'Cada día suma experiencia y crecimiento.' }
-}
 
 export default function WaiterPublicPage() {
   const { alias } = useParams()
@@ -106,7 +78,6 @@ export default function WaiterPublicPage() {
       verificadas: ratings.filter(r => r.order_id).length,
       fiveStarPct,
       tagCounts,
-      archetype: calcArchetype(ordersRes.data || 0, fiveStarPct, ratings.length),
     })
     setLoading(false)
   }
@@ -132,10 +103,6 @@ export default function WaiterPublicPage() {
       </div>
     )
   }
-
-  const xp = staff.xp || 0
-  const level = getLevel(xp)
-  const progress = getXPProgress(xp)
 
   return (
     <div className="min-h-screen bg-[#F0F4F8]">
@@ -182,62 +149,28 @@ export default function WaiterPublicPage() {
           </div>
         )}
 
-        {/* Archetype */}
-        {stats?.archetype && (
+        {/* Cómo lo califican. Los pedidos atendidos y el nivel son cosas de
+            currículum: acá lo único que aporta es qué opinan los que ya pasaron. */}
+        {stats?.avgRating && staff.public_ratings_enabled !== false && (
           <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm flex items-center gap-4">
-            <div className="flex-shrink-0 text-[#008080]">
-              {ARCHETYPE_ICONS[stats.archetype.name]}
-            </div>
-            <div>
-              <p className="font-bold text-[#1A2A3A] text-base leading-tight">{stats.archetype.name}</p>
-              <p className="text-[#8896A5] text-xs mt-0.5 leading-relaxed">{stats.archetype.desc}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Level */}
-        <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
-          <div className="flex items-center justify-between mb-2.5">
-            <div className="flex items-center gap-2.5">
-              <span className="text-[#008080]">{LEVEL_ICONS[level.name]}</span>
-              <div>
-                <p className="font-bold text-[#1A2A3A] text-sm leading-tight">{level.name}</p>
-                <p className="text-[#8896A5] text-xs">{xp.toLocaleString()} XP acumulados</p>
+            <div className="text-center flex-shrink-0">
+              <p className="font-bold text-[#008080] text-3xl leading-none">{stats.avgRating}</p>
+              <div className="flex justify-center gap-0.5 mt-1 text-[#F5A623]">
+                {[1, 2, 3, 4, 5].map(n => (
+                  <span key={n} className={n <= Math.round(stats.avgRating) ? '' : 'opacity-25'}>
+                    <StarIcon size={11} />
+                  </span>
+                ))}
               </div>
             </div>
-            <span className="bg-[#E8F5F5] text-[#008080] text-xs font-bold px-3 py-1 rounded-full">
-              Nivel {level.name}
-            </span>
-          </div>
-          <div className="w-full h-2 bg-[#F0F4F8] rounded-full overflow-hidden">
-            <div className="h-2 bg-[#008080] rounded-full transition-all" style={{ width: `${progress.percent}%` }} />
-          </div>
-          <p className="text-[#B0BEC5] text-[10px] mt-1.5">
-            {progress.current.toLocaleString()} / {progress.needed.toLocaleString()} XP para el siguiente nivel
-          </p>
-        </div>
-
-        {/* Stats */}
-        {stats && staff.public_ratings_enabled !== false && (
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm text-center">
-              <p className="font-bold text-[#1A2A3A] text-3xl">{stats.orders.toLocaleString()}</p>
-              <p className="text-[#8896A5] text-xs mt-1">Pedidos atendidos</p>
-            </div>
-            <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm text-center">
-              {stats.avgRating ? (
-                <>
-                  <p className="font-bold text-[#008080] text-3xl">{stats.avgRating}</p>
-                  <p className="text-[#8896A5] text-xs mt-1 flex items-center gap-1">{stats.ratingCount} opiniones <StarIcon size={11} /></p>
-                  {stats.verificadas > 0 && (
-                    <p className="text-[#008080] text-[10px] mt-0.5 font-semibold">{stats.verificadas} verificadas</p>
-                  )}
-                </>
-              ) : (
-                <>
-                  <p className="font-bold text-[#B0BEC5] text-3xl">—</p>
-                  <p className="text-[#8896A5] text-xs mt-1">Sin calificaciones</p>
-                </>
+            <div className="min-w-0">
+              <p className="text-[#1A2A3A] text-sm font-semibold leading-tight">
+                {stats.ratingCount} {stats.ratingCount === 1 ? 'opinión' : 'opiniones'}
+              </p>
+              {stats.verificadas > 0 && (
+                <p className="text-[#8896A5] text-xs mt-0.5">
+                  {stats.verificadas} con pedido verificado
+                </p>
               )}
             </div>
           </div>
@@ -295,6 +228,18 @@ export default function WaiterPublicPage() {
             </svg>
           </a>
         )}
+
+        {/* El currículum completo —trayectoria, nivel, historial— vive en otra
+            página. Acá va un link discreto: el que escaneó vino a dejar propina,
+            no a leer un CV, pero si le interesa está a un toque. */}
+        <div className="text-center pt-1">
+          <button
+            onClick={() => navigate(`/cv/${staff.alias || staff.id}`)}
+            className="text-[#8896A5] text-xs underline"
+          >
+            Ver la trayectoria de {staff.full_name?.split(' ')[0]}
+          </button>
+        </div>
 
         <div className="text-center pt-2">
           <p className="text-[#B0BEC5] text-xs">

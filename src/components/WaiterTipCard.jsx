@@ -97,9 +97,11 @@ function EncuestaCard({ staff, nombre }) {
     if (!rating) return
     setEnviando(true)
     setError('')
+    // Sin venue_id: la tabla no lo tiene. Una calificación pertenece al pedido,
+    // y el local se deduce por ahí. Estas no tienen pedido y tampoco local: son
+    // de la persona, que es de lo que se trata.
     const { error: insertError } = await supabaseCustomer.from('order_feedback').insert({
       staff_id: staff.id,
-      venue_id: staff.venue_id || null,
       rating,
       tags: tags.length ? tags : null,
       notes: notes.trim() || null,
@@ -107,10 +109,13 @@ function EncuestaCard({ staff, nombre }) {
     })
     setEnviando(false)
     if (insertError) {
-      // El índice único deja una sola calificación suelta por teléfono
+      // Un "probá de nuevo" a secas no dice nada y esconde el motivo, que es lo
+      // único que sirve cuando falla siempre igual
+      console.error('[encuesta] no se pudo guardar', insertError)
       setError(insertError.code === '23505'
+        // El índice único deja una sola calificación suelta por teléfono
         ? `Ya calificaste a ${nombre} desde este teléfono.`
-        : 'No se pudo enviar. Probá de nuevo.')
+        : `No se pudo enviar (${insertError.code || 'sin código'}): ${insertError.message}`)
       return
     }
     setListo(true)
