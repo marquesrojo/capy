@@ -817,7 +817,7 @@ export default function CamautAppShell({ venueId, staffName: initialName, staffX
                 {micapyTab === 'carta' && micapySubTab === 'descuentos' && <CamautConfigPage key="descuentos-en-carta" embedded initialTab="descuentos" staffId={staffId} />}
                 {micapyTab === 'ubicaciones' && <UbicacionesViewer linkedVenues={linkedVenues} venueId={venueId} />}
                 {micapyTab === 'soporte' && <SoporteTab staffId={staffId} staffName={staffName} />}
-                {micapyTab === 'invitar' && <InvitarTab staffName={staffName} staffId={staffId} />}
+                {micapyTab === 'invitar' && <InvitarTab staffName={staffName} staffId={staffId} staffAlias={staffAlias} />}
               </div>
             </>
           )}
@@ -1336,7 +1336,7 @@ function SoporteTab({ staffId, staffName }) {
 // bajo se lea como privilegio y no como vacío
 const MOSTRAR_NUMERO_FUNDADOR = false
 
-function InvitarTab({ staffName, staffId }) {
+function InvitarTab({ staffName, staffId, staffAlias }) {
   const [inviteType, setInviteType] = useState('camaut')
   const [progreso, setProgreso] = useState(null)
   const [fundador, setFundador] = useState(null)
@@ -1352,15 +1352,21 @@ function InvitarTab({ staffName, staffId }) {
   }, [staffId])
 
   // El link lleva quién invita: sin eso no hay forma de saber quién trajo a
-  // quién, que es lo único que hace que invitar signifique algo
-  const linkCamaut = staffId
-    ? `https://capyapp.co/camareroa?ref=${staffId}`
+  // quién, que es lo único que hace que invitar signifique algo. Con el alias
+  // cuando lo tiene: un uuid ocupa tres renglones en un WhatsApp y da
+  // desconfianza. El alta acepta las dos formas, así que un link viejo con id
+  // sigue atribuyendo aunque después cambie el alias.
+  const ref = staffAlias || staffId
+  const linkCamaut = ref
+    ? `https://capyapp.co/camareroa?ref=${ref}`
     : 'https://capyapp.co/camareroa'
 
   const INVITE_CONFIG = {
     camaut: {
-      label: 'Camaut',
-      message: `${staffName ? `${staffName} te invita a` : 'Unite a'} Camaut, la app para camareros 🍽️\n\n${linkCamaut}`,
+      label: 'CAPY Camarero',
+      // "Camaut" es el nombre interno del código y no significa nada para
+      // quien recibe el mensaje: la app se llama CAPY Camarero
+      message: `${staffName ? `${staffName} te invita a` : 'Unite a'} CAPY Camarero, la app para camareros 🍽️\n\n${linkCamaut}`,
     },
     local: {
       label: 'CAPY',
@@ -1433,7 +1439,7 @@ function InvitarTab({ staffName, staffId }) {
       <p className="text-[#8896A5] text-xs font-semibold uppercase tracking-wide">¿Qué querés invitar?</p>
       <div className="grid grid-cols-2 gap-2">
         {[
-          { id: 'camaut', label: 'Camarero', desc: 'Se suma a Camaut' },
+          { id: 'camaut', label: 'Camarero', desc: 'Se suma a CAPY Camarero' },
           { id: 'local', label: 'Local', desc: 'Registra su restaurante' },
         ].map(t => (
           <button

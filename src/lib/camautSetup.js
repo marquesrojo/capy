@@ -61,8 +61,12 @@ export async function ensureWaiterRecord(userId, fullName) {
   try {
     const ref = localStorage.getItem('camaut-ref')
     if (ref) {
-      const { data } = await supabaseStaff.from('staff_names').select('id').eq('id', ref).maybeSingle()
-      if (data && data.id !== userId) referidoPor = data.id
+      // Por alias o por id: el link nuevo comparte el alias, pero los que ya
+      // circulan llevan el uuid y tienen que seguir atribuyendo
+      const esUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ref)
+      const q = supabaseStaff.from('staff_names').select('id, profile_id')
+      const { data } = await (esUUID ? q.eq('id', ref) : q.eq('alias', ref)).maybeSingle()
+      if (data && data.profile_id !== userId) referidoPor = data.id
     }
   } catch { /* sin storage o id inválido: queda sin referente */ }
 
