@@ -1,5 +1,12 @@
-// Vercel Cron — runs daily at 23:00 ART (02:00 UTC)
-// Calls the Supabase Edge Function that queries all stats and sends the email.
+// Disparador manual del reporte diario.
+//
+// El envío automático ya no pasa por acá: lo agenda pg_cron dentro de Supabase
+// (migración 0103), que llama a la edge function directo. Tres piezas para una
+// tarea eran dos de más, y la del medio devolvía 401 en silencio.
+//
+// Esto queda porque sirve para dispararlo a mano desde afuera:
+//   curl -X POST https://capyapp.co/api/cron-daily-report \
+//        -H "Authorization: Bearer $CRON_SECRET"
 export default async function handler(req, res) {
   // Vercel avisa que la llamada es del cron de dos formas, y cuál llega depende
   // de si CRON_SECRET está definido en el proyecto. Si ninguna coincide esto
