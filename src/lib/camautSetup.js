@@ -82,5 +82,11 @@ export async function ensureWaiterRecord(userId, fullName) {
     if (staffError) throw new Error(staffError.message)
   }
 
+  // El ref ya cumplió: se borra. Si quedara guardado, el próximo que se registre
+  // en este teléfono —el compañero de turno, el que lo prueba en el mostrador—
+  // se le atribuiría a la misma persona sin que nadie lo haya invitado. Es el
+  // mismo problema que tenía el código de invitación del local.
+  try { localStorage.removeItem('camaut-ref') } catch { /* sin storage, nada que borrar */ }
+
   return venue.id
 }
