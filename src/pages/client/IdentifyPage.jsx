@@ -779,8 +779,11 @@ export default function IdentifyPage() {
                 </svg>
               </div>
               <div className="flex-1 text-left">
-                <p className="font-black text-sm leading-tight" style={{ color: accentOnWhite }}>Retiro en un punto de entrega</p>
-                <p className="text-[#9DAAB8] text-xs mt-0.5">Estás en el local, pero no en una mesa</p>
+                {/* Dónde estás arriba, qué pasa abajo: las tres tarjetas
+                    responden la misma pregunta y el ojo las compara sin
+                    tener que releerlas */}
+                <p className="font-black text-sm leading-tight" style={{ color: accentOnWhite }}>Estoy en el local, pero no en una mesa</p>
+                <p className="text-[#9DAAB8] text-xs mt-0.5">Te lo dejamos en un punto de entrega</p>
               </div>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={accentOnWhite} strokeWidth="2.5" strokeOpacity="0.5"
                 className={`transition-transform duration-200 ${showZonePicker && pickerMode === 'retiro' ? 'rotate-90' : ''}`}>
@@ -897,14 +900,21 @@ export default function IdentifyPage() {
                   </svg>
                 </div>
                 <div className="flex-1">
+                  {/* El título dice dónde está la persona, no qué va a pasar
+                      después: las otras dos tarjetas son para alguien que ya
+                      está adentro —en una mesa o en el predio— y la diferencia
+                      entre "en el local pero no en una mesa" y "fuera del
+                      local" se prestaba a confusión. "Afuera" no obliga a
+                      nadie a ubicarse en el mapa del predio.
+
+                      Lo que cambia según el local es la nota: el mismo botón
+                      lleva a retiro, a delivery, o a elegir entre los dos. */}
                   <p className="font-black text-sm leading-tight text-[#1A2332]">
-                    {retiroExternoEnabled && deliveryEnabled
-                      ? 'No estoy en el local'
-                      : deliveryEnabled ? 'Quiero delivery' : 'Paso a buscarlo'}
+                    Pido desde afuera
                   </p>
                   <p className="text-[#9DAAB8] text-xs mt-0.5">
                     {retiroExternoEnabled && deliveryEnabled
-                      ? 'Pasás a buscarlo o te lo llevamos'
+                      ? 'Lo retirás en el local o te lo llevamos'
                       : deliveryEnabled ? 'Te lo llevamos a tu dirección' : 'Lo preparamos y lo retirás en el local'}
                   </p>
                 </div>
