@@ -779,8 +779,11 @@ export default function IdentifyPage() {
                 </svg>
               </div>
               <div className="flex-1 text-left">
-                <p className="font-black text-sm leading-tight" style={{ color: accentOnWhite }}>Retiro en un punto de entrega</p>
-                <p className="text-[#9DAAB8] text-xs mt-0.5">Estás en el local, pero no en una mesa</p>
+                {/* Dónde estás arriba, qué pasa abajo: las tres tarjetas
+                    responden la misma pregunta y el ojo las compara sin
+                    tener que releerlas */}
+                <p className="font-black text-sm leading-tight" style={{ color: accentOnWhite }}>Estoy en el local, pero no en una mesa</p>
+                <p className="text-[#9DAAB8] text-xs mt-0.5">Te lo dejamos en un punto de entrega</p>
               </div>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={accentOnWhite} strokeWidth="2.5" strokeOpacity="0.5"
                 className={`transition-transform duration-200 ${showZonePicker && pickerMode === 'retiro' ? 'rotate-90' : ''}`}>
